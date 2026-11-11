@@ -8,17 +8,17 @@ Each question names the decision its answer would change.
 
 Share of courses available for choice that have at least one review.
 
-A course counts as available for choice if it is offered in the newest academic year present in the catalogue. `SemesterService._get_academic_year_range` builds that academic year from the offering's semester; the newest one is the set a student picks from in March, and before March it is the year currently running.
+A course counts as available for choice if it is offered in the newest academic year present in the catalogue. That is the year a student picks from in March, and before March the year currently running.
 
 A course counts as covered if any offering of it, from any year, has at least one review. Reviews attach to a `CourseOffering`, but a student picks a `Course`, and the point is that they can read what earlier students wrote about it.
 
 Most courses repeat from year to year, so the denominator is stable and the number moves because of reviews rather than because the catalogue changed. A course offered for the first time cannot have a review yet, which is expected and affects a small part of the set.
 
-Next step after this saturates: raise the bar from one review to five. Depth needs no event collection.
+When most courses already have a review, this number will hardly grow. Then raise the bar from one review to five. This needs no event collection.
 
 Coverage counts supply, not the value a reader gets. Someone can read reviews every day, find them useful, and never change coverage, so this number is lower than what the product is worth.
 
-One caveat when comparing coverage over time: the product can raise it by itself. After a review is saved it can offer a few more courses to rate, picked from the student's most recent semester first, and within it the courses with the fewest reviews, which sends authors straight at the numerator. Before reading a before-and-after comparison, find out whether that was running for ordinary users at the time, or the product nudging its own authors will read as growth of the product.
+Coverage can also rise because of the product itself, not only because more people write. After a review is saved, the product suggests more courses to rate, and courses with few reviews come first. So when you compare coverage before and after a change, check whether these suggestions were turned on for everyone at the time. If they were, part of the growth comes from them.
 
 ## Questions
 
@@ -27,9 +27,9 @@ In the data column, *ready* means it can be computed from stored rows now, *part
 | # | Question | Decision it changes | Metric | Data |
 | --- | --- | --- | --- | --- |
 | Q1 Return | Do people come back, or visit once and disappear? | whether to spend effort on returning users or on new ones | active in last 30 days; retention by registration cohort | partly |
-| Q2 Coverage | Does a student find a review for the course they are choosing? | the north star | see above | ready |
+| Q2 Coverage | Does a student find a review for the course they are choosing? | the north star | share of courses available for choice with at least one review | ready |
 | Q3 Authors | How many registered users write something, and not only read? | whether the gap is traffic or the path to writing | of the accounts that have something to rate, the share with at least one review | ready |
-| Q4 First review | How fast does a new user write their first review? | whether new users need a push in their first days | median days from the first day an account could rate to its first review; share who rate within 7 days of that day | ready |
+| Q4 First review | How fast does a new user write their first review? | whether new users need a push in their first days | median days from the first day an account could rate to its first review | ready |
 | Q5 Habit | For those who wrote once: one-off or habit? | whether it is worth reminding past authors | share of authors with 2 or more reviews; median gap between first and second | ready |
 | Q6 Visit to review | Do visits turn into reviews? | whether to simplify the rating flow, and which part of it | sessions with a review, out of all sessions and out of the sessions that reached the rating form | events |
 | Q7 Reach | Do people get to the reviews at all? | whether the narrow point is supply or discovery | share of users who opened at least one course page that has a review | events |
@@ -41,8 +41,8 @@ In the data column, *ready* means it can be computed from stored rows now, *part
 ## Notes on the questions
 
 - Return and Habit count different groups. Return is about everyone registered, Habit only about those who already wrote a review. Mixing them makes a number about returning authors look like an answer about returning users. Thirty days is a stock — how many people are here now — not a trend. Retention by cohort is the half that is not ready: it needs a record of every sign-in to pile up, because `last_login` keeps only the latest visit.
-- Authors and First review count only accounts that have something to rate. Otherwise first-year students in September add zeros and the result reads as failure. Whether a student may rate a course is not a stored column: it is computed from the course's semester and how far that semester has gone, so a query has to derive it the way the backend does, in `SemesterService`. A course the student dropped does not count. The condition opens part-way through a trimester, so the correction matters at the start of a trimester and shrinks to nothing once rating opens.
-- First review measures the wait after the door opens, not after registration: the clock starts on the later of the day the account was created and the first day it had a course it was allowed to rate. Someone who registered in September and could first rate in November is otherwise counted as two months slow, and as having missed seven days that had not started. Accounts whose seven days have not finished stay out of that share until they have.
+- Authors and First review count only accounts that have something to rate. Otherwise first-year students in September add zeros and the result reads as failure. Whether a student may rate a course is not a stored column: it is computed from the course's semester and how far that semester has gone, so a query has to derive it the same way the backend does. A course the student dropped does not count. The condition opens part-way through a trimester, so the correction matters at the start of a trimester and shrinks to nothing once rating opens.
+- First review measures the wait after the door opens, not after registration: the clock starts on the later of the day the account was created and the first day it had a course it was allowed to rate. Someone who registered in September and could first rate in November is otherwise counted as two months slow.
 - Visit to review has two denominators, because they answer different things. Out of all sessions it is the overall share; it falls when reading grows, which is not a failure of the rating flow, so read it as a trend rather than as a grade. Out of the sessions that reached the rating form it says whether the flow finishes, and that is the number the decision hangs on. A fall in the second ratio is where to look first, not a finding about the form. The prompt that follows a saved review cannot pull it down: it appears only in the same visit, right after a review is saved, so its session is already counted as converted.
 - Reaching the rating form is one observable moment, whether it is opened from the rate control on a course page, the same control on the user's own ratings page, or the prompt that follows a saved review. Every review is saved through that form, so the second ratio cannot pass one. Whether someone *meant* to rate is not observable: a student who searched for a course in order to rate it and one who searched to read it look the same.
 - A session here is counted from the events themselves: it is one account's events, across devices, and it ends after thirty minutes with no event from that account. That is not the server session, which lasts three hours of inactivity and leaves nothing behind. The app is behind sign-in, so every session counted belongs to someone with an account, and the only step before sign-in is the login page. Counting arrivals that never become an account would need a visitor id kept in the browser; no metric here depends on it.
@@ -79,13 +79,13 @@ While the numbers are this small, they are good for telling zero from not-zero a
 
 ## Traps in the data
 
-- `rating_app_student` is not the user base. The catalogue scraper fills it, and `Student.user` is set only for people who have an account. Our own users are counted from `auth_user`. `Student` is the catalogue: it answers what a student takes and how many students there are, and it is never a count of users.
+- `Student` is not the user base. The catalogue scraper fills it, and `Student.user` is set only for people who have an account. Our own users are counted from `User`. `Student` is the catalogue: it answers what a student takes and how many students there are, and it is never a count of users.
 - `last_login` works here but has no history. The session lasts three hours of inactivity and there is no "remember me", so someone coming back on another day signs in again and the field does move. Only the latest login is kept, though: twenty visits and two visits look the same, and past months are gone. Recording every sign-in starts the clock and cannot bring back what is already lost.
 - A deleted review leaves nothing behind. Reviews are removed from the table, there is no column marking them deleted, and an author can delete their own. Coverage can therefore fall with nothing stored to say why, and every count of reviews written is really a count of reviews still there. Only a snapshot taken while they exist can show it happening.
 - The catalogue refresh is not one transaction. It commits a batch of courses at a time, so while it runs the newest academic year is half loaded and coverage moves without any review changing, and a refresh that fails leaves the batches that already went in. Read the coverage denominator only from a finished refresh; repairing a broken one is in [the refresh runbook](../runbooks/saz-manual-refresh.md).
 - `Enrollment.enrolled_at` is the time the row was imported, not the day a student enrolled: every row from one import carries the same timestamp, so nothing about when students choose their courses can be read from it.
 - `Course.ratings_count` and the averages next to it are a cache: they are recomputed when a review is created, changed or deleted, and not when the catalogue import moves an offering from one course row to another. Count coverage from the review rows, joined through the offering to the course.
-- Semesters do not sort with a plain `ORDER BY`. `Semester.term` is text and `Meta.ordering` is `["-year", "-term"]`, which sorts alphabetically. `SemesterService.TERM_PRIORITY` has the right order and analytics SQL has to follow it.
+- Semesters do not sort by their stored fields. `Semester.term` is text, so a plain sort puts the terms in alphabetical order, not in time order. Analytics has to follow the backend's own order of terms.
 - Anonymisation costs nothing. No metric here needs an email, a `student_id` or the text of a review; a hashed author id, dates and aggregates are enough. Every query reads anonymised views.
 - Error monitoring samples traffic on both sides, records part of the front-end sessions, and carries the signed-in person's identity with it. It is not a product-analytics store and should not become one: sampling makes small numbers meaningless, and how long anything is kept there is not ours to decide. The anonymisation above is about our own queries.
 
@@ -94,7 +94,7 @@ While the numbers are this small, they are good for telling zero from not-zero a
 - Session length, time on site, engagement. The product should be useful, not hold attention.
 - Searches with no results. Every course a student has heard of is in the scraped catalogue, so an empty result is a typo, and no decision follows from it.
 - Where traffic comes from. There are no referral links and people arrive from Outlook and from offline, so a referrer tells us nothing. The weaker version we accept instead is jumps in `date_joined` next to known promotion dates.
-- Total number of courses, and total rows in `rating_app_student`. That is the size of a scraper import, not an audience.
+- Total number of courses, and total rows in `Student`. That is the size of a scraper import, not an audience.
 - Average rating across the platform. It mixes courses that have nothing to do with each other, and nothing follows from it moving: the product does not decide which courses exist or how hard they are.
 
 ## Open questions
