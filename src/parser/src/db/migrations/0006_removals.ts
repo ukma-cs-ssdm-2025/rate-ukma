@@ -17,7 +17,9 @@ export default Effect.gen(function* () {
 		CREATE TABLE review_cases (
 			id text PRIMARY KEY DEFAULT 'rev_' || uuidv7(),
 			kind text NOT NULL
-				CHECK (kind IN ('course_match', 'instructor_match', 'removals_held')),
+				CHECK (kind IN (
+					'course_match', 'instructor_match', 'student_match', 'removals_held'
+				)),
 			subject_id text NOT NULL,
 			candidates jsonb NOT NULL,
 			safe_answer jsonb NOT NULL,
