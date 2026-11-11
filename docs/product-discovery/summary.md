@@ -4,9 +4,9 @@ A short summary of practical assignment 2. Rate UKMA is already live, so we used
 
 | Step | Prompt | Full AI result |
 |---|---|---|
-| 2.1 Audience | [2.1_audience_analysis.md](prompts/2.1_audience_analysis.md) | [audience-analysis.md](results/audience-analysis.md) |
-| 2.2 Value proposition | [2.2_vpc.md](prompts/2.2_vpc.md) | [value-proposition.md](results/value-proposition.md) |
-| 2.3 Critical analysis | [2.3_critical_analysis.md](prompts/2.3_critical_analysis.md) | [critical-analysis.md](results/critical-analysis.md) |
+| 2.1 Audience | [2.1_audience_analysis.md](../prompts/2.1_audience_analysis.md) | [audience-analysis.md](audience-analysis.md) |
+| 2.2 Value proposition | [2.2_vpc.md](../prompts/2.2_vpc.md) | [value-proposition.md](value-proposition.md) |
+| 2.3 Critical analysis | [2.3_critical_analysis.md](../prompts/2.3_critical_analysis.md) | [critical-analysis.md](critical-analysis.md) |
 
 Each prompt passes the result of the previous step forward, so the three steps build on each other.
 
@@ -36,7 +36,7 @@ Often it is the same student in different roles, but the three need different da
 
 ## 3. Critical analysis and team decisions
 
-The AI acted as a sceptical tech lead and found 13 risks. We left its wording unchanged in the [full result](results/critical-analysis.md) and filled in only the "Team decision" column.
+The AI acted as a sceptical tech lead and found 13 risks. We left its wording unchanged in the [full result](critical-analysis.md) and filled in only the "Team decision" column.
 
 | # | Risk found by AI | Decision | Why |
 |---|---|---|---|

@@ -5,6 +5,7 @@ import pytest
 
 from rating_app.ioc_container.services import student_service
 from rating_app.models import Student
+from rating_app.repositories.student_repository import account_name_matches
 from rating_app.repositories.to_domain_mappers import StudentMapper
 from rating_app.services.student_service import StudentService
 from scraper.ioc_container.common import course_db_injector
@@ -110,7 +111,9 @@ class TestLinkStudentToUser:
 
     def test_links_student_to_user_successfully(self, service, user_repo, student_repo):
         # Arrange
-        student = SimpleNamespace(email="test@ukma.edu.ua", user_id=None, id="student-id")
+        student = SimpleNamespace(
+            email="test@ukma.edu.ua", user_id=None, id="student-id", first_name="Остап"
+        )
         user = SimpleNamespace(id=1, pk=1, email="test@ukma.edu.ua", student_profile=None)
         user_repo.get_by_email.return_value = user
 
@@ -120,6 +123,57 @@ class TestLinkStudentToUser:
         # Assert
         assert result is True
         student_repo.link_to_user.assert_called_once_with("student-id", user)
+
+    def test_returns_false_when_user_first_name_differs(self, service, user_repo, student_repo):
+        # Arrange
+        student = SimpleNamespace(
+            email="o.koval@ukma.edu.ua", user_id=None, id="older-student", first_name="Остап"
+        )
+        user = SimpleNamespace(
+            id=1, pk=1, email="o.koval@ukma.edu.ua", first_name="Олеся", student_profile=None
+        )
+        user_repo.get_by_email.return_value = user
+
+        # Act
+        result = service.link_student_to_user(student)
+
+        # Assert
+        assert result is False
+        student_repo.link_to_user.assert_not_called()
+
+    def test_links_when_user_first_name_matches_ignoring_case(
+        self, service, user_repo, student_repo
+    ):
+        # Arrange
+        student = SimpleNamespace(
+            email="o.koval@ukma.edu.ua", user_id=None, id="newer-student", first_name="Олеся"
+        )
+        user = SimpleNamespace(
+            id=1, pk=1, email="o.koval@ukma.edu.ua", first_name=" олеся", student_profile=None
+        )
+        user_repo.get_by_email.return_value = user
+
+        # Act
+        result = service.link_student_to_user(student)
+
+        # Assert
+        assert result is True
+        student_repo.link_to_user.assert_called_once_with("newer-student", user)
+
+
+@pytest.mark.parametrize(
+    ("student_first_name", "account_first_name", "account_last_name", "expected"),
+    [
+        ("Дар`я", "Дар'я", "Коваль", True),
+        ("Остап", "Коваль", "Остап", True),
+        ("Остап", "", "", True),
+        ("Остап", "Олеся", "Коваль", False),
+    ],
+)
+def test_account_name_matches(student_first_name, account_first_name, account_last_name, expected):
+    assert (
+        account_name_matches(student_first_name, account_first_name, account_last_name) is expected
+    )
 
 
 class TestLinkUserToStudent:
@@ -149,7 +203,9 @@ class TestLinkUserToStudent:
 
     def test_returns_false_when_no_student_with_email(self, service, student_repo):
         # Arrange
-        user = SimpleNamespace(email="test@ukma.edu.ua", id=1, student_profile=None)
+        user = SimpleNamespace(
+            email="test@ukma.edu.ua", id=1, first_name="", last_name="", student_profile=None
+        )
         student_repo.get_by_email.return_value = None
 
         # Act
@@ -157,11 +213,13 @@ class TestLinkUserToStudent:
 
         # Assert
         assert result is False
-        student_repo.get_by_email.assert_called_once_with("test@ukma.edu.ua")
+        student_repo.get_by_email.assert_called_once_with("test@ukma.edu.ua", "", "")
 
     def test_links_user_to_student_successfully(self, service, student_repo):
         # Arrange
-        user = SimpleNamespace(email="test@ukma.edu.ua", id=1, student_profile=None)
+        user = SimpleNamespace(
+            email="test@ukma.edu.ua", id=1, first_name="", last_name="", student_profile=None
+        )
         student = SimpleNamespace(id="student-id", email="test@ukma.edu.ua", user_id=None)
         student_repo.get_by_email.return_value = student
 
