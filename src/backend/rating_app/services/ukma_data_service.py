@@ -24,6 +24,9 @@ from rating_app.exception.ukma_data_exceptions import (
 
 logger = structlog.get_logger(__name__)
 
+# Connecting to UKMA Data on our own network is quick; a slow connect means it is down.
+UKMA_DATA_CONNECT_TIMEOUT_SECONDS = 3.05
+
 
 class UkmaDataService:
     """Reads UKMA Data's read API with the server's own key.
@@ -81,7 +84,7 @@ class UkmaDataService:
                 f"{base_url.rstrip('/')}{path}",
                 params=query,
                 headers={"Authorization": f"Bearer {api_key}"},
-                timeout=settings.UKMA_DATA_TIMEOUT_SECONDS,
+                timeout=(UKMA_DATA_CONNECT_TIMEOUT_SECONDS, settings.UKMA_DATA_TIMEOUT_SECONDS),
             )
         except requests.Timeout as exc:
             logger.warning("ukma_data_timeout", path=path)
