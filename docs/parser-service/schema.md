@@ -223,7 +223,7 @@ One `cdoc`: a student on one programme (D1).
 
 A page that fails to parse keeps its last good rows, and `offerings.snapshot_id` still points at the snapshot they came from (rule 6).
 
-Each parse of the stored pages, after a crawl or from the `reparse` command, adds a `parses` row (`trigger` `crawl` or `reparse`, `started_at`, `finished_at`, and a `report` with the pages parsed and the failures counted by reason). Each page that fails adds a `parse_failures` row with the parse, the snapshot, the path and the reason. A `parses` row with no `finished_at` is a parse that is running or crashed. `reparse` parses the latest snapshot of every course page again, so no parser version is kept (rule 2).
+Each parse of the stored pages, after a crawl or from the `reparse` command, adds a `parses` row (`trigger` `crawl` or `reparse`, `started_at`, `finished_at`, and a `report` with the pages parsed and the failures counted by reason). Each page that fails adds a `parse_failures` row with the parse, the snapshot, the path and the reason. A `parses` row with no `finished_at` is a parse that is running or crashed. `reparse` parses the latest snapshot of every course page again, so no parser version is kept (rule 2). When that snapshot fails and no offering was stored from the page yet, its newest earlier snapshot that parses is stored instead, and the failure is still recorded.
 
 ### `changes`
 
@@ -239,7 +239,7 @@ The trail of each run and decision (rule 11).
 | `decision_id` | text null | |
 | `at` | timestamptz | |
 
-Each parse's `report` counts its rows by table and action. A removed offering comes back only when a run fetches its page after the removal: its last snapshot stays the latest of its path, so a reparse alone does not restore it, and until then it keeps the content of its last parse. A run that holds the same removals as the year's open `removals_held` case keeps that case. A department keeps the faculty it was first stored with. Faculties, departments and programmes are not removed yet.
+Each parse's `report` counts its rows by table and action. A removed offering comes back only when a run fetches its page after the removal: its last snapshot stays the latest of its path, so a reparse alone does not restore it, and until then it keeps the content of its last parse. A run that holds the same removals as the year's open `removals_held` case keeps that case. A department takes the faculty of its newest card that names one (latest year, then highest САЗ code), so it moves when САЗ rewrites its cards (C4) and takes no new change number when a parse finds the same pages. Faculties, departments and programmes are not removed yet.
 
 ## Review cases and decisions
 
