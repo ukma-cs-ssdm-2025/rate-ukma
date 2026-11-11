@@ -573,6 +573,7 @@
 						"enum": [
 							"course_match",
 							"instructor_match",
+							"student_match",
 							"removals_held"
 						]
 					},
