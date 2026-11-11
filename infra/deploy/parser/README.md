@@ -1,6 +1,6 @@
 # UKMA Data (parser) infrastructure
 
-Terraform and Kubernetes config for the UKMA Data service. Design and decisions: [`docs/parser-service/deployment-infrastructure.md`](../../../docs/parser-service/deployment-infrastructure.md).
+Terraform and Kubernetes config for the UKMA Data service. Design and decisions: [`docs/parser-service/deployment-infrastructure.md`](../../../docs/parser-service/deployment-infrastructure.md) and [ADR-0015](../../../docs/architecture/decisions/0015-parser-production-hosting.md). There are two environments, each its own VM and cluster: `staging` (`cx23`) and `live` (`cx33`).
 
 ```text
 infra/deploy/parser/
@@ -8,16 +8,19 @@ infra/deploy/parser/
 │   ├── modules/
 │   │   └── k3s-node/     # Hetzner VM + firewall, k3s installed by cloud-init
 │   └── envs/
-│       └── staging/      # one root module (and one state file) per environment
+│       ├── staging/      # one root module (and one state file) per environment
+│       └── live/
 └── k8s/
     ├── platform/
     │   ├── operators/    # cert-manager, CloudNativePG (pinned upstream manifests)
     │   ├── config/       # parser namespace, Let's Encrypt ClusterIssuers
-    │   └── database/     # parser-db Postgres cluster
+    │   ├── database/     # parser-db Postgres cluster
+    │   └── monitoring/   # Grafana Alloy, pushes logs and metrics to Grafana Cloud
     └── app/
         ├── base/         # api, worker, migrate Job, Service, Ingress
         └── overlays/
-            └── staging/  # host data.staging.rateukma.com
+            ├── staging/  # host data.staging.rateukma.com
+            └── live/     # host data.rateukma.com
 ```
 
 Terraform runs from CI only, via [`.github/workflows/parser-infra.yml`](../../../.github/workflows/parser-infra.yml):
@@ -44,16 +47,19 @@ These steps are manual because Terraform needs them before it can run.
    - an API token with read & write access (Security → API tokens);
    - an S3 credential pair (Object Storage → S3 credentials);
    - a state encryption key (SSE-C): `openssl rand -base64 32`. Store it in the team password manager too. Terraform needs this exact key for every later plan and apply, and the state can't be read without it.
-4. **GitHub Environments.** Create two under Settings → Environments (later the same pair for `Live`):
+4. **GitHub Environments.** Create two under Settings → Environments for each environment (`Parser Live Plan` and `Parser Live` for live; plus `Parser Live Deploy`, see [Before the first deploy](#before-the-first-deploy)):
 
    | Environment | Used by | Required reviewer | `HCLOUD_TOKEN` |
    | --- | --- | --- | --- |
    | `Parser Staging Plan` | plan job | none | **read-only** token |
    | `Parser Staging` | apply job, Parser Platform | yes | read & write token |
+   | `Parser Live Plan` | plan job | **yes** (it holds the admin kubeconfig, see Platform add-ons) | **read-only** token |
+   | `Parser Live` | apply job, Parser Platform | yes | read & write token |
 
    - On both, under **Deployment branches and tags**, pick **Selected branches and tags** and allow only `main`. Otherwise a run from any branch could read the secrets.
    - On `Parser Staging`, leave **Prevent self-review** off if you are the only reviewer.
    - With a read-only token in the plan environment, only an approved run can change Hetzner resources.
+   - Live has the same secrets as staging, but its own SSH keys and kubeconfigs. Use the same Hetzner project and state bucket (the state key is `live/terraform.tfstate`).
    - Add these secrets to both:
 
      | Secret | Value |
@@ -66,7 +72,7 @@ These steps are manual because Terraform needs them before it can run.
 
    The plan job also needs `PARSER_SSH_PUBLIC_KEY` and `PARSER_TUNNEL_SSH_PUBLIC_KEY` (see below). The apply job doesn't: the saved plan already holds them.
 
-5. **Check.** Run the workflow with `action: plan`. On an empty environment it should report `No changes.`, and `staging/terraform.tfstate` should appear in the bucket after the first `apply`.
+5. **Check.** Run the workflow with `action: plan`. On an empty environment it should report `No changes.`, and `<env>/terraform.tfstate` should appear in the bucket after the first `apply`.
 
 ## Cluster node (`modules/k3s-node`)
 
@@ -90,6 +96,7 @@ Each environment is one Hetzner VM running single-node k3s:
 1. Generate two key pairs for the node, with no passphrase so CI can use them:
 
    ```bash
+   # for live, use parser-live and parser-live-tunnel instead
    ssh-keygen -t ed25519 -N "" -C parser-staging -f parser-staging                # deploy (admin)
    ssh-keygen -t ed25519 -N "" -C parser-staging-tunnel -f parser-staging-tunnel  # tunnel only
    ```
@@ -106,7 +113,7 @@ Each environment is one Hetzner VM running single-node k3s:
 
 ### After the first `apply`
 
-1. **DNS:** add a Route 53 A record pointing the staging host at the `ipv4` from the run summary.
+1. **DNS:** add a Route 53 A record pointing the environment's host (`data.staging.rateukma.com` or `data.rateukma.com`) at the `ipv4` from the run summary. For live, do it before the first deploy: cert-manager needs it for HTTP-01.
 2. **Check the node:** wait ~2 minutes for cloud-init, then:
 
    ```bash
@@ -150,7 +157,7 @@ Pull requests only render the kustomizations.
 The longer step scripts live in `scripts/ci/parser-platform-*.sh`.
 
 `Parser Staging Plan` has no reviewer, but its `PARSER_KUBECONFIG` is the admin kubeconfig: a dispatch from any branch its deployment branch policy allows runs that branch's scripts as cluster-admin without approval.
-This is accepted on staging. Keep the policy to `main` plus the branch under review, and remove that branch once it is merged. A production environment needs a reviewer on the diff job too, or a scoped identity for it.
+This is accepted on staging. Keep the policy to `main` plus the branch under review, and remove that branch once it is merged. `Parser Live Plan` has a required reviewer for this reason.
 
 ### Before the first run
 
@@ -174,6 +181,8 @@ KEY=$(ssh deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2) \
 ```
 
 If the VM is recreated, its IP and host key change: update both secrets, in every environment that has them.
+
+Monitoring needs a `CLUSTER_NAME` per environment. Parser Platform writes it (`parser-staging` or `parser-live`) into the `grafana-cloud` Secret next to the Grafana credentials, and Alloy reads it with `sys.env("CLUSTER_NAME")` as its `cluster` label. Each environment pushes to the same Grafana Cloud stack, so check the active series stay under the free tier's 10k limit (Grafana Cloud → Usage) when live is added, and keep the keep-lists in `config.alloy` tight.
 
 ### Check
 
@@ -231,7 +240,8 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workflows/parser-deploy.yml):
 
 - **Pull requests** render each overlay and validate it with kubeconform against the Kubernetes 1.36 schemas.
-- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA) to the chosen environment. The `deploy` job:
+- **Automatic:** a push to `main` that changes `src/parser/**` or `infra/deploy/parser/k8s/app/**` runs Deploy Parser from the main pipeline, first for `staging`, then for `live` if staging succeeded. This is independent of the web app's Live Build.
+- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA) to the chosen environment by hand, for example a rollback. The `deploy` job:
   1. picks the parser image with `scripts/ci/find-image-tags.sh`: the exact tag, or for a version the newest parser release at or below it, since the image is only built when `src/parser` changes;
   2. renders the overlay with that tag;
   3. opens the tunnel as the `tunnel` user with the `parser-deployer` kubeconfig, and checks with `kubectl auth can-i` that it can't read Secrets or change RBAC;
@@ -239,6 +249,7 @@ Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workfl
   5. applies the rest and waits for both rollouts;
   6. curls `https://<host>/health`, which checks the certificate too, and waits for the worker's `Worker connected to Postgres` log line.
 - There is no reviewer: one deploy per environment runs at a time, and a newer one waits for it.
+- Every parser merge restarts the worker, and with no open run that starts a full crawl. On live the crawl uses the same САЗ account as staging, so two crawls can run at once until the daily schedule exists.
 
 `parser-deployer` is a ServiceAccount in `parser` with a Role (`platform/config/deployer.yaml`) that allows only what the deploy does: apply the Deployments, Service, Ingress and Job, delete the Job, and read pods, logs and events.
 It can't read Secrets through the API, change RBAC or touch anything outside `parser`.
@@ -246,9 +257,18 @@ It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `pa
 
 ### Before the first deploy
 
+Everything below is done once per environment: replace `Staging` with `Live` in the environment names, `parser-staging` with `parser-live` in key names, and use the host `data.rateukma.com`.
+
+**First rollout of live,** in this order (all manual dispatches):
+
+1. **Provision Parser VM**, `live`: `plan`, then `apply`.
+2. Add the node's secrets, the DNS record `data.rateukma.com` and the deployer kubeconfig (steps below).
+3. **Parser Platform**, `live`: `diff`, then `apply`.
+4. **Deploy Parser**, `live`, the current version. After that, deploys are automatic.
+
 1. **Pull token.** The image is private, so the pods pull it with the `parser-ghcr-pull` Secret, which **Parser Platform** creates on apply.
    - Create a **classic** personal access token with only **`read:packages`**. ghcr.io accepts no other kind.
-   - Add it to `Parser Staging` as `PARSER_GHCR_PULL_TOKEN`, and its owner's GitHub username as `PARSER_GHCR_PULL_USER`.
+   - Add it to `Parser Staging` (and `Parser Live`) as `PARSER_GHCR_PULL_TOKEN`, and its owner's GitHub username as `PARSER_GHCR_PULL_USER`.
    - **On a cluster installed before this Secret existed, and to rotate the token,** apply it over the admin tunnel. A Parser Platform run with no other changes skips apply. When rotating, update both GitHub secrets too.
 
      ```bash
@@ -256,9 +276,9 @@ It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `pa
        | kubectl apply --server-side --field-manager=parser-platform -f -
      ```
 2. **САЗ account.** There is no service account yet, so the worker signs in with a team member's own account. **The first deploy starts a crawl with it.**
-   - Add the account to `Parser Staging` as `PARSER_CORPORATE_EMAIL` and `PARSER_CORPORATE_PASSWORD`. **Parser Platform** creates the `parser-saz` Secret from them on apply.
+   - Add the account to `Parser Staging` (and `Parser Live`) as `PARSER_CORPORATE_EMAIL` and `PARSER_CORPORATE_PASSWORD`. **Parser Platform** creates the `parser-saz` Secret from them on apply.
    - To change the account, update both GitHub secrets and run Parser Platform `apply`, then `kubectl -n parser rollout restart deployment/parser-worker`, since a running worker keeps the old values. A failed sign-in isn't retried until the worker restarts, and each try sends the password, so check the account before restarting.
-3. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
+3. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` (live: `data.rateukma.com`) → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge, so it must exist before the first deploy.
 4. **Tunnel user.** A node created before the `tunnel` user existed doesn't have it, and Terraform won't add it (it ignores `user_data`). Create it over the admin login, with the `parser-staging-tunnel` key pair from [Before the first `apply`](#before-the-first-apply):
 
    ```bash
