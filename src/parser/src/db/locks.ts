@@ -8,10 +8,6 @@ import { SqlClient } from "effect/sql";
  *  claimed pages. */
 export const CRAWL_LOCK = 1;
 
-/** Held by an offering write until it commits: two writers would plan the same
- *  inserts. */
-export const WRITE_LOCK = 2;
-
 /** Held by an offering parse for its whole run: a run that read an older
  *  catalog page could write after a newer one and undo its faculty renames. */
 export const PARSE_LOCK = 3;

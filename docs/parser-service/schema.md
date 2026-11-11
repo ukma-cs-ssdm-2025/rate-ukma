@@ -57,7 +57,7 @@ Terms are never removed.
 | `faculty_id` | text | departments only; a parse may change it, for every year at once (C4) |
 | `change_no`, `removed_at` | | |
 
-A department is found by name alone, so a faculty reorganisation moves the department instead of creating it again (C4).
+A department is found by name alone, so a faculty reorganisation moves the department instead of creating it again (C4). When САЗ renames a faculty or department, the row is found by its filter id instead and takes the new name, so its id and its offerings stay; the old name is not kept.
 
 ### `programmes`
 

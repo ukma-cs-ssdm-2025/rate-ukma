@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { PARSE_LOCK, sessionLock, WRITE_LOCK } from "../db/locks.ts";
+import { PARSE_LOCK, sessionLock } from "../db/locks.ts";
 import type {
 	OfferingTerm,
 	ParsedOffering,
@@ -194,8 +194,6 @@ export class OfferingStore extends Context.Service<
 
 			const write = (rows: OfferingRows) =>
 				Effect.gen(function* () {
-					yield* sql`SELECT pg_advisory_xact_lock(${WRITE_LOCK})`;
-
 					const faculties = planUnits(
 						yield* findUnits("faculties"),
 						rows.faculties,
