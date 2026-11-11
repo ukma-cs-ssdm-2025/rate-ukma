@@ -65,32 +65,32 @@ sequenceDiagram
 - **Course page**: the САЗ page `/course/{id}`. It shows the card and loads the enrollments from the students page `/course/{id}/students`.
 - **Offering**: one САЗ course card, that is, one course in one academic year. It runs in one or more terms.
 - **Term**: one season of one academic year, written `2026-27-FALL`. Both years are in the id because САЗ and Rate UKMA count years differently.
-- **Course**: the offerings of one subject across years.
+- **Course**: the offerings of one subject across years, grouped by title, department and level. A faculty is an attribute of the department and may change for past years too.
 - **Programme**: a study programme that an offering counts for, as compulsory, professionally oriented or elective.
 - **Instructor**: the API name for a teacher from smart.ukma.
-- **Student**: a person from САЗ students pages, with email, last name, first name, patronymic and programme.
+- **Student**: a person from САЗ students pages, with email, last name, first name, patronymic and one or more programme records (`student_programmes`, one per `cdoc`), for example a bachelor's and a later master's. An email is not a person: САЗ gives a former student's address to a newer one, so a student is matched by programme record (`cdoc`), then by email and first name ([ADR-0013](../architecture/decisions/0013-student-identity.md)).
 - **Enrollment**: one student on one offering, with a status and a group.
 - **Source part**: one slice of a source that one run crawls, for example САЗ courses of 2026-27.
 - **Run**: one crawl of one source part.
 - **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response with its keys sorted. It keeps the page's tables and labels, so a later parser can read new fields from it.
 - **Safe answer**: the choice that is easy to undo: a new course rather than a merge, no teacher link rather than a guess, removals held rather than applied.
 - **Review case**: a question the service could not decide itself, published with its safe answer and waiting for staff. See [Review cases](#review-cases).
-- **Decision**: a staff answer, stored as its own row. It changes course groups, teacher links or held removals, or keeps the safe answer. It answers a review case, or staff start it themselves, for example a split.
+- **Decision**: a staff answer, stored as its own row. It changes course groups, teacher links, which student a programme record belongs to, or held removals, or keeps the safe answer. It answers a review case, or staff start it themselves, for example a split.
 - **Change number**: the number of the last change to a row, from one counter for the whole service.
 - **Scope**: one permission on a key.
 
 ## Rules
 
 1. Ids are ours, permanent and opaque, with a type prefix (`off_...`). Source ids, like the САЗ code, are only lookup keys.
-2. The worker stores a page snapshot when its hash changes, then parses the snapshot. A parser fix re-parses stored snapshots and sends no request to the source. Raw HTML is kept only when a snapshot fails.
+2. The worker stores a page snapshot when its hash changes, then parses the snapshot. Every snapshot keeps its page, so a parser fix re-parses stored pages without a request to the source.
 3. A run visits each course page once and fetches its card and enrollments together.
-4. Soft delete: no row is ever deleted. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Вступ до аналізу даних». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
+4. Soft delete: no row is ever deleted, except an offering's term and programme rows, which every parse of its card replaces. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Теорія умовних прикладів». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
 5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader keeps one saved number per list, asks each list for rows above its number, and saves the list's new number only after it has stored every page of it. Readers never sync by time: a slow write can appear after a later one and be skipped.
-6. A run publishes new and changed rows at once. It removes rows only when it read its whole source part without errors, so a partial crawl removes nothing. When it would remove more of the offerings it covers than a set threshold allows, it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and is reported (see [Observability](#observability)): the fix is parser code, not a staff decision.
+6. A run publishes new and changed rows at once. It removes rows only when it read the pages each list is read from without errors: a year's offerings, with their term and programme rows, when every catalog and course page of the run loaded and the catalog pages report the same total as the codes collected, and one offering's enrollments when its students page loaded and parsed. So a partial crawl removes nothing it did not read. When it would remove more of the year's offerings than the removal threshold allows (a setting, 5% to start), it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and is reported (see [Observability](#observability)): the fix is parser code, not a staff decision.
 7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field. Rate UKMA picks one term for its own semester field when it syncs, as its importer does today.
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
 9. The service owns the course groups, and Rate UKMA takes them from it. The first matching rules are those of Rate UKMA's current importer, and we improve them as we work with the data. Ratings stay in place because Rate UKMA attaches them to offerings, and a reader moves an offering when its course link changes. When the service is not sure, it publishes the safe answer and opens a review case.
-10. A decision changes only links and removals, and readers get it with their next sync. Staff can merge two courses or split one. When two courses merge, the old course gets `removedAt` and `mergedInto`, the id of the course that now holds its offerings. A split moves some offerings to a new course, for example when one title covers two different courses of two programmes. A decision wins over the matching rules, also after a rule changes, and a later decision can reverse it.
+10. A decision changes only links and removals, including which student a programme record belongs to, and readers get it with their next sync. Staff can merge two courses or split one. When two courses merge, the old course gets `removedAt` and `mergedInto`, the id of the course that now holds its offerings. A split moves some offerings to a new course, for example when one title covers two different courses of two programmes. A decision wins over the matching rules, also after a rule changes, and a later decision can reverse it.
 11. Every change has a trail. Each run records the rows it added, changed and removed. Each decision records who made it (the key, and the superuser when it came from the staff section), when, and the rows it changed. The staff section shows both.
 
 ## Review cases
@@ -104,6 +104,7 @@ The cases below are where we start. We can add, change or drop cases as we work 
 | An offering may belong to an existing course | a new course | merge, or keep apart |
 | A teacher may teach an offering | no link | link, or keep unlinked |
 | A run would remove more offerings than the threshold allows | removals held | apply, or drop |
+| A programme record matches a student by email and first name, but not by surname | the same student | split, or keep together |
 
 ## API
 
@@ -120,8 +121,8 @@ JSON under `/v1`. The OpenAPI file is generated from the code and is the contrac
 | Runs | runs and data freshness | Read runs |
 | | an extra run of one source part | Start runs |
 | Review cases and decisions | open cases, their safe answers, all decisions | Decide review cases |
-| Snapshots | page content of a run, with student names | Read snapshots |
-| Audit log | key changes, extra runs, decisions, reads of student data | Read audit log |
+| Snapshots | page content of a run, with student names and smart.ukma teacher lists | Read snapshots |
+| Audit log | every keyed request, key changes, extra runs, decisions, reads of student data | Read audit log |
 | Keys | create and revoke keys | Manage keys |
 
 Every list takes the change number a reader saved and uses cursor pagination. Every response says when its data was last updated.
@@ -140,13 +141,15 @@ Every list takes the change number a reader saved and uses cursor pagination. Ev
 | Read students | students and enrollments | no |
 | Start runs | an extra run | no |
 | Decide review cases | review cases and decisions | no |
-| Read snapshots | page snapshots, which carry student names | no |
+| Read snapshots | page snapshots, which carry personal data: student names and the smart.ukma teacher lists | no |
 | Read audit log | the audit log | no |
 | Manage keys | create and revoke keys | no |
 
+- The service defines a scope only once an endpoint needs it: today Read catalog (`catalog:read`, the default) and Decide review cases (`review:decide`). The others in this table come with their endpoints.
 - Example keys: Rate UKMA has the defaults plus instructors, students, start runs and decide review cases. UKMA Schedule has the defaults plus students. The team's own key has every scope, and only it can manage keys.
 - In the staff section, Rate UKMA's backend checks that the user is a superuser, then calls the service with Rate UKMA's key. The browser never holds a key.
-- The audit log records key changes, extra runs, decisions and every read of student data. It stores no data values.
+- The audit log records every request made with a key (the key, the route and the row count), key changes, extra runs, decisions and every read of student data. It stores no data values.
+- A refused request whose key exists (wrong secret, revoked, expired, missing scope) is recorded for that key with the reason. A token whose key id is unknown or malformed is not recorded: there is no key to attach it to. Key ids are not secret, so anyone who knows one can add refused rows for it; there is no rate limit yet.
 - No real student data in fixtures, logs, screenshots or issues.
 
 ## Observability

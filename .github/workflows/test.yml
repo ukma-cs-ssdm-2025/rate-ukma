@@ -105,6 +105,20 @@ jobs:
   check-parser:
     if: inputs.parser_changed == true && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v5
         with:
@@ -118,6 +132,9 @@ jobs:
       - name: Run lint, format, typecheck and tests
         working-directory: ${{ env.PARSER_DIR }}
         run: pnpm check:all
+
+      - name: Lint the generated OpenAPI file
+        run: npx --yes @redocly/cli@2.57.0 lint docs/parser-service/openapi.json
 
   test-backend:
     if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'

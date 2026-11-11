@@ -1,11 +1,23 @@
 import { createHash } from "node:crypto";
 import { Schema } from "effect";
 
-/** Yii renders a fresh CSRF token into every page; without it a page that did
- *  not change hashes the same on every request. */
-const CSRF_TOKENS = [
-	/(<meta name="csrf-token" content=")[^"]*/gu,
-	/(<input type="hidden" name="_csrf" value=")[^"]*/gu,
+/** Parts of a САЗ page that change without the course changing, each with
+ *  what it becomes. Without this a page that did not change hashes differently
+ *  on every request, after every САЗ deploy, or under another account. */
+const NOISE: ReadonlyArray<readonly [RegExp, string]> = [
+	// Yii renders a fresh CSRF token into every page.
+	[/(<meta name="csrf-token" content=")[^"]*/gu, "$1"],
+	[/(<input type="hidden" name="_csrf" value=")[^"]*/gu, "$1"],
+	// Asset links carry a version stamp that changes on every САЗ deploy.
+	[/((?:href|src)="\/[^"?]*)\?v=\d+"/gu, '$1"'],
+	// The navbar holds the signed-in account's name and the list of years.
+	[/(<nav id="widget-navbar"[^>]*>).*?(<\/nav>)/su, "$1$2"],
+	// The footer holds the current year.
+	[/(<footer class="footer">).*?(<\/footer>)/su, "$1$2"],
+	// Rows of the signed-in account's own programme are highlighted.
+	[/<tr class="success">/gu, "<tr>"],
+	// Postgres text cannot hold NUL.
+	[/\0/gu, ""],
 ];
 
 export interface Snapshot {
@@ -20,7 +32,10 @@ const snapshotOfContent = (content: string): Snapshot => ({
 
 export const snapshotOf = (body: string): Snapshot =>
 	snapshotOfContent(
-		CSRF_TOKENS.reduce((page, token) => page.replace(token, "$1"), body),
+		NOISE.reduce(
+			(page, [pattern, replacement]) => page.replace(pattern, replacement),
+			body,
+		),
 	);
 
 const isJsonObject = Schema.is(Schema.JsonObject);

@@ -1,5 +1,6 @@
 import { DateTime, Effect, Schema } from "effect";
 import {
+	CrawlAlreadyRunning,
 	crawlRun,
 	PageFailed,
 	type PageSource,
@@ -7,6 +8,7 @@ import {
 } from "../crawl/crawl.ts";
 import { CrawlStore, type QueuedPage } from "../crawl/CrawlStore.ts";
 import { snapshotOfJson } from "../crawl/snapshot.ts";
+import { SMART_CRAWL_LOCK } from "../db/locks.ts";
 import { SmartClient, type SmartSignInFailed } from "./SmartClient.ts";
 
 const SMART_SOURCE = "smart-ukma";
@@ -35,17 +37,22 @@ export class SmartCrawlFailed extends Schema.TaggedError<SmartCrawlFailed>()(
 export const crawlSmart = Effect.fn("crawlSmart")(function* () {
 	const store = yield* CrawlStore;
 	const smart = yield* SmartClient;
+
+	if (!(yield* store.lockCrawl(SMART_CRAWL_LOCK))) {
+		return yield* new CrawlAlreadyRunning();
+	}
+
 	const resumed = yield* store.openRuns(SMART_SOURCE);
 
 	const runs =
 		resumed.length > 0
 			? resumed
-			: [
-					yield* store.startRun(
-						smartSourcePartOf(yield* DateTime.now),
-						SMART_PAGES,
-					),
-				];
+			: yield* store.startRuns([
+					{
+						sourcePart: smartSourcePartOf(yield* DateTime.now),
+						pages: SMART_PAGES,
+					},
+				]);
 
 	const source: PageSource<SmartSignInFailed> = {
 		visit: (page) =>
@@ -57,7 +64,7 @@ export const crawlSmart = Effect.fn("crawlSmart")(function* () {
 						Effect.fail(new PageFailed({ reason: "not JSON" })),
 				}),
 			),
-		failsRun: (tally) => tally.failed > 0,
+		failsRun: (counts) => counts.failed > 0,
 	};
 
 	const results = yield* Effect.forEach(runs, (run) => crawlRun(run, source));
@@ -68,4 +75,4 @@ export const crawlSmart = Effect.fn("crawlSmart")(function* () {
 	}
 
 	return results;
-});
+}, Effect.scoped);

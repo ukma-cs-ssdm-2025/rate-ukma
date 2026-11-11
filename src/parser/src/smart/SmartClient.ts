@@ -42,7 +42,7 @@ export class SmartSignInFailed extends Schema.TaggedError<SmartSignInFailed>()(
 	}
 }
 
-/** `status` 0 is a transport error. */
+/** `status` 0 is a transport error or a request that ran out of time. */
 export class SmartRequestFailed extends Schema.TaggedError<SmartRequestFailed>()(
 	"SmartRequestFailed",
 	{ path: Schema.String, status: Schema.Number },
@@ -131,8 +131,16 @@ export class SmartClient extends Context.Service<
 				Config.withDefault(Duration.seconds(1)),
 			);
 
+			const timeout = yield* Config.Duration("SMART_REQUEST_TIMEOUT").pipe(
+				Config.withDefault(Duration.seconds(30)),
+			);
+
 			const sessions = yield* MicrosoftSessions;
-			const session = yield* sessions.open({ email, password }, gap);
+
+			const session = yield* sessions.open(
+				{ email, password },
+				{ gap, timeout },
+			);
 
 			// Kept in memory only, never logged or stored.
 			const held = yield* Ref.make(Option.none<Tokens>());
@@ -144,7 +152,7 @@ export class SmartClient extends Context.Service<
 				session
 					.send(request)
 					.pipe(
-						Effect.catchTag("HttpClientError", () =>
+						Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
 							Effect.fail(new SmartRequestFailed({ path, status: 0 })),
 						),
 					);
@@ -178,7 +186,7 @@ export class SmartClient extends Context.Service<
 
 				return tokens;
 			}).pipe(
-				Effect.catchTag("HttpClientError", () =>
+				Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
 					Effect.fail(
 						new SmartRequestFailed({ path: "/start-login", status: 0 }),
 					),

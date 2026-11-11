@@ -78,6 +78,12 @@ export const testIds = {
 		errorMessage: "login-error-message",
 	},
 
+	// Auth pages backdrop (course dots and their tooltips)
+	authShell: {
+		dot: "auth-shell-dot",
+		tooltip: "auth-shell-tooltip",
+	},
+
 	// Header / Navigation
 	header: {
 		root: "header",

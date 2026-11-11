@@ -60,7 +60,13 @@ interface FakeOptions {
 	readonly detour?: string;
 	/** Whether the Spring callback drops the connection. */
 	readonly callbackDown?: boolean;
+	/** Whether the Spring callback never finishes its answer. */
+	readonly callbackStalls?: boolean;
+	/** A path whose first answer never finishes. */
+	readonly stallsOnce?: string;
 }
+
+const stalled = () => new Response(new ReadableStream({ start: () => {} }));
 
 /** A fake smart.ukma: its Spring sign-in redirects through Microsoft and
  *  hands the web app a token pair; the API needs the access token, and each
@@ -107,6 +113,8 @@ const makeFakeFetch = (options: FakeOptions) => {
 		if (url.pathname === "/login/oauth2/code/azure") {
 			if (options.callbackDown) throw new TypeError("fetch failed");
 
+			if (options.callbackStalls) return stalled();
+
 			return redirect(`/get-user?${new URLSearchParams(issue())}`);
 		}
 
@@ -130,6 +138,13 @@ const makeFakeFetch = (options: FakeOptions) => {
 			return new Response(null, { status: 401 });
 
 		if (status !== undefined) return new Response(null, { status });
+
+		if (
+			url.pathname === options.stallsOnce &&
+			count(visits, `GET ${url.host}${url.pathname}`) === 1
+		) {
+			return stalled();
+		}
 
 		if (url.pathname === "/api/department") return json(DEPARTMENTS);
 
@@ -155,6 +170,8 @@ const clientWith = (fake: ReturnType<typeof makeFakeFetch>) =>
 
 const count = (visits: ReadonlyArray<string>, visit: string) =>
 	visits.filter((seen) => seen === visit).length;
+
+const LIST = "/api/department";
 
 const PASSWORD = "POST login.microsoftonline.com/common/login";
 
@@ -351,6 +368,41 @@ describe("SmartClient", () => {
 			assert.strictEqual(count(fake.visits, PASSWORD), 1);
 		}).pipe(Effect.provide(clientWith(fake)));
 	});
+
+	it.effect("does not post the password again after a stalled callback", () => {
+		const fake = makeFakeFetch({ expiry: 3600, callbackStalls: true });
+
+		return Effect.gen(function* () {
+			const smart = yield* SmartClient;
+			const fiber = yield* Effect.forkChild(Effect.flip(smart.get(LIST)));
+
+			yield* TestClock.adjust("2 minutes");
+			const error = yield* Fiber.join(fiber);
+
+			assert.instanceOf(error, SmartSignInFailed);
+			assert.strictEqual(count(fake.visits, PASSWORD), 1);
+		}).pipe(Effect.provide(clientWith(fake)));
+	});
+
+	it.effect(
+		"gives up on a stalled response after the time limit and retries it",
+		() => {
+			const fake = makeFakeFetch({ expiry: 3600, stallsOnce: LIST });
+			const asked = () => count(fake.visits, `GET smart.ukma.edu.ua${LIST}`);
+
+			return Effect.gen(function* () {
+				const smart = yield* SmartClient;
+				const fiber = yield* Effect.forkChild(smart.get(LIST));
+
+				yield* TestClock.adjust("29 seconds");
+				assert.strictEqual(asked(), 1);
+
+				yield* TestClock.adjust("3 seconds");
+				assert.deepStrictEqual(yield* Fiber.join(fiber), DEPARTMENTS);
+				assert.strictEqual(asked(), 2);
+			}).pipe(Effect.provide(clientWith(fake)));
+		},
+	);
 
 	it.effect("fails a sign-in that stops on another host", () =>
 		Effect.gen(function* () {

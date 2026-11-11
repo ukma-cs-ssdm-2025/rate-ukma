@@ -159,8 +159,24 @@ def test_session_returns_is_student_false_for_non_student_user(api_client, user_
     data = response.json()
     assert data["is_authenticated"] is True
     assert data["is_student"] is False
+    assert data["is_superuser"] is False
     assert data["speciality"] is None
     assert data["user"]["email"] == user.email
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_session_returns_is_superuser_true_for_superuser(api_client, user_factory):
+    # Arrange
+    user = user_factory(email="staff@example.invalid", is_superuser=True)
+    api_client.force_authenticate(user=user)
+
+    # Act
+    response = api_client.get("/api/v1/auth/session/")
+
+    # Assert
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["is_superuser"] is True
 
 
 def test_csrf_returns_token_and_sets_cookie_when_anonymous(api_client):

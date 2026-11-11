@@ -1,31 +1,37 @@
-import { Cause, Effect, Schema } from "effect";
+import { Cause, Effect, Result, Schema } from "effect";
 import {
 	catalogPath,
+	catalogProblem,
 	parseAcademicYears,
 	parseCatalogPage,
 	parseCatalogPath,
 } from "../saz/catalog.ts";
-import { SazClient, type SazSignInFailed } from "../saz/SazClient.ts";
+import { CRAWL_LOCK } from "../db/locks.ts";
+import {
+	SazClient,
+	type SazSignInFailed,
+	type SazRateLimited,
+} from "../saz/SazClient.ts";
 import {
 	type ClaimedPage,
 	CrawlStore,
-	type KindTally,
 	type OpenRun,
+	type PageCounts,
 	type QueuedPage,
 } from "./CrawlStore.ts";
 import { type Snapshot, snapshotOf } from "./snapshot.ts";
 
-const TRANSPORT_ERROR = "transport error";
+/** The `error` a failed request leaves on its page. */
+const requestError = (status: number): string =>
+	status === 0 ? "transport error" : `HTTP ${status}`;
 
-/** Why a page failed, as stored on it: an HTTP status or `TRANSPORT_ERROR`. */
+/** Why a page failed, as stored on it. */
 export class PageFailed extends Schema.TaggedError<PageFailed>()("PageFailed", {
 	reason: Schema.String,
 }) {}
 
 export const pageFailedOf = (status: number): PageFailed =>
-	new PageFailed({
-		reason: status === 0 ? TRANSPORT_ERROR : `HTTP ${status}`,
-	});
+	new PageFailed({ reason: requestError(status) });
 
 /** How a run reads its pages. An error other than `PageFailed`, such as a
  *  failed sign-in, fails the run. */
@@ -37,13 +43,23 @@ export interface PageSource<E> {
 		},
 		PageFailed | E
 	>;
-	/** Whether failed pages of this kind fail the whole run. */
-	readonly failsRun: (tally: KindTally) => boolean;
+	/** Whether these failed pages fail the whole run. */
+	readonly failsRun: (counts: PageCounts) => boolean;
 }
+
+/** Failures a later try may not repeat. A САЗ 500 repeats for the same page,
+ *  so it is not one of them. */
+const PASSING_ERRORS = [0, 429, 502, 503, 504].map(requestError);
 
 /** The catalog's year filter listed nothing, so its markup likely changed. */
 export class NoAcademicYears extends Schema.TaggedError<NoAcademicYears>()(
 	"NoAcademicYears",
+	{},
+) {}
+
+/** Another worker holds the crawl lock. */
+export class CrawlAlreadyRunning extends Schema.TaggedError<CrawlAlreadyRunning>()(
+	"CrawlAlreadyRunning",
 	{},
 ) {}
 
@@ -53,16 +69,27 @@ const SAZ_SOURCE = "saz-courses";
 export const sourcePartOf = (year: number): string =>
 	`${SAZ_SOURCE}:${year}-${String(year + 1).slice(2)}`;
 
+/** The inverse of `sourcePartOf`: `saz-courses:2025-26` is 2025. */
+export const academicYearOf = (sourcePart: string): number | undefined => {
+	const year = /^saz-courses:(\d{4})-\d{2}$/.exec(sourcePart)?.[1];
+
+	return year === undefined ? undefined : Number(year);
+};
+
 /** The pages a catalog page leads to: the other catalog pages (from page 1
- *  only, which carries the pager) and each listed course with its students. */
+ *  only, which carries the pager) and each listed course with its students;
+ *  or why the catalog page cannot be trusted. */
 const linkedPages = (
 	page: ClaimedPage,
 	body: string,
-): ReadonlyArray<QueuedPage> => {
-	if (page.kind !== "catalog") return [];
+): Result.Result<ReadonlyArray<QueuedPage>, string> => {
+	if (page.kind !== "catalog") return Result.succeed([]);
 
 	const catalog = parseCatalogPage(body);
 	const { year, page: number } = parseCatalogPath(page.path);
+	const problem = catalogProblem(catalog, number);
+
+	if (problem !== undefined) return Result.fail(problem);
 
 	const otherCatalogPages =
 		number === 1
@@ -72,17 +99,19 @@ const linkedPages = (
 				}))
 			: [];
 
-	return [
+	return Result.succeed([
 		...otherCatalogPages,
 		...catalog.codes.flatMap((code) => [
 			{ kind: "course" as const, path: `/course/${code}` },
 			{ kind: "students" as const, path: `/course/${code}/students` },
 		]),
-	];
+	]);
 };
 
 /** Works through one run's queue. A page that fails is marked failed and the
- *  run goes on; a failed sign-in or a page `source.failsRun` names fails the run. */
+ *  run goes on; an error of the source, such as a failed sign-in or a long
+ *  rate limit, or a page `source.failsRun` names fails the run. A crash, such
+ *  as a lost database, leaves the run `running` to resume later. */
 export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 	run: OpenRun,
 	source: PageSource<E>,
@@ -115,10 +144,9 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 		}
 	});
 
-	// A transport error that outlasts the client's retries is a network blip and
-	// gets one more pass; a САЗ 500 repeats on every try, so it does not.
+	// A passing failure that outlasts the client's retries gets one more pass.
 	const crawl = drain.pipe(
-		Effect.andThen(store.requeue(run.id, TRANSPORT_ERROR)),
+		Effect.andThen(store.requeue(run.id, PASSING_ERRORS)),
 		Effect.andThen((requeued) => (requeued > 0 ? drain : Effect.void)),
 	);
 
@@ -149,10 +177,12 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 		}),
 	);
 
-	// An interrupted run stays `running`, so the next start resumes it.
+	// An error of the source ends the run here as failed, leaving
+	// its other pages unfetched. An interrupted or crashed run stays `running`,
+	// so the next start resumes it.
 	return yield* crawl.pipe(
 		Effect.tapCause((cause) =>
-			Cause.hasInterruptsOnly(cause) ? Effect.void : finish(true),
+			Cause.hasFails(cause) ? finish(true) : Effect.void,
 		),
 		Effect.andThen(finish(false)),
 	);
@@ -163,21 +193,30 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
+
+	if (!(yield* store.lockCrawl(CRAWL_LOCK))) {
+		return yield* new CrawlAlreadyRunning();
+	}
+
 	const resumed = yield* store.openRuns(SAZ_SOURCE);
 
-	const source: PageSource<SazSignInFailed> = {
+	const source: PageSource<SazSignInFailed | SazRateLimited> = {
 		visit: (page) =>
 			saz.get(page.path).pipe(
-				Effect.map((body) => ({
-					snapshot: snapshotOf(body),
-					next: linkedPages(page, body),
-				})),
 				Effect.catchTag("SazRequestFailed", ({ status }) =>
 					Effect.fail(pageFailedOf(status)),
 				),
+				Effect.flatMap((body) =>
+					Result.match(linkedPages(page, body), {
+						onFailure: (problem) =>
+							Effect.fail(new PageFailed({ reason: problem })),
+						onSuccess: (next) =>
+							Effect.succeed({ snapshot: snapshotOf(body), next }),
+					}),
+				),
 			),
 		// A failed catalog page hides the courses it lists.
-		failsRun: (tally) => tally.kind === "catalog" && tally.failed > 0,
+		failsRun: (counts) => counts.kind === "catalog" && counts.failed > 0,
 	};
 
 	const startRuns = Effect.gen(function* () {
@@ -185,10 +224,11 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 
 		if (years.length === 0) return yield* new NoAcademicYears();
 
-		return yield* Effect.forEach(years, (year) =>
-			store.startRun(sourcePartOf(year), [
-				{ kind: "catalog", path: catalogPath(year, 1) },
-			]),
+		return yield* store.startRuns(
+			years.map((year) => ({
+				sourcePart: sourcePartOf(year),
+				pages: [{ kind: "catalog", path: catalogPath(year, 1) }],
+			})),
 		);
 	});
 
@@ -207,9 +247,9 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 			sourcePart,
 			status,
 			seconds: report.seconds,
-			done: report.pages.reduce((sum, tally) => sum + tally.done, 0),
-			failed: report.pages.reduce((sum, tally) => sum + tally.failed, 0),
-			stored: report.pages.reduce((sum, tally) => sum + tally.stored, 0),
+			done: report.pages.reduce((sum, counts) => sum + counts.done, 0),
+			failed: report.pages.reduce((sum, counts) => sum + counts.failed, 0),
+			stored: report.pages.reduce((sum, counts) => sum + counts.stored, 0),
 		})),
 	);
-});
+}, Effect.scoped);

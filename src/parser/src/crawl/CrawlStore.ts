@@ -1,5 +1,6 @@
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { sessionLock } from "../db/locks.ts";
 import type { Snapshot } from "./snapshot.ts";
 
 export const PageKind = Schema.Literals([
@@ -27,16 +28,16 @@ const ClaimedPage = Schema.Struct({
 
 export type ClaimedPage = typeof ClaimedPage.Type;
 
-/** One line of a run report: the pages of one kind and how many of them
- *  stored a new snapshot. */
-const KindTally = Schema.Struct({
+/** One line of a run report: the counts of one page kind, done, failed, and
+ *  how many of them stored a new snapshot. */
+const PageCounts = Schema.Struct({
 	kind: PageKind,
 	done: Schema.Number,
 	failed: Schema.Number,
 	stored: Schema.Number,
 });
 
-export type KindTally = typeof KindTally.Type;
+export type PageCounts = typeof PageCounts.Type;
 
 const PageFailure = Schema.Struct({
 	path: Schema.String,
@@ -49,7 +50,7 @@ export type PageFailure = typeof PageFailure.Type;
  *  was down; `failures` lists the first `MAX_LISTED_FAILURES` failed pages. */
 export interface RunReport {
 	readonly seconds: number;
-	readonly pages: ReadonlyArray<KindTally>;
+	readonly pages: ReadonlyArray<PageCounts>;
 	readonly failures: ReadonlyArray<PageFailure>;
 }
 
@@ -64,13 +65,20 @@ const RunId = Schema.Struct({ id: Schema.BigInt });
 export class CrawlStore extends Context.Service<
 	CrawlStore,
 	{
-		startRun(
-			sourcePart: string,
-			pages: ReadonlyArray<QueuedPage>,
-		): Effect.Effect<OpenRun>;
-		/** The runs of one source that a crash left open, oldest first, with
-		 *  the pages they had claimed back in the queue. `source` is the part
-		 *  of `source_part` before the colon. */
+		/** Takes the lock `key` of one source's crawl for the scope; `false` when
+		 *  another crawl holds it, since two would reset each other's claimed pages. */
+		lockCrawl(key: number): Effect.Effect<boolean, never, Scope.Scope>;
+		/** Opens the runs with their first pages queued, all or none, so a crash
+		 *  cannot leave some runs open and the others never started. */
+		startRuns(
+			runs: ReadonlyArray<{
+				sourcePart: string;
+				pages: ReadonlyArray<QueuedPage>;
+			}>,
+		): Effect.Effect<ReadonlyArray<OpenRun>>;
+		/** The runs of one source that a crash left open, oldest first, with the
+		 *  pages they had claimed back in the queue. `source` is the part of
+		 *  `source_part` before the colon. */
 		openRuns(source: string): Effect.Effect<ReadonlyArray<OpenRun>>;
 		/** The next pending page of the run, claimed so another worker skips it. */
 		claim(runId: bigint): Effect.Effect<ClaimedPage | undefined>;
@@ -83,9 +91,12 @@ export class CrawlStore extends Context.Service<
 			next: ReadonlyArray<QueuedPage>,
 		): Effect.Effect<void>;
 		fail(page: ClaimedPage, error: string): Effect.Effect<void>;
-		/** Puts the run's pages that failed once with `error` back in the queue,
-		 *  and returns how many. */
-		requeue(runId: bigint, error: string): Effect.Effect<number>;
+		/** Puts the run's pages that failed once with one of `errors` back in the
+		 *  queue, and returns how many. */
+		requeue(
+			runId: bigint,
+			errors: ReadonlyArray<string>,
+		): Effect.Effect<number>;
 		report(runId: bigint): Effect.Effect<RunReport>;
 		finishRun(
 			runId: bigint,
@@ -98,6 +109,9 @@ export class CrawlStore extends Context.Service<
 		CrawlStore,
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
+
+			const lockCrawl = (key: number) =>
+				sessionLock(key).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 
 			const insertRun = SqlSchema.findOne({
 				Request: Schema.String,
@@ -120,15 +134,18 @@ export class CrawlStore extends Context.Service<
 							ON CONFLICT (run_id, path) DO NOTHING
 						`.pipe(Effect.asVoid);
 
-			const startRun = (sourcePart: string, pages: ReadonlyArray<QueuedPage>) =>
-				sql
-					.withTransaction(
-						insertRun(sourcePart).pipe(
-							Effect.tap(({ id }) => queue(id, pages)),
-							Effect.map(({ id }) => ({ id, sourcePart })),
-						),
-					)
-					.pipe(Effect.orDie);
+			const startRuns = (
+				runs: ReadonlyArray<{
+					sourcePart: string;
+					pages: ReadonlyArray<QueuedPage>;
+				}>,
+			) =>
+				Effect.forEach(runs, ({ sourcePart, pages }) =>
+					insertRun(sourcePart).pipe(
+						Effect.tap(({ id }) => queue(id, pages)),
+						Effect.map(({ id }) => ({ id, sourcePart })),
+					),
+				).pipe(sql.withTransaction, Effect.orDie);
 
 			const findOpenRuns = SqlSchema.findAll({
 				Request: Schema.String,
@@ -140,9 +157,11 @@ export class CrawlStore extends Context.Service<
 				`,
 			});
 
+			// A claim the crash cut short gives back its attempt, so the page keeps
+			// its one requeue.
 			const openRuns = (source: string) =>
 				sql`
-					UPDATE run_pages SET status = 'pending'
+					UPDATE run_pages SET status = 'pending', attempts = attempts - 1
 					WHERE status = 'claimed'
 						AND run_id IN (
 							SELECT id FROM runs
@@ -159,7 +178,7 @@ export class CrawlStore extends Context.Service<
 				Result: ClaimedPage,
 				execute: (runId) => sql`
 					UPDATE run_pages
-					SET status = 'claimed', claimed_at = now(), attempts = attempts + 1
+					SET status = 'claimed', claimed_at = coalesce(claimed_at, now()), attempts = attempts + 1
 					WHERE id = (
 						SELECT id FROM run_pages
 						WHERE run_id = ${runId} AND status = 'pending'
@@ -238,19 +257,19 @@ export class CrawlStore extends Context.Service<
 					WHERE id = ${page.id}
 				`.pipe(Effect.asVoid, Effect.orDie);
 
-			const requeue = (runId: bigint, error: string) =>
+			const requeue = (runId: bigint, errors: ReadonlyArray<string>) =>
 				sql`
 					UPDATE run_pages SET status = 'pending', error = NULL, finished_at = NULL
-					WHERE run_id = ${runId} AND status = 'failed' AND error = ${error} AND attempts = 1
+					WHERE run_id = ${runId} AND status = 'failed' AND error IN ${sql.in(errors)} AND attempts = 1
 					RETURNING id
 				`.pipe(
 					Effect.map((rows) => rows.length),
 					Effect.orDie,
 				);
 
-			const tallyOf = SqlSchema.findAll({
+			const pageCountsOf = SqlSchema.findAll({
 				Request: Schema.BigInt,
-				Result: KindTally,
+				Result: PageCounts,
 				execute: (runId) => sql`
 					SELECT p.kind,
 						count(*) FILTER (WHERE p.status = 'done')::int AS done,
@@ -288,7 +307,7 @@ export class CrawlStore extends Context.Service<
 			const report = (runId: bigint) =>
 				Effect.all({
 					seconds: secondsOf(runId).pipe(Effect.map(({ seconds }) => seconds)),
-					pages: tallyOf(runId),
+					pages: pageCountsOf(runId),
 					failures: failuresOf(runId),
 				}).pipe(Effect.orDie);
 
@@ -304,7 +323,8 @@ export class CrawlStore extends Context.Service<
 				`.pipe(Effect.asVoid, Effect.orDie);
 
 			return CrawlStore.of({
-				startRun,
+				lockCrawl,
+				startRuns,
 				openRuns,
 				claim,
 				complete,

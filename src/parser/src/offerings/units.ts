@@ -20,7 +20,9 @@ export interface UnitPlan<R extends Unit> {
 /** Matches each incoming unit to a stored row: by name first, so the filter
  *  id follows the name when САЗ gives a unit a new option, then by filter id,
  *  so a unit САЗ renames keeps its row. Each stored row matches once, and a
- *  filter id moves to the row that now carries it. */
+ *  filter id moves to the row that now carries it. A unit without a filter id
+ *  keeps its stored one unless another incoming unit carries it, as the new
+ *  name of a renamed unit does while older pages still show the old name. */
 export const planUnits = <R extends Unit>(
 	stored: ReadonlyArray<StoredUnit>,
 	incoming: ReadonlyArray<R>,
@@ -45,10 +47,14 @@ export const planUnits = <R extends Unit>(
 		}
 	}
 
+	const carried = new Set(incoming.map(({ sazFilterId }) => sazFilterId));
+
 	const updates = Array.from(matches, ([unit, row]) => ({
 		...unit,
 		id: row.id,
-		sazFilterId: unit.sazFilterId ?? row.sazFilterId,
+		sazFilterId:
+			unit.sazFilterId ??
+			(carried.has(row.sazFilterId) ? null : row.sazFilterId),
 	}));
 
 	const inserts = incoming.filter((unit) => !matches.has(unit));

@@ -1,4 +1,5 @@
 import {
+	type Cause,
 	Context,
 	type Duration,
 	Effect,
@@ -79,6 +80,12 @@ export interface Account {
 	readonly password: Redacted.Redacted<string>;
 }
 
+/** `gap` follows each request; `timeout` bounds each one, response body included. */
+export interface Pace {
+	readonly gap: Duration.Duration;
+	readonly timeout: Duration.Duration;
+}
+
 export interface Session {
 	/** Sends one request at a time with a gap after each, carries each host's
 	 *  cookies and follows redirects. */
@@ -86,7 +93,7 @@ export interface Session {
 		request: HttpClientRequest.HttpClientRequest,
 	): Effect.Effect<
 		HttpClientResponse.HttpClientResponse,
-		HttpClientError.HttpClientError
+		HttpClientError.HttpClientError | Cause.TimeoutError
 	>;
 	/** Drops every cookie, opens `start`, which redirects to Microsoft, and
 	 *  posts the account to its password form. Returns the URL the redirects
@@ -97,7 +104,7 @@ export interface Session {
 		stopAt: (next: URL) => boolean,
 	): Effect.Effect<
 		URL,
-		MicrosoftSignInFailed | HttpClientError.HttpClientError
+		MicrosoftSignInFailed | HttpClientError.HttpClientError | Cause.TimeoutError
 	>;
 }
 
@@ -105,7 +112,7 @@ export interface Session {
 const open = Effect.fnUntraced(function* (
 	http: HttpClient.HttpClient,
 	account: Account,
-	gap: Duration.Duration,
+	{ gap, timeout }: Pace,
 ) {
 	// Node fetch drops Set-Cookie on redirects it follows, and the sign-in sets
 	// cookies on both hosts mid-chain, so redirects are walked here.
@@ -127,6 +134,10 @@ const open = Effect.fnUntraced(function* (
 						),
 					)
 					.pipe(
+						// The body is read here, inside the time limit; later reads
+						// get the cached bytes.
+						Effect.tap((response) => response.arrayBuffer),
+						Effect.timeout(timeout),
 						Effect.provideService(HttpClient.TracerPropagationEnabled, false),
 						Effect.ensuring(Effect.sleep(gap)),
 					),
@@ -211,7 +222,7 @@ const open = Effect.fnUntraced(function* (
 				stopAt,
 			).pipe(
 				// A retry would post the password again.
-				Effect.catchTag("HttpClientError", () =>
+				Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
 					Effect.fail(
 						new MicrosoftSignInFailed({
 							reason: "the connection broke after the password",
@@ -262,7 +273,7 @@ export class MicrosoftSessions extends Context.Service<
 	MicrosoftSessions,
 	{
 		/** A session of its own: cookies and the request gap are not shared. */
-		open(account: Account, gap: Duration.Duration): Effect.Effect<Session>;
+		open(account: Account, pace: Pace): Effect.Effect<Session>;
 	}
 >()("ukma-data/microsoft/MicrosoftSessions") {
 	static readonly layer = Layer.effect(
@@ -271,7 +282,7 @@ export class MicrosoftSessions extends Context.Service<
 			const http = yield* HttpClient.HttpClient;
 
 			return MicrosoftSessions.of({
-				open: (account, gap) => open(http, account, gap),
+				open: (account, pace) => open(http, account, pace),
 			});
 		}),
 	);

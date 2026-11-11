@@ -4,7 +4,7 @@ from django.db.models import Prefetch, Q
 
 from rating_app.application_schemas.student import Student as StudentDTO
 from rating_app.exception.student_exceptions import StudentNotFoundError
-from rating_app.models import CourseOffering, Rating, Student
+from rating_app.models import Course, CourseOffering, Rating, Student
 from rating_app.repositories.to_domain_mappers import StudentMapper
 
 
@@ -34,6 +34,14 @@ class StudentStatisticsRepository:
         except Student.DoesNotExist as err:
             raise StudentNotFoundError() from err
         return self._mapper.process(model)
+
+    def get_course_rating_counts(self, course_ids: list[str]) -> dict[str, int]:
+        return {
+            str(course_id): count
+            for course_id, count in Course.objects.filter(id__in=course_ids).values_list(
+                "id", "ratings_count"
+            )
+        }
 
     def get_rating_stats(self, student_id: str) -> list[dict[str, Any]]:
         """

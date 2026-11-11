@@ -1,14 +1,20 @@
-import { Effect, Layer, Schedule } from "effect";
+import { Cause, Effect, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
+import { ChangeLog } from "../changes/ChangeLog.ts";
 import { crawlAllYears } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
-import { parseOfferings } from "../offerings/offerings.ts";
+import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
+import { RemovalStore } from "../offerings/RemovalStore.ts";
+import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
 import { SazClient } from "../saz/SazClient.ts";
+import { parseStudents } from "../students/students.ts";
+import { StudentStore } from "../students/StudentStore.ts";
 
 export const WorkerLive = Layer.effectDiscard(
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const threshold = yield* RemovalThreshold;
 
 		yield* sql`SELECT 1`;
 		yield* Effect.logInfo("Worker connected to Postgres");
@@ -20,13 +26,47 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.forkScoped,
 		);
 
+		// A crash, such as a lost database, leaves the runs open, so a later try
+		// resumes them. A failed sign-in is not tried again, as each try would
+		// send the password.
 		yield* crawlAllYears().pipe(
-			Effect.catchCause((cause) => Effect.logError("Crawl failed", cause)),
-			Effect.andThen(parseOfferings()),
+			Effect.sandbox,
+			Effect.tapError((cause) =>
+				Cause.hasDies(cause)
+					? Effect.logError("Crawl crashed, resuming later", cause)
+					: Effect.void,
+			),
+			Effect.retry({
+				while: Cause.hasDies,
+				schedule: Schedule.exponential("1 minute").pipe(
+					Schedule.upTo({ times: 5 }),
+				),
+			}),
+			Effect.catch((cause) => Effect.logError("Crawl failed", cause)),
+			Effect.andThen(parseOfferings("crawl")),
 			Effect.catchCause((cause) =>
 				Effect.logError("Parsing offerings failed", cause),
+			),
+			Effect.andThen(parseStudents("crawl")),
+			Effect.catchCause((cause) =>
+				Effect.logError("Parsing students failed", {
+					error: storeFailureOf(cause),
+				}),
+			),
+			Effect.andThen(removeOfferings(threshold)),
+			Effect.catchCause((cause) =>
+				Effect.logError("Removing offerings failed", cause),
 			),
 			Effect.forkScoped,
 		);
 	}),
-).pipe(Layer.provide([CrawlStore.layer, OfferingStore.layer, SazClient.layer]));
+).pipe(
+	Layer.provide([
+		CrawlStore.layer,
+		OfferingStore.layer,
+		RemovalStore.layer,
+		SazClient.layer,
+		StudentStore.layer,
+	]),
+	Layer.provide(ChangeLog.layer),
+);

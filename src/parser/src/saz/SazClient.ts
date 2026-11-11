@@ -1,12 +1,4 @@
-import {
-	Config,
-	Context,
-	Duration,
-	Effect,
-	Layer,
-	Schedule,
-	Schema,
-} from "effect";
+import { Config, Context, Duration, Effect, Layer, Schema } from "effect";
 import { constFalse } from "effect/Function";
 import {
 	FetchHttpClient,
@@ -30,32 +22,72 @@ export class SazSignInFailed extends Schema.TaggedError<SazSignInFailed>()(
 	}
 }
 
-/** `status` 0 is a transport error. */
+/** `status` 0 is a transport error or a request that ran out of time. */
 export class SazRequestFailed extends Schema.TaggedError<SazRequestFailed>()(
 	"SazRequestFailed",
-	{ path: Schema.String, status: Schema.Number },
+	{
+		path: Schema.String,
+		status: Schema.Number,
+		retryAfterSeconds: Schema.optional(Schema.Number),
+	},
 ) {}
 
-export type SazError = SazSignInFailed | SazRequestFailed;
+/** САЗ asked for a wait over `MAX_RETRY_AFTER_SECONDS`. The limit likely
+ *  covers every page, so the crawl stops instead of going on to the next. */
+export class SazRateLimited extends Schema.TaggedError<SazRateLimited>()(
+	"SazRateLimited",
+	{ path: Schema.String, retryAfterSeconds: Schema.Number },
+) {}
 
-const isRequestFailed = Schema.is(SazRequestFailed);
+export type SazError = SazSignInFailed | SazRequestFailed | SazRateLimited;
 
-const isTransient = (status: number) =>
-	status === 0 || status === 429 || status >= 500;
+const MAX_RETRIES = 3;
+
+/** The longest `Retry-After` the client waits out. The crawl fetches one page
+ *  at a time, so a longer wait would stall every page behind it. */
+const MAX_RETRY_AFTER_SECONDS = 120;
+
+/** The wait before trying a failed request again, or `undefined` to give up.
+ *  A САЗ 500 repeats for the same page, so a 5xx gets one retry only. */
+const retryDelay = (
+	error: SazRequestFailed,
+	retries: number,
+): Duration.Duration | undefined => {
+	const backoff = Duration.seconds(2 * 2 ** retries);
+
+	if (error.status === 429 && retries < MAX_RETRIES) {
+		return error.retryAfterSeconds === undefined
+			? backoff
+			: Duration.seconds(error.retryAfterSeconds);
+	}
+
+	if (error.status === 0 && retries < MAX_RETRIES) return backoff;
+
+	if (error.status >= 500 && retries < 1) return backoff;
+
+	return undefined;
+};
 
 /** Retries one step, never the sign-in-and-retry around it, so a failure
  *  after a sign-in that did not take cannot post the password again. */
-const retryTransient = <A, E, R>(
+const retryStep = <A, E, R>(
 	step: Effect.Effect<A, E, R>,
-): Effect.Effect<A, E, R> =>
-	step.pipe(
-		Effect.retry({
-			while: (error) => isRequestFailed(error) && isTransient(error.status),
-			schedule: Schedule.exponential("2 seconds").pipe(
-				Schedule.upTo({ times: 3 }),
-			),
-		}),
-	);
+): Effect.Effect<A, E, R> => {
+	const attempt = (retries: number): Effect.Effect<A, E, R> =>
+		step.pipe(
+			Effect.catchIf(Schema.is(SazRequestFailed), (error) => {
+				const delay = retryDelay(error, retries);
+
+				return delay === undefined
+					? Effect.fail(error)
+					: Effect.sleep(delay).pipe(Effect.andThen(attempt(retries + 1)));
+			}),
+		);
+
+	return attempt(0);
+};
+
+const RETRY_AFTER_SECONDS = /^\d+$/u;
 
 const isOnMicrosoft = (response: HttpClientResponse.HttpClientResponse) =>
 	new URL(response.request.url).host !== new URL(SAZ_URL).host;
@@ -87,8 +119,16 @@ export class SazClient extends Context.Service<
 				Config.withDefault(Duration.seconds(1)),
 			);
 
+			const timeout = yield* Config.Duration("SAZ_REQUEST_TIMEOUT").pipe(
+				Config.withDefault(Duration.seconds(30)),
+			);
+
 			const sessions = yield* MicrosoftSessions;
-			const session = yield* sessions.open({ email, password }, gap);
+
+			const session = yield* sessions.open(
+				{ email, password },
+				{ gap, timeout },
+			);
 
 			const send = (
 				request: HttpClientRequest.HttpClientRequest,
@@ -97,13 +137,13 @@ export class SazClient extends Context.Service<
 				session
 					.send(request)
 					.pipe(
-						Effect.catchTag("HttpClientError", () =>
+						Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
 							Effect.fail(new SazRequestFailed({ path, status: 0 })),
 						),
 					);
 
 			const signIn = session.signIn(`${SAZ_URL}/auth/o365`, constFalse).pipe(
-				Effect.catchTag("HttpClientError", () =>
+				Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
 					Effect.fail(new SazRequestFailed({ path: "/auth/o365", status: 0 })),
 				),
 				Effect.andThen(Effect.logInfo("Signed in to САЗ")),
@@ -121,9 +161,24 @@ export class SazClient extends Context.Service<
 					}
 
 					if (response.status !== 200) {
+						const retryAfter = response.headers["retry-after"] ?? "";
+
+						const retryAfterSeconds = RETRY_AFTER_SECONDS.test(retryAfter)
+							? Number(retryAfter)
+							: undefined;
+
+						if (
+							response.status === 429 &&
+							retryAfterSeconds !== undefined &&
+							retryAfterSeconds > MAX_RETRY_AFTER_SECONDS
+						) {
+							return yield* new SazRateLimited({ path, retryAfterSeconds });
+						}
+
 						return yield* new SazRequestFailed({
 							path,
 							status: response.status,
+							retryAfterSeconds,
 						});
 					}
 
@@ -133,10 +188,7 @@ export class SazClient extends Context.Service<
 				});
 
 			const get = (path: string) =>
-				withSignIn(
-					retryTransient(fetchPage(path)),
-					retryTransient(signIn),
-				).pipe(
+				withSignIn(retryStep(fetchPage(path)), retryStep(signIn)).pipe(
 					Effect.catchTag("MicrosoftSignInFailed", ({ reason }) =>
 						Effect.fail(new SazSignInFailed({ reason })),
 					),

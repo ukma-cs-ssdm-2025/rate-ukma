@@ -202,6 +202,7 @@ export const SESSION = {
 	},
 	expires_at: "2099-01-01T00:00:00Z",
 	is_student: true,
+	is_superuser: false,
 	speciality: {
 		id: `${FACULTIES[0].id}-spec`,
 		name: "Демонстраційна спеціальність",

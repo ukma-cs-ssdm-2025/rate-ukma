@@ -1,125 +1,13 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Result } from "effect";
 import { parseCoursePage } from "./coursePage.ts";
-
-const label = (text: string, title = "") =>
-	`<span class="label label-default"${title === "" ? "" : ` title="${title}"`}>${text}</span>`;
-
-const row = (header: string, cell: string) =>
-	`<tr>\n\t<th>${header}</th>\n\t<td>\n\t\t${cell}\n\t</td>\n</tr>`;
-
-const section = (name: string, rows: ReadonlyArray<string>) =>
-	`<tbody>\n<tr><th colspan="2" class="info text-center">${name}</th></tr>\n${rows.join("\n")}\n</tbody>`;
-
-interface PageParts {
-	readonly code?: string;
-	readonly title?: string;
-	readonly info?: ReadonlyArray<string>;
-	readonly unit?: ReadonlyArray<string>;
-	readonly level?: string;
-	readonly year?: string;
-	readonly teachers?: string;
-	readonly annotation?: string;
-	readonly programmes?: ReadonlyArray<readonly [string, string]>;
-	readonly terms?: ReadonlyArray<string>;
-	readonly limits?: ReadonlyArray<string>;
-	readonly enrollment?: ReadonlyArray<string>;
-}
-
-const FACULTY_ROWS = [
-	`<tr><th><abbr title="Факультет, який забезпечує викладання дисципліни">Факультет</abbr></th><td>Факультет вигаданих наук</td></tr>`,
-	`<tr><th><abbr title="Кафедра, яка забезпечує викладання дисципліни">Кафедра</abbr></th><td>Кафедра вигаданих систем</td></tr>`,
-];
-
-const LIMITS = [
-	row("Максимальна кількість студентів", "40"),
-	row(
-		"Максимальна кількість груп",
-		'<span class="label label-success">необмежено</span>',
-	),
-	row("Кількість студентів в групі", "від\n\t\t15\n\t\tдо\n\t\t30"),
-	row(
-		"Обрахована максимальна кількість студентів",
-		'40\n<!--\n<span class="label label-success">необмежено</span>\n-->',
-	),
-];
-
-const ENROLLMENT = [
-	row("Загальна кількість записаних чинних студентів", "12"),
-	row("Кількість затверджених груп", "1"),
-	row("Кількість чинних студентів у затверджених групах", "12"),
-	row("Кількість затверджених груп", "1"),
-];
-
-/** An invented course page shaped like a САЗ card. */
-const coursePage = ({
-	code = "900123",
-	title = "Вступ до вигаданих систем",
-	info = [
-		label("4.5 кред.", "4.5 кредитів"),
-		label("135 год.", "135 годин"),
-		label("2 рік", "2 рік викладання"),
-		label("Формат 2015", "Формат 2015"),
-		'<span class="label label-success">Курс відбувся</span>',
-	],
-	unit = FACULTY_ROWS,
-	level = "Бакалавр",
-	year = "2031–2032",
-	teachers,
-	annotation,
-	programmes = [["Вигадана інженерія", "Обов`язкова"]],
-	terms = [
-		row("Семестри", label("Семестр 3")),
-		row(
-			"Осінь",
-			[
-				label("4.5 кред.", "4.5 кредитів"),
-				label("3 год./тижд.", "3 годин на тиждень"),
-				label("28 лекц.", "28 годин на тиждень"),
-				label("14 сем.", "14 годин на тиждень"),
-				label("екзамен"),
-			].join("\n"),
-		),
-	],
-	limits = LIMITS,
-	enrollment = ENROLLMENT,
-}: PageParts = {}) => `<!DOCTYPE html>
-<html><body>
-<nav><a href="/profile">Вигаданий Користувач</a></nav>
-<div class="page-header">
-	<h1>
-		${title}		<small>Перегляд деталей курсу</small>
-	</h1>
-</div>
-<div id="w0">
-<table class="table table-condensed table-bordered">
-	<tr><th title="Код курсу">Код</th><td>${code}</td></tr>
-	${row("Інформація", info.join("\n"))}
-	${unit.join("\n")}
-	<tr><th>Освітній рівень</th><td>${level}</td></tr>
-	<tr><th>Навчальний рік</th><td>${year}</td></tr>
-	${teachers === undefined ? "" : `<tr><th>Викладач</th><td>${teachers}</td></tr>`}
-	${
-		annotation === undefined
-			? ""
-			: `<tr><td colspan="2"><div class="collapse text-justify" id="course-card--${code}--info">\n${annotation}\n</div></td></tr>`
-	}
-	${
-		programmes.length === 0
-			? ""
-			: `<tr><td colspan="2"><div class="collapse text-justify" id="course-card--${code}--spec">
-<table class="table table-bordered table-condensed">
-${programmes.map(([name, kind]) => `<tr><td>${name}</td><td>${label(kind)}</td></tr>`).join("\n")}
-</table>
-</div></td></tr>`
-	}
-	${terms.length === 0 ? "" : section("Деталі по семестрах", terms)}
-	${section("Встановлені ліміти", limits)}
-	${enrollment.length === 0 ? "" : section("Інформація про запис", enrollment)}
-</table>
-<course-enrollment :course-id="${code}" autoload></course-enrollment>
-</div>
-</body></html>`;
+import {
+	coursePage,
+	ENROLLMENT,
+	label,
+	LIMITS,
+	row,
+} from "./coursePage.fixture.ts";
 
 const parse = (html: string, code = "900123") => parseCoursePage(html, code);
 
@@ -410,13 +298,31 @@ describe("parseCoursePage", () => {
 		);
 	});
 
-	it("reads a master's card without faculty and department rows (B17)", () => {
+	it("reads a master's card without faculty and department rows (B18)", () => {
 		const offering = parsed(coursePage({ level: "Магістр", unit: [] }));
 
 		assert.deepStrictEqual(
 			[offering.level, offering.faculty, offering.department],
 			["master", null, null],
 		);
+	});
+
+	it("skips a label САЗ commented out", () => {
+		const page = coursePage().replace(
+			label("4.5 кред.", "4.5 кредитів"),
+			`$&\n<!--\n${label("5 кред.")}\n-->`,
+		);
+
+		assert.strictEqual(parsed(page).credits, 4.5);
+	});
+
+	it("skips a row and a block САЗ commented out", () => {
+		const page = coursePage().replace(
+			"<tr><th>Освітній рівень</th>",
+			`<!--\n${row("Старий рядок", "1")}\n<div id="course-card--900123--old"></div>\n-->\n$&`,
+		);
+
+		assert.deepStrictEqual(parsed(page), parsed(coursePage()));
 	});
 
 	it("fails a page whose labels or rows it does not know", () => {
@@ -437,11 +343,19 @@ describe("parseCoursePage", () => {
 			"invalid semesters",
 		);
 		assert.strictEqual(
+			failure(coursePage({ terms: [row("Семестри", label("Семестр 40000"))] })),
+			"invalid semesters",
+		);
+		assert.strictEqual(
 			failure(coursePage({ level: "Доктор" })),
 			"invalid level",
 		);
 		assert.strictEqual(
 			failure(coursePage({ year: "2031" })),
+			"invalid academicYear",
+		);
+		assert.strictEqual(
+			failure(coursePage({ year: "2031–2035" })),
 			"invalid academicYear",
 		);
 		assert.strictEqual(
@@ -468,14 +382,14 @@ describe("parseCoursePage", () => {
 		);
 	});
 
-	it("keeps an entity past the last code point as written", () => {
+	it("replaces an entity that is not a character Postgres can hold", () => {
 		assert.strictEqual(
 			parsed(coursePage({ title: "Системи &#99999999; &#0; &#xD800;" })).title,
-			"Системи &#99999999; &#0; &#xD800;",
+			"Системи \uFFFD \uFFFD \uFFFD",
 		);
 	});
 
-	it("fails a page with a row it does not know, so a rename keeps the last good rows", () => {
+	it("fails a page with a row it does not know", () => {
 		const renamed = coursePage({ teachers: "Зразок О. П." }).replace(
 			"<th>Викладач</th>",
 			"<th>Викладачі</th>",
@@ -492,6 +406,15 @@ describe("parseCoursePage", () => {
 			failure(coursePage({ annotation: "Текст" }).replace("--info", "--about")),
 			"unknown block",
 		);
+		assert.strictEqual(
+			failure(
+				coursePage({ annotation: "Текст" }).replace(
+					'<div class="collapse text-justify" id="course-card--900123--info">',
+					'<section class="collapse text-justify" id="course-card--900123--info">',
+				),
+			),
+			"unread block",
+		);
 	});
 
 	it("fails an enrollment block without its count, and an annotation with markup", () => {
@@ -502,6 +425,154 @@ describe("parseCoursePage", () => {
 		assert.strictEqual(
 			failure(coursePage({ annotation: "<div>Перший абзац.</div> Другий." })),
 			"annotation markup",
+		);
+	});
+
+	it("fails text outside the labels instead of dropping it", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					terms: [
+						row("Семестри", "Семестр 3"),
+						row("Осінь", [label("3 кред."), label("залік")].join(" ")),
+					],
+				}),
+			),
+			"unlabelled text",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({
+					info: [
+						label("3 кред."),
+						label("90 год."),
+						label("1 рік"),
+						label("Формат 2015"),
+						"Курс відбувся",
+					],
+				}),
+			),
+			"unlabelled text",
+		);
+	});
+
+	it("fails a repeated row other than the approved groups count", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					terms: [
+						row("Семестри", label("Семестр 1")),
+						row("Осінь", [label("3 кред."), label("залік")].join(" ")),
+						row("Осінь", [label("2 кред."), label("екзамен")].join(" ")),
+					],
+				}),
+			),
+			"repeated row",
+		);
+	});
+
+	it("fails a programme listed with two kinds", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					programmes: [
+						["Вигадана інженерія", "Обов`язкова"],
+						["Вигадана інженерія", "Вільного вибору"],
+					],
+				}),
+			),
+			"programme kinds differ",
+		);
+	});
+
+	it("fails a semester without its season row, and a season row without a semester", () => {
+		const terms = (semesters: string, seasons: ReadonlyArray<string>) =>
+			coursePage({
+				terms: [
+					row("Семестри", semesters),
+					...seasons.map((season) =>
+						row(season, [label("3 кред."), label("залік")].join(" ")),
+					),
+				],
+			});
+
+		assert.strictEqual(
+			failure(terms(label("Семестр 4"), ["Осінь"])),
+			"semester without term",
+		);
+		assert.strictEqual(
+			failure(terms(label("Семестр 3"), ["Осінь", "Весна"])),
+			"term without semester",
+		);
+	});
+
+	it("fails a card with one unit row, or a unit row without a value", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					unit: [
+						"<tr><th>Факультет</th><td>Факультет вигаданих наук</td></tr>",
+					],
+				}),
+			),
+			"lone unit row",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({
+					unit: [
+						"<tr><th>Факультет</th><th>Факультет вигаданих наук</th></tr>",
+						"<tr><th>Кафедра</th><td>Кафедра вигаданих систем</td></tr>",
+					],
+				}),
+			),
+			"invalid faculty",
+		);
+	});
+
+	it("reads blocks whatever their attribute order", () => {
+		assert.strictEqual(
+			parsed(
+				coursePage({ annotation: "Текст" }).replace(
+					'class="collapse text-justify" id="course-card--900123--info"',
+					'id="course-card--900123--info" class="collapse in text-justify"',
+				),
+			).annotation,
+			"Текст",
+		);
+	});
+
+	it("fails numbers past their column's precision or range", () => {
+		assert.strictEqual(
+			failure(
+				coursePage({
+					info: [
+						label("4.55 кред."),
+						label("90 год."),
+						label("1 рік"),
+						label("Формат 2015"),
+					],
+				}),
+			),
+			"invalid credits",
+		);
+		assert.strictEqual(
+			failure(
+				coursePage({
+					limits: [
+						row("Максимальна кількість студентів", "10000"),
+						...LIMITS.slice(1),
+					],
+				}),
+			),
+			"invalid maxStudents",
+		);
+	});
+
+	it("decodes an entity without its semicolon, as a browser does", () => {
+		assert.strictEqual(
+			parsed(coursePage({ title: "Системи &amp моделі" })).title,
+			"Системи & моделі",
 		);
 	});
 
