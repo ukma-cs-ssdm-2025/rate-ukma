@@ -124,7 +124,7 @@ export const removeOfferings = Effect.fn("removeOfferings")(function* (
 		return decided;
 	});
 
-	const decided = yield* changes.withTurn(decide).pipe(Effect.orDie);
+	const decided = yield* changes.withTurn(decide);
 
 	if (decided.length > 0) {
 		yield* Effect.logInfo("Offering removals decided", decided);
