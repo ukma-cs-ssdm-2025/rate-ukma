@@ -5,7 +5,7 @@ import {
 	SchemaIssue,
 	SchemaTransformation,
 } from "effect";
-import { decodeHTMLStrict } from "entities";
+import { decodeHTML } from "entities";
 import { textOf, withoutComments } from "./html.ts";
 
 // Digits only, since `FiniteFromString` reads an empty cell as 0, and bounded
@@ -367,9 +367,12 @@ const programmesOf = (
  *  the schema cannot disagree. */
 const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 	Result.gen(function* () {
-		const start = html.indexOf(CARD_START);
-		const title = TITLE.exec(html)?.[1];
-		const page = html.slice(start);
+		// САЗ comments out whole rows and blocks too, and a commented one must not
+		// be read as shown.
+		const shown = withoutComments(html);
+		const start = shown.indexOf(CARD_START);
+		const title = TITLE.exec(shown)?.[1];
+		const page = shown.slice(start);
 		const annotation = ANNOTATION.exec(page)?.[1];
 		const programmes = PROGRAMMES.exec(page)?.[1];
 
@@ -481,7 +484,7 @@ const readCard = (html: string): Result.Result<RawCard, CoursePageError> =>
 			text("Кількість студентів в групі") ?? "",
 		);
 
-		const annotationText = decodeHTMLStrict(annotation ?? "").trim();
+		const annotationText = decodeHTML(annotation ?? "").trim();
 
 		return {
 			code: text("Код"),

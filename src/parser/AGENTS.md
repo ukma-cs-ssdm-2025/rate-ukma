@@ -21,7 +21,6 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
 - The container contract (one image, commands `api`/`worker`/`migrate`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
-- No real student data in fixtures, logs or tests.
 
 ## Conventions
 
