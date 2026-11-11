@@ -23,6 +23,7 @@ import {
 	type ParseFailure,
 	type ParseReport,
 	type ParseTrigger,
+	type StoredPage,
 	type StoredProgramme,
 } from "./OfferingStore.ts";
 
@@ -219,6 +220,9 @@ export const storeFailureOf = (cause: Cause.Cause<unknown>) => {
 
 type CoursePage = ParsedPage & { readonly path: string };
 
+const parsePage = (page: StoredPage) =>
+	parseCoursePage(page.content, page.path.slice("/course/".length));
+
 /** Writes the pages in one transaction and returns the ones it refused. When
  *  Postgres refuses it, each half is written on its own, down to the pages it
  *  refuses; such a page keeps its last good rows, like a page that fails to
@@ -289,10 +293,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		const failures: Array<ParseFailure> = [];
 
 		for (const page of yield* store.coursePages(ids)) {
-			const result = parseCoursePage(
-				page.content,
-				page.path.slice("/course/".length),
-			);
+			const result = parsePage(page);
 
 			if (Result.isSuccess(result)) {
 				pages.push({
@@ -310,6 +311,27 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 				path: page.path,
 				snapshot_id: String(page.id),
 				reason,
+			});
+		}
+
+		// A failed page with no stored offering has no last good rows to keep,
+		// so its newest earlier snapshot that parses stands in for them.
+		const recovered = new Set<string>();
+
+		for (const page of yield* store.earlierCoursePages(
+			failures.map(({ snapshotId }) => snapshotId),
+		)) {
+			if (recovered.has(page.path)) continue;
+
+			const result = parsePage(page);
+
+			if (Result.isFailure(result)) continue;
+
+			recovered.add(page.path);
+			pages.push({
+				snapshotId: page.id,
+				path: page.path,
+				offering: result.success,
 			});
 		}
 
