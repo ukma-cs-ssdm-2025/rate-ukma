@@ -5390,11 +5390,13 @@ components:
       enum:
       - course_match
       - instructor_match
+      - student_match
       - removals_held
       type: string
       description: |-
         * `course_match` - course_match
         * `instructor_match` - instructor_match
+        * `student_match` - student_match
         * `removals_held` - removals_held
     UkmaDataReviewCasePage:
       type: object
