@@ -440,6 +440,41 @@ describe("parseOfferings", () => {
 			}),
 		);
 
+		it.effect("does not halve a batch that failed for a retryable reason", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				yield* sql`
+					CREATE FUNCTION deadlock_offering() RETURNS trigger LANGUAGE plpgsql AS $$
+					BEGIN
+						IF NEW.saz_code = '900002' THEN
+							RAISE EXCEPTION 'deadlock' USING ERRCODE = '40P01';
+						END IF;
+						RETURN NEW;
+					END $$
+				`;
+				yield* sql`
+					CREATE TRIGGER deadlock_offering BEFORE INSERT ON offerings
+					FOR EACH ROW EXECUTE FUNCTION deadlock_offering()
+				`;
+
+				for (const code of ["900001", "900002", "900003"]) {
+					yield* snapshot(`/course/${code}`, coursePage({ code }));
+				}
+
+				const report = yield* parseOfferings("crawl").pipe(
+					Effect.ensuring(
+						sql`DROP FUNCTION deadlock_offering CASCADE`.pipe(Effect.orDie),
+					),
+				);
+
+				assert.deepStrictEqual(report.parsed, 0);
+				assert.deepStrictEqual(report.failed, [{ reason: "store", pages: 3 }]);
+			}),
+		);
+
 		it.effect("stores the rest of a batch when Postgres refuses one page", () =>
 			Effect.gen(function* () {
 				yield* reset;

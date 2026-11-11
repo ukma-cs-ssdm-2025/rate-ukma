@@ -223,6 +223,14 @@ type CoursePage = ParsedPage & { readonly path: string };
 const parsePage = (page: StoredPage) =>
 	parseCoursePage(page.content, page.path.slice("/course/".length));
 
+/** A lost connection or a timeout fails every half as well, so halving would
+ *  only repeat it once per page. */
+const isRefusal = (cause: Cause.Cause<unknown>) => {
+	const error = Cause.squash(cause);
+
+	return !(SqlError.isSqlError(error) && error.isRetryable);
+};
+
 /** Writes the pages in one transaction and returns the ones it refused. When
  *  Postgres refuses it, each half is written on its own, down to the pages it
  *  refuses; such a page keeps its last good rows, like a page that fails to
@@ -239,7 +247,7 @@ const writePages = Effect.fnUntraced(function* (
 
 	if (Exit.isSuccess(written)) return [];
 
-	if (pages.length > 1) {
+	if (pages.length > 1 && isRefusal(written.cause)) {
 		const [first, second] = Arr.splitAt(pages, Math.ceil(pages.length / 2));
 
 		return [
