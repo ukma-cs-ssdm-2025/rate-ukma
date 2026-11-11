@@ -56,8 +56,10 @@ Terms are never removed.
 | `id` | text | `fac_...`, `dep_...` |
 | `name` | text unique | as on the card, whitespace collapsed |
 | `saz_filter_id` | text null | the catalog filter option value (`filter[faculty][]`, `filter[subfaculty][]`), matched by name |
-| `faculty_id` | text | departments only |
+| `faculty_id` | text | departments only; a parse may change it, for every year at once (C4) |
 | `change_no`, `removed_at` | | |
+
+A department is found by name alone, so a faculty reorganisation moves the department instead of creating it again (C4).
 
 ### `programmes`
 
@@ -67,6 +69,7 @@ Terms are never removed.
 | `name` | text | as on the card or in a students list |
 | `level` | text | `bachelor`, `master`, from the catalog filter (D12) |
 | `saz_filter_id` | text null | `filter[spec][]` option value; 8 card programmes have none |
+| `faculty_id` | text null | derived: the faculty owning most of the programme's compulsory offerings, not counting language and military departments, null when no compulsory offering gives one or two faculties tie (B19) |
 | `change_no`, `removed_at` | | |
 
 Unique on (`name`, `level`): 30 names exist at both levels (D12). A card names a programme without its level, so the catalog filter `Name (Бакалавр)` or `Name (Магістр)` gives it, the card's level first; a name the filter does not list keeps the level of a stored programme of that name, else takes the card's level. A students list also names a programme without its level: a programme record takes the programme of that name on the cards of its offerings.
@@ -130,7 +133,7 @@ Offerings of one subject across years (glossary: Course).
 | --- | --- | --- |
 | `id` | text | `crs_...` |
 | `title` | text | derived: from the latest offering |
-| `department_id` | text null | derived: from the latest offering, null when it has none (B18) |
+| `department_id` | text null | derived: the department the course rule groups by; null when its offerings have none (B18, C2) |
 | `level` | text | |
 | `merged_into` | text null | the course that now holds its offerings (rule 10) |
 | `change_no`, `removed_at` | | `removed_at` is set by a merge or when no offering is left |
@@ -170,12 +173,13 @@ A person (glossary: Student).
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `stu_...` |
-| `email` | text null unique | lower-case (D5); null for the few records with none (D3) |
+| `email` | text null | lower-case (D5); null for the few records with none (D3). Not unique: one email can belong to two people (D14) |
+| `first_name_key` | text null | the first name lower-cased, without spaces, with `` ` ``, `ʼ` and `’` as `'`; the match key with `email` |
 | `full_name` | text | whitespace collapsed; set by the latest list, but a name with `*` never replaces one without it (D6, D7) |
 | `last_name`, `first_name`, `patronymic` | text null | filled only when the name has three words |
 | `change_no`, `removed_at` | | removed when no enrollment of the person is left |
 
-A student is found by email, else by `cdoc`, never by name (D7). When a `cdoc` shows a new email, the latest list wins and the record moves to that student (D1).
+A person is never found by email alone ([ADR-0013](../architecture/decisions/0013-student-identity.md)). A list entry finds its programme record by `cdoc`, and the record keeps its student. A new `cdoc` joins the student with the same `email` and `first_name_key`, else it starts a new student; a new `cdoc` without an email always starts a new student (D3). No unique key on (`email`, `first_name_key`): a staff split leaves two students with the same pair, and the existing `cdoc` link keeps each record with its student. When several students match a new `cdoc`, it joins the one with the newest first enrollment and a `student_match` review case opens. When the email and first name match but the surname differs (D14), the record joins that student and a `student_match` review case asks staff whether it is a second person. When a `cdoc` shows a new email, the record keeps its student and the student takes the new email (D1).
 
 ### `student_programmes`
 
@@ -244,9 +248,9 @@ Each parse's `report` counts its rows by table and action. A department keeps th
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `rev_...` |
-| `kind` | text | `course_match`, `instructor_match`, `removals_held` |
-| `subject_id` | text | the offering, or the run for held removals |
-| `candidates` | jsonb | ids only: courses, instructors, or the rows the run would remove |
+| `kind` | text | `course_match`, `instructor_match`, `student_match`, `removals_held` |
+| `subject_id` | text | the offering, the programme record for `student_match`, or the run for held removals |
+| `candidates` | jsonb | ids only: courses, instructors, the student a programme record joined, or the rows the run would remove |
 | `safe_answer` | jsonb | what was published |
 | `status` | text | `open`, `decided`, `obsolete` (a later run made it moot) |
 | `run_id` | bigint | the run that opened it |
@@ -259,7 +263,7 @@ Each parse's `report` counts its rows by table and action. A department keeps th
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `dec_...` |
-| `kind` | text | `merge`, `keep_apart`, `split`, `link_instructor`, `keep_unlinked`, `apply_removals`, `drop_removals` |
+| `kind` | text | `merge`, `keep_apart`, `split`, `link_instructor`, `keep_unlinked`, `apply_removals`, `drop_removals`, `split_student`, `keep_student` (D14) |
 | `review_case_id` | text null | null when staff start it, for example a split |
 | `payload` | jsonb | ids the decision acts on |
 | `reverses_id` | text null | an earlier decision it undoes (rule 10) |
@@ -268,7 +272,7 @@ Each parse's `report` counts its rows by table and action. A department keeps th
 | `made_at` | timestamptz | |
 | `change_no` | bigint | |
 
-A decision wins over the matching rules, so the matching step reads the latest non-reversed decision for each offering before it applies a rule.
+A decision wins over the matching rules, so the matching step reads the latest non-reversed decision for each offering, or for each programme record, before it applies a rule. `split_student` moves one programme record (`payload`: `student_programme_id`) to a new student; `keep_student` confirms the student it joined. The safe answer of a `student_match` case is the student the record joined.
 
 ## Keys and audit log
 
