@@ -56,8 +56,9 @@ loki.process "pods" {
 	forward_to = [loki.write.grafana_cloud.receiver]
 }
 
+// CLUSTER_NAME (parser-staging or parser-live) comes from the grafana-cloud Secret, like the GRAFANA_* values.
 loki.write "grafana_cloud" {
-	external_labels = {cluster = "parser-staging"}
+	external_labels = {cluster = sys.env("CLUSTER_NAME")}
 
 	endpoint {
 		url = sys.env("GRAFANA_LOKI_URL")
@@ -206,7 +207,7 @@ prometheus.relabel "cert_manager" {
 //  Push
 
 prometheus.remote_write "grafana_cloud" {
-	external_labels = {cluster = "parser-staging"}
+	external_labels = {cluster = sys.env("CLUSTER_NAME")}
 
 	endpoint {
 		url = sys.env("GRAFANA_PROM_URL")

@@ -32,7 +32,8 @@ spec:
     storageClass: local-path
     size: 5Gi
 
-  # Sized for the 4 GB staging node: two instances take 1 GiB.
+  # Shared by both nodes (staging cx23 4 GB, live cx33 8 GB): two instances take 1 GiB.
+  # On staging Postgres peaked at 236 MiB of this limit during a full crawl.
   resources:
     requests:
       cpu: 100m
