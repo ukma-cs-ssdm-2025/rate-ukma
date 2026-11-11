@@ -14,6 +14,7 @@ on:
         type: choice
         options:
           - staging
+          - live
       action:
         description: "plan shows the changes - apply plans and then applies them"
         required: true
@@ -40,7 +41,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        environment: [staging]
+        environment: [staging, live]
     steps:
       - uses: actions/checkout@v5
         with:
