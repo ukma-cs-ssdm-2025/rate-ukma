@@ -111,6 +111,39 @@ jobs:
       run_e2e_tests: true
     secrets: inherit
 
+  # The parser deploys on its own path: only when it or its manifests changed, and independent of the web app,
+  # so a failure on one side doesn't hold back the other.
+  # Pushes only: a dispatch rebuilds parser:<version-tag> from the current main, so it must not reach live.
+  # Deploy Parser's own dispatch is the manual path.
+  deploy-parser-staging:
+    needs: [changes-filter, version, build]
+    if: >-
+      ${{ !failure() && !cancelled() &&
+      github.event_name == 'push' &&
+      github.ref_name == github.event.repository.default_branch &&
+      needs.build.result == 'success' &&
+      fromJSON(needs.changes-filter.outputs.parser_deploy_changed) }}
+    uses: ./.github/workflows/parser-deploy.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      environment: staging
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
+    secrets: inherit
+
+  deploy-parser-live:
+    needs: [version, deploy-parser-staging]
+    if: ${{ !cancelled() && needs.deploy-parser-staging.result == 'success' }}
+    uses: ./.github/workflows/parser-deploy.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      environment: live
+      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
+    secrets: inherit
+
   release:
     needs: [version, deploy-staging, release-needed]
     if: >-

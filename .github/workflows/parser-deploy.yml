@@ -74,8 +74,9 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    # No reviewer: every merge deploys. It reaches the node as the tunnel-only user, and the parser-deployer
-    # kubeconfig can't read Secrets directly or change RBAC.
+    # No reviewer: main-pipeline.yml calls this on every push to main that changes src/parser or the app manifests,
+    # staging first, then live. It reaches the node as the tunnel-only user, and the parser-deployer kubeconfig
+    # can't read Secrets directly or change RBAC.
     environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Deploy
     # One deploy per environment at a time; a newer one waits instead of cancelling a migration.
     # Only the newest waiting deploy runs: the ones it replaces add nothing, since migrate applies every pending migration.
