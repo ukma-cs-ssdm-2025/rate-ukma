@@ -195,6 +195,12 @@ function casesFor(mode: "light" | "dark"): ContrastCase[] {
 			min: TEXT,
 			why: "term badges (bg-term-*/12 text-term-*)",
 		})),
+		{
+			fg: "course-elective",
+			bg: "background",
+			min: TEXT,
+			why: "free-choice course labels in the personal plan",
+		},
 		...(
 			[
 				"faculty-purple",

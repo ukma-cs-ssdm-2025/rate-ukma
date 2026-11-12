@@ -79,6 +79,7 @@ code {
 	--term-fall: oklch(0.5 0.11 65);
 	--term-spring: oklch(0.52 0.19 355);
 	--term-summer: oklch(0.5 0.11 165);
+	--course-elective: oklch(0.57 0.17 45);
 	--faculty-purple: oklch(0.5 0.16 300);
 	--faculty-orange: oklch(0.52 0.14 55);
 	--faculty-rose: oklch(0.5 0.16 10);
@@ -133,6 +134,7 @@ code {
 		--term-fall: oklch(0.83 0.12 80);
 		--term-spring: oklch(0.82 0.11 350);
 		--term-summer: oklch(0.83 0.13 165);
+		--course-elective: oklch(0.79 0.14 55);
 		--faculty-purple: oklch(0.82 0.13 300);
 		--faculty-orange: oklch(0.82 0.12 55);
 		--faculty-rose: oklch(0.82 0.13 10);
@@ -187,6 +189,7 @@ code {
 	--color-term-fall: var(--term-fall);
 	--color-term-spring: var(--term-spring);
 	--color-term-summer: var(--term-summer);
+	--color-course-elective: var(--course-elective);
 	--color-faculty-purple: var(--faculty-purple);
 	--color-faculty-orange: var(--faculty-orange);
 	--color-faculty-rose: var(--faculty-rose);
