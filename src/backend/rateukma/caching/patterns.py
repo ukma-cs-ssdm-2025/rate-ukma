@@ -9,6 +9,9 @@ ANALYTICS_LIST_NAMESPACE = "analytics:list"
 FILTER_OPTIONS_NAMESPACE = "courses:filter-options"
 
 FEED_NAMESPACE = "feed:list"
+
+# Every student's plan: САЗ syncs change taken and mandatory courses for all of them.
+PLANS_NAMESPACE = "plan:all"
 FEED_NEXT_PUBLISH_AT_KEY = "feed:next-publish-at"
 
 
