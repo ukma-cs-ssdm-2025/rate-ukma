@@ -160,7 +160,7 @@ describe("parseFilterOptions", () => {
 <option value="902">Факультет уявних мистецтв</option>
 </select>
 <select name="filter[spec][]" multiple>
-<option selected value="5001">Вигадана інженерія (Бакалавр)</option>
+<option selected value="5001" data-value="9">Вигадана інженерія (Бакалавр)</option>
 <!-- <option value="5009">Вигадана інженерія (Бакалавр)</option> -->
 <option value="5002">Комп&#039;ютерні вигадки (Магістр)</option>
 </select>

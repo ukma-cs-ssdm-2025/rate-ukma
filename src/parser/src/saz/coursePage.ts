@@ -173,7 +173,7 @@ export class CoursePageError extends Schema.TaggedError<CoursePageError>()(
 	{ reason: Schema.String, detail: Schema.String },
 ) {}
 
-const TITLE = /<h1>(.*?)<small>/su;
+const TITLE = /<h1>([^<]*)<small>/u;
 
 const CARD_START = '<div id="w0">';
 
