@@ -18,39 +18,36 @@ import {
 	formatAcademicYearLabel,
 	getSemesterTermDisplay,
 } from "@/features/courses/courseFormatting";
-import type { CourseOffering } from "@/lib/api/generated";
+import type {
+	CourseOffering,
+	PlanSlot,
+	PlanYear,
+	SemesterTermEnum,
+} from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { usePersonalPlan } from "../hooks/usePersonalPlan";
+import type { PlanTarget } from "../hooks/usePlanActions";
 import {
 	formatPlanCredits,
 	getSemesterTitle,
 	PLAN_KIND_STYLES,
 } from "../planFormatting";
 import { courseKindFor, offeringForTerm, offeringLoad } from "../planOffering";
-import type { PlannedPlace } from "../planStore";
-import { isPlanTerm } from "../planTimeline";
-import type {
-	PlanCourse,
-	PlanSlot,
-	PlanTarget,
-	PlanTerm,
-	PlanYear,
-} from "../planTypes";
+import { isPlanTerm, type PlannedPlace } from "../planTimeline";
 import type { PlanCandidate } from "./AddToPlanButton";
 
 /** Terms the course has run in; empty when the catalog does not say. */
-function offeredTerms(offerings: readonly CourseOffering[]): Set<PlanTerm> {
+function offeredTerms(
+	offerings: readonly CourseOffering[],
+): Set<SemesterTermEnum> {
 	const terms = offerings.flatMap((offering) => [
 		offering.semester_term?.toUpperCase(),
 		...(offering.terms ?? []).map((term) => term.semester_term?.toUpperCase()),
 	]);
 	return new Set(terms.filter(isPlanTerm));
 }
-
-const sameTarget = (a: PlanTarget, b: PlanTarget) =>
-	a.studyYear === b.studyYear && a.term === b.term;
 
 interface AddToPlanDialogProps {
 	readonly open: boolean;
@@ -94,73 +91,70 @@ function AddToPlanBody({
 	const navigate = useNavigate();
 
 	const runsIn = offeredTerms(course.offerings);
-	const canGo = (term: PlanTerm) => runsIn.size === 0 || runsIn.has(term);
+	const canGo = (term: SemesterTermEnum | undefined) =>
+		runsIn.size === 0 || (term !== undefined && runsIn.has(term));
 	// Only semesters still to come that exist and in which the course runs.
 	const years = plan.years
-		.filter((year) => year.status !== "done")
+		.filter((year) => year.year_status !== "done")
 		.map((year) => ({
 			...year,
-			semesters: year.semesters.filter(
-				(semester) => !semester.unavailable && canGo(semester.term),
+			semesters: (year.semesters ?? []).filter(
+				(semester) =>
+					!semester.is_graduation_summer && canGo(semester.semester_term),
 			),
 		}))
 		.filter((year) => year.semesters.length > 0);
 	const firstOpen = years
 		.flatMap((year) =>
 			year.semesters.map((semester) => ({
-				studyYear: year.studyYear,
-				term: semester.term,
+				study_year: year.study_year ?? 0,
+				semester_term: semester.semester_term ?? "FALL",
 			})),
 		)
 		.at(0);
 
 	const [picked, setPicked] = useState<PlanTarget | null>(null);
-	const [slot, setSlot] = useState<PlanSlot>(place?.slot ?? "main");
+	const [slot, setSlot] = useState<PlanSlot>(place?.slot ?? "MAIN");
 	const target = picked ?? place?.target ?? firstOpen ?? null;
 
 	const takenIn = plan.years.find((year) =>
-		year.semesters.some((semester) =>
-			semester.main.some(
-				(item) => item.courseId === course.courseId && item.locked,
+		(year.semesters ?? []).some((semester) =>
+			(semester.main ?? []).some(
+				(item) => item.course_id === course.courseId && item.is_mandatory,
 			),
 		),
 	);
 
 	const kind = courseKindFor(course.specialities, speciality?.id);
 	const load = target
-		? offeringLoad(offeringForTerm(course.offerings, target.term), target.term)
+		? offeringLoad(
+				offeringForTerm(course.offerings, target.semester_term),
+				target.semester_term,
+			)
 		: null;
 
 	const save = () => {
-		if (!target || !load) return;
-		const planCourse: PlanCourse = {
-			courseId: course.courseId,
-			title: course.title,
-			kind,
-			facultyName: course.facultyName,
-			...load,
-		};
-		if (place && !sameTarget(place.target, target)) {
-			plan.actions.remove(place.target, course.courseId);
-		}
-		plan.actions.add(target, planCourse, slot);
-		onDone();
-		toast.success(
-			`${place ? "Перенесено" : "Додано"} в ІНП: ${target.studyYear} курс, ${getSemesterTitle(target.term).toLowerCase()}`,
-			{
-				action: {
-					label: "Відкрити ІНП",
-					onClick: () => navigate({ to: "/plan" }),
+		if (!target) return;
+		plan.actions.add(target, course.courseId, slot, () => {
+			onDone();
+			toast.success(
+				`${place ? "Перенесено" : "Додано"} в ІНП: ${target.study_year} курс, ${getSemesterTitle(target.semester_term).toLowerCase()}`,
+				{
+					action: {
+						label: "Відкрити ІНП",
+						onClick: () => navigate({ to: "/plan" }),
+					},
 				},
-			},
-		);
+			);
+		});
 	};
 
 	const remove = () => {
 		if (!place) return;
-		plan.actions.remove(place.target, course.courseId);
-		onDone();
-		toast.success("Прибрано з ІНП");
+		plan.actions.remove(course.courseId, () => {
+			onDone();
+			toast.success("Прибрано з ІНП");
+		});
 	};
 
 	return (
@@ -177,7 +171,8 @@ function AddToPlanBody({
 				</div>
 			) : takenIn ? (
 				<p className="text-sm text-muted-foreground">
-					Цей курс уже є у вашому ІНП за даними САЗ ({takenIn.studyYear} курс).
+					Цей курс обов'язковий або вже пройдений, тому він є у вашому ІНП (
+					{takenIn.study_year} курс).
 				</p>
 			) : years.length === 0 ? (
 				<p className="text-sm text-muted-foreground">
@@ -190,7 +185,7 @@ function AddToPlanBody({
 						<div className="max-h-72 space-y-3 overflow-y-auto pr-1">
 							{years.map((year) => (
 								<YearSemesters
-									key={year.studyYear}
+									key={year.study_year}
 									year={year}
 									selected={target}
 									offerings={course.offerings}
@@ -212,8 +207,8 @@ function AddToPlanBody({
 							}}
 							aria-label="Основна чи запасна"
 						>
-							<ToggleGroupItem value="main">Основна</ToggleGroupItem>
-							<ToggleGroupItem value="backup">Запасна</ToggleGroupItem>
+							<ToggleGroupItem value="MAIN">Основна</ToggleGroupItem>
+							<ToggleGroupItem value="BACKUP">Запасна</ToggleGroupItem>
 						</ToggleGroup>
 						<p className="text-xs text-muted-foreground">
 							Запасні не входять у підрахунок кредитів.
@@ -237,7 +232,12 @@ function AddToPlanBody({
 
 			<DialogFooter className="sm:justify-between">
 				{place && !takenIn ? (
-					<Button variant="ghost" className="text-destructive" onClick={remove}>
+					<Button
+						variant="ghost"
+						className="text-destructive"
+						disabled={plan.actions.isSaving}
+						onClick={remove}
+					>
 						Прибрати з ІНП
 					</Button>
 				) : (
@@ -249,7 +249,12 @@ function AddToPlanBody({
 					</Button>
 					<Button
 						onClick={save}
-						disabled={plan.isLoading || Boolean(takenIn) || !target}
+						disabled={
+							plan.isLoading ||
+							plan.actions.isSaving ||
+							Boolean(takenIn) ||
+							!target
+						}
 					>
 						{place ? "Зберегти" : "Додати"}
 					</Button>
@@ -260,7 +265,7 @@ function AddToPlanBody({
 }
 
 /** Calendar year a semester falls in: autumn opens the academic year. */
-const calendarYear = (academicYearStart: number, term: PlanTerm) =>
+const calendarYear = (academicYearStart: number, term: SemesterTermEnum) =>
 	term === "FALL" ? academicYearStart : academicYearStart + 1;
 
 /**
@@ -273,25 +278,26 @@ function YearSemesters({
 	offerings,
 	onPick,
 }: Readonly<{
-	year: PlanYear;
+	year: PlanYear & { semesters: NonNullable<PlanYear["semesters"]> };
 	selected: PlanTarget | null;
 	/** To show the course's own load in each term. */
 	offerings: readonly CourseOffering[];
 	onPick: (target: PlanTarget) => void;
 }>) {
+	const studyYear = year.study_year ?? 0;
+	const academicYearStart = year.academic_year_start ?? 0;
 	return (
 		<div className="space-y-1.5">
 			<p className="text-xs font-medium text-muted-foreground">
-				{year.studyYear} курс ·{" "}
-				{formatAcademicYearLabel(year.academicYearStart, "FALL")}
+				{studyYear} курс · {formatAcademicYearLabel(academicYearStart, "FALL")}
 			</p>
 			{year.semesters.map((semester) => {
+				const term = semester.semester_term ?? "FALL";
 				const isSelected =
-					selected?.studyYear === year.studyYear &&
-					selected.term === semester.term;
+					selected?.study_year === studyYear && selected.semester_term === term;
 				return (
 					<label
-						key={semester.term}
+						key={term}
 						className={cn(
 							"flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors hover:bg-accent/50",
 							isSelected && "border-primary/50 bg-primary/5",
@@ -303,17 +309,17 @@ function YearSemesters({
 							className="size-4 accent-primary"
 							checked={isSelected}
 							onChange={() =>
-								onPick({ studyYear: year.studyYear, term: semester.term })
+								onPick({ study_year: studyYear, semester_term: term })
 							}
 						/>
 						<span className="min-w-0 grow">
 							<span className="block text-sm font-medium">
-								{getSemesterTermDisplay(semester.term)}{" "}
-								{calendarYear(year.academicYearStart, semester.term)}
+								{getSemesterTermDisplay(term)}{" "}
+								{calendarYear(academicYearStart, term)}
 							</span>
 						</span>
 						<span className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">
-							<SemesterLoad offerings={offerings} term={semester.term} />
+							<SemesterLoad offerings={offerings} term={term} />
 						</span>
 					</label>
 				);
@@ -325,7 +331,7 @@ function YearSemesters({
 function SemesterLoad({
 	offerings,
 	term,
-}: Readonly<{ offerings: readonly CourseOffering[]; term: PlanTerm }>) {
+}: Readonly<{ offerings: readonly CourseOffering[]; term: SemesterTermEnum }>) {
 	const { credits, weeklyHours } = offeringLoad(
 		offeringForTerm(offerings, term),
 		term,

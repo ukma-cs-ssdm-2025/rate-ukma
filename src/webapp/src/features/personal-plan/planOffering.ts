@@ -3,8 +3,9 @@ import type {
 	CourseOffering,
 	CourseOfferingSpeciality,
 	CourseOfferingSpecialityInline,
+	SemesterTermEnum,
+	TypeKindEnum,
 } from "@/lib/api/generated";
-import type { PlanCourseKind, PlanTerm } from "./planTypes";
 
 export interface CourseLoad {
 	credits: number | null;
@@ -13,7 +14,7 @@ export interface CourseLoad {
 
 const UNKNOWN_LOAD: CourseLoad = { credits: null, weeklyHours: null };
 
-function parseCredits(value: string | undefined): number | null {
+export function parseCredits(value: string | undefined): number | null {
 	const parsed = Number.parseFloat(value ?? "");
 	return Number.isFinite(parsed) ? parsed : null;
 }
@@ -21,7 +22,7 @@ function parseCredits(value: string | undefined): number | null {
 /** Credits and hours for one semester of an offering. */
 export function offeringLoad(
 	offering: CourseOffering | undefined,
-	term: PlanTerm,
+	term: SemesterTermEnum,
 ): CourseLoad {
 	const terms = offering?.terms ?? [];
 	const match =
@@ -37,7 +38,7 @@ export function offeringLoad(
 /** The newest offering that runs in the given term, else the newest one. */
 export function offeringForTerm(
 	offerings: readonly CourseOffering[],
-	term: PlanTerm,
+	term: SemesterTermEnum,
 ): CourseOffering | undefined {
 	const inTerm = offerings.filter((offering) =>
 		[
@@ -59,7 +60,7 @@ export function courseKindFor(
 		| readonly (CourseOfferingSpeciality | CourseOfferingSpecialityInline)[]
 		| undefined,
 	specialityId: string | null | undefined,
-): PlanCourseKind {
+): TypeKindEnum {
 	const own = specialities?.find(
 		(speciality) => speciality.speciality_id === specialityId,
 	);

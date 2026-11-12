@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatAcademicYearLabel } from "@/features/courses/courseFormatting";
+import type { PlanSlot, PlanYear } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import {
@@ -20,8 +21,8 @@ import {
 	defaultCatalogFilters,
 	useCatalogCourses,
 } from "../hooks/useCatalogCourses";
+import type { PlanTarget } from "../hooks/usePlanActions";
 import { getSemesterTitle } from "../planFormatting";
-import type { PlanCourse, PlanSlot, PlanTarget, PlanYear } from "../planTypes";
 import { CatalogCourseRow } from "./CatalogCourseRow";
 import { CatalogFilters } from "./CatalogFilters";
 
@@ -34,7 +35,7 @@ interface AddCourseDialogProps {
 	readonly catalogYearStart: number;
 	readonly onAdd: (
 		target: PlanTarget,
-		course: PlanCourse,
+		courseId: string,
 		slot: PlanSlot,
 	) => void;
 	readonly onClose: () => void;
@@ -54,7 +55,7 @@ export function AddCourseDialog({
 				{/* Keyed so each opening starts from that semester's defaults. */}
 				{target ? (
 					<AddCourseDialogBody
-						key={`${target.studyYear}-${target.term}`}
+						key={`${target.study_year}-${target.semester_term}`}
 						target={target}
 						{...props}
 					/>
@@ -73,13 +74,16 @@ function AddCourseDialogBody({
 }: Readonly<Omit<AddCourseDialogProps, "onClose"> & { target: PlanTarget }>) {
 	const { speciality } = useAuth();
 	const [filters, setFilters] = useState(() =>
-		defaultCatalogFilters(target.term),
+		defaultCatalogFilters(target.semester_term),
 	);
 	const [pageSize, setPageSize] = useState(CATALOG_PAGE_SIZE);
 	const catalog = useCatalogCourses(filters, catalogYearStart, pageSize);
 
-	const year = years.find((item) => item.studyYear === target.studyYear);
-	const destination = { studyYear: target.studyYear, term: filters.term };
+	const year = years.find((item) => item.study_year === target.study_year);
+	const destination = {
+		study_year: target.study_year,
+		semester_term: filters.term,
+	};
 	const loaded = catalog.data?.items ?? [];
 	// Courses already in the plan are not offered again; they drop out of
 	// the list (and the count) as soon as they are added.
@@ -100,9 +104,9 @@ function AddCourseDialogBody({
 			<DialogHeader className="gap-1 px-6 pt-5 pb-3">
 				<DialogTitle>Додати дисципліну</DialogTitle>
 				<DialogDescription>
-					{target.studyYear} курс
+					{target.study_year} курс
 					{year
-						? ` · ${formatAcademicYearLabel(year.academicYearStart, "FALL")}`
+						? ` · ${formatAcademicYearLabel(year.academic_year_start, "FALL")}`
 						: null}
 					{" · додається в: "}
 					{getSemesterTitle(filters.term).toLowerCase()}
@@ -122,7 +126,9 @@ function AddCourseDialogBody({
 				<Button
 					variant="link"
 					size="sm"
-					onClick={() => changeFilters(defaultCatalogFilters(target.term))}
+					onClick={() =>
+						changeFilters(defaultCatalogFilters(target.semester_term))
+					}
 				>
 					Скинути фільтри
 				</Button>
@@ -147,9 +153,7 @@ function AddCourseDialogBody({
 								course={course}
 								term={filters.term}
 								specialityId={speciality?.id}
-								onAdd={(planCourse, slot) =>
-									onAdd(destination, planCourse, slot)
-								}
+								onAdd={(slot) => onAdd(destination, course.id ?? "", slot)}
 							/>
 						))}
 						{hasMore ? (

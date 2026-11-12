@@ -2,9 +2,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import type {
+	PlanCourse,
+	PlanSemester,
+	TypeKindEnum,
+} from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import type { PlanActions } from "../hooks/usePlannedCourses";
-import type { PlanCourse, PlanSemester } from "../planTypes";
+import type { PlanActions } from "../hooks/usePlanActions";
 import { PlanSemesterGrid } from "./PlanSemesterGrid";
 
 vi.mock("@tanstack/react-router", async () => {
@@ -17,33 +21,50 @@ vi.mock("@tanstack/react-router", async () => {
 	};
 });
 
-function course(courseId: string, kind: PlanCourse["kind"]): PlanCourse {
+function course(courseId: string, kind: TypeKindEnum): PlanCourse {
 	return {
-		courseId,
+		course_id: courseId,
 		title: courseId,
-		kind,
-		facultyName: null,
-		credits: 4,
-		weeklyHours: 3,
+		type_kind: kind,
+		faculty_name: "ФІ",
+		credits: "4.0",
+		weekly_hours: 3,
+		is_mandatory: kind === "COMPULSORY",
 	};
 }
 
 const semesters: PlanSemester[] = [
 	{
-		term: "FALL",
+		semester_term: "FALL",
 		main: [
 			course("Бази даних", "COMPULSORY"),
 			course("Хмарні обчислення", "PROF_ORIENTED"),
 		],
 		backup: [course("Розподілені системи", "PROF_ORIENTED")],
-		unavailable: false,
+		is_graduation_summer: false,
 	},
-	{ term: "SPRING", main: [], backup: [], unavailable: false },
-	{ term: "SUMMER", main: [], backup: [], unavailable: true },
+	{
+		semester_term: "SPRING",
+		main: [],
+		backup: [],
+		is_graduation_summer: false,
+	},
+	{
+		semester_term: "SUMMER",
+		main: [],
+		backup: [],
+		is_graduation_summer: true,
+	},
 ];
 
 function actions(): PlanActions {
-	return { add: vi.fn(), remove: vi.fn(), promote: vi.fn(), demote: vi.fn() };
+	return {
+		add: vi.fn(),
+		remove: vi.fn(),
+		promote: vi.fn(),
+		demote: vi.fn(),
+		isSaving: false,
+	};
 }
 
 describe("PlanSemesterGrid", () => {
@@ -65,10 +86,7 @@ describe("PlanSemesterGrid", () => {
 		await userEvent.click(
 			screen.getByRole("button", { name: "Прибрати Хмарні обчислення" }),
 		);
-		expect(planActions.remove).toHaveBeenCalledWith(
-			{ studyYear: 3, term: "FALL" },
-			"Хмарні обчислення",
-		);
+		expect(planActions.remove).toHaveBeenCalledWith("Хмарні обчислення");
 	});
 
 	it("promotes a backup to main", async () => {
@@ -88,7 +106,7 @@ describe("PlanSemesterGrid", () => {
 			}),
 		);
 		expect(planActions.promote).toHaveBeenCalledWith(
-			{ studyYear: 3, term: "FALL" },
+			{ study_year: 3, semester_term: "FALL" },
 			"Розподілені системи",
 		);
 	});

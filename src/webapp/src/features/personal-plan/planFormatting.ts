@@ -1,7 +1,7 @@
 import { formatDecimalValue } from "@/features/courses/courseFormatting";
-import type { PlanCourseKind, PlanTerm } from "./planTypes";
+import type { SemesterTermEnum, TypeKindEnum } from "@/lib/api/generated";
 
-export const PLAN_KIND_ORDER: readonly PlanCourseKind[] = [
+export const PLAN_KIND_ORDER: readonly TypeKindEnum[] = [
 	"COMPULSORY",
 	"PROF_ORIENTED",
 	"ELECTIVE",
@@ -18,7 +18,7 @@ interface KindStyle {
 	dot: string;
 }
 
-export const PLAN_KIND_STYLES: Record<PlanCourseKind, KindStyle> = {
+export const PLAN_KIND_STYLES: Record<TypeKindEnum, KindStyle> = {
 	COMPULSORY: {
 		groupLabel: "Нормативні",
 		shortLabel: "Нормативні",
@@ -42,13 +42,13 @@ export const PLAN_KIND_STYLES: Record<PlanCourseKind, KindStyle> = {
 	},
 };
 
-const SEMESTER_TITLES: Record<PlanTerm, string> = {
+const SEMESTER_TITLES: Record<SemesterTermEnum, string> = {
 	FALL: "Осінній семестр",
 	SPRING: "Весняний семестр",
 	SUMMER: "Літній семестр",
 };
 
-export function getSemesterTitle(term: PlanTerm): string {
+export function getSemesterTitle(term: SemesterTermEnum): string {
 	return SEMESTER_TITLES[term];
 }
 

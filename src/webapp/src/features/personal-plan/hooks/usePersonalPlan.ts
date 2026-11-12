@@ -1,42 +1,25 @@
 import { useMemo } from "react";
 
-import { useAuth } from "@/lib/auth";
+import { useStudentsMePlanRetrieve } from "@/lib/api/generated";
 import { summarizePlan } from "../planRules";
-import { buildPlanYears, currentAcademicYearStart } from "../planTimeline";
-import { usePlannedCourses } from "./usePlannedCourses";
-import { useTakenCourses } from "./useTakenCourses";
+import { usePlanActions } from "./usePlanActions";
 
-/** САЗ history for past and current years, the student's picks after that. */
+/** The plan the backend keeps: САЗ, mandatory courses and the student's picks. */
 export function usePersonalPlan({ enabled }: Readonly<{ enabled: boolean }>) {
-	const { user } = useAuth();
-	const taken = useTakenCourses({ enabled });
-	const { planned, ...actions } = usePlannedCourses(user?.id);
+	const plan = useStudentsMePlanRetrieve({ query: { enabled } });
+	const actions = usePlanActions();
 
-	const currentYearStart = currentAcademicYearStart(new Date());
-	// A student with no САЗ history yet is a first-year.
-	const enrollmentYearStart = taken.enrollmentYearStart ?? currentYearStart;
-
-	const years = useMemo(
-		() =>
-			buildPlanYears({
-				enrollmentYearStart,
-				currentYearStart,
-				taken: taken.taken,
-				planned,
-			}),
-		[enrollmentYearStart, currentYearStart, taken.taken, planned],
-	);
-
+	const years = useMemo(() => plan.data?.plan_years ?? [], [plan.data]);
 	const summary = useMemo(() => summarizePlan(years), [years]);
 
 	return {
 		years,
 		summary,
 		actions,
-		currentYearStart,
-		isLoading: taken.isLoading,
-		error: taken.error,
-		isRetrying: taken.isRetrying,
-		refetch: taken.refetch,
+		currentYearStart: plan.data?.current_year_start ?? 0,
+		isLoading: plan.isLoading,
+		error: plan.error,
+		isRetrying: plan.isFetching && !plan.isLoading,
+		refetch: plan.refetch,
 	};
 }

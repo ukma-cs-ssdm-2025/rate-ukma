@@ -1,23 +1,29 @@
 import { keepPreviousData } from "@tanstack/react-query";
 
-import type { CoursesListParams } from "@/lib/api/generated";
+import type {
+	CoursesListParams,
+	SemesterTermEnum,
+	TypeKindEnum,
+} from "@/lib/api/generated";
 import { useCoursesList } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import { CREDITS_FILTER_RANGE } from "../planRules";
-import type { ChoiceKind, PlanTerm } from "../planTypes";
+
+/** A course the student can pick, so never a compulsory one. */
+export type ChoiceKind = Exclude<TypeKindEnum, "COMPULSORY">;
 
 export const CATALOG_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
 
 export interface CatalogFilters {
-	term: PlanTerm;
+	term: SemesterTermEnum;
 	kind: ChoiceKind | "all";
 	credits: [number, number];
 	query: string;
 }
 
-export function defaultCatalogFilters(term: PlanTerm): CatalogFilters {
+export function defaultCatalogFilters(term: SemesterTermEnum): CatalogFilters {
 	return {
 		term,
 		kind: "PROF_ORIENTED",

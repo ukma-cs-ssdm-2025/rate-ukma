@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/Button";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { formatPlanCredits, PLAN_KIND_STYLES } from "../planFormatting";
-import type { PlanCourse } from "../planTypes";
+import type { PlanCourse } from "@/lib/api/generated";
+import { parseCredits } from "../planOffering";
 
 function CourseLoad({ course }: Readonly<{ course: PlanCourse }>) {
 	return (
 		<span className="whitespace-nowrap text-sm font-semibold tabular-nums">
-			{formatPlanCredits(course.credits)}{" "}
+			{formatPlanCredits(parseCredits(course.credits))}{" "}
 			<span className="text-xs font-normal text-muted-foreground">ECTS</span>
 			<span className="text-xs font-normal text-muted-foreground/60"> / </span>
-			{course.weeklyHours ?? "—"}{" "}
+			{course.weekly_hours ?? "—"}{" "}
 			<span className="text-xs font-normal text-muted-foreground">год</span>
 		</span>
 	);
@@ -51,7 +52,7 @@ function KindStripe({
 	course,
 	faded = false,
 }: Readonly<{ course: PlanCourse; faded?: boolean }>) {
-	const style = PLAN_KIND_STYLES[course.kind];
+	const style = PLAN_KIND_STYLES[course.type_kind ?? "ELECTIVE"];
 	return (
 		<>
 			<span
@@ -82,7 +83,7 @@ export function PlanCourseRow({ course, onRemove }: PlanCourseRowProps) {
 			<KindStripe course={course} />
 			<Link
 				to="/courses/$courseId"
-				params={{ courseId: course.courseId }}
+				params={{ courseId: course.course_id ?? "" }}
 				className="min-w-0 grow text-sm leading-snug font-medium hover:text-primary"
 			>
 				{course.title}
@@ -118,8 +119,8 @@ export function PlanBackupRow({
 				{course.title}
 			</span>
 			<span className="whitespace-nowrap text-sm text-muted-foreground tabular-nums">
-				{formatPlanCredits(course.credits)}{" "}
-				<span className="text-xs">ECTS</span> / {course.weeklyHours ?? "—"}{" "}
+				{formatPlanCredits(parseCredits(course.credits))}{" "}
+				<span className="text-xs">ECTS</span> / {course.weekly_hours ?? "—"}{" "}
 				<span className="text-xs">год</span>
 			</span>
 			{onPromote ? (

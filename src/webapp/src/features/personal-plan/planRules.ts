@@ -1,9 +1,9 @@
-import type { PlanCourse, PlanYear } from "./planTypes";
+import type { PlanCourse, PlanYear } from "@/lib/api/generated";
+import { parseCredits } from "./planOffering";
 
 // Bachelor programme limits. They live here until the backend serves them
 // per speciality.
 export const PLAN_LIMITS = {
-	studyYears: 4,
 	totalCredits: 240,
 	minProfOrientedCredits: 54,
 	maxElectiveCredits: 25,
@@ -21,38 +21,41 @@ export interface PlanSummary {
 }
 
 export function sumCredits(courses: readonly PlanCourse[]): number {
-	return courses.reduce((sum, course) => sum + (course.credits ?? 0), 0);
+	return courses.reduce(
+		(sum, course) => sum + (parseCredits(course.credits) ?? 0),
+		0,
+	);
 }
 
 export function sumWeeklyHours(courses: readonly PlanCourse[]): number {
-	return courses.reduce((sum, course) => sum + (course.weeklyHours ?? 0), 0);
+	return courses.reduce((sum, course) => sum + (course.weekly_hours ?? 0), 0);
 }
 
 /** Backups stay out of every total: they only replace a main course. */
 export function summarizePlan(years: readonly PlanYear[]): PlanSummary {
-	const semesters = years.flatMap((year) => year.semesters);
-	const main = semesters.flatMap((semester) => semester.main);
+	const semesters = years.flatMap((year) => year.semesters ?? []);
+	const main = semesters.flatMap((semester) => semester.main ?? []);
 	return {
 		totalCredits: sumCredits(main),
 		compulsoryCredits: sumCredits(
-			main.filter((course) => course.kind === "COMPULSORY"),
+			main.filter((course) => course.type_kind === "COMPULSORY"),
 		),
 		profOrientedCredits: sumCredits(
-			main.filter((course) => course.kind === "PROF_ORIENTED"),
+			main.filter((course) => course.type_kind === "PROF_ORIENTED"),
 		),
 		electiveCredits: sumCredits(
-			main.filter((course) => course.kind === "ELECTIVE"),
+			main.filter((course) => course.type_kind === "ELECTIVE"),
 		),
 		backupCount: semesters.reduce(
-			(sum, semester) => sum + semester.backup.length,
+			(sum, semester) => sum + (semester.backup?.length ?? 0),
 			0,
 		),
 	};
 }
 
 export function yearCredits(year: PlanYear): number {
-	return year.semesters.reduce(
-		(sum, semester) => sum + sumCredits(semester.main),
+	return (year.semesters ?? []).reduce(
+		(sum, semester) => sum + sumCredits(semester.main ?? []),
 		0,
 	);
 }

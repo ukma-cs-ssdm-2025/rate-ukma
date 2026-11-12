@@ -14,10 +14,13 @@ import { Slider } from "@/components/ui/Slider";
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
-import type { CatalogFilters as Filters } from "../hooks/useCatalogCourses";
+import type { PlanSemester, SemesterTermEnum } from "@/lib/api/generated";
+import type {
+	ChoiceKind,
+	CatalogFilters as Filters,
+} from "../hooks/useCatalogCourses";
 import { formatPlanCredits, PLAN_KIND_STYLES } from "../planFormatting";
 import { CREDITS_FILTER_RANGE, CREDITS_FILTER_STEP } from "../planRules";
-import type { ChoiceKind, PlanSemester, PlanTerm } from "../planTypes";
 
 const KIND_OPTIONS: readonly (ChoiceKind | "all")[] = [
 	"all",
@@ -64,15 +67,15 @@ export function CatalogFilters({
 				<FilterSelect
 					label="Семестр"
 					value={filters.term}
-					onValueChange={(term) => onChange({ term: term as PlanTerm })}
+					onValueChange={(term) => onChange({ term: term as SemesterTermEnum })}
 				>
 					{semesters.map((semester) => (
 						<SelectItem
-							key={semester.term}
-							value={semester.term}
-							disabled={semester.unavailable}
+							key={semester.semester_term}
+							value={semester.semester_term ?? "FALL"}
+							disabled={semester.is_graduation_summer}
 						>
-							{getSemesterTermDisplay(semester.term)}
+							{getSemesterTermDisplay(semester.semester_term ?? "FALL")}
 						</SelectItem>
 					))}
 				</FilterSelect>

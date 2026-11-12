@@ -6,7 +6,8 @@ import { useFeatureFlagState } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
 import { usePersonalPlan } from "../hooks/usePersonalPlan";
 import { allCourseIds } from "../planTimeline";
-import type { PlanTarget, PlanYear } from "../planTypes";
+import type { PlanYear } from "@/lib/api/generated";
+import type { PlanTarget } from "../hooks/usePlanActions";
 import { AddCourseDialog } from "./AddCourseDialog";
 import {
 	PlanCreditsSummary,
@@ -22,8 +23,8 @@ import {
 
 /** The current year and the first one still to plan start expanded. */
 function openByDefault(year: PlanYear, years: readonly PlanYear[]): boolean {
-	const firstPlanned = years.find((item) => item.status === "planned");
-	return year.status === "current" || year === firstPlanned;
+	const firstPlanned = years.find((item) => item.year_status === "planned");
+	return year.year_status === "current" || year === firstPlanned;
 }
 
 export function PersonalPlanPage() {
@@ -102,18 +103,22 @@ function PersonalPlan() {
 			<div className="space-y-3">
 				{plan.years.map((year) => (
 					<PlanYearSection
-						key={year.studyYear}
+						key={year.study_year}
 						year={year}
-						open={openYears[year.studyYear] ?? openByDefault(year, plan.years)}
+						open={
+							openYears[year.study_year ?? 0] ?? openByDefault(year, plan.years)
+						}
 						onOpenChange={(open) =>
 							setOpenYears((current) => ({
 								...current,
-								[year.studyYear]: open,
+								[year.study_year ?? 0]: open,
 							}))
 						}
 						showBackups={showBackups}
 						actions={plan.actions}
-						onAddCourse={(studyYear, term) => setAddTarget({ studyYear, term })}
+						onAddCourse={(studyYear, term) =>
+							setAddTarget({ study_year: studyYear, semester_term: term })
+						}
 					/>
 				))}
 			</div>

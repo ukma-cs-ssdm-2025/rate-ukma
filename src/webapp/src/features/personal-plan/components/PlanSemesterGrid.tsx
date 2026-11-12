@@ -5,7 +5,12 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
-import type { PlanActions } from "../hooks/usePlannedCourses";
+import type {
+	PlanSemester,
+	SemesterTermEnum,
+	TypeKindEnum,
+} from "@/lib/api/generated";
+import type { PlanActions } from "../hooks/usePlanActions";
 import {
 	formatPlanCredits,
 	getSemesterTitle,
@@ -13,7 +18,6 @@ import {
 	PLAN_KIND_STYLES,
 } from "../planFormatting";
 import { sumCredits, sumWeeklyHours } from "../planRules";
-import type { PlanCourseKind, PlanSemester, PlanTerm } from "../planTypes";
 import { PlanBackupRow, PlanCourseRow } from "./PlanCourseRow";
 
 // Cells run column by column, one column per semester: stacked semesters on
@@ -40,7 +44,7 @@ interface PlanSemesterGridProps {
 	readonly showBackups: boolean;
 	/** Present only for planned years. */
 	readonly actions?: PlanActions;
-	readonly onAddCourse?: (term: PlanTerm) => void;
+	readonly onAddCourse?: (term: SemesterTermEnum) => void;
 }
 
 export function PlanSemesterGrid({
@@ -51,17 +55,17 @@ export function PlanSemesterGrid({
 	onAddCourse,
 }: PlanSemesterGridProps) {
 	const visible = (semester: PlanSemester) => ({
-		main: semester.main,
-		backup: showBackups ? semester.backup : [],
+		main: semester.main ?? [],
+		backup: showBackups ? (semester.backup ?? []) : [],
 	});
 	const kinds = PLAN_KIND_ORDER.filter((kind) =>
 		semesters.some((semester) => {
 			const { main, backup } = visible(semester);
-			return [...main, ...backup].some((course) => course.kind === kind);
+			return [...main, ...backup].some((course) => course.type_kind === kind);
 		}),
 	);
 	const rowCount = 1 + kinds.length * 2 + (onAddCourse ? 1 : 0);
-	const yearMain = semesters.flatMap((semester) => semester.main);
+	const yearMain = semesters.flatMap((semester) => semester.main ?? []);
 
 	return (
 		<div
@@ -71,20 +75,23 @@ export function PlanSemesterGrid({
 			)}
 		>
 			{semesters.map((semester, column) => {
-				const target = { studyYear, term: semester.term };
+				const term = semester.semester_term ?? "FALL";
+				const target = { study_year: studyYear, semester_term: term };
 				const { main, backup } = visible(semester);
 				return [
 					<SemesterHeading key="heading" semester={semester} />,
 					...kinds.flatMap((kind) => {
-						const kindMain = main.filter((course) => course.kind === kind);
-						const kindBackup = backup.filter((course) => course.kind === kind);
+						const kindMain = main.filter((course) => course.type_kind === kind);
+						const kindBackup = backup.filter(
+							(course) => course.type_kind === kind,
+						);
 						const isEmpty = kindMain.length + kindBackup.length === 0;
 						return [
 							<KindHeader
 								key={`${kind}-header`}
 								kind={kind}
 								credits={sumCredits(
-									yearMain.filter((course) => course.kind === kind),
+									yearMain.filter((course) => course.type_kind === kind),
 								)}
 								labelled={column === LABEL_COLUMN}
 								lastColumn={column === semesters.length - 1}
@@ -93,15 +100,14 @@ export function PlanSemesterGrid({
 							<KindCell key={kind} isEmpty={isEmpty}>
 								{kindMain.map((course) => {
 									// Only the student's own picks can move or go.
-									const ownPick =
-										actions && course.kind !== "COMPULSORY" && !course.locked;
+									const ownPick = actions && !course.is_mandatory;
 									return (
 										<PlanCourseRow
-											key={course.courseId}
+											key={course.course_id}
 											course={course}
 											onRemove={
 												ownPick
-													? () => actions.remove(target, course.courseId)
+													? () => actions.remove(course.course_id ?? "")
 													: undefined
 											}
 										/>
@@ -109,16 +115,16 @@ export function PlanSemesterGrid({
 								})}
 								{kindBackup.map((course) => (
 									<PlanBackupRow
-										key={course.courseId}
+										key={course.course_id}
 										course={course}
 										onPromote={
 											actions
-												? () => actions.promote(target, course.courseId)
+												? () => actions.promote(target, course.course_id ?? "")
 												: undefined
 										}
 										onRemove={
 											actions
-												? () => actions.remove(target, course.courseId)
+												? () => actions.remove(course.course_id ?? "")
 												: undefined
 										}
 									/>
@@ -130,7 +136,7 @@ export function PlanSemesterGrid({
 						<AddCell
 							key="add"
 							semester={semester}
-							onAdd={() => onAddCourse(semester.term)}
+							onAdd={() => onAddCourse(term)}
 						/>
 					) : null,
 				];
@@ -143,12 +149,12 @@ function SemesterHeading({ semester }: Readonly<{ semester: PlanSemester }>) {
 	return (
 		<div className="mt-4 flex items-baseline justify-between border-b px-0.5 pb-2 first:mt-0 md:mt-0">
 			<h3 className="text-sm font-semibold">
-				{getSemesterTitle(semester.term)}
+				{getSemesterTitle(semester.semester_term ?? "FALL")}
 			</h3>
-			{semester.unavailable ? null : (
+			{semester.is_graduation_summer ? null : (
 				<span className="text-sm text-muted-foreground tabular-nums">
-					{formatPlanCredits(sumCredits(semester.main))} ECTS /{" "}
-					{sumWeeklyHours(semester.main)} год
+					{formatPlanCredits(sumCredits(semester.main ?? []))} ECTS /{" "}
+					{sumWeeklyHours(semester.main ?? [])} год
 				</span>
 			)}
 		</div>
@@ -167,7 +173,7 @@ function KindHeader({
 	lastColumn,
 	isEmpty,
 }: Readonly<{
-	kind: PlanCourseKind;
+	kind: TypeKindEnum;
 	credits: number;
 	labelled: boolean;
 	lastColumn: boolean;
@@ -219,7 +225,7 @@ function AddCell({
 	semester,
 	onAdd,
 }: Readonly<{ semester: PlanSemester; onAdd: () => void }>) {
-	if (semester.unavailable) {
+	if (semester.is_graduation_summer) {
 		return (
 			<p className="rounded-lg border border-dashed px-3 py-2.5 text-center text-sm text-muted-foreground">
 				На останньому курсі літнього семестру немає

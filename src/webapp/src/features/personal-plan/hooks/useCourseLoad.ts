@@ -1,10 +1,12 @@
-import { useCoursesOfferingsList } from "@/lib/api/generated";
+import {
+	type SemesterTermEnum,
+	useCoursesOfferingsList,
+} from "@/lib/api/generated";
 import {
 	type CourseLoad,
 	offeringForTerm,
 	offeringLoad,
 } from "../planOffering";
-import type { PlanTerm } from "../planTypes";
 
 const OFFERINGS_STALE_TIME = 10 * 60 * 1000;
 
@@ -16,7 +18,7 @@ const OFFERINGS_STALE_TIME = 10 * 60 * 1000;
  */
 export function useCourseLoad(
 	courseId: string,
-	term: PlanTerm,
+	term: SemesterTermEnum,
 ): CourseLoad & { isLoading: boolean } {
 	const { data, isLoading } = useCoursesOfferingsList(courseId, {
 		query: { staleTime: OFFERINGS_STALE_TIME },

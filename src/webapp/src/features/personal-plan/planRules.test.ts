@@ -1,35 +1,36 @@
 import { describe, expect, it } from "vitest";
 
+import type { PlanCourse, PlanYear, TypeKindEnum } from "@/lib/api/generated";
 import { summarizePlan, yearCredits } from "./planRules";
-import type { PlanCourse, PlanYear } from "./planTypes";
 
-function course(kind: PlanCourse["kind"], credits: number | null): PlanCourse {
+function course(kind: TypeKindEnum, credits: string | undefined): PlanCourse {
 	return {
-		courseId: `${kind}-${credits}`,
+		course_id: `${kind}-${credits}`,
 		title: kind,
-		kind,
-		facultyName: null,
+		type_kind: kind,
+		faculty_name: "ФІ",
 		credits,
-		weeklyHours: 2,
+		weekly_hours: 2,
+		is_mandatory: false,
 	};
 }
 
 const year: PlanYear = {
-	studyYear: 3,
-	academicYearStart: 2027,
-	status: "planned",
+	study_year: 3,
+	academic_year_start: 2027,
+	year_status: "planned",
 	semesters: [
 		{
-			term: "FALL",
-			main: [course("COMPULSORY", 5), course("PROF_ORIENTED", 4.5)],
-			backup: [course("PROF_ORIENTED", 6)],
-			unavailable: false,
+			semester_term: "FALL",
+			main: [course("COMPULSORY", "5.0"), course("PROF_ORIENTED", "4.5")],
+			backup: [course("PROF_ORIENTED", "6.0")],
+			is_graduation_summer: false,
 		},
 		{
-			term: "SPRING",
-			main: [course("ELECTIVE", 3), course("ELECTIVE", null)],
-			backup: [course("ELECTIVE", 3)],
-			unavailable: false,
+			semester_term: "SPRING",
+			main: [course("ELECTIVE", "3.0"), course("ELECTIVE", undefined)],
+			backup: [course("ELECTIVE", "3.0")],
+			is_graduation_summer: false,
 		},
 	],
 };

@@ -11,9 +11,9 @@ import type {
 import { useAuth } from "@/lib/auth";
 import { useFeatureFlagState } from "@/lib/feature-flags";
 import { testIds } from "@/lib/test-ids";
-import { usePlannedCourses } from "../hooks/usePlannedCourses";
+import { usePersonalPlan } from "../hooks/usePersonalPlan";
 import { getSemesterTitle } from "../planFormatting";
-import { findPlannedCourse } from "../planStore";
+import { findPlannedCourse } from "../planTimeline";
 import { AddToPlanDialog } from "./AddToPlanDialog";
 
 export interface PlanCandidate {
@@ -29,13 +29,20 @@ export function AddToPlanButton({
 	course,
 }: Readonly<{ course: PlanCandidate }>) {
 	const { enabled, isReady } = useFeatureFlagState("fe_personal_plan");
-	const { isStudent, user } = useAuth();
-	const { planned } = usePlannedCourses(user?.id);
-	const [open, setOpen] = useState(false);
+	const { isStudent } = useAuth();
 
 	if (!isReady || !enabled || !isStudent) return null;
+	return <PlanCourseAction course={course} />;
+}
 
-	const place = findPlannedCourse(planned, course.courseId);
+function PlanCourseAction({ course }: Readonly<{ course: PlanCandidate }>) {
+	const plan = usePersonalPlan({ enabled: true });
+	const [open, setOpen] = useState(false);
+
+	// Wait for the plan, so a course already in it never offers «Додати».
+	if (plan.isLoading) return null;
+
+	const place = findPlannedCourse(plan.years, course.courseId);
 
 	return (
 		<>
@@ -45,18 +52,20 @@ export function AddToPlanButton({
 						<CalendarCheck aria-hidden className="size-4" />У вашому ІНП
 					</span>
 					<span className="text-muted-foreground">
-						{place.target.studyYear} курс ·{" "}
-						{getSemesterTitle(place.target.term).toLowerCase()}
-						{place.slot === "backup" ? " · запасна" : ""}
+						{place.target.study_year} курс ·{" "}
+						{getSemesterTitle(place.target.semester_term).toLowerCase()}
+						{place.slot === "BACKUP" ? " · запасна" : ""}
 					</span>
-					<Button
-						variant="link"
-						size="sm"
-						className="h-auto px-0"
-						onClick={() => setOpen(true)}
-					>
-						Змінити
-					</Button>
+					{place.locked ? null : (
+						<Button
+							variant="link"
+							size="sm"
+							className="h-auto px-0"
+							onClick={() => setOpen(true)}
+						>
+							Змінити
+						</Button>
+					)}
 					<Button variant="link" size="sm" className="h-auto px-0" asChild>
 						<Link to="/plan">Відкрити ІНП</Link>
 					</Button>

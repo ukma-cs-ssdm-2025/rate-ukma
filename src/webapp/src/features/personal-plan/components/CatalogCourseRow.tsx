@@ -4,7 +4,11 @@ import {
 	getDifficultyTone,
 	getUsefulnessTone,
 } from "@/features/courses/courseFormatting";
-import type { CourseList } from "@/lib/api/generated";
+import type {
+	CourseList,
+	PlanSlot,
+	SemesterTermEnum,
+} from "@/lib/api/generated";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
@@ -15,13 +19,12 @@ import {
 	formatReviewsCount,
 	PLAN_KIND_STYLES,
 } from "../planFormatting";
-import type { PlanCourse, PlanSlot, PlanTerm } from "../planTypes";
 
 interface CatalogCourseRowProps {
 	readonly course: CourseList;
-	readonly term: PlanTerm;
+	readonly term: SemesterTermEnum;
 	readonly specialityId: string | undefined;
-	readonly onAdd: (course: PlanCourse, slot: PlanSlot) => void;
+	readonly onAdd: (slot: PlanSlot) => void;
 }
 
 function Score({
@@ -51,19 +54,6 @@ export function CatalogCourseRow({
 	const kind = courseKindFor(course.specialities, specialityId);
 	const facultyName = course.faculty_name ?? null;
 	const hasRatings = (course.ratings_count ?? 0) > 0;
-
-	const add = (slot: PlanSlot) =>
-		onAdd(
-			{
-				courseId: course.id ?? "",
-				title: course.title ?? "",
-				kind,
-				facultyName,
-				credits: load.credits,
-				weeklyHours: load.weeklyHours,
-			},
-			slot,
-		);
 
 	return (
 		<div
@@ -110,14 +100,18 @@ export function CatalogCourseRow({
 				</span>
 			</span>
 			<span className="flex shrink-0 gap-1.5">
-				<Button size="sm" disabled={load.isLoading} onClick={() => add("main")}>
+				<Button
+					size="sm"
+					disabled={load.isLoading}
+					onClick={() => onAdd("MAIN")}
+				>
 					Додати
 				</Button>
 				<Button
 					size="sm"
 					variant="outline"
 					disabled={load.isLoading}
-					onClick={() => add("backup")}
+					onClick={() => onAdd("BACKUP")}
 				>
 					Як запасну
 				</Button>
