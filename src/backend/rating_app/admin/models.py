@@ -2,9 +2,12 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
+from django.utils.html import format_html, format_html_join
 
 from reversion.admin import VersionAdmin
 
+from rating_app.application_schemas.personal_plan import PlanCourse, PlanYear
+from rating_app.ioc_container.services import personal_plan_service
 from rating_app.models import (
     Comment,
     Course,
@@ -16,6 +19,7 @@ from rating_app.models import (
     Faculty,
     FeedPost,
     Instructor,
+    PlannedCourse,
     PromoBanner,
     Rating,
     RatingVote,
@@ -227,9 +231,96 @@ class StudentAdmin(VersionAdmin):
     list_filter = ("education_level", "speciality__faculty")
     search_fields = ("last_name", "first_name", "patronymic", "speciality__name")
     ordering = ("last_name", "first_name")
+    readonly_fields = ("personal_plan",)
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("speciality", "user")
+
+    @admin.display(description="Personal plan")
+    def personal_plan(self, obj):
+        if obj.pk is None:
+            return "-"
+        service = personal_plan_service()
+        # Built past the cache, so it shows exactly what is in the database now.
+        plan = service.build_plan(service.student_repository.get_by_id(id=str(obj.pk)))
+        return format_html_join("", "{}", ((_plan_year_html(year),) for year in plan.plan_years))
+
+
+def _plan_course_label(course: PlanCourse, backup: bool) -> str:
+    if backup:
+        return "backup"
+    return "taken or mandatory" if course.is_mandatory else "pick"
+
+
+def _plan_year_html(year: PlanYear) -> str:
+    year_credits = sum(c.credits for s in year.semesters for c in s.main)
+    semesters = format_html_join(
+        "",
+        "<li><strong>{}</strong> ({} ECTS): {}</li>",
+        (
+            (
+                semester.semester_term.label,
+                sum(c.credits for c in semester.main),
+                format_html_join(
+                    ", ",
+                    "{} <small>({}, {} ECTS)</small>",
+                    (
+                        (course.title, _plan_course_label(course, backup), course.credits)
+                        for backup, courses in ((False, semester.main), (True, semester.backup))
+                        for course in courses
+                    ),
+                )
+                or "-",
+            )
+            for semester in year.semesters
+        ),
+    )
+    return format_html(
+        "<p><strong>Year {} · {}–{} · {}</strong> ({} ECTS)</p><ul>{}</ul>",
+        year.study_year,
+        year.academic_year_start,
+        year.academic_year_start + 1,
+        year.year_status.label,
+        year_credits,
+        semesters,
+    )
+
+
+@admin.register(PlannedCourse)
+class PlannedCourseAdmin(VersionAdmin):
+    """
+    The student's own picks. Taken and mandatory courses are not stored: they show in
+    the plan on the student's page. Picks are made in the app, so they are read-only
+    here, and deleting one clears that student's cached plan.
+    """
+
+    list_display = ("student", "course", "study_year", "term", "slot", "updated_at")
+    list_select_related = ("student", "offering__course", "offering__semester")
+    list_filter = ("slot", "term", "study_year")
+    search_fields = (
+        "student__last_name",
+        "student__first_name",
+        "offering__course__title",
+    )
+    ordering = ("-updated_at",)
+    readonly_fields = ("student", "offering", "study_year", "term", "slot", "updated_at")
+
+    @admin.display(description="Course", ordering="offering__course__title")
+    def course(self, obj):
+        return obj.offering.course.title
+
+    def has_add_permission(self, request):
+        return False
+
+    def delete_model(self, request, obj):
+        super().delete_model(request, obj)
+        personal_plan_service().clear_cached_plan(obj.student_id)
+
+    def delete_queryset(self, request, queryset):
+        student_ids = list(queryset.values_list("student_id", flat=True).distinct())
+        super().delete_queryset(request, queryset)
+        for student_id in student_ids:
+            personal_plan_service().clear_cached_plan(student_id)
 
 
 @admin.register(Rating)

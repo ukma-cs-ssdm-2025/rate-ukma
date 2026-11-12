@@ -65,9 +65,13 @@ class PersonalPlanService:
         ],
     )
     def get_plan(self, student_id: str) -> PersonalPlan:
-        return self._build_plan(self.student_repository.get_by_id(id=student_id))
+        return self.build_plan(self.student_repository.get_by_id(id=student_id))
 
-    def _build_plan(self, student: Student) -> PersonalPlan:
+    def clear_cached_plan(self, student_id: uuid.UUID) -> None:
+        self.cache_manager.bump_version(student_plan_namespace(str(student_id)))
+
+    def build_plan(self, student: Student) -> PersonalPlan:
+        """Built fresh from the database, past the cache."""
         taken = self.personal_plan_repository.get_taken_courses(student.id)
         planned = self.personal_plan_repository.get_planned_courses(student.id)
 
@@ -119,7 +123,7 @@ class PersonalPlanService:
             )
             self.personal_plan_repository.place(student.id, params, offering.id)
 
-        self.cache_manager.bump_version(student_plan_namespace(str(student.id)))
+        self.clear_cached_plan(student.id)
         logger.info(
             "planned_course_placed",
             student_id=str(student.id),
@@ -129,7 +133,7 @@ class PersonalPlanService:
             term=params.semester_term,
             slot=params.slot,
         )
-        return self._build_plan(student)
+        return self.build_plan(student)
 
     def remove_course(self, student: Student, course_id: uuid.UUID) -> None:
         taken = self.personal_plan_repository.get_taken_courses(student.id)
@@ -138,7 +142,7 @@ class PersonalPlanService:
 
         if not self.personal_plan_repository.remove(student.id, course_id):
             raise PlannedCourseNotFoundError()
-        self.cache_manager.bump_version(student_plan_namespace(str(student.id)))
+        self.clear_cached_plan(student.id)
         logger.info("planned_course_removed", student_id=str(student.id), course_id=str(course_id))
 
     def _ensure_not_fixed(
