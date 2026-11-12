@@ -1,5 +1,4 @@
 import {
-	Clock,
 	Config,
 	Context,
 	Duration,
@@ -10,13 +9,8 @@ import {
 	Ref,
 	Schedule,
 	Schema,
-	Semaphore,
 } from "effect";
-import {
-	FetchHttpClient,
-	HttpClientRequest,
-	type HttpClientResponse,
-} from "effect/http";
+import { FetchHttpClient, HttpClientRequest } from "effect/http";
 import {
 	MicrosoftSessions,
 	MicrosoftSignInFailed,
@@ -27,11 +21,6 @@ import {
 /** The web app's own host: its API answers here, while the contract's
  *  smart-services host rejects the same token with a 403. */
 export const SMART_URL = "https://smart.ukma.edu.ua";
-
-const REFRESH_PATH = "/api/auth/refresh-token";
-
-/** An access token this close to its expiry is refreshed before use. */
-const EXPIRY_MARGIN = Duration.seconds(30);
 
 export class SmartSignInFailed extends Schema.TaggedError<SmartSignInFailed>()(
 	"SmartSignInFailed",
@@ -55,10 +44,6 @@ export class SmartNotJson extends Schema.TaggedError<SmartNotJson>()(
 ) {}
 
 export type SmartError = SmartSignInFailed | SmartRequestFailed | SmartNotJson;
-
-const isRefusal = (error: unknown): error is SignedOut | SmartRequestFailed =>
-	error instanceof SignedOut ||
-	(error instanceof SmartRequestFailed && error.status === 403);
 
 /** The last redirect of a sign-in: Spring hands the web app the token pair
  *  in its query. It is read from the `Location` header and never requested,
@@ -85,29 +70,14 @@ const retryTransient = <A, E, R>(
 		}),
 	);
 
-/** The pair the sign-in hands the web app in the query of `/get-user`, and
- *  `PUT /api/auth/refresh-token` returns; each refresh replaces both. */
-const Tokens = Schema.Struct({
+/** The query of `/get-user` holds a refresh token too. It is not kept: the
+ *  access token lives 5 minutes, longer than a crawl of four lists, and an
+ *  expired one is replaced by a new sign-in. */
+const SignedIn = Schema.Struct({
 	accessToken: Schema.RedactedFromValue(Schema.NonEmptyString),
-	refreshToken: Schema.RedactedFromValue(Schema.NonEmptyString),
 });
 
-type Tokens = typeof Tokens.Type;
-
-const decodeTokens = Schema.decodeUnknownOption(Tokens);
-
-/** The access token is a JWT; its `exp` claim says when it expires. */
-const JwtClaims = Schema.fromJsonString(Schema.Struct({ exp: Schema.Number }));
-
-const decodeJwtClaims = Schema.decodeUnknownOption(JwtClaims);
-
-const expiresAt = (tokens: Tokens): Option.Option<number> =>
-	decodeJwtClaims(
-		Buffer.from(
-			Redacted.value(tokens.accessToken).split(".")[1] ?? "",
-			"base64url",
-		).toString(),
-	).pipe(Option.map(({ exp }) => exp * 1000));
+const decodeSignedIn = Schema.decodeUnknownOption(SignedIn);
 
 export class SmartClient extends Context.Service<
 	SmartClient,
@@ -143,7 +113,7 @@ export class SmartClient extends Context.Service<
 			);
 
 			// Kept in memory only, never logged or stored.
-			const held = yield* Ref.make(Option.none<Tokens>());
+			const held = yield* Ref.make(Option.none<Redacted.Redacted<string>>());
 
 			const send = (
 				request: HttpClientRequest.HttpClientRequest,
@@ -169,7 +139,7 @@ export class SmartClient extends Context.Service<
 					});
 				}
 
-				const tokens = yield* decodeTokens(
+				const { accessToken } = yield* decodeSignedIn(
 					Object.fromEntries(landing.searchParams),
 				).pipe(
 					Effect.fromOption,
@@ -181,10 +151,8 @@ export class SmartClient extends Context.Service<
 					),
 				);
 
-				yield* Ref.set(held, Option.some(tokens));
+				yield* Ref.set(held, Option.some(accessToken));
 				yield* Effect.logInfo("Signed in to smart.ukma");
-
-				return tokens;
 			}).pipe(
 				Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
 					Effect.fail(
@@ -193,85 +161,25 @@ export class SmartClient extends Context.Service<
 				),
 			);
 
-			/** A turned-down refresh token is `SignedOut`, so the caller signs in;
-			 *  a server or transport error keeps the pair for a retry. */
-			const refresh = (tokens: Tokens) =>
+			// The web app treats a 403 as an expired token too, so a held token that
+			// gets one counts as signed out. A `fresh` token cannot have expired, so
+			// its 403 is the API refusing the list.
+			const fetchJson = (path: string, fresh = false) =>
 				Effect.gen(function* () {
+					const token = yield* Ref.get(held);
+
+					if (Option.isNone(token)) return yield* new SignedOut({ path });
+
 					const response = yield* send(
-						HttpClientRequest.put(`${SMART_URL}${REFRESH_PATH}`).pipe(
-							HttpClientRequest.bodyJsonUnsafe({
-								refreshToken: Redacted.value(tokens.refreshToken),
-							}),
+						HttpClientRequest.get(`${SMART_URL}${path}`).pipe(
+							HttpClientRequest.bearerToken(token.value),
 						),
-						REFRESH_PATH,
+						path,
 					);
 
-					if ([400, 401, 403].includes(response.status)) {
-						return yield* new SignedOut({ path: REFRESH_PATH });
+					if (response.status === 401 || (response.status === 403 && !fresh)) {
+						return yield* new SignedOut({ path });
 					}
-
-					if (response.status !== 200) {
-						return yield* new SmartRequestFailed({
-							path: REFRESH_PATH,
-							status: response.status,
-						});
-					}
-
-					const fresh = yield* response.json.pipe(
-						Effect.map(decodeTokens),
-						Effect.option,
-						Effect.map(Option.flatten),
-						Effect.flatMap(Effect.fromOption),
-						Effect.mapError(
-							() => new SmartRequestFailed({ path: REFRESH_PATH, status: 200 }),
-						),
-					);
-
-					yield* Ref.set(held, Option.some(fresh));
-
-					return fresh;
-				});
-
-			// Token reads and renewals take turns, so two requests never spend the
-			// same rotating refresh token.
-			const lock = yield* Semaphore.make(1);
-
-			const currentTokens = lock.withPermit(
-				Effect.gen(function* () {
-					const tokens = yield* Ref.get(held);
-
-					if (Option.isNone(tokens)) return yield* signIn;
-
-					const now = yield* Clock.currentTimeMillis;
-
-					const expiring = expiresAt(tokens.value).pipe(
-						Option.exists(
-							(expiry) => expiry - Duration.toMillis(EXPIRY_MARGIN) <= now,
-						),
-					);
-
-					return expiring ? yield* refresh(tokens.value) : tokens.value;
-				}),
-			);
-
-			/** Refreshes `stale` unless another request already replaced it. */
-			const renew = (stale: Tokens) =>
-				lock.withPermit(
-					Ref.get(held).pipe(
-						Effect.flatMap((tokens) =>
-							Option.isSome(tokens) && tokens.value !== stale
-								? Effect.succeed(tokens.value)
-								: refresh(stale),
-						),
-					),
-				);
-
-			const read = (
-				response: HttpClientResponse.HttpClientResponse,
-				path: string,
-			) =>
-				Effect.gen(function* () {
-					if (response.status === 401) return yield* new SignedOut({ path });
 
 					if (response.status !== 200) {
 						return yield* new SmartRequestFailed({
@@ -285,37 +193,11 @@ export class SmartClient extends Context.Service<
 					);
 				});
 
-			const fetchWith = (path: string, tokens: Tokens) =>
-				send(
-					HttpClientRequest.get(`${SMART_URL}${path}`).pipe(
-						HttpClientRequest.bearerToken(tokens.accessToken),
-					),
-					path,
-				).pipe(Effect.flatMap((response) => read(response, path)));
-
-			const fetchJson = (path: string) =>
-				currentTokens.pipe(Effect.flatMap((tokens) => fetchWith(path, tokens)));
-
-			// The web app refreshes on a 403 too, so a 401 or 403 gets one refresh
-			// before a 403 counts as a refusal and a 401 as signed out.
-			const fetchRenewing = (path: string) =>
-				currentTokens.pipe(
-					Effect.flatMap((tokens) =>
-						fetchWith(path, tokens).pipe(
-							Effect.catchIf(isRefusal, () =>
-								renew(tokens).pipe(
-									Effect.flatMap((fresh) => fetchWith(path, fresh)),
-								),
-							),
-						),
-					),
-				);
-
 			const get = (path: string) =>
 				withSignIn(
-					retryTransient(fetchRenewing(path)),
-					retryTransient(lock.withPermit(signIn)),
 					retryTransient(fetchJson(path)),
+					retryTransient(signIn),
+					retryTransient(fetchJson(path, true)),
 				).pipe(
 					Effect.catchTag("MicrosoftSignInFailed", ({ reason }) =>
 						Effect.fail(new SmartSignInFailed({ reason })),

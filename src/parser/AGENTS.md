@@ -18,7 +18,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/worker/`: the background loop: crawl, parse offerings, parse students (`src/students/`), then removals (`src/offerings/removals.ts`).
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
 - `src/microsoft/`: the cookie session and Microsoft password sign-in both clients use.
-- `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`, read from the `Location` header and never requested so no span or log holds the tokens; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes and the client refreshes it before expiry.
+- `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`, read from the `Location` header and never requested so no span or log holds the tokens; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes, longer than a crawl of the four lists, and a held token that gets a 401 or 403 makes the client sign in again once.
 - `src/db/database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
 ## Rules
