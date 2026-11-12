@@ -91,6 +91,7 @@ def plan_repo():
     repo.get_taken_courses.return_value = []
     repo.get_planned_courses.return_value = []
     repo.get_mandatory_courses.return_value = []
+    repo.get_planned_course.return_value = None
     return repo
 
 

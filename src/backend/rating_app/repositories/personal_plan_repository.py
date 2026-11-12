@@ -72,21 +72,18 @@ class PersonalPlanRepository:
         ]
 
     def get_planned_courses(self, student_id: uuid.UUID) -> list[PlannedCourseEntry]:
+        planned = self._build_planned_queryset().filter(student_id=student_id)
+        return [self._to_planned_entry(row) for row in planned]
+
+    def get_planned_course(
+        self, student_id: uuid.UUID, course_id: uuid.UUID
+    ) -> PlannedCourseEntry | None:
         planned = (
-            PlannedCourse.objects.filter(student_id=student_id)
-            .select_related("offering__semester", "offering__course__department__faculty")
-            .prefetch_related("offering__terms__semester", "offering__course_offering_specialities")
+            self._build_planned_queryset()
+            .filter(student_id=student_id, offering__course_id=course_id)
+            .first()
         )
-        return [
-            PlannedCourseEntry(
-                course=self._course_mapper.process(row.offering.course, []),
-                offering=self._offering_mapper.process(row.offering),
-                study_year=row.study_year,
-                term=SemesterTerm(row.term),
-                slot=PlanSlot(row.slot),
-            )
-            for row in planned
-        ]
+        return self._to_planned_entry(planned) if planned else None
 
     def get_course_source(self, course_id: uuid.UUID) -> PlanCourseSource | None:
         course = (
@@ -128,6 +125,20 @@ class PersonalPlanRepository:
             student_id=student_id, offering__course_id=course_id
         ).delete()
         return deleted > 0
+
+    def _to_planned_entry(self, row: PlannedCourse) -> PlannedCourseEntry:
+        return PlannedCourseEntry(
+            course=self._course_mapper.process(row.offering.course, []),
+            offering=self._offering_mapper.process(row.offering),
+            study_year=row.study_year,
+            term=SemesterTerm(row.term),
+            slot=PlanSlot(row.slot),
+        )
+
+    def _build_planned_queryset(self) -> QuerySet[PlannedCourse]:
+        return PlannedCourse.objects.select_related(
+            "offering__semester", "offering__course__department__faculty"
+        ).prefetch_related("offering__terms__semester", "offering__course_offering_specialities")
 
     def _build_offerings_queryset(self) -> QuerySet[CourseOffering]:
         return CourseOffering.objects.select_related("semester").prefetch_related(
