@@ -284,15 +284,13 @@ const isRefusal = (cause: Cause.Cause<unknown>) => {
 const writePages = Effect.fnUntraced(function* (
 	pages: ReadonlyArray<CoursePage>,
 	filters: CatalogFilters,
+	storedProgrammes: ReadonlyArray<StoredProgramme>,
 	parseId: bigint,
 ): Effect.fn.Return<ReadonlyArray<CoursePage>, never, OfferingStore> {
 	const store = yield* OfferingStore;
 
 	const written = yield* Effect.exit(
-		store.write(
-			offeringRowsOf(pages, filters, yield* store.programmes),
-			parseId,
-		),
+		store.write(offeringRowsOf(pages, filters, storedProgrammes), parseId),
 	);
 
 	if (Exit.isSuccess(written)) return [];
@@ -301,8 +299,8 @@ const writePages = Effect.fnUntraced(function* (
 		const [first, second] = Arr.splitAt(pages, Math.ceil(pages.length / 2));
 
 		return [
-			...(yield* writePages(first, filters, parseId)),
-			...(yield* writePages(second, filters, parseId)),
+			...(yield* writePages(first, filters, storedProgrammes, parseId)),
+			...(yield* writePages(second, filters, storedProgrammes, parseId)),
 		];
 	}
 
@@ -344,6 +342,10 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		yield* Effect.logWarning("Catalog filters have no options", { missing });
 	}
 
+	// Read once: programmes a batch of this run stores must not decide the
+	// level of the same name in a later batch.
+	const storedProgrammes = yield* store.programmes;
+
 	const failed = new Map<string, number>();
 	let parsed = 0;
 
@@ -376,7 +378,12 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			});
 		}
 
-		const refused = yield* writePages(pages, filters, parseId);
+		const refused = yield* writePages(
+			pages,
+			filters,
+			storedProgrammes,
+			parseId,
+		);
 
 		parsed += pages.length - refused.length;
 		failures.push(
