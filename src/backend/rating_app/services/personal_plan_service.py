@@ -7,7 +7,7 @@ import structlog
 
 from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.decorators import rcached
-from rateukma.caching.patterns import student_plan_namespace
+from rateukma.caching.patterns import PLANS_NAMESPACE, student_plan_namespace
 from rating_app.application_schemas.personal_plan import (
     MandatoryCourse,
     OfferingTermLoad,
@@ -57,7 +57,13 @@ class PersonalPlanService:
         self.semester_service = semester_service
         self.cache_manager = cache_manager
 
-    @rcached(ttl=3600, versioned_by=lambda self, student_id: student_plan_namespace(student_id))
+    @rcached(
+        ttl=3600,
+        versioned_by=lambda self, student_id: [
+            student_plan_namespace(student_id),
+            PLANS_NAMESPACE,
+        ],
+    )
     def get_plan(self, student_id: str) -> PersonalPlan:
         return self._build_plan(self.student_repository.get_by_id(id=student_id))
 

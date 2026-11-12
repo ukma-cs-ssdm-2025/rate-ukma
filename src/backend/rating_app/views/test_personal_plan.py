@@ -7,6 +7,7 @@ from django.urls import reverse
 import pytest
 from freezegun import freeze_time
 
+from rateukma.caching.patterns import PLANS_NAMESPACE
 from rating_app.models import PlannedCourse
 from rating_app.models.choices import CourseTypeKind, PlanSlot, SemesterTerm
 from rating_app.repositories import PersonalPlanRepository
@@ -823,3 +824,19 @@ def test_place_picks_offering_again_when_course_moves_to_another_year(
 
     assert response.status_code == 200
     assert PlannedCourse.objects.get(student=me).offering == newest
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_get_plan_refreshes_after_a_sync_bumps_every_plan(
+    token_client, me, course_factory, make_offering, enrollment_factory, mock_cache_manager
+):
+    course = course_factory()
+    token_client.get(plan_url())
+    enrollment_factory(student=me, offering=make_offering(course, 2023, SemesterTerm.FALL))
+
+    mock_cache_manager.bump_version(PLANS_NAMESPACE)
+
+    main = semester(token_client.get(plan_url()).json(), 1, "FALL")["main"]
+    assert [c["course_id"] for c in main] == [str(course.id)]
