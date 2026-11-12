@@ -88,7 +88,12 @@ class PersonalPlanService:
         course = self.personal_plan_repository.get_course_source(params.course_id)
         if course is None:
             raise CourseNotFoundError()
-        offering = self._pick_offering(course.offerings, student.speciality_id)
+        planned = self.personal_plan_repository.get_planned_course(student.id, params.course_id)
+        if planned is not None and not self._moves_course(planned, params):
+            # Only a move picks again: a slot change must not alter credits or type.
+            offering = planned.offering
+        else:
+            offering = self._pick_offering(course.offerings, student.speciality_id)
         if offering is None:
             raise CourseNotOfferedError()
 
@@ -257,6 +262,13 @@ class PersonalPlanService:
                 semester = by_key[key]
                 (semester.main if entry.slot == PlanSlot.MAIN else semester.backup).append(course)
         return by_key
+
+    def _moves_course(self, planned: PlannedCourseEntry, params: PlanCoursePutParams) -> bool:
+        # By semesters, not `term`: a multi-semester course ignores the term sent.
+        offering = planned.offering
+        current = self._course_semesters(offering, planned.study_year, planned.term)
+        requested = self._course_semesters(offering, params.study_year, params.semester_term)
+        return [key for key, _ in current] != [key for key, _ in requested]
 
     def _course_semesters(
         self, offering: PlanOffering, study_year: int, term: SemesterTerm

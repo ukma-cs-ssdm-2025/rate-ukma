@@ -748,3 +748,78 @@ def test_get_plan_does_not_share_cache_between_students(
     response = api_client.get(plan_url())
 
     assert semester(response.json(), 3, "FALL")["main"] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+@pytest.mark.parametrize("slot", ["MAIN", "BACKUP"])
+def test_place_keeps_stored_offering_when_course_does_not_move(
+    token_client, me, course_factory, make_offering, planned_course_factory, slot
+):
+    course = course_factory()
+    stored = make_offering(course, 2023, SemesterTerm.FALL, credits="2.0")
+    make_offering(course, 2024, SemesterTerm.FALL, credits="5.0")
+    planned_course_factory(
+        student=me, offering=stored, study_year=3, term=SemesterTerm.FALL, slot=PlanSlot.BACKUP
+    )
+
+    response = token_client.put(
+        course_url(course.id),
+        {"study_year": 3, "semester_term": "FALL", "slot": slot},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    planned = PlannedCourse.objects.get(student=me)
+    assert (planned.offering, planned.slot) == (stored, slot)
+    fall = semester(response.json(), 3, "FALL")
+    assert [c["credits"] for c in fall["main"] + fall["backup"]] == ["2.0"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_place_keeps_stored_offering_when_promoting_multi_semester_course_from_another_term(
+    token_client,
+    me,
+    two_semester_course,
+    make_offering,
+    planned_course_factory,
+):
+    stored = two_semester_course.offerings.first()
+    make_offering(two_semester_course, 2025, SemesterTerm.FALL, credits="6.0")
+    planned_course_factory(
+        student=me, offering=stored, study_year=3, term=SemesterTerm.FALL, slot=PlanSlot.BACKUP
+    )
+
+    response = token_client.put(
+        course_url(two_semester_course.id),
+        {"study_year": 3, "semester_term": "SPRING", "slot": "MAIN"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert PlannedCourse.objects.get(student=me).offering == stored
+    assert [c["credits"] for c in semester(response.json(), 3, "SPRING")["main"]] == ["2.5"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_place_picks_offering_again_when_course_moves_to_another_year(
+    token_client, me, course_factory, make_offering, planned_course_factory
+):
+    course = course_factory()
+    stored = make_offering(course, 2023, SemesterTerm.FALL, credits="2.0")
+    newest = make_offering(course, 2024, SemesterTerm.FALL, credits="5.0")
+    planned_course_factory(student=me, offering=stored, study_year=3, term=SemesterTerm.FALL)
+
+    response = token_client.put(
+        course_url(course.id),
+        {"study_year": 4, "semester_term": "FALL", "slot": "MAIN"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert PlannedCourse.objects.get(student=me).offering == newest
