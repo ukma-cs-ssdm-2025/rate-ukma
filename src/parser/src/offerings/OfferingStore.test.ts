@@ -514,15 +514,26 @@ describe("parseOfferings", () => {
 					FOR EACH ROW EXECUTE FUNCTION refuse_offering()
 				`;
 
-				for (const code of ["900001", "900002", "900003"]) {
+				for (const code of ["900001", "900002"]) {
 					yield* snapshot(`/course/${code}`, coursePage({ code }));
 				}
+
+				yield* snapshot(
+					"/course/900003",
+					coursePage({ code: "900003", level: "Магістр" }),
+				);
 
 				const report = yield* parseOfferings("crawl").pipe(
 					Effect.ensuring(
 						sql`DROP FUNCTION refuse_offering CASCADE`.pipe(Effect.orDie),
 					),
 				);
+
+				// With no catalog a programme takes its card's level, whichever
+				// halves the refused batch was split into.
+				const programmes = yield* sql<{ readonly level: string }>`
+					SELECT level FROM programmes ORDER BY level
+				`;
 
 				const rows = yield* sql<{ readonly sazCode: string }>`
 					SELECT saz_code AS "sazCode" FROM offerings ORDER BY saz_code
@@ -533,6 +544,10 @@ describe("parseOfferings", () => {
 				assert.deepStrictEqual(
 					rows.map(({ sazCode }) => sazCode),
 					["900001", "900003"],
+				);
+				assert.deepStrictEqual(
+					programmes.map(({ level }) => level),
+					["bachelor", "master"],
 				);
 			}),
 		);
