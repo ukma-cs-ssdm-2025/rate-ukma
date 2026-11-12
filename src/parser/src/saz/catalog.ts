@@ -14,7 +14,7 @@ const YEAR_SELECT =
 
 const YEAR_OPTION = /<option value="(\d{4})"/gu;
 
-const OPTION = /<option\b[^>]*\bvalue="([^"]*)"[^>]*>(.*?)<\/option>/gsu;
+const OPTION = /<option\b[^>]*\svalue="([^"]*)"[^>]*>(.*?)<\/option>/gsu;
 
 /** `Показані <b>3 381-3 398</b> із <b>3 398</b> записів.`; the numbers are
  *  grouped with spaces. */
