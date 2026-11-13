@@ -17,6 +17,11 @@ export const TURN_LOCK = 2;
  *  catalog page could write after a newer one and undo its faculty renames. */
 export const PARSE_LOCK = 3;
 
+/** Held by `crawl-smart` for its whole run, as `CRAWL_LOCK` is by the САЗ
+ *  crawl: two would resume the same open run and reset each other's claimed
+ *  pages. */
+export const SMART_CRAWL_LOCK = 4;
+
 const decodeLocked = Schema.decodeUnknownEffect(
 	Schema.Tuple([Schema.Struct({ locked: Schema.Boolean })]),
 );

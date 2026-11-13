@@ -6,18 +6,46 @@ import {
 	parseCatalogPage,
 	parseCatalogPath,
 } from "../saz/catalog.ts";
-import { SazClient } from "../saz/SazClient.ts";
+import { CRAWL_LOCK } from "../db/locks.ts";
+import {
+	SazClient,
+	type SazSignInFailed,
+	type SazRateLimited,
+} from "../saz/SazClient.ts";
 import {
 	type ClaimedPage,
 	CrawlStore,
 	type OpenRun,
+	type PageCounts,
 	type QueuedPage,
 } from "./CrawlStore.ts";
-import { snapshotOf } from "./snapshot.ts";
+import { type Snapshot, snapshotOf } from "./snapshot.ts";
 
 /** The `error` a failed request leaves on its page. */
 const requestError = (status: number): string =>
 	status === 0 ? "transport error" : `HTTP ${status}`;
+
+/** Why a page failed, as stored on it. */
+export class PageFailed extends Schema.TaggedError<PageFailed>()("PageFailed", {
+	reason: Schema.String,
+}) {}
+
+export const pageFailedOf = (status: number): PageFailed =>
+	new PageFailed({ reason: requestError(status) });
+
+/** How a run reads its pages. An error other than `PageFailed`, such as a
+ *  failed sign-in, fails the run. */
+export interface PageSource<E> {
+	readonly visit: (page: ClaimedPage) => Effect.Effect<
+		{
+			readonly snapshot: Snapshot;
+			readonly next: ReadonlyArray<QueuedPage>;
+		},
+		PageFailed | E
+	>;
+	/** Whether these failed pages fail the whole run. */
+	readonly failsRun: (counts: PageCounts) => boolean;
+}
 
 /** Failures a later try may not repeat. A САЗ 500 repeats for the same page,
  *  so it is not one of them. */
@@ -35,9 +63,11 @@ export class CrawlAlreadyRunning extends Schema.TaggedError<CrawlAlreadyRunning>
 	{},
 ) {}
 
+const SAZ_SOURCE = "saz-courses";
+
 /** `2025` is the academic year 2025-26, as in the САЗ catalog filter. */
 export const sourcePartOf = (year: number): string =>
-	`saz-courses:${year}-${String(year + 1).slice(2)}`;
+	`${SAZ_SOURCE}:${year}-${String(year + 1).slice(2)}`;
 
 /** The inverse of `sourcePartOf`: `saz-courses:2025-26` is 2025. */
 export const academicYearOf = (sourcePart: string): number | undefined => {
@@ -79,12 +109,14 @@ const linkedPages = (
 };
 
 /** Works through one run's queue. A page that fails is marked failed and the
- *  run goes on; a failed sign-in, a long rate limit or a failed catalog page
- *  fails the run. A crash, such as a lost database, leaves the run `running`
- *  to resume later. */
-const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
+ *  run goes on; an error of the source, such as a failed sign-in or a long
+ *  rate limit, or a page `source.failsRun` names fails the run. A crash, such
+ *  as a lost database, leaves the run `running` to resume later. */
+export const crawlRun = Effect.fn("crawlRun")(function* <E>(
+	run: OpenRun,
+	source: PageSource<E>,
+) {
 	const store = yield* CrawlStore;
-	const saz = yield* SazClient;
 
 	const fail = (page: ClaimedPage, error: string) =>
 		store
@@ -96,17 +128,11 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 			);
 
 	const visit = (page: ClaimedPage) =>
-		saz.get(page.path).pipe(
-			Effect.flatMap((body) =>
-				Result.match(linkedPages(page, body), {
-					onFailure: (problem) => fail(page, problem),
-					onSuccess: (next) =>
-						store.complete(run.id, page, snapshotOf(body), next),
-				}),
+		source.visit(page).pipe(
+			Effect.flatMap(({ snapshot, next }) =>
+				store.complete(run.id, page, snapshot, next),
 			),
-			Effect.catchTag("SazRequestFailed", (error) =>
-				fail(page, requestError(error.status)),
-			),
+			Effect.catchIf(Schema.is(PageFailed), ({ reason }) => fail(page, reason)),
 		);
 
 	const drain = Effect.gen(function* () {
@@ -128,14 +154,8 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 		Effect.gen(function* () {
 			const report = yield* store.report(run.id);
 
-			// A failed catalog page hides the courses it lists.
 			const status =
-				crashed ||
-				report.pages.some(
-					(counts) => counts.kind === "catalog" && counts.failed > 0,
-				)
-					? "failed"
-					: "succeeded";
+				crashed || report.pages.some(source.failsRun) ? "failed" : "succeeded";
 
 			yield* store.finishRun(run.id, status, report);
 
@@ -157,7 +177,7 @@ const crawlRun = Effect.fn("crawlRun")(function* (run: OpenRun) {
 		}),
 	);
 
-	// A failed sign-in or a long rate limit ends the run here as failed, leaving
+	// An error of the source ends the run here as failed, leaving
 	// its other pages unfetched. An interrupted or crashed run stays `running`,
 	// so the next start resumes it.
 	return yield* crawl.pipe(
@@ -174,9 +194,30 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
 
-	if (!(yield* store.lockCrawl)) return yield* new CrawlAlreadyRunning();
+	if (!(yield* store.lockCrawl(CRAWL_LOCK))) {
+		return yield* new CrawlAlreadyRunning();
+	}
 
-	const resumed = yield* store.openRuns;
+	const resumed = yield* store.openRuns(SAZ_SOURCE);
+
+	const source: PageSource<SazSignInFailed | SazRateLimited> = {
+		visit: (page) =>
+			saz.get(page.path).pipe(
+				Effect.catchTag("SazRequestFailed", ({ status }) =>
+					Effect.fail(pageFailedOf(status)),
+				),
+				Effect.flatMap((body) =>
+					Result.match(linkedPages(page, body), {
+						onFailure: (problem) =>
+							Effect.fail(new PageFailed({ reason: problem })),
+						onSuccess: (next) =>
+							Effect.succeed({ snapshot: snapshotOf(body), next }),
+					}),
+				),
+			),
+		// A failed catalog page hides the courses it lists.
+		failsRun: (counts) => counts.kind === "catalog" && counts.failed > 0,
+	};
 
 	const startRuns = Effect.gen(function* () {
 		const years = parseAcademicYears(yield* saz.get("/course/catalog"));
@@ -186,7 +227,7 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 		return yield* store.startRuns(
 			years.map((year) => ({
 				sourcePart: sourcePartOf(year),
-				first: { kind: "catalog", path: catalogPath(year, 1) },
+				pages: [{ kind: "catalog", path: catalogPath(year, 1) }],
 			})),
 		);
 	});
@@ -198,7 +239,7 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 		resumed: resumed.length > 0,
 	});
 
-	const results = yield* Effect.forEach(runs, crawlRun);
+	const results = yield* Effect.forEach(runs, (run) => crawlRun(run, source));
 
 	yield* Effect.logInfo(
 		"Crawl finished",

@@ -90,6 +90,7 @@ export class RemovalStore extends Context.Service<
 					SELECT id, source_part AS "sourcePart" FROM (
 						SELECT DISTINCT ON (source_part) id, source_part, status, offering_removals
 						FROM runs
+						WHERE source_part LIKE 'saz-courses:%'
 						ORDER BY source_part, id DESC
 					) latest
 					WHERE status <> 'running' AND offering_removals IS NULL

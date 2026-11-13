@@ -296,6 +296,25 @@ describe("removeOfferings", () => {
 			}),
 		);
 
+		it.effect("leaves a run of another source out of the survey", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				const [smart] = yield* sql<{ readonly id: bigint }>`
+					INSERT INTO runs (source_part, status, finished_at)
+					VALUES ('smart-ukma:2031-09-01', 'succeeded', now())
+					RETURNING id
+				`;
+
+				const decided = yield* removeOfferings(1);
+
+				assert.deepStrictEqual(decided, []);
+				assert.isNull(yield* removalsOf(smart?.id ?? 0n));
+			}),
+		);
+
 		it.effect(
 			"skips the removals of a run that saw fewer courses than page 1 listed",
 			() =>

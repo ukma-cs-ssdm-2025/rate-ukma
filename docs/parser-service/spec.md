@@ -72,7 +72,7 @@ sequenceDiagram
 - **Enrollment**: one student on one offering, with a status and a group.
 - **Source part**: one slice of a source that one run crawls, for example САЗ courses of 2026-27.
 - **Run**: one crawl of one source part.
-- **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response as it came. It keeps the page's tables and labels, so a later parser can read new fields from it.
+- **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response with its keys sorted. It keeps the page's tables and labels, so a later parser can read new fields from it.
 - **Safe answer**: the choice that is easy to undo: a new course rather than a merge, no teacher link rather than a guess, removals held rather than applied.
 - **Review case**: a question the service could not decide itself, published with its safe answer and waiting for staff. See [Review cases](#review-cases).
 - **Decision**: a staff answer, stored as its own row. It changes course groups, teacher links, which student a programme record belongs to, or held removals, or keeps the safe answer. It answers a review case, or staff start it themselves, for example a split.
@@ -121,7 +121,7 @@ JSON under `/v1`. The OpenAPI file is generated from the code and is the contrac
 | Runs | runs and data freshness | Read runs |
 | | an extra run of one source part | Start runs |
 | Review cases and decisions | open cases, their safe answers, all decisions | Decide review cases |
-| Snapshots | page content of a run, with student names | Read snapshots |
+| Snapshots | page content of a run, with student names and smart.ukma teacher lists | Read snapshots |
 | Audit log | every keyed request, key changes, extra runs, decisions, reads of student data | Read audit log |
 | Keys | create and revoke keys | Manage keys |
 
@@ -141,7 +141,7 @@ Every list takes the change number a reader saved and uses cursor pagination. Ev
 | Read students | students and enrollments | no |
 | Start runs | an extra run | no |
 | Decide review cases | review cases and decisions | no |
-| Read snapshots | page snapshots, which carry student names | no |
+| Read snapshots | page snapshots, which carry personal data: student names and the smart.ukma teacher lists | no |
 | Read audit log | the audit log | no |
 | Manage keys | create and revoke keys | no |
 

@@ -1,9 +1,17 @@
 import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { CRAWL_LOCK, sessionLock } from "../db/locks.ts";
+import { sessionLock } from "../db/locks.ts";
 import type { Snapshot } from "./snapshot.ts";
 
-export const PageKind = Schema.Literals(["catalog", "course", "students"]);
+export const PageKind = Schema.Literals([
+	"catalog",
+	"course",
+	"students",
+	"smart_departments",
+	"smart_teachers",
+	"smart_disciplines",
+	"smart_teacher_disciplines",
+]);
 
 export type PageKind = typeof PageKind.Type;
 
@@ -57,17 +65,21 @@ const RunId = Schema.Struct({ id: Schema.BigInt });
 export class CrawlStore extends Context.Service<
 	CrawlStore,
 	{
-		/** Takes the crawl lock for the scope; `false` when another crawl holds
-		 *  it, since two would reset each other's claimed pages. */
-		lockCrawl: Effect.Effect<boolean, never, Scope.Scope>;
-		/** Opens one run per year with its first page queued, all or none, so a
-		 *  crash cannot leave some years open and the others never started. */
+		/** Takes the lock `key` of one source's crawl for the scope; `false` when
+		 *  another crawl holds it, since two would reset each other's claimed pages. */
+		lockCrawl(key: number): Effect.Effect<boolean, never, Scope.Scope>;
+		/** Opens the runs with their first pages queued, all or none, so a crash
+		 *  cannot leave some runs open and the others never started. */
 		startRuns(
-			runs: ReadonlyArray<{ sourcePart: string; first: QueuedPage }>,
+			runs: ReadonlyArray<{
+				sourcePart: string;
+				pages: ReadonlyArray<QueuedPage>;
+			}>,
 		): Effect.Effect<ReadonlyArray<OpenRun>>;
-		/** The runs a crash left open, oldest first, with the pages they had
-		 *  claimed back in the queue. */
-		openRuns: Effect.Effect<ReadonlyArray<OpenRun>>;
+		/** The runs of one source that a crash left open, oldest first, with the
+		 *  pages they had claimed back in the queue. `source` is the part of
+		 *  `source_part` before the colon. */
+		openRuns(source: string): Effect.Effect<ReadonlyArray<OpenRun>>;
 		/** The next pending page of the run, claimed so another worker skips it. */
 		claim(runId: bigint): Effect.Effect<ClaimedPage | undefined>;
 		/** Marks the page done, stores its snapshot when the content hash differs
@@ -98,9 +110,8 @@ export class CrawlStore extends Context.Service<
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 
-			const lockCrawl = sessionLock(CRAWL_LOCK).pipe(
-				Effect.provideService(SqlClient.SqlClient, sql),
-			);
+			const lockCrawl = (key: number) =>
+				sessionLock(key).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 
 			const insertRun = SqlSchema.findOne({
 				Request: Schema.String,
@@ -124,32 +135,43 @@ export class CrawlStore extends Context.Service<
 						`.pipe(Effect.asVoid);
 
 			const startRuns = (
-				runs: ReadonlyArray<{ sourcePart: string; first: QueuedPage }>,
+				runs: ReadonlyArray<{
+					sourcePart: string;
+					pages: ReadonlyArray<QueuedPage>;
+				}>,
 			) =>
-				Effect.forEach(runs, ({ sourcePart, first }) =>
+				Effect.forEach(runs, ({ sourcePart, pages }) =>
 					insertRun(sourcePart).pipe(
-						Effect.tap(({ id }) => queue(id, [first])),
+						Effect.tap(({ id }) => queue(id, pages)),
 						Effect.map(({ id }) => ({ id, sourcePart })),
 					),
 				).pipe(sql.withTransaction, Effect.orDie);
 
 			const findOpenRuns = SqlSchema.findAll({
-				Request: Schema.Void,
+				Request: Schema.String,
 				Result: OpenRun,
-				execute: () => sql`
+				execute: (source) => sql`
 					SELECT id, source_part AS "sourcePart" FROM runs
-					WHERE status = 'running'
+					WHERE status = 'running' AND split_part(source_part, ':', 1) = ${source}
 					ORDER BY id
 				`,
 			});
 
 			// A claim the crash cut short gives back its attempt, so the page keeps
 			// its one requeue.
-			const openRuns = sql`
-				UPDATE run_pages SET status = 'pending', attempts = attempts - 1
-				WHERE status = 'claimed'
-					AND run_id IN (SELECT id FROM runs WHERE status = 'running')
-			`.pipe(Effect.andThen(findOpenRuns()), sql.withTransaction, Effect.orDie);
+			const openRuns = (source: string) =>
+				sql`
+					UPDATE run_pages SET status = 'pending', attempts = attempts - 1
+					WHERE status = 'claimed'
+						AND run_id IN (
+							SELECT id FROM runs
+							WHERE status = 'running' AND split_part(source_part, ':', 1) = ${source}
+						)
+				`.pipe(
+					Effect.andThen(findOpenRuns(source)),
+					sql.withTransaction,
+					Effect.orDie,
+				);
 
 			const claimNext = SqlSchema.findOneOption({
 				Request: Schema.BigInt,

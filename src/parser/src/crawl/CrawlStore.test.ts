@@ -1,15 +1,21 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Deferred, Effect, Fiber, Layer } from "effect";
+import { Deferred, Effect, Exit, Fiber, Layer } from "effect";
 import { SqlClient } from "effect/sql";
+import { CRAWL_LOCK, SMART_CRAWL_LOCK } from "../db/locks.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { CrawlStore, type QueuedPage } from "./CrawlStore.ts";
-import { snapshotOf } from "./snapshot.ts";
+import { snapshotOf, snapshotOfJson } from "./snapshot.ts";
 
 const TestLive = CrawlStore.layer.pipe(
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
 const FIRST: QueuedPage = { kind: "catalog", path: "/course/catalog?page=1" };
+
+const SMART_LIST: QueuedPage = {
+	kind: "smart_departments",
+	path: "/api/department",
+};
 
 const course = (code: string): QueuedPage => ({
 	kind: "course",
@@ -30,7 +36,7 @@ const startWith = (next: ReadonlyArray<QueuedPage>) =>
 		const store = yield* CrawlStore;
 
 		const [run] = yield* store.startRuns([
-			{ sourcePart: "saz-courses:2031-32", first: FIRST },
+			{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
 		]);
 
 		const first = yield* store.claim(run.id);
@@ -47,7 +53,7 @@ const fetchOnce = (path: string, body: string) =>
 		const store = yield* CrawlStore;
 
 		const [run] = yield* store.startRuns([
-			{ sourcePart: "saz-courses:2031-32", first: course(path) },
+			{ sourcePart: "saz-courses:2031-32", pages: [course(path)] },
 		]);
 
 		const page = yield* store.claim(run.id);
@@ -232,7 +238,7 @@ describe("CrawlStore", () => {
 					failures: [],
 				});
 
-				const open = yield* store.openRuns;
+				const open = yield* store.openRuns("saz-courses");
 
 				assert.deepStrictEqual(open, [crashed]);
 				assert.deepStrictEqual(yield* pagesOf(crashed.id), [
@@ -261,7 +267,7 @@ describe("CrawlStore", () => {
 				const store = yield* CrawlStore;
 
 				const [run] = yield* store.startRuns([
-					{ sourcePart: "saz-courses:2031-32", first: FIRST },
+					{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
 				]);
 
 				// The crash hit the first page an hour ago.
@@ -270,7 +276,7 @@ describe("CrawlStore", () => {
 					UPDATE run_pages SET claimed_at = claimed_at - interval '1 hour'
 					WHERE run_id = ${run.id}
 				`;
-				yield* store.openRuns;
+				yield* store.openRuns("saz-courses");
 				yield* store.claim(run.id);
 
 				const { seconds } = yield* store.report(run.id);
@@ -326,7 +332,10 @@ describe("CrawlStore", () => {
 				const store = yield* CrawlStore;
 
 				const [first, second] = yield* Effect.scoped(
-					Effect.all([store.lockCrawl, Effect.scoped(store.lockCrawl)]),
+					Effect.all([
+						store.lockCrawl(CRAWL_LOCK),
+						Effect.scoped(store.lockCrawl(CRAWL_LOCK)),
+					]),
 				);
 
 				// A pooled session takes its own lock again, so the release is
@@ -338,6 +347,106 @@ describe("CrawlStore", () => {
 				`;
 
 				assert.deepStrictEqual([first, second, held], [true, false, 0]);
+			}),
+		);
+		it.effect("resumes only the open runs of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const store = yield* CrawlStore;
+				const saz = yield* startWith([course("100001")]);
+
+				const [smart] = yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: [SMART_LIST] },
+				]);
+
+				yield* store.claim(saz.id);
+				yield* store.claim(smart.id);
+
+				const open = yield* store.openRuns("smart-ukma");
+
+				assert.deepStrictEqual(open, [smart]);
+				assert.deepStrictEqual(yield* pagesOf(smart.id), [
+					`pending 0 ${SMART_LIST.path}`,
+				]);
+				assert.deepStrictEqual(yield* pagesOf(saz.id), [
+					`done 1 ${FIRST.path}`,
+					"claimed 1 /course/100001",
+				]);
+			}),
+		);
+
+		it.effect("starts a run with every page it is given queued", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const store = yield* CrawlStore;
+
+				const lists: ReadonlyArray<QueuedPage> = [
+					SMART_LIST,
+					{ kind: "smart_teachers", path: "/api/teacher" },
+					{ kind: "smart_disciplines", path: "/api/discipline" },
+					{
+						kind: "smart_teacher_disciplines",
+						path: "/api/teacher/disciplines",
+					},
+				];
+
+				const [run] = yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: lists },
+				]);
+
+				assert.deepStrictEqual(
+					yield* pagesOf(run.id),
+					lists.map(({ path }) => `pending 0 ${path}`),
+				);
+			}),
+		);
+
+		it.effect("stores a smart.ukma list and refuses an unknown kind", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				const [run] = yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: [SMART_LIST] },
+				]);
+
+				const page = yield* store.claim(run.id);
+
+				assert.isDefined(page);
+				yield* store.complete(run.id, page, snapshotOfJson({ items: [] }), []);
+
+				const unknown = yield* sql`
+					INSERT INTO run_pages (run_id, kind, path)
+					VALUES (${run.id}, 'smart_rooms', '/api/room')
+				`.pipe(Effect.exit);
+
+				const [{ kind }] = yield* sql<{ readonly kind: string }>`
+					SELECT kind FROM page_snapshots WHERE run_id = ${run.id}
+				`;
+
+				assert.strictEqual(kind, "smart_departments");
+				assert.isTrue(Exit.isFailure(unknown));
+			}),
+		);
+
+		it.effect("keeps the smart crawl lock apart from the САЗ crawl lock", () =>
+			Effect.gen(function* () {
+				const store = yield* CrawlStore;
+
+				// Each lock reserves its own session, so a second try at a held key fails.
+				const locked = yield* Effect.scoped(
+					Effect.all([
+						store.lockCrawl(CRAWL_LOCK),
+						store.lockCrawl(SMART_CRAWL_LOCK),
+						store.lockCrawl(SMART_CRAWL_LOCK),
+					]),
+				);
+
+				assert.deepStrictEqual(locked, [true, true, false]);
 			}),
 		);
 	});
