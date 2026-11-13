@@ -17,6 +17,7 @@ const ids = (count: number) =>
 const survey = (patch: Partial<RemovalSurvey>): RemovalSurvey => ({
 	complete: true,
 	missingPages: 0,
+	unparsedPages: 0,
 	listed: 3250,
 	laterTotals: [3250, 3250],
 	seen: 3250,
@@ -45,6 +46,19 @@ describe("planRemovals", () => {
 				0.05,
 			),
 			{ decision: "skipped", reason: "run missed 1 pages" },
+		);
+	});
+
+	it("skips a run with a course page that fails to parse", () => {
+		assert.deepStrictEqual(
+			planRemovals(
+				survey({ complete: false, unparsedPages: 2, candidates: ids(1) }),
+				0.05,
+			),
+			{
+				decision: "skipped",
+				reason: "2 course pages of the run fail to parse",
+			},
 		);
 	});
 
@@ -211,6 +225,34 @@ describe("removeOfferings", () => {
 					yield* parseOfferings("reparse");
 
 					assert.isTrue((yield* offeringsOf(2034)).get("940002")?.removed);
+				}),
+		);
+
+		it.effect(
+			"skips the removals of a run with a course page that fails to parse",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					const sql = yield* SqlClient.SqlClient;
+
+					yield* crawl(2036, [{ code: "936001" }, { code: "936002" }]);
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(1);
+
+					const dropped = yield* crawl(2036, [
+						{ code: "936001", title: "Змінена назва" },
+					]);
+
+					yield* sql`
+						UPDATE page_snapshots SET content = 'broken'
+						WHERE path = '/course/936001' AND run_id = ${dropped}
+					`;
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(1);
+
+					assert.strictEqual(yield* removalsOf(dropped), "skipped");
+					assert.isFalse((yield* offeringsOf(2036)).get("936002")?.removed);
 				}),
 		);
 

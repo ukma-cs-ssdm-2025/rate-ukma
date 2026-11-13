@@ -11,10 +11,13 @@ const UndecidedRun = Schema.Struct({
 export type UndecidedRun = typeof UndecidedRun.Type;
 
 export interface RemovalSurvey {
-	/** The run succeeded and every catalog and course page of it loaded. */
+	/** The run succeeded and every catalog and course page of it loaded and,
+	 *  for course pages, parsed. */
 	readonly complete: boolean;
 	/** Catalog and course pages of the run that did not load. */
 	readonly missingPages: number;
+	/** Course pages of the run that loaded but fail to parse. */
+	readonly unparsedPages: number;
 	/** The course total that page 1 of the run's catalog reported, when the
 	 *  run stored that page. */
 	readonly listed: number | undefined;
@@ -31,6 +34,7 @@ export interface RemovalSurvey {
 const Survey = Schema.Struct({
 	succeeded: Schema.Boolean,
 	missingPages: Schema.BigInt,
+	unparsedPages: Schema.BigInt,
 	firstCatalogPage: Schema.NullOr(Schema.String),
 	laterCatalogPages: Schema.Array(Schema.String),
 	seen: Schema.BigInt,
@@ -104,6 +108,16 @@ export class RemovalStore extends Context.Service<
 							WHERE p.run_id = r.id AND p.kind IN ('catalog', 'course')
 								AND p.status <> 'done'
 						) AS "missingPages",
+						-- Every parse reads the latest snapshot of every course page,
+						-- so the latest finished one says which pages fail now.
+						(
+							SELECT count(*) FROM run_pages p
+							JOIN parse_failures f ON f.snapshot_id = p.snapshot_id
+							WHERE p.run_id = r.id AND p.kind = 'course'
+								AND f.parse_id = (
+									SELECT max(id) FROM parses WHERE finished_at IS NOT NULL
+								)
+						) AS "unparsedPages",
 						(
 							SELECT s.content FROM run_pages p
 							JOIN page_snapshots s ON s.id = p.snapshot_id
@@ -145,14 +159,17 @@ export class RemovalStore extends Context.Service<
 						({
 							succeeded,
 							missingPages,
+							unparsedPages,
 							firstCatalogPage,
 							laterCatalogPages,
 							seen,
 							live,
 							candidates,
 						}) => ({
-							complete: succeeded && missingPages === 0n,
+							complete:
+								succeeded && missingPages === 0n && unparsedPages === 0n,
 							missingPages: Number(missingPages),
+							unparsedPages: Number(unparsedPages),
 							listed:
 								firstCatalogPage === null
 									? undefined
