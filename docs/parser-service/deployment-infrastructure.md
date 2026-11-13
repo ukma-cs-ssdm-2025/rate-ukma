@@ -139,6 +139,10 @@ graph LR
 
 **UKMA Data reparse:** `reparse` is a command of the image that needs only `DATABASE_URL`. It rebuilds the parsed tables from stored snapshots after a parser fix and sends no request to САЗ. It exits non-zero when Postgres refuses a page, so a Job running it would show Failed; a page that only fails to parse does not fail it. `infra/deploy/parser` has manifests for the api, the worker and the migrate Job only, and the deploy workflow runs only migrate, so no Job manifest runs `reparse` yet: run it by hand with the image and the parser's `DATABASE_URL`.
 
+**UKMA Data API:** `api` reads `DATABASE_URL` too: API keys and the audit log live in the database. Every endpoint but `/health` needs a key in `Authorization: Bearer ukd_...`.
+
+**UKMA Data keys:** `create-key --name <holder> [--scope <scope> ...] [--all-scopes] [--expires-in-days 365]`, `revoke-key <key id>` and `list-keys` run with only `DATABASE_URL`. `create-key` prints the token once to stdout and stores only its hash, so run it through `kubectl exec`, not a Job: a Job's stdout is its pod log, which a log collector keeps. Copy the token into the reader's secret. `revoke-key` and `list-keys` print no token and may run as a Job.
+
 ### 8. Ingress & TLS
 
 | Option                                 | Pros                                                                                                    | Cons                                                                                     | Decision      |
