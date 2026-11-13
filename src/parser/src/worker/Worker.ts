@@ -71,40 +71,59 @@ export const WorkerLive = Layer.effectDiscard(
 			),
 		);
 
-		const crawlAndParse = crawl.pipe(
-			Effect.tap(() =>
-				parseOfferings("crawl").pipe(
-					Effect.catchCause((cause) =>
-						Effect.logError("Parsing offerings failed", cause),
-					),
-					Effect.andThen(parseStudents("crawl")),
-					Effect.catchCause((cause) =>
-						Effect.logError("Parsing students failed", {
-							error: storeFailureOf(cause),
-						}),
-					),
-					Effect.andThen(removeOfferings(threshold)),
-					Effect.catchCause((cause) =>
-						Effect.logError("Removing offerings failed", cause),
-					),
-				),
+		const parse = parseOfferings("crawl").pipe(
+			Effect.catchCause((cause) =>
+				Effect.logError("Parsing offerings failed", cause),
+			),
+			Effect.andThen(parseStudents("crawl")),
+			Effect.catchCause((cause) =>
+				Effect.logError("Parsing students failed", {
+					error: storeFailureOf(cause),
+				}),
+			),
+			Effect.andThen(removeOfferings(threshold)),
+			Effect.catchCause((cause) =>
+				Effect.logError("Removing offerings failed", cause),
 			),
 		);
+
+		// A lost database must not end the loop, so a failed read is tried
+		// again a minute later.
+		const nextCrawlIn = (sinceTry: Duration.Duration | undefined) =>
+			untilNextCrawl(interval, sinceTry).pipe(
+				Effect.catchCause((cause) =>
+					Effect.logError("Reading the crawl schedule failed", cause).pipe(
+						Effect.as(undefined),
+					),
+				),
+			);
 
 		// Crawls on a schedule kept in the runs, so a restart neither crawls
 		// again early nor loses a crawl it cut short.
 		yield* Effect.gen(function* () {
 			let triedAt: number | undefined;
+			let parsedOnStart = false;
 
 			while (true) {
 				const now = yield* Clock.currentTimeMillis;
 
-				const wait = yield* untilNextCrawl(
-					interval,
+				const wait = yield* nextCrawlIn(
 					triedAt === undefined ? undefined : Duration.millis(now - triedAt),
 				);
 
+				if (wait === undefined) {
+					yield* Effect.sleep("1 minute");
+					continue;
+				}
+
 				if (!Duration.isZero(wait)) {
+					// A restart between a crawl and its parse would leave the stored
+					// pages unapplied until the next crawl.
+					if (triedAt === undefined && !parsedOnStart) {
+						parsedOnStart = true;
+						yield* parse;
+					}
+
 					yield* Effect.logInfo("Next crawl scheduled", {
 						at: new Date(now + Duration.toMillis(wait)).toISOString(),
 					});
@@ -113,7 +132,11 @@ export const WorkerLive = Layer.effectDiscard(
 
 				triedAt = yield* Clock.currentTimeMillis;
 
-				if (!(yield* crawlAndParse)) {
+				const signedIn = yield* crawl;
+
+				yield* parse;
+
+				if (!signedIn) {
 					return yield* Effect.logError(
 						"Crawling stopped until the worker restarts: the САЗ sign-in failed",
 					);
