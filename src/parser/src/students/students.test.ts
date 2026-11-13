@@ -814,6 +814,57 @@ describe("student tracking", () => {
 		);
 
 		it.effect(
+			"keeps a student's newer details when a reparse sees an older sibling record",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("996001", "996002");
+					yield* list(
+						"996001",
+						studentsPage(
+							studentEntry({ cdoc: 654001, email: "r.old@example.edu" }),
+						),
+					);
+					yield* list(
+						"996002",
+						studentsPage(
+							studentEntry({ cdoc: 654002, email: "r.old@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					// The second record renames the student, then shows `*` and no email.
+					yield* list(
+						"996002",
+						studentsPage(
+							studentEntry({
+								cdoc: 654002,
+								name: "Приклад Олена Петрівна",
+								email: "r.new@example.edu",
+							}),
+						),
+					);
+					yield* parseStudents("crawl");
+					yield* list(
+						"996002",
+						studentsPage(
+							studentEntry({
+								cdoc: 654002,
+								name: "Пр*клад Олена Петрівна",
+								email: "",
+							}),
+						),
+					);
+					yield* parseStudents("crawl");
+					yield* parseStudents("reparse");
+
+					assert.deepInclude(yield* personOf("654001"), {
+						email: "r.new@example.edu",
+						fullName: "Приклад Олена Петрівна",
+					});
+				}),
+		);
+
+		it.effect(
 			"keeps a stored name over a later one with `*` and a list applied from a newer page",
 			() =>
 				Effect.gen(function* () {
