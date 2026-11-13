@@ -184,13 +184,21 @@ function buildCoursesTableColumns({
 			id: "title",
 			accessorKey: "title",
 			header: ({ column }) => (
-				<CourseColumnHeader column={column} title="Назва курсу" />
+				<CourseColumnHeader
+					column={column}
+					title="Назва курсу"
+					className={compact ? "ml-0 px-0 has-[>svg]:px-0" : undefined}
+				/>
 			),
 			cell: ({ row }) => {
 				const course = row.original;
 				const courseId = course.id;
 				return (
-					<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
+					// Phones fit four columns, so long words hyphenate (or break) to fit.
+					<span
+						lang="uk"
+						className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words max-sm:hyphens-auto max-sm:[overflow-wrap:anywhere]"
+					>
 						{courseId ? (
 							<Link
 								to="/courses/$courseId"
@@ -223,7 +231,7 @@ function buildCoursesTableColumns({
 				);
 			},
 			enableSorting: false,
-			size: compact ? 160 : 300,
+			size: 300,
 			meta: {
 				label: "Назва курсу",
 				placeholder: "Пошук курсів...",
@@ -235,17 +243,18 @@ function buildCoursesTableColumns({
 			id: "ratings_count",
 			accessorKey: "ratings_count",
 			header: () => (
-				<div className="hidden text-muted-foreground sm:block">
+				<div className="text-muted-foreground">
 					<CoursesReviewsSortMenu
 						value={reviewsSortValue}
 						onValueChange={onReviewsSortChange}
+						variant={compact ? "mobile" : "desktop"}
 					/>
 				</div>
 			),
 			cell: ({ row }) => {
 				const count = row.getValue("ratings_count") as number;
 				return (
-					<div className="hidden sm:flex items-center justify-center">
+					<div className="flex items-center justify-center">
 						<span className="text-sm font-medium tabular-nums text-muted-foreground md:text-base">
 							{count}
 						</span>
@@ -253,11 +262,10 @@ function buildCoursesTableColumns({
 				);
 			},
 			enableSorting: false,
+			size: compact ? 48 : undefined,
 			meta: {
 				label: "Відгуки",
 				align: "center",
-				// Low value on a narrow screen; the sort menu is desktop-only anyway.
-				hideOnMobile: true,
 			},
 		},
 		{
@@ -272,7 +280,7 @@ function buildCoursesTableColumns({
 							initialSortDirection="asc"
 							testId={testIds.courses.difficultySortButtonMobile}
 							align="center"
-							className="h-10 whitespace-nowrap text-xs [&_svg]:size-3.5"
+							className="h-10 gap-0.5 px-1 has-[>svg]:px-1 whitespace-nowrap text-xs [&_svg]:size-3"
 						/>
 					</div>
 					<div className="hidden justify-center md:flex">
@@ -293,7 +301,7 @@ function buildCoursesTableColumns({
 				/>
 			),
 			enableSorting: true,
-			size: compact ? 80 : 100,
+			size: compact ? 56 : 100,
 			meta: {
 				label: "Складність",
 				placeholder: "Фільтр за складністю...",
@@ -314,7 +322,7 @@ function buildCoursesTableColumns({
 							initialSortDirection="desc"
 							testId={testIds.courses.usefulnessSortButtonMobile}
 							align="center"
-							className="h-10 whitespace-nowrap text-xs [&_svg]:size-3.5"
+							className="h-10 gap-0.5 px-1 has-[>svg]:px-1 whitespace-nowrap text-xs [&_svg]:size-3"
 						/>
 					</div>
 					<div className="hidden justify-center md:flex">
@@ -335,7 +343,7 @@ function buildCoursesTableColumns({
 				/>
 			),
 			enableSorting: true,
-			size: compact ? 80 : 100,
+			size: compact ? 56 : 100,
 			meta: {
 				label: "Корисність",
 				placeholder: "Фільтр за корисністю...",
