@@ -115,9 +115,11 @@ export const WorkerLive = Layer.effectDiscard(
 				if (!Duration.isZero(wait)) {
 					// A restart between a crawl and its parse would leave the stored
 					// pages unapplied until the next crawl.
+					// The parse takes time, so the wait is read again after it.
 					if (triedAt === undefined && !parsedOnStart) {
 						parsedOnStart = true;
 						yield* parse;
+						continue;
 					}
 
 					yield* Effect.logInfo("Next crawl scheduled", {
