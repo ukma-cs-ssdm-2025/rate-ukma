@@ -253,7 +253,7 @@ The trail of each run and decision (rule 11).
 | `decision_id` | text null | |
 | `at` | timestamptz | |
 
-Each parse's `report` counts its rows by table and action. A removed offering comes back only when a run fetches its page after the removal: its last snapshot stays the latest of its path, so a reparse alone does not restore it, and until then it keeps the content of its last parse. A run that holds the same removals as the year's open `removals_held` case keeps that case. A department takes the faculty of its newest card that names one (latest year, then highest САЗ code), so it moves when САЗ rewrites its cards (C4) and takes no new change number when a parse finds the same pages. Faculties, departments and programmes are not removed yet.
+Each parse's `report` counts its rows by table and action. A removed offering comes back only when a run fetches its page after the removal and no later run that decided removals left it out: its last snapshot stays the latest of its path, so a reparse alone does not restore it, and until then it keeps the content of its last parse. A run that holds the same removals as the year's open `removals_held` case keeps that case. A department takes the faculty of its newest card that names one (latest year, then highest САЗ code), so it moves when САЗ rewrites its cards (C4) and takes no new change number when a parse finds the same pages. Faculties, departments and programmes are not removed yet.
 
 ## Review cases and decisions
 
