@@ -384,18 +384,25 @@ export class StudentStore extends Context.Service<
 								`,
 							);
 
-							// A record keeps its student (D1). The newest record of each student
-							// in the batch sets its name and email, after the new records joined,
-							// so a second parse of the same lists changes nothing. An entry
-							// without an email does not rename a student that has one.
+							// A record keeps its student (D1). Of each student's records in the
+							// batch, the newest email and the newest name without `*` (D6), or
+							// the newest name when all have it, set the student, after the new
+							// records joined, so a second parse of the same lists changes
+							// nothing. A record without an email keeps the student's.
+							const newest = sql`r."snapshotId" DESC, r.cdoc DESC`;
+							const byName = sql`(r."fullName" LIKE '%*%'), ${newest}`;
+
 							const persons = sql`(
-								SELECT DISTINCT ON (s.id) s.id AS "studentId", r.email,
-									r."fullName", r."firstNameKey", r."snapshotId"
+								SELECT s.id AS "studentId",
+									(array_agg(r.email ORDER BY ${newest})
+										FILTER (WHERE r.email IS NOT NULL))[1] AS email,
+									(array_agg(r."fullName" ORDER BY ${byName}))[1] AS "fullName",
+									(array_agg(r."firstNameKey" ORDER BY ${byName}))[1] AS "firstNameKey",
+									max(r."snapshotId") AS "snapshotId"
 								FROM ${recordset(rows.programmes, recordColumns)}
 								JOIN student_programmes sp ON sp.saz_cdoc = r.cdoc
 								JOIN students s ON s.id = sp.student_id
-								WHERE r.email IS NOT NULL OR s.email IS NULL
-								ORDER BY s.id, r."snapshotId" DESC, r.cdoc DESC
+								GROUP BY s.id
 							) p`;
 
 							yield* track(

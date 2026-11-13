@@ -37,8 +37,8 @@ export interface StudentRows {
 		readonly entryCount: number;
 	}>;
 	/** One per programme record, with its person's fields from the latest list
-	 *  that names it. `sazCodes` are the batch's lists that name the record,
-	 *  so the store can find its programme's level on their cards. */
+	 *  that names it. `sazCodes` are all the batch's lists that name the
+	 *  record, so the store can find its programme's level on their cards. */
 	readonly programmes: ReadonlyArray<{
 		readonly cdoc: string;
 		readonly email: string | null;
@@ -87,18 +87,27 @@ export const studentRowsOf = (
 	const programmes = new Map<string, StudentRows["programmes"][number]>();
 	const byAge = [...lists].sort((a, b) => Number(a.snapshotId - b.snapshotId));
 	const emails = new Map<string, string>();
+	const listedOn = new Map<string, Array<string>>();
+
+	const olderThanStored = (cdoc: string, snapshotId: bigint) =>
+		(stored.get(cdoc) ?? 0n) > snapshotId;
 
 	// The newest email a record shows in the batch; a list without one does
-	// not split the person off (D3).
-	for (const { entries } of byAge) {
+	// not split the person off (D3). Every list that names the record gives
+	// its level, an older one too, so a reparse links as the first parse did.
+	for (const { snapshotId, sazCode, entries } of byAge) {
 		for (const { cdoc, email } of entries) {
-			if (email !== null) emails.set(cdoc, email);
+			listedOn.set(cdoc, [...(listedOn.get(cdoc) ?? []), sazCode]);
+
+			if (email !== null && !olderThanStored(cdoc, snapshotId)) {
+				emails.set(cdoc, email);
+			}
 		}
 	}
 
-	for (const { snapshotId, sazCode, entries } of byAge) {
+	for (const { snapshotId, entries } of byAge) {
 		for (const { cdoc, fullName, specName } of entries) {
-			if ((stored.get(cdoc) ?? 0n) > snapshotId) continue;
+			if (olderThanStored(cdoc, snapshotId)) continue;
 
 			const previous = programmes.get(cdoc);
 			const name = preferredName(previous?.fullName, fullName);
@@ -110,7 +119,7 @@ export const studentRowsOf = (
 				firstNameKey: firstNameKeyOf(name),
 				specName,
 				snapshotId: String(snapshotId),
-				sazCodes: [...(previous?.sazCodes ?? []), sazCode],
+				sazCodes: listedOn.get(cdoc) ?? [],
 			});
 		}
 	}
