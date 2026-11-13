@@ -168,16 +168,16 @@ Derived links, a list of their own.
 
 ### `students`
 
-A person (glossary: Student).
+A person (glossary: Student). The only table with students' personal fields; teacher names are in `offerings.saz_teachers` and `instructors`.
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `stu_...` |
 | `email` | text null | lower-case (D5); null for the few records with none (D3). Not unique: one email can belong to two people (D14) |
-| `first_name_key` | text null | the first name lower-cased, without spaces, with `` ` ``, `ʼ` and `’` as `'`; the match key with `email` |
+| `first_name_key` | text null | the first name lower-cased, without spaces, with `` ` ``, `ʼ` and `’` as `'`; the match key with `email`. Null when the name does not have three words or holds `*` (D6), so a new record with such a name starts a new student |
 | `full_name` | text | whitespace collapsed; set by the latest list, but a name with `*` never replaces one without it (D6, D7) |
-| `last_name`, `first_name`, `patronymic` | text null | filled only when the name has three words |
-| `change_no`, `removed_at` | | removed when no enrollment of the person is left |
+| `snapshot_id` | bigint | the list that last set the name |
+| `change_no`, `removed_at` | | removed when no programme record of the person is left |
 
 A person is never found by email alone ([ADR-0013](../architecture/decisions/0013-student-identity.md)). A list entry finds its programme record by `cdoc`, and the record keeps its student. A new `cdoc` joins the student with the same `email` and `first_name_key`, else it starts a new student; a new `cdoc` without an email always starts a new student (D3). No unique key on (`email`, `first_name_key`): a staff split leaves two students with the same pair, and the existing `cdoc` link keeps each record with its student. When several students match a new `cdoc`, it joins the one with the newest first enrollment and a `student_match` review case opens. When the email and first name match but the surname differs (D14), the record joins that student and a `student_match` review case asks staff whether it is a second person. When a `cdoc` shows a new email, the record keeps its student and the student takes the new email (D1).
 
@@ -190,7 +190,9 @@ One `cdoc`: a student on one programme (D1).
 | `id` | text | `spr_...` |
 | `saz_cdoc` | text unique | |
 | `student_id` | text | |
+| `spec_name` | text | the programme as the list names it, without a level (D12) |
 | `programme_id` | text null | the programme named `specName` on the cards of the record's offerings; null when those cards name it at both levels (D12) |
+| `snapshot_id` | bigint | the list that last set the row |
 | `change_no`, `removed_at` | | removed when no enrollment of the record is left |
 
 ### `enrollments`
@@ -201,13 +203,25 @@ One `cdoc`: a student on one programme (D1).
 | `offering_id`, `student_programme_id` | text | unique together; one person can be on a list twice (D2) |
 | `kind` | text | `compulsory`, `prof_oriented`, `elective` from `type` (D11) |
 | `status` | text | `enrolled` (10) or `unenrolled` (-10) |
-| `student_state` | text | `enrolled`, `not_studying`, `dropped`, `forced` from `statusLabel` (D8) |
+| `is_student_active` | boolean | false is "не навчається": the person, at crawl time, not the enrollment (D8) |
 | `is_forced` | boolean | |
 | `group_no` | smallint null | (D9) |
 | `grade` | smallint | the student's year of study then |
 | `saz_created_at`, `saz_updated_at` | timestamptz null | null when САЗ sends 0 (D10) |
-| `snapshot_id` | bigint | the students page this row was last parsed from |
 | `change_no`, `removed_at` | | |
+
+The labels (`statusLabel`, `typeLabel`, `statusDescription`) and `isEnrolled`, `isUnenrolled` follow from `status`, `is_student_active` and `is_forced`, so they are not stored.
+
+### `enrollment_lists`
+
+One row per offering whose students page was applied, empty or not. Not numbered: readers do not get it.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `offering_id` | text | key |
+| `snapshot_id` | bigint | the page applied; a crawl skips a list whose latest page this is |
+| `entry_count` | integer | 0 for `[]` |
+| `parsed_at` | timestamptz | |
 
 ## Runs and pages
 
@@ -218,7 +232,7 @@ One `cdoc`: a student on one programme (D1).
 | `runs` | `trigger` | text | `schedule` or `key` |
 | | `key_id` | text null | the key that asked for an extra run |
 | | `offering_removals` | text | `applied`, `held` or `skipped` (see below) |
-| | `lists_kept` | integer | offerings whose students page failed, so their enrollments were kept |
+| | `lists_kept` | integer | offerings whose enrollments were kept: the students page failed, or it emptied while the card still shows enrollments (A7) |
 | `run_pages` | `http_status` | smallint null | 500 for the A2 pages |
 
 A page that fails to parse keeps its last good rows, and `offerings.snapshot_id` still points at the snapshot they came from (rule 6).

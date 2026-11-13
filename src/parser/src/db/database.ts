@@ -7,6 +7,7 @@ import Parses from "./migrations/0004_parses.ts";
 import ChangeNumbers from "./migrations/0005_change_numbers.ts";
 import Removals from "./migrations/0006_removals.ts";
 import Keys from "./migrations/0007_keys.ts";
+import Students from "./migrations/0008_students.ts";
 
 export const PgLive = PgClient.layerConfig({
 	url: Config.Redacted("DATABASE_URL"),
@@ -21,6 +22,7 @@ export const migrations = {
 	"0005_change_numbers": ChangeNumbers,
 	"0006_removals": Removals,
 	"0007_keys": Keys,
+	"0008_students": Students,
 };
 
 export const runMigrations = PgMigrator.run({

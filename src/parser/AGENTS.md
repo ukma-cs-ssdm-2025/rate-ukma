@@ -15,7 +15,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
 - `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
 - `docs/parser-service/openapi.json` is generated from `Api.ts` by `pnpm openapi`; `src/api/openapi.test.ts` fails when the committed file is stale.
-- `src/worker/`: the background loop: crawl, parse, then removals (`src/offerings/removals.ts`).
+- `src/worker/`: the background loop: crawl, parse offerings, parse students (`src/students/`), then removals (`src/offerings/removals.ts`).
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
 - `src/db/database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 

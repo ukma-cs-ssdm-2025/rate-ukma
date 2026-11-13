@@ -3,11 +3,13 @@ import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { crawlAllYears } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
-import { parseOfferings } from "../offerings/offerings.ts";
+import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { RemovalStore } from "../offerings/RemovalStore.ts";
 import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
 import { SazClient } from "../saz/SazClient.ts";
+import { parseStudents } from "../students/students.ts";
+import { StudentStore } from "../students/StudentStore.ts";
 
 export const WorkerLive = Layer.effectDiscard(
 	Effect.gen(function* () {
@@ -45,6 +47,12 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.catchCause((cause) =>
 				Effect.logError("Parsing offerings failed", cause),
 			),
+			Effect.andThen(parseStudents("crawl")),
+			Effect.catchCause((cause) =>
+				Effect.logError("Parsing students failed", {
+					error: storeFailureOf(cause),
+				}),
+			),
 			Effect.andThen(removeOfferings(threshold)),
 			Effect.catchCause((cause) =>
 				Effect.logError("Removing offerings failed", cause),
@@ -58,6 +66,7 @@ export const WorkerLive = Layer.effectDiscard(
 		OfferingStore.layer,
 		RemovalStore.layer,
 		SazClient.layer,
+		StudentStore.layer,
 	]),
 	Layer.provide(ChangeLog.layer),
 );

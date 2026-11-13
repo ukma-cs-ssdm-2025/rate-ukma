@@ -7,6 +7,8 @@ import { PgLive, runMigrations } from "./db/database.ts";
 import { KeysLive, keyCommands } from "./keys/commands.ts";
 import { reparseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";
+import { parseStudents } from "./students/students.ts";
+import { StudentStore } from "./students/StudentStore.ts";
 import { WorkerLive } from "./worker/Worker.ts";
 
 const api = Command.make("api", {}, () =>
@@ -23,7 +25,12 @@ const migrate = Command.make("migrate", {}, () =>
 
 const reparse = Command.make("reparse", {}, () =>
 	reparseOfferings.pipe(
-		Effect.provide(OfferingStore.layer.pipe(Layer.provide(ChangeLog.layer))),
+		Effect.andThen(parseStudents("reparse")),
+		Effect.provide(
+			Layer.mergeAll(OfferingStore.layer, StudentStore.layer).pipe(
+				Layer.provide(ChangeLog.layer),
+			),
+		),
 		Effect.provide(PgLive),
 	),
 ).pipe(

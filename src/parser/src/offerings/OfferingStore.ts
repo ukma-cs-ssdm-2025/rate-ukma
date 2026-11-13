@@ -129,7 +129,10 @@ export class OfferingStore extends Context.Service<
 		): Effect.Effect<void>;
 		/** The rows the parse numbered, by table and action. */
 		changeCounts(parseId: bigint): Effect.Effect<ReadonlyArray<ChangeCount>>;
-		finishParse(parseId: bigint, report: ParseReport): Effect.Effect<void>;
+		finishParse(
+			parseId: bigint,
+			report: Omit<ParseReport, "missing">,
+		): Effect.Effect<void>;
 	}
 >()("ukma-data/offerings/OfferingStore") {
 	static readonly layer = Layer.effect(
@@ -581,7 +584,10 @@ export class OfferingStore extends Context.Service<
 			const changeCounts = (parseId: bigint) =>
 				findChangeCounts(parseId).pipe(Effect.orDie);
 
-			const finishParse = (parseId: bigint, report: ParseReport) =>
+			const finishParse = (
+				parseId: bigint,
+				report: Omit<ParseReport, "missing">,
+			) =>
 				sql`
 					UPDATE parses SET finished_at = now(), report = ${JSON.stringify(report)}::jsonb
 					WHERE id = ${parseId}
