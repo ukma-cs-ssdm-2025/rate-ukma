@@ -17,7 +17,8 @@ export type RemovalPlan =
 			readonly ids: ReadonlyArray<string>;
 	  };
 
-/** A run that missed a catalog or course page removes nothing. Nor does a run
+/** A run that missed a catalog or course page, or has a course page that
+ *  fails to parse, removes nothing. Nor does a run
  *  whose catalog changed while it read the pages: a course that leaves shifts
  *  the cards after it back, so one moves onto a page already read and the run
  *  never sees it; one that arrives pushes a card onto a page past the last.
@@ -36,7 +37,9 @@ export const planRemovals = (
 			reason:
 				survey.missingPages > 0
 					? `run missed ${survey.missingPages} pages`
-					: "run did not succeed",
+					: survey.unparsedPages > 0
+						? `${survey.unparsedPages} course pages of the run fail to parse`
+						: "run did not succeed",
 		};
 	}
 
