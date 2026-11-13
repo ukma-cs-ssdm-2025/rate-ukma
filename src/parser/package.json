@@ -16,6 +16,7 @@
 		"create-key": "node src/main.ts create-key",
 		"revoke-key": "node src/main.ts revoke-key",
 		"list-keys": "node src/main.ts list-keys",
+		"openapi": "node src/openapi.ts",
 		"build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/main.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
 		"test": "vitest run",
 		"format": "oxfmt",
