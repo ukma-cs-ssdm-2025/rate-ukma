@@ -394,8 +394,8 @@ export function useCourseFiltersData({
 			},
 			{
 				key: "type",
-				label: "Тип курсу",
-				placeholder: "Усі типи курсів",
+				label: "Тип дисципліни",
+				placeholder: "Усі типи дисциплін",
 				value: filters.type ?? "",
 				options: courseTypes.map((type) => ({
 					value: type.value,
