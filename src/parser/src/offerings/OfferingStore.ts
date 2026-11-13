@@ -403,9 +403,12 @@ export class OfferingStore extends Context.Service<
 								`,
 						);
 
-						// A row changes when its hash does, or when its faculty or
-						// department now resolves to another row. An offering already
-						// parsed from a newer snapshot keeps its rows.
+						// A live row changes when its hash does, or when its faculty or
+						// department now resolves to another row. A removed row comes back
+						// only when a run after the removing one fetched its page and no
+						// later run that decided removals left it out: its last snapshot
+						// stays the latest of its path, so every parse sees it.
+						// An offering already parsed from a newer snapshot keeps its rows.
 						const updated = yield* track(
 							"offerings",
 							sql`
@@ -422,14 +425,39 @@ export class OfferingStore extends Context.Service<
 										group_size_max = r."groupSizeMax",
 										enrolled_active = r."enrolledActive",
 										snapshot_id = r."snapshotId", row_hash = r."rowHash",
-										change_no = nextval('change_no_seq')
-									FROM ${offerings}
-									WHERE o.saz_code = r."sazCode" AND o.snapshot_id <= r."snapshotId"
-										AND (
-											o.row_hash IS DISTINCT FROM r."rowHash"
-											OR (o.faculty_id, o.department_id) IS DISTINCT FROM (f.id, d.id)
-										)
-									RETURNING o.id, o.change_no, 'change' AS action
+										removed_at = NULL, change_no = nextval('change_no_seq')
+									FROM offerings prev, ${offerings}
+									WHERE prev.id = o.id AND o.saz_code = r."sazCode"
+										AND o.snapshot_id <= r."snapshotId"
+										AND CASE WHEN o.removed_at IS NULL
+											THEN o.row_hash IS DISTINCT FROM r."rowHash"
+												OR (o.faculty_id, o.department_id) IS DISTINCT FROM (f.id, d.id)
+											ELSE EXISTS (
+												SELECT 1 FROM run_pages p
+												WHERE p.path = '/course/' || o.saz_code AND p.status = 'done'
+													AND p.run_id > (
+														SELECT c.run_id FROM changes c
+														WHERE c.row_id = o.id AND c.action = 'remove'
+														ORDER BY c.change_no DESC
+														LIMIT 1
+													)
+													AND NOT EXISTS (
+														SELECT 1 FROM runs fetched, runs later
+														WHERE fetched.id = p.run_id
+															AND later.source_part = fetched.source_part
+															AND later.id > p.run_id
+															AND later.offering_removals IN ('applied', 'held')
+															AND NOT EXISTS (
+																SELECT 1 FROM run_pages q
+																WHERE q.run_id = later.id AND q.path = p.path
+																	AND q.status = 'done'
+															)
+													)
+											)
+										END
+									RETURNING o.id, o.change_no,
+										CASE WHEN prev.removed_at IS NULL THEN 'change' ELSE 'restore' END
+											AS action
 								`,
 						);
 
@@ -443,7 +471,8 @@ export class OfferingStore extends Context.Service<
 									})),
 									{ sazCode: "text", snapshotId: "bigint", rowHash: "text" },
 								)}
-								WHERE o.saz_code = r."sazCode" AND o.row_hash = r."rowHash" AND o.snapshot_id < r."snapshotId"
+								WHERE o.saz_code = r."sazCode" AND o.removed_at IS NULL
+									AND o.row_hash = r."rowHash" AND o.snapshot_id < r."snapshotId"
 							`;
 
 						// A department takes the faculty of its newest card (C4): the
