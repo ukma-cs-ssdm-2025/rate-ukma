@@ -15,8 +15,9 @@ const READ_SIZE = 100;
 /** Entries per write, not pages: one list can hold over a thousand (D13). */
 const BATCH_ENTRIES = 5000;
 
-/** `parsed` counts lists. A list that fails to parse or store is kept: its
- *  offering's enrollments stay as they were. */
+/** `parsed` counts lists. A list that fails to parse or store, or empties
+ *  while its card still shows enrollments, is kept: its offering's
+ *  enrollments stay as they were. */
 export interface StudentParseReport extends Omit<ParseReport, "missing"> {
 	readonly listsEmptied: number;
 	readonly listsKept: number;
@@ -35,6 +36,7 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 	const failed = new Map<string, number>();
 	let parsed = 0;
 	let emptied = 0;
+	let kept = 0;
 
 	const fail = (reason: string, count: number) =>
 		failed.set(reason, (failed.get(reason) ?? 0) + count);
@@ -90,11 +92,21 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 
 			parsed += written.value.parsed;
 			emptied += written.value.emptied.length;
+			kept += written.value.kept.length;
 
 			if (written.value.emptied.length > 0) {
 				yield* Effect.logWarning("Students lists emptied", {
 					saz_codes: written.value.emptied,
 				});
+			}
+
+			if (written.value.kept.length > 0) {
+				yield* Effect.logWarning(
+					"Students lists kept: empty, card shows enrollments",
+					{
+						saz_codes: written.value.kept,
+					},
+				);
 			}
 		}
 
@@ -107,7 +119,8 @@ export const parseStudents = Effect.fn("parseStudents")(function* (
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
 		changes: yield* parses.changeCounts(parseId),
 		listsEmptied: emptied,
-		listsKept: [...failed.values()].reduce((sum, pages) => sum + pages, 0),
+		listsKept:
+			kept + [...failed.values()].reduce((sum, pages) => sum + pages, 0),
 	};
 
 	yield* parses.finishParse(parseId, report);

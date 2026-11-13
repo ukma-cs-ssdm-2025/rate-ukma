@@ -232,7 +232,7 @@ One row per offering whose students page was applied, empty or not. Not numbered
 | `runs` | `trigger` | text | `schedule` or `key` |
 | | `key_id` | text null | the key that asked for an extra run |
 | | `offering_removals` | text | `applied`, `held` or `skipped` (see below) |
-| | `lists_kept` | integer | offerings whose students page failed, so their enrollments were kept |
+| | `lists_kept` | integer | offerings whose enrollments were kept: the students page failed, or it emptied while the card still shows enrollments (A7) |
 | `run_pages` | `http_status` | smallint null | 500 for the A2 pages |
 
 A page that fails to parse keeps its last good rows, and `offerings.snapshot_id` still points at the snapshot they came from (rule 6).
