@@ -94,7 +94,7 @@ GET /course/900123/students -> 500
 
 - Count: 7,461 lists are `[]`: 1,960 recommended bachelor's, 1,236 not-recommended bachelor's and 4,265 master's. On exactly these 7,461 the card has no enrollment block, and no non-empty list lacks it.
 - Codes: 208933, 208937, 208938, 208940, 208942.
-- Handled by: a parser rule. `[]` is a valid list with no enrollments, not a failure.
+- Handled by: a parser rule. `[]` is a valid list with no enrollments, not a failure. A list that empties while the offering's card still has the enrollment block is kept: its enrollments stay, it counts in `lists_kept`, and the next parse tries it again until the card loses the block too.
 
 ```json
 []

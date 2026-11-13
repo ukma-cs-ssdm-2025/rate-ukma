@@ -221,6 +221,7 @@ describe("student tracking", () => {
 
 					yield* list("982001", "<html>");
 					yield* list("982002", "[]");
+					yield* offerings({ code: "982002", enrollment: [] });
 
 					const report = yield* parseStudents("crawl");
 
@@ -244,6 +245,44 @@ describe("student tracking", () => {
 						parsed: 0,
 						listsKept: 1,
 					});
+				}),
+		);
+
+		it.effect(
+			"keeps a list that empties while its card still shows enrollments",
+			() =>
+				Effect.gen(function* () {
+					// Other tests' failed pages fail again on every crawl.
+					const crawl = parseStudents("crawl").pipe(
+						Effect.map(({ listsKept, listsEmptied, failed }) => ({
+							emptied: listsEmptied,
+							kept:
+								listsKept - failed.reduce((sum, { pages }) => sum + pages, 0),
+						})),
+					);
+
+					yield* offerings("997001");
+					yield* list(
+						"997001",
+						studentsPage(
+							studentEntry({ cdoc: 655001, email: "s.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					const before = yield* enrollmentsOf("997001");
+
+					yield* list("997001", "[]");
+
+					assert.deepStrictEqual(yield* crawl, { emptied: 0, kept: 1 });
+					assert.deepStrictEqual(yield* enrollmentsOf("997001"), before);
+
+					// The next crawl tries the list again; once the card loses its
+					// enrollment block too, the list applies.
+					assert.deepStrictEqual(yield* crawl, { emptied: 0, kept: 1 });
+					yield* offerings({ code: "997001", enrollment: [] });
+					assert.deepStrictEqual(yield* crawl, { emptied: 1, kept: 0 });
+					assert.isTrue((yield* personOf("655001"))?.removed);
 				}),
 		);
 
@@ -907,7 +946,7 @@ describe("student tracking", () => {
 						parseId,
 					);
 
-					assert.deepStrictEqual(older, { parsed: 0, emptied: [] });
+					assert.deepStrictEqual(older, { parsed: 0, emptied: [], kept: [] });
 					assert.deepStrictEqual(yield* enrollmentsOf("986001"), before);
 				}),
 		);

@@ -14,11 +14,13 @@ const StudentsPage = Schema.Struct({
 
 export type StudentsPage = typeof StudentsPage.Type;
 
-/** What one batch of lists wrote: `parsed` lists, and the САЗ codes of the
- *  lists that had live enrollments and are now empty. */
+/** What one batch of lists wrote: `parsed` lists, the САЗ codes of the
+ *  lists that had live enrollments and are now empty, and of the empty
+ *  lists `kept` unapplied because their card still shows enrollments. */
 export interface ListsWritten {
 	readonly parsed: number;
 	readonly emptied: ReadonlyArray<string>;
+	readonly kept: ReadonlyArray<string>;
 }
 
 export class StudentStore extends Context.Service<
@@ -137,8 +139,10 @@ export class StudentStore extends Context.Service<
 				),
 			);
 
-			const decodeCodes = Schema.decodeUnknownEffect(
-				Schema.Array(Schema.Struct({ sazCode: Schema.String })),
+			const decodeEmptied = Schema.decodeUnknownEffect(
+				Schema.Array(
+					Schema.Struct({ sazCode: Schema.String, cardShows: Schema.Boolean }),
+				),
 			);
 
 			/** `p` is a person row; a name with `*` keeps a stored one without,
@@ -186,7 +190,7 @@ export class StudentStore extends Context.Service<
 							);
 
 							if (current.length === 0) {
-								return { parsed: 0, emptied: [] };
+								return { parsed: 0, emptied: [], kept: [] };
 							}
 
 							const codes = current.map(({ sazCode }) => sazCode);
@@ -524,18 +528,43 @@ export class StudentStore extends Context.Service<
 								`,
 							);
 
-							const listsOf = sql`
-								${recordset(rows.lists, { sazCode: "text", snapshotId: "bigint", entryCount: "integer" })}
-								JOIN offerings o ON o.saz_code = r."sazCode"
-							`;
+							const listColumns = {
+								sazCode: "text",
+								snapshotId: "bigint",
+								entryCount: "integer",
+							} as const;
 
-							const emptied = yield* sql`
-								SELECT r."sazCode" FROM ${listsOf}
+							// An empty list comes with a card without the enrollment block
+							// (A7). One that empties while its card still shows enrollments
+							// is kept unapplied and unrecorded, so the next parse tries it
+							// again; when the card loses the block too, the list applies.
+							const emptiedLists = yield* sql`
+								SELECT r."sazCode", o.enrolled_active IS NOT NULL AS "cardShows"
+								FROM ${recordset(rows.lists, listColumns)}
+								JOIN offerings o ON o.saz_code = r."sazCode"
 								WHERE r."entryCount" = 0 AND EXISTS (
 									SELECT 1 FROM enrollments e
 									WHERE e.offering_id = o.id AND e.removed_at IS NULL
 								)
-							`.pipe(Effect.flatMap(decodeCodes));
+							`.pipe(Effect.flatMap(decodeEmptied));
+
+							const kept = new Set(
+								emptiedLists.flatMap(({ sazCode, cardShows }) =>
+									cardShows ? [sazCode] : [],
+								),
+							);
+
+							const emptied = emptiedLists.filter(
+								({ cardShows }) => !cardShows,
+							);
+
+							const listsOf = sql`
+								${recordset(
+									rows.lists.filter(({ sazCode }) => !kept.has(sazCode)),
+									listColumns,
+								)}
+								JOIN offerings o ON o.saz_code = r."sazCode"
+							`;
 
 							yield* track(
 								"enrollments",
@@ -616,8 +645,9 @@ export class StudentStore extends Context.Service<
 							);
 
 							return {
-								parsed: current.length,
+								parsed: current.length - kept.size,
 								emptied: emptied.map(({ sazCode }) => sazCode),
+								kept: [...kept],
 							};
 						}),
 					)
