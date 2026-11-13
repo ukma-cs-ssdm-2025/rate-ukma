@@ -168,7 +168,7 @@ Derived links, a list of their own.
 
 ### `students`
 
-A person (glossary: Student). The only table with personal fields.
+A person (glossary: Student). The only table with students' personal fields; teacher names are in `offerings.saz_teachers` and `instructors`.
 
 | Column | Type | Notes |
 | --- | --- | --- |
