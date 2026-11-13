@@ -1,5 +1,6 @@
 import { Cause, Effect, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
+import { ChangeLog } from "../changes/ChangeLog.ts";
 import { crawlAllYears } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
 import { parseOfferings } from "../offerings/offerings.ts";
@@ -44,4 +45,7 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.forkScoped,
 		);
 	}),
-).pipe(Layer.provide([CrawlStore.layer, OfferingStore.layer, SazClient.layer]));
+).pipe(
+	Layer.provide([CrawlStore.layer, OfferingStore.layer, SazClient.layer]),
+	Layer.provide(ChangeLog.layer),
+);

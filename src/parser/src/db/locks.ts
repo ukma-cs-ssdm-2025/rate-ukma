@@ -8,6 +8,11 @@ import { SqlClient } from "effect/sql";
  *  claimed pages. */
 export const CRAWL_LOCK = 1;
 
+/** The writers' turn (`ChangeLog.withTurn`), held by every write of numbered
+ *  rows until it commits: numbers then commit in order, and two writers never
+ *  plan the same inserts. The `require_turn` trigger checks for it. */
+export const TURN_LOCK = 2;
+
 /** Held by an offering parse for its whole run: a run that read an older
  *  catalog page could write after a newer one and undo its faculty renames. */
 export const PARSE_LOCK = 3;

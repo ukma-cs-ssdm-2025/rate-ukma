@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
 	Array as Arr,
 	Cause,
@@ -105,6 +106,76 @@ export interface ParsedPage {
 	readonly offering: ParsedOffering;
 }
 
+type OfferingRow = OfferingRows["offerings"][number];
+
+// By code unit, not locale, so every runtime sorts and hashes alike.
+const byKey =
+	<T>(key: (row: T) => string) =>
+	(a: T, b: T) =>
+		key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0;
+
+/** Entries by key, so the hash does not depend on the order a parser builds
+ *  the fields in. */
+const sortedEntries = <T extends object>(row: T) =>
+	Object.entries(row).sort(byKey(([key]) => key));
+
+/** SHA-256 of what a reader gets for one offering: the card's columns and its
+ *  sorted terms and programmes, without the snapshot it came from. A row whose
+ *  hash did not change keeps its change number. */
+export const rowHashOf = (
+	card: Omit<OfferingRow, "snapshotId" | "rowHash">,
+	terms: OfferingRows["offeringTerms"],
+	programmes: OfferingRows["offeringProgrammes"],
+): string =>
+	createHash("sha256")
+		.update(
+			JSON.stringify([
+				sortedEntries(card),
+				[...terms].sort(byKey(({ termCode }) => termCode)).map(sortedEntries),
+				[...programmes]
+					.sort(byKey(({ level, name }) => `${level} ${name}`))
+					.map(sortedEntries),
+			]),
+		)
+		.digest("hex");
+
+const rowsOfPage = (
+	{ snapshotId, offering: { terms, programmes, ...card } }: ParsedPage,
+	filters: CatalogFilters,
+	stored: ReadonlySet<string>,
+) => {
+	const offeringTerms = terms.map(({ season, ...term }) => ({
+		...term,
+		sazCode: card.sazCode,
+		termCode: termCode(card.academicYear, season),
+	}));
+
+	const resolved = programmes.map(({ name, kind }) => ({
+		kind,
+		programme: programmeOf(name, card.level, filters, stored),
+	}));
+
+	const offeringProgrammes = resolved.map(
+		({ kind, programme: { name, level } }) => ({
+			sazCode: card.sazCode,
+			name,
+			level,
+			kind,
+		}),
+	);
+
+	return {
+		offering: {
+			...card,
+			snapshotId: String(snapshotId),
+			rowHash: rowHashOf(card, offeringTerms, offeringProgrammes),
+		},
+		offeringTerms,
+		offeringProgrammes,
+		programmes: resolved.map(({ programme }) => programme),
+	};
+};
+
 /** The rows of a batch of parsed pages, each reference row once. */
 export const offeringRowsOf = (
 	pages: ReadonlyArray<ParsedPage>,
@@ -117,14 +188,7 @@ export const offeringRowsOf = (
 		storedProgrammes.map(({ name, level }) => `${level} ${name}`),
 	);
 
-	const offeringProgrammes = offerings.flatMap(
-		({ sazCode, level, programmes }) =>
-			programmes.map(({ name, kind }) => ({
-				sazCode,
-				kind,
-				programme: programmeOf(name, level, filters, stored),
-			})),
-	);
+	const pageRows = pages.map((page) => rowsOfPage(page, filters, stored));
 
 	return {
 		faculties: unique(
@@ -160,7 +224,7 @@ export const offeringRowsOf = (
 			({ name }) => name,
 		),
 		programmes: unique(
-			offeringProgrammes.map(({ programme }) => programme),
+			pageRows.flatMap(({ programmes }) => programmes),
 			({ name, level }) => `${level} ${name}`,
 		),
 		terms: unique(
@@ -173,24 +237,10 @@ export const offeringRowsOf = (
 			),
 			({ code }) => code,
 		),
-		offerings: pages.map(({ snapshotId, offering }) => ({
-			...Struct.omit(offering, ["terms", "programmes"]),
-			snapshotId: String(snapshotId),
-		})),
-		offeringTerms: offerings.flatMap(({ sazCode, academicYear, terms }) =>
-			terms.map(({ season, ...term }) => ({
-				...term,
-				sazCode,
-				termCode: termCode(academicYear, season),
-			})),
-		),
-		offeringProgrammes: offeringProgrammes.map(
-			({ sazCode, kind, programme: { name, level } }) => ({
-				sazCode,
-				name,
-				level,
-				kind,
-			}),
+		offerings: pageRows.map(({ offering }) => offering),
+		offeringTerms: pageRows.flatMap(({ offeringTerms }) => offeringTerms),
+		offeringProgrammes: pageRows.flatMap(
+			({ offeringProgrammes }) => offeringProgrammes,
 		),
 	};
 };
@@ -235,11 +285,12 @@ const writePages = Effect.fnUntraced(function* (
 	pages: ReadonlyArray<CoursePage>,
 	filters: CatalogFilters,
 	storedProgrammes: ReadonlyArray<StoredProgramme>,
+	parseId: bigint,
 ): Effect.fn.Return<ReadonlyArray<CoursePage>, never, OfferingStore> {
 	const store = yield* OfferingStore;
 
 	const written = yield* Effect.exit(
-		store.write(offeringRowsOf(pages, filters, storedProgrammes)),
+		store.write(offeringRowsOf(pages, filters, storedProgrammes), parseId),
 	);
 
 	if (Exit.isSuccess(written)) return [];
@@ -248,8 +299,8 @@ const writePages = Effect.fnUntraced(function* (
 		const [first, second] = Arr.splitAt(pages, Math.ceil(pages.length / 2));
 
 		return [
-			...(yield* writePages(first, filters, storedProgrammes)),
-			...(yield* writePages(second, filters, storedProgrammes)),
+			...(yield* writePages(first, filters, storedProgrammes, parseId)),
+			...(yield* writePages(second, filters, storedProgrammes, parseId)),
 		];
 	}
 
@@ -265,9 +316,10 @@ const writePages = Effect.fnUntraced(function* (
 });
 
 /** Parses the latest snapshot of every course page into offerings and their
- *  reference lists, and records the parse. A page that fails keeps the rows of
- *  its last good parse, and the failure is recorded with its snapshot. Runs
- *  take turns, so each reads a catalog page at least as new as the last. */
+ *  reference lists, and records the parse with the rows it numbered. A page
+ *  that fails keeps the rows of its last good parse, and the failure is
+ *  recorded with its snapshot. Runs take turns, so each reads a catalog page
+ *  at least as new as the last. */
 export const parseOfferings = Effect.fn("parseOfferings")(function* (
 	trigger: ParseTrigger,
 ) {
@@ -326,7 +378,12 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 			});
 		}
 
-		const refused = yield* writePages(pages, filters, storedProgrammes);
+		const refused = yield* writePages(
+			pages,
+			filters,
+			storedProgrammes,
+			parseId,
+		);
 
 		parsed += pages.length - refused.length;
 		failures.push(
@@ -348,6 +405,7 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),
 		parsed,
 		failed: Array.from(failed, ([reason, pages]) => ({ reason, pages })),
+		changes: yield* store.changeCounts(parseId),
 		missing,
 	};
 
