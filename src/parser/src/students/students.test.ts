@@ -746,6 +746,38 @@ describe("student tracking", () => {
 				}),
 		);
 
+		it.effect("counts the level of a kept list's enrollments (D12)", () =>
+			Effect.gen(function* () {
+				const physics: Card["programmes"] = [
+					["Вигадана фізика", "Обов`язкова"],
+				];
+
+				yield* offerings(
+					{ code: "998001", programmes: physics },
+					{ code: "998002", programmes: physics, level: "Магістр" },
+				);
+
+				const physicist = studentEntry({
+					cdoc: 656001,
+					email: "t.zrazok@example.edu",
+					specName: "Вигадана фізика",
+				});
+
+				yield* list("998001", studentsPage(physicist));
+				yield* parseStudents("crawl");
+
+				assert.strictEqual(yield* programmeOf("656001"), "bachelor");
+
+				// The bachelor's list empties under a card that still shows
+				// enrollments, so its enrollment stays and still gives its level.
+				yield* list("998001", "[]");
+				yield* list("998002", studentsPage(physicist));
+				yield* parseStudents("crawl");
+
+				assert.isNull(yield* programmeOf("656001"));
+			}),
+		);
+
 		it.effect(
 			"keeps a newer email when a reparse sees an older list with the old one",
 			() =>

@@ -309,6 +309,43 @@ export class StudentStore extends Context.Service<
 								placed.map(({ cdoc, studentId }) => [cdoc, studentId]),
 							);
 
+							const listColumns = {
+								sazCode: "text",
+								snapshotId: "bigint",
+								entryCount: "integer",
+							} as const;
+
+							// An empty list comes with a card without the enrollment block
+							// (A7). One that empties while its card still shows enrollments
+							// is kept unapplied and unrecorded, so the next parse tries it
+							// again; when the card loses the block too, the list applies.
+							const emptiedLists = yield* sql`
+								SELECT r."sazCode", o.enrolled_active IS NOT NULL AS "cardShows"
+								FROM ${recordset(rows.lists, listColumns)}
+								JOIN offerings o ON o.saz_code = r."sazCode"
+								WHERE r."entryCount" = 0 AND EXISTS (
+									SELECT 1 FROM enrollments e
+									WHERE e.offering_id = o.id AND e.removed_at IS NULL
+								)
+							`.pipe(Effect.flatMap(decodeEmptied));
+
+							const kept = new Set(
+								emptiedLists.flatMap(({ sazCode, cardShows }) =>
+									cardShows ? [sazCode] : [],
+								),
+							);
+
+							const emptied = emptiedLists.filter(
+								({ cardShows }) => !cardShows,
+							);
+
+							const appliedCodes = codes.filter((code) => !kept.has(code));
+
+							const notApplied =
+								appliedCodes.length === 0
+									? sql`true`
+									: sql`o.saz_code NOT IN ${sql.in(appliedCodes)}`;
+
 							const programmes = sql`(
 								SELECT r.*, coalesce(
 									(
@@ -321,7 +358,7 @@ export class StudentStore extends Context.Service<
 											JOIN student_programmes sp ON sp.id = e.student_programme_id
 											JOIN offerings o ON o.id = e.offering_id
 											WHERE sp.saz_cdoc = r.cdoc AND e.removed_at IS NULL
-												AND o.saz_code NOT IN ${sql.in(codes)}
+												AND ${notApplied}
 										)
 										HAVING count(DISTINCT pr.id) = 1
 									),
@@ -352,7 +389,7 @@ export class StudentStore extends Context.Service<
 
 							// A list names the programme without its level (D12); the cards of
 							// the record's offerings that list that name give it, with this
-							// batch's lists in place of their stored enrollments. A record
+							// batch's applied lists in place of their stored enrollments. A record
 							// whose cards name both levels links only a name of one level.
 							yield* track(
 								"student_programmes",
@@ -526,36 +563,6 @@ export class StudentStore extends Context.Service<
 										CASE WHEN prev.removed_at IS NULL THEN 'change' ELSE 'restore' END
 											AS action
 								`,
-							);
-
-							const listColumns = {
-								sazCode: "text",
-								snapshotId: "bigint",
-								entryCount: "integer",
-							} as const;
-
-							// An empty list comes with a card without the enrollment block
-							// (A7). One that empties while its card still shows enrollments
-							// is kept unapplied and unrecorded, so the next parse tries it
-							// again; when the card loses the block too, the list applies.
-							const emptiedLists = yield* sql`
-								SELECT r."sazCode", o.enrolled_active IS NOT NULL AS "cardShows"
-								FROM ${recordset(rows.lists, listColumns)}
-								JOIN offerings o ON o.saz_code = r."sazCode"
-								WHERE r."entryCount" = 0 AND EXISTS (
-									SELECT 1 FROM enrollments e
-									WHERE e.offering_id = o.id AND e.removed_at IS NULL
-								)
-							`.pipe(Effect.flatMap(decodeEmptied));
-
-							const kept = new Set(
-								emptiedLists.flatMap(({ sazCode, cardShows }) =>
-									cardShows ? [sazCode] : [],
-								),
-							);
-
-							const emptied = emptiedLists.filter(
-								({ cardShows }) => !cardShows,
 							);
 
 							const listsOf = sql`
