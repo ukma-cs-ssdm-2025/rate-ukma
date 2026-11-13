@@ -57,7 +57,7 @@ describe("planRemovals", () => {
 			),
 			{
 				decision: "skipped",
-				reason: "2 course pages of the run fail to parse",
+				reason: "2 course pages of the run are not parsed",
 			},
 		);
 	});
@@ -254,6 +254,27 @@ describe("removeOfferings", () => {
 					assert.strictEqual(yield* removalsOf(dropped), "skipped");
 					assert.isFalse((yield* offeringsOf(2036)).get("936002")?.removed);
 				}),
+		);
+
+		it.effect("skips the removals of a run whose pages no parse has read", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				yield* crawl(2037, [{ code: "937001" }, { code: "937002" }]);
+				yield* parseOfferings("crawl");
+				yield* removeOfferings(1);
+
+				// The parse after this run crashed, so the latest finished parse
+				// predates its changed page.
+				const dropped = yield* crawl(2037, [
+					{ code: "937001", title: "Змінена назва" },
+				]);
+
+				yield* removeOfferings(1);
+
+				assert.strictEqual(yield* removalsOf(dropped), "skipped");
+				assert.isFalse((yield* offeringsOf(2037)).get("937002")?.removed);
+			}),
 		);
 
 		it.effect("skips the removals of a run that missed a course page", () =>
