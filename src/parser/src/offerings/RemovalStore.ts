@@ -16,7 +16,8 @@ export interface RemovalSurvey {
 	readonly complete: boolean;
 	/** Catalog and course pages of the run that did not load. */
 	readonly missingPages: number;
-	/** Course pages of the run that loaded but fail to parse. */
+	/** Course pages of the run that loaded but no offering carries yet: they
+	 *  failed to parse, or no parse has read them since the run. */
 	readonly unparsedPages: number;
 	/** The course total that page 1 of the run's catalog reported, when the
 	 *  run stored that page. */
@@ -107,14 +108,15 @@ export class RemovalStore extends Context.Service<
 							WHERE p.run_id = r.id AND p.kind IN ('catalog', 'course')
 								AND p.status <> 'done'
 						) AS "missingPages",
-						-- Every parse reads the latest snapshot of every course page,
-						-- so the latest finished one says which pages fail now.
+						-- A parsed course page leaves its snapshot, or a newer one, on
+						-- its offering; a page that failed or was not parsed does not.
 						(
 							SELECT count(*) FROM run_pages p
-							JOIN parse_failures f ON f.snapshot_id = p.snapshot_id
-							WHERE p.run_id = r.id AND p.kind = 'course'
-								AND f.parse_id = (
-									SELECT max(id) FROM parses WHERE finished_at IS NOT NULL
+							WHERE p.run_id = r.id AND p.kind = 'course' AND p.status = 'done'
+								AND NOT EXISTS (
+									SELECT 1 FROM offerings o
+									WHERE p.path = '/course/' || o.saz_code
+										AND o.snapshot_id >= p.snapshot_id
 								)
 						) AS "unparsedPages",
 						(
