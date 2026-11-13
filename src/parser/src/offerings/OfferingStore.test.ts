@@ -1,0 +1,602 @@
+import { assert, describe, layer } from "@effect/vitest";
+import { Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
+import { SqlClient } from "effect/sql";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
+import type { OfferingTerm, ParsedOffering } from "../saz/coursePage.ts";
+import { coursePage } from "../saz/coursePage.fixture.ts";
+import { offering } from "./offering.fixture.ts";
+import { OfferingStore } from "./OfferingStore.ts";
+import {
+	type CatalogFilters,
+	offeringRowsOf,
+	parseOfferings,
+	storeFailureOf,
+} from "./offerings.ts";
+
+const TestLive = OfferingStore.layer.pipe(
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
+);
+
+const NO_FILTERS: CatalogFilters = {
+	faculties: new Map(),
+	departments: new Map(),
+	programmes: new Map(),
+};
+
+const SPRING: OfferingTerm = {
+	season: "SPRING",
+	semesters: [2],
+	credits: 3,
+	hoursPerWeek: 2,
+	lectureHours: 14,
+	seminarHours: 14,
+	practiceHours: null,
+	control: "exam",
+};
+
+const reset = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	yield* sql`
+		TRUNCATE offering_terms, offering_programmes, offerings, programmes,
+			departments, faculties, terms, page_snapshots, run_pages, runs
+		RESTART IDENTITY
+	`;
+});
+
+/** Stores a page as the crawl would, and returns its snapshot id. */
+const snapshot = (path: string, content: string) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+
+		const [run] = yield* sql<{ readonly id: bigint }>`
+			INSERT INTO runs (source_part) VALUES ('saz-courses:2031-32') RETURNING id
+		`;
+
+		const [stored] = yield* sql<{ readonly id: bigint }>`
+			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
+			VALUES (
+				${path},
+				${path.startsWith("/course/catalog") ? "catalog" : "course"},
+				md5(${content}),
+				${content},
+				${run?.id}
+			)
+			RETURNING id
+		`;
+
+		assert.isDefined(stored);
+
+		return stored.id;
+	});
+
+/** Writes these offerings, each parsed from a new snapshot of its page. */
+const write = (
+	offerings: ReadonlyArray<ParsedOffering>,
+	filters = NO_FILTERS,
+) =>
+	Effect.gen(function* () {
+		const store = yield* OfferingStore;
+
+		const pages = yield* Effect.forEach(offerings, (parsed) =>
+			snapshot(`/course/${parsed.sazCode}`, parsed.title).pipe(
+				Effect.map((snapshotId) => ({ snapshotId, offering: parsed })),
+			),
+		);
+
+		yield* store.write(offeringRowsOf(pages, filters, yield* store.programmes));
+
+		return pages.map(({ snapshotId }) => snapshotId);
+	});
+
+const ids = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	return yield* sql<{ readonly id: string }>`
+		SELECT id FROM offerings
+		UNION ALL SELECT id FROM faculties
+		UNION ALL SELECT id FROM departments
+		UNION ALL SELECT id FROM programmes
+		UNION ALL SELECT id FROM terms
+		ORDER BY id
+	`.pipe(Effect.map((rows) => rows.map(({ id }) => id)));
+});
+
+/** One line per term and programme of the offering, in a stable order. */
+const childrenOf = (sazCode: string) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+
+		const rows = yield* sql<{ readonly line: string }>`
+			SELECT 'term ' || t.code || ' ' || ot.control AS line
+			FROM offering_terms ot
+			JOIN offerings o ON o.id = ot.offering_id
+			JOIN terms t ON t.id = ot.term_id
+			WHERE o.saz_code = ${sazCode}
+			UNION ALL
+			SELECT 'programme ' || p.name || ' ' || op.kind
+			FROM offering_programmes op
+			JOIN offerings o ON o.id = op.offering_id
+			JOIN programmes p ON p.id = op.programme_id
+			WHERE o.saz_code = ${sazCode}
+			ORDER BY line
+		`;
+
+		return rows.map(({ line }) => line);
+	});
+
+const offeringRow = (sazCode: string) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+
+		const [row] = yield* sql<{
+			readonly title: string;
+			readonly snapshotId: bigint;
+		}>`
+			SELECT title, snapshot_id AS "snapshotId" FROM offerings
+			WHERE saz_code = ${sazCode}
+		`;
+
+		return row;
+	});
+
+const departmentRows = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	return yield* sql<{ readonly id: string; readonly faculty: string }>`
+		SELECT d.id, f.name AS faculty
+		FROM departments d JOIN faculties f ON f.id = d.faculty_id
+		ORDER BY d.id
+	`;
+});
+
+describe("OfferingStore", () => {
+	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
+		it.effect("gives each row a prefixed UUIDv7 and requires a level", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				yield* write([offering("900001")]);
+
+				const prefixes = (yield* ids).map((id) =>
+					id.replace(
+						/^([a-z]{3})_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+						"$1",
+					),
+				);
+
+				const nullLevel = yield* sql`
+					INSERT INTO programmes (name, level) VALUES ('Вигадана логіка', NULL)
+				`.pipe(Effect.exit);
+
+				assert.deepStrictEqual(prefixes.sort(), [
+					"dep",
+					"fac",
+					"off",
+					"prg",
+					"trm",
+				]);
+				assert.isTrue(Exit.isFailure(nullLevel));
+			}),
+		);
+
+		it.effect("logs a rejected write without the failing row", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				const rejected = yield* sql`
+					INSERT INTO programmes (name, level) VALUES ('Вигадана логіка', NULL)
+				`.pipe(Effect.orDie, Effect.exit);
+
+				assert.isTrue(Exit.isFailure(rejected));
+
+				if (Exit.isFailure(rejected)) {
+					assert.deepStrictEqual(storeFailureOf(rejected.cause), {
+						reason: "ConstraintError",
+						code: "23502",
+						table: "programmes",
+						column: "level",
+					});
+				}
+			}),
+		);
+
+		it.effect("upserts by САЗ code and name, so ids stay", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				yield* write([offering("900001")]);
+
+				const before = yield* ids;
+
+				const [newer] = yield* write([
+					offering("900001", { title: "Вступ до вигаданих систем, 2" }),
+				]);
+
+				assert.deepStrictEqual(yield* ids, before);
+				assert.deepStrictEqual(yield* offeringRow("900001"), {
+					title: "Вступ до вигаданих систем, 2",
+					snapshotId: newer,
+				});
+			}),
+		);
+
+		it.effect("lets two faculties swap filter ids in one batch", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				const offerings = [
+					offering("900001"),
+					offering("900002", { faculty: "Факультет уявних мистецтв" }),
+				];
+
+				const filters = (first: string, second: string): CatalogFilters => ({
+					...NO_FILTERS,
+					faculties: new Map([
+						["Факультет вигаданих наук", first],
+						["Факультет уявних мистецтв", second],
+					]),
+				});
+
+				yield* write(offerings, filters("901", "902"));
+				yield* write(offerings, filters("902", "901"));
+
+				const rows = yield* sql<{ readonly line: string }>`
+					SELECT saz_filter_id || ' ' || name AS line FROM faculties ORDER BY line
+				`;
+
+				assert.deepStrictEqual(
+					rows.map(({ line }) => line),
+					["901 Факультет уявних мистецтв", "902 Факультет вигаданих наук"],
+				);
+			}),
+		);
+
+		it.effect(
+			"writes a renamed faculty beside pages that show its old name",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					const sql = yield* SqlClient.SqlClient;
+
+					const filters = (name: string): CatalogFilters => ({
+						...NO_FILTERS,
+						faculties: new Map([[name, "901"]]),
+					});
+
+					yield* write(
+						[offering("900001", { faculty: "Факультет уявних наук" })],
+						filters("Факультет уявних наук"),
+					);
+					yield* write(
+						[
+							offering("900001", { faculty: "Факультет уявних наук" }),
+							offering("900002", { faculty: "Факультет нових наук" }),
+						],
+						filters("Факультет нових наук"),
+					);
+
+					const rows = yield* sql<{ readonly line: string }>`
+					SELECT coalesce(saz_filter_id, '-') || ' ' || name AS line
+					FROM faculties ORDER BY name
+				`;
+
+					assert.deepStrictEqual(
+						rows.map(({ line }) => line),
+						["901 Факультет нових наук", "- Факультет уявних наук"],
+					);
+				}),
+		);
+
+		it.effect("replaces the terms and programmes of the batch only", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				yield* write([
+					offering("900001", {
+						terms: [...offering("900001").terms, SPRING],
+						programmes: [
+							{ name: "Вигадана інженерія", kind: "compulsory" },
+							{ name: "Уявна фізика", kind: "elective" },
+						],
+					}),
+					offering("900002"),
+				]);
+
+				yield* write([
+					offering("900001", {
+						terms: [SPRING],
+						programmes: [{ name: "Вигадана логіка", kind: "prof_oriented" }],
+					}),
+				]);
+
+				assert.deepStrictEqual(yield* childrenOf("900001"), [
+					"programme Вигадана логіка prof_oriented",
+					"term 2031-32-SPRING exam",
+				]);
+				assert.deepStrictEqual(yield* childrenOf("900002"), [
+					"programme Вигадана інженерія compulsory",
+					"term 2031-32-FALL pass_fail",
+				]);
+			}),
+		);
+
+		it.effect("keeps the rows of a newer snapshot over an older one", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const store = yield* OfferingStore;
+				const older = yield* snapshot("/course/900001", "older");
+				const newer = yield* snapshot("/course/900001", "newer");
+
+				const rowsOf = (snapshotId: bigint, parsed: ParsedOffering) =>
+					offeringRowsOf([{ snapshotId, offering: parsed }], NO_FILTERS);
+
+				yield* store.write(
+					rowsOf(
+						newer,
+						offering("900001", { title: "Нова назва", terms: [SPRING] }),
+					),
+				);
+				yield* store.write(
+					rowsOf(older, offering("900001", { title: "Стара назва" })),
+				);
+
+				assert.deepStrictEqual(yield* offeringRow("900001"), {
+					title: "Нова назва",
+					snapshotId: newer,
+				});
+				assert.deepStrictEqual(yield* childrenOf("900001"), [
+					"programme Вигадана інженерія compulsory",
+					"term 2031-32-SPRING exam",
+				]);
+			}),
+		);
+
+		it.effect("moves a department to the faculty a later run names (C4)", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				yield* write([offering("900001")]);
+
+				const [before] = yield* departmentRows;
+
+				yield* write([
+					offering("900002", { faculty: "Факультет уявних мистецтв" }),
+				]);
+
+				assert.isDefined(before);
+				assert.deepStrictEqual(yield* departmentRows, [
+					{ id: before.id, faculty: "Факультет уявних мистецтв" },
+				]);
+			}),
+		);
+	});
+});
+
+const CATALOG = `<form>
+<select name="filter[faculty][]" multiple>
+<option value="901">Факультет вигаданих наук</option>
+</select>
+<select name="filter[spec][]" multiple>
+<option value="5001">Вигадана інженерія (Бакалавр)</option>
+</select>
+</form>`;
+
+describe("parseOfferings", () => {
+	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
+		it.effect("parses the latest snapshot of each page with catalog ids", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				yield* snapshot("/course/catalog?page=1", CATALOG);
+				yield* snapshot("/course/900001", coursePage({ code: "900001" }));
+				yield* snapshot(
+					"/course/900001",
+					coursePage({ code: "900001", title: "Вигадані системи, 2" }),
+				);
+				yield* snapshot("/course/900002", coursePage({ code: "900002" }));
+				yield* snapshot("/course/900003", "<html></html>");
+
+				const report = yield* parseOfferings();
+
+				const rows = yield* sql<{ readonly line: string }>`
+					SELECT o.saz_code || ' ' || o.title || ' ' || f.saz_filter_id AS line
+					FROM offerings o JOIN faculties f ON f.id = o.faculty_id
+					ORDER BY line
+				`;
+
+				const [programme] = yield* sql<{ readonly sazFilterId: string }>`
+					SELECT saz_filter_id AS "sazFilterId" FROM programmes
+				`;
+
+				assert.deepStrictEqual(report, {
+					parsed: 2,
+					failed: [{ reason: "no course card", pages: 1 }],
+					missing: ["filter[subfaculty]"],
+				});
+				assert.deepStrictEqual(
+					rows.map(({ line }) => line),
+					[
+						"900001 Вигадані системи, 2 901",
+						"900002 Вступ до вигаданих систем 901",
+					],
+				);
+				assert.strictEqual(programme?.sazFilterId, "5001");
+			}),
+		);
+
+		it.effect("waits for a parse that holds the lock", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* OfferingStore;
+				const held = yield* Deferred.make<void>();
+				const release = yield* Deferred.make<void>();
+
+				yield* snapshot("/course/900001", coursePage({ code: "900001" }));
+
+				const holder = yield* Effect.forkChild(
+					store.lockParse.pipe(
+						Effect.andThen(Deferred.succeed(held, undefined)),
+						Effect.andThen(Deferred.await(release)),
+						Effect.scoped,
+					),
+				);
+
+				yield* Deferred.await(held);
+
+				const parse = yield* Effect.forkChild(parseOfferings());
+
+				yield* sql<{ readonly waiting: number }>`
+					SELECT count(*)::int AS waiting FROM pg_locks
+					WHERE locktype = 'advisory' AND NOT granted
+				`.pipe(
+					Effect.repeat({
+						until: ([row]) => row?.waiting === 1,
+						schedule: Schedule.spaced("20 millis"),
+					}),
+				);
+
+				const whileHeld = yield* offeringRow("900001");
+
+				yield* Deferred.succeed(release, undefined);
+				yield* Fiber.join(holder);
+
+				const report = yield* Fiber.join(parse);
+
+				assert.isUndefined(whileHeld);
+				assert.strictEqual(report.parsed, 1);
+			}),
+		);
+
+		it.effect("does not halve a batch that failed for a retryable reason", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				yield* sql`
+					CREATE FUNCTION deadlock_offering() RETURNS trigger LANGUAGE plpgsql AS $$
+					BEGIN
+						IF NEW.saz_code = '900002' THEN
+							RAISE EXCEPTION 'deadlock' USING ERRCODE = '40P01';
+						END IF;
+						RETURN NEW;
+					END $$
+				`;
+				yield* sql`
+					CREATE TRIGGER deadlock_offering BEFORE INSERT ON offerings
+					FOR EACH ROW EXECUTE FUNCTION deadlock_offering()
+				`;
+
+				for (const code of ["900001", "900002", "900003"]) {
+					yield* snapshot(`/course/${code}`, coursePage({ code }));
+				}
+
+				const report = yield* parseOfferings().pipe(
+					Effect.ensuring(
+						sql`DROP FUNCTION deadlock_offering CASCADE`.pipe(Effect.orDie),
+					),
+				);
+
+				assert.deepStrictEqual(report.parsed, 0);
+				assert.deepStrictEqual(report.failed, [{ reason: "store", pages: 3 }]);
+			}),
+		);
+
+		it.effect("stores the rest of a batch when Postgres refuses one page", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+
+				yield* sql`
+					CREATE FUNCTION refuse_offering() RETURNS trigger LANGUAGE plpgsql AS $$
+					BEGIN
+						IF NEW.saz_code = '900002' THEN
+							RAISE EXCEPTION 'refused';
+						END IF;
+						RETURN NEW;
+					END $$
+				`;
+				yield* sql`
+					CREATE TRIGGER refuse_offering BEFORE INSERT ON offerings
+					FOR EACH ROW EXECUTE FUNCTION refuse_offering()
+				`;
+
+				for (const code of ["900001", "900002"]) {
+					yield* snapshot(`/course/${code}`, coursePage({ code }));
+				}
+
+				yield* snapshot(
+					"/course/900003",
+					coursePage({ code: "900003", level: "Магістр" }),
+				);
+
+				const report = yield* parseOfferings().pipe(
+					Effect.ensuring(
+						sql`DROP FUNCTION refuse_offering CASCADE`.pipe(Effect.orDie),
+					),
+				);
+
+				// With no catalog a programme takes its card's level, whichever
+				// halves the refused batch was split into.
+				const programmes = yield* sql<{ readonly level: string }>`
+					SELECT level FROM programmes ORDER BY level
+				`;
+
+				const rows = yield* sql<{ readonly sazCode: string }>`
+					SELECT saz_code AS "sazCode" FROM offerings ORDER BY saz_code
+				`;
+
+				assert.deepStrictEqual(report.parsed, 2);
+				assert.deepStrictEqual(report.failed, [{ reason: "store", pages: 1 }]);
+				assert.deepStrictEqual(
+					rows.map(({ sazCode }) => sazCode),
+					["900001", "900003"],
+				);
+				assert.deepStrictEqual(
+					programmes.map(({ level }) => level),
+					["bachelor", "master"],
+				);
+			}),
+		);
+
+		it.effect(
+			"keeps a page's last good rows when its newer snapshot fails",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					yield* snapshot("/course/900001", coursePage({ code: "900001" }));
+					yield* parseOfferings();
+
+					const before = yield* offeringRow("900001");
+
+					yield* snapshot("/course/900001", "<html></html>");
+
+					const report = yield* parseOfferings();
+
+					assert.deepStrictEqual(report.failed, [
+						{ reason: "no course card", pages: 1 },
+					]);
+					assert.deepStrictEqual(yield* offeringRow("900001"), before);
+					assert.deepStrictEqual(yield* childrenOf("900001"), [
+						"programme Вигадана інженерія compulsory",
+						"term 2031-32-FALL exam",
+					]);
+				}),
+		);
+	});
+});
