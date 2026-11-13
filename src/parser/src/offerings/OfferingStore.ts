@@ -405,8 +405,9 @@ export class OfferingStore extends Context.Service<
 
 						// A live row changes when its hash does, or when its faculty or
 						// department now resolves to another row. A removed row comes back
-						// only when a run after the removing one fetched its page: its last
-						// snapshot stays the latest of its path, so every parse sees it.
+						// only when a run after the removing one fetched its page and no
+						// later run that decided removals left it out: its last snapshot
+						// stays the latest of its path, so every parse sees it.
 						// An offering already parsed from a newer snapshot keeps its rows.
 						const updated = yield* track(
 							"offerings",
@@ -439,6 +440,18 @@ export class OfferingStore extends Context.Service<
 														WHERE c.row_id = o.id AND c.action = 'remove'
 														ORDER BY c.change_no DESC
 														LIMIT 1
+													)
+													AND NOT EXISTS (
+														SELECT 1 FROM runs fetched, runs later
+														WHERE fetched.id = p.run_id
+															AND later.source_part = fetched.source_part
+															AND later.id > p.run_id
+															AND later.offering_removals IN ('applied', 'held')
+															AND NOT EXISTS (
+																SELECT 1 FROM run_pages q
+																WHERE q.run_id = later.id AND q.path = p.path
+																	AND q.status = 'done'
+															)
 													)
 											)
 										END
