@@ -275,14 +275,12 @@ const open = Effect.fnUntraced(function* (
 	return { send, signIn } satisfies Session;
 });
 
-/** The HTTP status of a failed request, or 0 for a transport error or a
+/** The response of a failed request; none for a transport error or a
  *  request that ran out of time. */
-export const statusOf = (
+export const responseOf = (
 	error: HttpClientError.HttpClientError | Cause.TimeoutError,
 ) =>
-	Predicate.isTagged(error, "HttpClientError")
-		? (error.response?.status ?? 0)
-		: 0;
+	Predicate.isTagged(error, "HttpClientError") ? error.response : undefined;
 
 export class MicrosoftSessions extends Context.Service<
 	MicrosoftSessions,

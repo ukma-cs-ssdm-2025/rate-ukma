@@ -15,7 +15,7 @@ import {
 	MicrosoftSessions,
 	MicrosoftSignInFailed,
 	SignedOut,
-	statusOf,
+	responseOf,
 	withSignIn,
 } from "../microsoft/session.ts";
 
@@ -159,7 +159,7 @@ export class SmartClient extends Context.Service<
 					Effect.fail(
 						new SmartRequestFailed({
 							path: "/start-login",
-							status: statusOf(error),
+							status: responseOf(error)?.status ?? 0,
 						}),
 					),
 				),

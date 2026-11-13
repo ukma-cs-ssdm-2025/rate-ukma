@@ -8,7 +8,7 @@ import {
 import {
 	MicrosoftSessions,
 	SignedOut,
-	statusOf,
+	responseOf,
 	withSignIn,
 } from "../microsoft/session.ts";
 
@@ -90,6 +90,28 @@ const retryStep = <A, E, R>(
 
 const RETRY_AFTER_SECONDS = /^\d+$/u;
 
+/** A САЗ answer other than 200, with the wait a 429 asks for. */
+const failureOf = (
+	path: string,
+	response: HttpClientResponse.HttpClientResponse,
+) => {
+	const retryAfter = response.headers["retry-after"] ?? "";
+
+	const retryAfterSeconds = RETRY_AFTER_SECONDS.test(retryAfter)
+		? Number(retryAfter)
+		: undefined;
+
+	return response.status === 429 &&
+		retryAfterSeconds !== undefined &&
+		retryAfterSeconds > MAX_RETRY_AFTER_SECONDS
+		? new SazRateLimited({ path, retryAfterSeconds })
+		: new SazRequestFailed({
+				path,
+				status: response.status,
+				retryAfterSeconds,
+			});
+};
+
 const isOnMicrosoft = (response: HttpClientResponse.HttpClientResponse) =>
 	new URL(response.request.url).host !== new URL(SAZ_URL).host;
 
@@ -144,14 +166,15 @@ export class SazClient extends Context.Service<
 					);
 
 			const signIn = session.signIn(`${SAZ_URL}/auth/o365`, constFalse).pipe(
-				Effect.catchTag(["HttpClientError", "TimeoutError"], (error) =>
-					Effect.fail(
-						new SazRequestFailed({
-							path: "/auth/o365",
-							status: statusOf(error),
-						}),
-					),
-				),
+				Effect.catchTag(["HttpClientError", "TimeoutError"], (error) => {
+					const response = responseOf(error);
+
+					return Effect.fail(
+						response === undefined
+							? new SazRequestFailed({ path: "/auth/o365", status: 0 })
+							: failureOf("/auth/o365", response),
+					);
+				}),
 				Effect.andThen(Effect.logInfo("Signed in to САЗ")),
 			);
 
@@ -167,25 +190,7 @@ export class SazClient extends Context.Service<
 					}
 
 					if (response.status !== 200) {
-						const retryAfter = response.headers["retry-after"] ?? "";
-
-						const retryAfterSeconds = RETRY_AFTER_SECONDS.test(retryAfter)
-							? Number(retryAfter)
-							: undefined;
-
-						if (
-							response.status === 429 &&
-							retryAfterSeconds !== undefined &&
-							retryAfterSeconds > MAX_RETRY_AFTER_SECONDS
-						) {
-							return yield* new SazRateLimited({ path, retryAfterSeconds });
-						}
-
-						return yield* new SazRequestFailed({
-							path,
-							status: response.status,
-							retryAfterSeconds,
-						});
+						return yield* failureOf(path, response);
 					}
 
 					return yield* response.text.pipe(
