@@ -4,7 +4,7 @@ import { SqlClient } from "effect/sql";
 export default Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 
-	// The only personal fields, email and full name, live here. `snapshot_id`
+	// Students' personal fields, email and full name, live only here. `snapshot_id`
 	// is the list that last set the name, so an older list cannot set it back.
 	// Email is not unique: САЗ gives an address to a newer student (D14).
 	yield* sql`
