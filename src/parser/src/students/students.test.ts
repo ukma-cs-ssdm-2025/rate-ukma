@@ -698,6 +698,118 @@ describe("student tracking", () => {
 					assert.strictEqual(yield* programmeOf("650001"), "bachelor");
 					assert.strictEqual(yield* programmeOf("650002"), "master");
 					assert.isNull(yield* programmeOf("650003"));
+
+					// The bachelor's list is older than the record now, yet its card
+					// still counts.
+					yield* parseStudents("reparse");
+
+					assert.isNull(yield* programmeOf("650003"));
+				}),
+		);
+
+		it.effect(
+			"keeps a newer email when a reparse sees an older list with the old one",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("993001", "993002");
+					yield* list(
+						"993001",
+						studentsPage(
+							studentEntry({ cdoc: 651001, email: "m.old@example.edu" }),
+						),
+					);
+					yield* list(
+						"993002",
+						studentsPage(
+							studentEntry({ cdoc: 651001, email: "m.new@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+					yield* list(
+						"993002",
+						studentsPage(studentEntry({ cdoc: 651001, email: "" })),
+					);
+					yield* parseStudents("crawl");
+
+					assert.strictEqual(
+						(yield* personOf("651001"))?.email,
+						"m.new@example.edu",
+					);
+
+					yield* parseStudents("reparse");
+
+					assert.strictEqual(
+						(yield* personOf("651001"))?.email,
+						"m.new@example.edu",
+					);
+				}),
+		);
+
+		it.effect("renames a student from a newer list without an email", () =>
+			Effect.gen(function* () {
+				yield* offerings("994001");
+				yield* list("994001", studentsPage(studentEntry({ cdoc: 652001 })));
+				yield* parseStudents("crawl");
+				yield* list(
+					"994001",
+					studentsPage(
+						studentEntry({
+							cdoc: 652001,
+							name: "Приклад Олена Петрівна",
+							email: "",
+						}),
+					),
+				);
+				yield* parseStudents("crawl");
+
+				assert.deepInclude(yield* personOf("652001"), {
+					email: "o.zrazok@example.edu",
+					fullName: "Приклад Олена Петрівна",
+				});
+			}),
+		);
+
+		it.effect(
+			"takes a clean name from an older record over a newer one with `*`",
+			() =>
+				Effect.gen(function* () {
+					yield* offerings("995001", "995002");
+					yield* list(
+						"995001",
+						studentsPage(
+							studentEntry({ cdoc: 653001, email: "p.zrazok@example.edu" }),
+							studentEntry({ cdoc: 653002, email: "p.zrazok@example.edu" }),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					// One page renames the student cleanly, a newer one with `*`.
+					yield* list(
+						"995001",
+						studentsPage(
+							studentEntry({
+								cdoc: 653001,
+								name: "Приклад Олена Петрівна",
+								email: "p.zrazok@example.edu",
+							}),
+						),
+					);
+					yield* list(
+						"995002",
+						studentsPage(
+							studentEntry({
+								cdoc: 653002,
+								name: "Пр*клад Олена Петрівна",
+								email: "p.zrazok@example.edu",
+							}),
+						),
+					);
+					yield* parseStudents("crawl");
+
+					assert.strictEqual(
+						(yield* personOf("653002"))?.fullName,
+						"Приклад Олена Петрівна",
+					);
 				}),
 		);
 
