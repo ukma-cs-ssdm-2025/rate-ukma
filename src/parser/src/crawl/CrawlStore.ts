@@ -1,4 +1,12 @@
-import { Context, Effect, Layer, Option, Schema, type Scope } from "effect";
+import {
+	Context,
+	Duration,
+	Effect,
+	Layer,
+	Option,
+	Schema,
+	type Scope,
+} from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { sessionLock } from "../db/locks.ts";
 import type { Snapshot } from "./snapshot.ts";
@@ -72,7 +80,7 @@ export type PartStart = typeof PartStart.Type;
 /** How long ago a source's latest run started, and whether any of its runs
  *  is still open. */
 export interface LastCrawl {
-	readonly secondsAgo: number;
+	readonly ago: Duration.Duration;
 	readonly open: boolean;
 }
 
@@ -225,7 +233,9 @@ export class CrawlStore extends Context.Service<
 			const lastCrawl = (source: string) =>
 				findLastCrawl(source).pipe(
 					Effect.map(({ secondsAgo, open }) =>
-						secondsAgo === null ? undefined : { secondsAgo, open },
+						secondsAgo === null
+							? undefined
+							: { ago: Duration.seconds(secondsAgo), open },
 					),
 					Effect.orDie,
 				);

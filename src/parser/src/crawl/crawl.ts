@@ -1,4 +1,4 @@
-import { Cause, Config, Duration, Effect, Result, Schema } from "effect";
+import { Cause, Clock, Config, Duration, Effect, Result, Schema } from "effect";
 import {
 	catalogPath,
 	catalogProblem,
@@ -189,8 +189,9 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 	);
 });
 
-/** How many of the latest academic years every crawl covers: the current one,
- *  and the next once САЗ lists it. Older years change rarely. */
+/** How many of the latest academic years every crawl covers: the current one
+ *  and the one before it, or the next once САЗ lists it. Older years change
+ *  rarely. */
 const RECENT_YEARS = 2;
 
 /** The years one crawl covers: the `RECENT_YEARS` latest, and the older year
@@ -291,39 +292,55 @@ export const crawlYears = Effect.fn("crawlYears")(function* () {
 }, Effect.scoped);
 
 /** The time from the start of one САЗ crawl to the start of the next. A crawl
- *  that runs longer is followed by the next one right away. */
-export const CrawlInterval = Config.Duration("CRAWL_INTERVAL").pipe(
-	Config.withDefault(Duration.hours(24)),
-);
+ *  that runs longer is followed by the next one right away. At least an hour,
+ *  so a crawl that fails fast does not ask САЗ again at once. */
+export const CrawlInterval = Config.schema(
+	Schema.DurationFromString.check(
+		Schema.makeIsGreaterThanOrEqualTo({ order: Duration.Order })(
+			Duration.hours(1),
+		),
+	),
+	"CRAWL_INTERVAL",
+).pipe(Config.withDefault(Duration.hours(24)));
 
-/** How long to wait before the next crawl. A crawl a restart cut short, or
- *  the first one, starts now; otherwise the next starts `interval` after the
- *  latest start, the one stored or this worker's own try, since a try that
- *  fails before it opens a run stores none. */
+/** How long a crawl this worker left open, such as through a database outage
+ *  its retries did not outlast, waits before it resumes. */
+const RESUME_AFTER = Duration.hours(1);
+
+/** How long to wait before the next crawl: `interval` after the latest start,
+ *  the one stored or this worker's own try, since a try that fails before it
+ *  opens a run stores none. A crawl a restart left open resumes at once, and
+ *  one this worker left open `RESUME_AFTER` its try. */
 export const crawlDelay = (
 	interval: Duration.Duration,
 	last: LastCrawl | undefined,
 	sinceTry: Duration.Duration | undefined,
 ): Duration.Duration => {
-	if (sinceTry === undefined && (last === undefined || last.open)) {
-		return Duration.zero;
-	}
-
-	const since = Math.min(
-		last === undefined ? Infinity : last.secondsAgo * 1000,
-		sinceTry === undefined ? Infinity : Duration.toMillis(sinceTry),
+	const since = Duration.min(
+		last?.ago ?? Duration.infinity,
+		sinceTry ?? Duration.infinity,
 	);
 
-	return Duration.millis(Math.max(0, Duration.toMillis(interval) - since));
+	const gap = last?.open
+		? sinceTry === undefined
+			? Duration.zero
+			: RESUME_AFTER
+		: interval;
+
+	return Duration.max(Duration.zero, Duration.subtract(gap, since));
 };
 
-/** The wait before the next САЗ crawl, from the runs stored and `sinceTry`,
- *  the time since this worker last tried one. */
+/** The wait before the next САЗ crawl, from the runs stored and `triedAt`,
+ *  when this worker last tried one. */
 export const untilNextCrawl = Effect.fn("untilNextCrawl")(function* (
 	interval: Duration.Duration,
-	sinceTry: Duration.Duration | undefined,
+	triedAt: number | undefined,
 ) {
 	const store = yield* CrawlStore;
+	const now = yield* Clock.currentTimeMillis;
+
+	const sinceTry =
+		triedAt === undefined ? undefined : Duration.millis(now - triedAt);
 
 	return crawlDelay(interval, yield* store.lastCrawl(SAZ_SOURCE), sinceTry);
 });

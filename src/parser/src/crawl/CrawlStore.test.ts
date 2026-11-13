@@ -1,5 +1,5 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Deferred, Effect, Exit, Fiber, Layer } from "effect";
+import { Deferred, Duration, Effect, Exit, Fiber, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { CRAWL_LOCK, SMART_CRAWL_LOCK } from "../db/locks.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
@@ -437,7 +437,9 @@ describe("CrawlStore", () => {
 
 				assert.deepStrictEqual(
 					[running, finished].map((last) => ({
-						hours: Math.round((last?.secondsAgo ?? 0) / 3600),
+						hours: Math.round(
+							last === undefined ? 0 : Duration.toHours(last.ago),
+						),
 						open: last?.open,
 					})),
 					[

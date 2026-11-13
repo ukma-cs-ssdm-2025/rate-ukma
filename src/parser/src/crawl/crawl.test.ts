@@ -1,5 +1,5 @@
 import { assert, describe, it, layer } from "@effect/vitest";
-import { Duration, Effect, Exit, Layer } from "effect";
+import { ConfigProvider, Duration, Effect, Exit, Layer, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { catalogPath } from "../saz/catalog.ts";
@@ -15,6 +15,7 @@ import { SmartClient, SmartRequestFailed } from "../smart/SmartClient.ts";
 import {
 	CrawlAlreadyRunning,
 	crawlYears,
+	CrawlInterval,
 	crawlDelay,
 	yearsToCrawl,
 	NoAcademicYears,
@@ -494,19 +495,22 @@ describe("crawlDelay", () => {
 	const hours = (delay: Duration.Duration) =>
 		Duration.toMillis(delay) / 3_600_000;
 
-	const finished = (hoursAgo: number) => ({
-		secondsAgo: hoursAgo * 3600,
-		open: false,
+	const lastCrawl = (hoursAgo: number, open: boolean) => ({
+		ago: Duration.hours(hoursAgo),
+		open,
 	});
+
+	const finished = (hoursAgo: number) => lastCrawl(hoursAgo, false);
 
 	it("crawls at once before the first crawl", () => {
 		assert.strictEqual(hours(crawlDelay(DAY, undefined, undefined)), 0);
 	});
 
 	it("resumes at once a crawl a restart cut short", () => {
-		const open = { secondsAgo: 3600, open: true };
-
-		assert.strictEqual(hours(crawlDelay(DAY, open, undefined)), 0);
+		assert.strictEqual(
+			hours(crawlDelay(DAY, lastCrawl(1, true), undefined)),
+			0,
+		);
 	});
 
 	it("waits after a restart until a day has passed since the last start", () => {
@@ -524,11 +528,37 @@ describe("crawlDelay", () => {
 		);
 	});
 
-	it("does not resume at once a crawl it left open itself", () => {
-		const open = { secondsAgo: 2 * 3600, open: true };
+	it("resumes an hour after its try a crawl it left open itself", () => {
+		const open = lastCrawl(5, true);
 
-		assert.strictEqual(hours(crawlDelay(DAY, open, Duration.hours(2))), 22);
+		assert.deepStrictEqual(
+			[0.25, 2].map((tried) =>
+				hours(crawlDelay(DAY, open, Duration.hours(tried))),
+			),
+			[0.75, 0],
+		);
 	});
+});
+
+describe("CrawlInterval", () => {
+	const read = (env: Record<string, string>) =>
+		CrawlInterval.parse(ConfigProvider.fromEnvRecord(env)).pipe(
+			Effect.map(Duration.toHours),
+			Effect.result,
+		);
+
+	it.effect("defaults to a day and refuses less than an hour", () =>
+		Effect.gen(function* () {
+			assert.deepStrictEqual(
+				(yield* Effect.all([
+					read({}),
+					read({ CRAWL_INTERVAL: "6 hours" }),
+					read({ CRAWL_INTERVAL: "30 minutes" }),
+				])).map((result) => Result.getOrUndefined(result)),
+				[24, 6, undefined],
+			);
+		}),
+	);
 });
 
 describe("crawlSmart", () => {

@@ -1,13 +1,4 @@
-import {
-	Cause,
-	Clock,
-	Duration,
-	Effect,
-	Layer,
-	Result,
-	Schedule,
-	Schema,
-} from "effect";
+import { Cause, type Duration, Effect, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { CrawlInterval, crawlYears, untilNextCrawl } from "../crawl/crawl.ts";
@@ -16,15 +7,10 @@ import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { RemovalStore } from "../offerings/RemovalStore.ts";
 import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
-import { SazClient, SazSignInFailed } from "../saz/SazClient.ts";
+import { SazClient } from "../saz/SazClient.ts";
 import { parseStudents } from "../students/students.ts";
 import { StudentStore } from "../students/StudentStore.ts";
-
-const signInFailed = (cause: Cause.Cause<unknown>) => {
-	const error = Cause.findError(cause);
-
-	return Result.isSuccess(error) && Schema.is(SazSignInFailed)(error.success);
-};
+import { crawlLoop } from "./crawlLoop.ts";
 
 export const WorkerLive = Layer.effectDiscard(
 	Effect.gen(function* () {
@@ -47,6 +33,10 @@ export const WorkerLive = Layer.effectDiscard(
 		// resumes them. `false` after a failed sign-in, which is not tried again,
 		// as each try would send the password.
 		const crawl = crawlYears().pipe(
+			Effect.as(true),
+			Effect.catchTag("SazSignInFailed", (error) =>
+				Effect.logError("Crawl failed", error).pipe(Effect.as(false)),
+			),
 			Effect.sandbox,
 			Effect.tapError((cause) =>
 				Cause.hasDies(cause)
@@ -59,11 +49,8 @@ export const WorkerLive = Layer.effectDiscard(
 					Schedule.upTo({ times: 5 }),
 				),
 			}),
-			Effect.as(true),
 			Effect.catch((cause) =>
-				Effect.logError("Crawl failed", cause).pipe(
-					Effect.as(!signInFailed(cause)),
-				),
+				Effect.logError("Crawl failed", cause).pipe(Effect.as(true)),
 			),
 		);
 
@@ -81,66 +68,24 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.catchCause((cause) =>
 				Effect.logError("Removing offerings failed", cause),
 			),
+			Effect.asVoid,
 		);
 
 		// A lost database must not end the loop, so a failed read is tried
 		// again a minute later.
-		const nextCrawlIn = (sinceTry: Duration.Duration | undefined) =>
-			untilNextCrawl(interval, sinceTry).pipe(
+		const nextWait = (
+			triedAt: number | undefined,
+		): Effect.Effect<Duration.Duration, never, CrawlStore> =>
+			untilNextCrawl(interval, triedAt).pipe(
 				Effect.catchCause((cause) =>
 					Effect.logError("Reading the crawl schedule failed", cause).pipe(
-						Effect.as(undefined),
+						Effect.andThen(Effect.sleep("1 minute")),
+						Effect.andThen(Effect.suspend(() => nextWait(triedAt))),
 					),
 				),
 			);
 
-		// Crawls on a schedule kept in the runs, so a restart neither crawls
-		// again early nor loses a crawl it cut short.
-		yield* Effect.gen(function* () {
-			let triedAt: number | undefined;
-			let parsedOnStart = false;
-
-			while (true) {
-				const now = yield* Clock.currentTimeMillis;
-
-				const wait = yield* nextCrawlIn(
-					triedAt === undefined ? undefined : Duration.millis(now - triedAt),
-				);
-
-				if (wait === undefined) {
-					yield* Effect.sleep("1 minute");
-					continue;
-				}
-
-				if (!Duration.isZero(wait)) {
-					// A restart between a crawl and its parse would leave the stored
-					// pages unapplied until the next crawl.
-					// The parse takes time, so the wait is read again after it.
-					if (triedAt === undefined && !parsedOnStart) {
-						parsedOnStart = true;
-						yield* parse;
-						continue;
-					}
-
-					yield* Effect.logInfo("Next crawl scheduled", {
-						at: new Date(now + Duration.toMillis(wait)).toISOString(),
-					});
-					yield* Effect.sleep(wait);
-				}
-
-				triedAt = yield* Clock.currentTimeMillis;
-
-				const signedIn = yield* crawl;
-
-				yield* parse;
-
-				if (!signedIn) {
-					return yield* Effect.logError(
-						"Crawling stopped until the worker restarts: the САЗ sign-in failed",
-					);
-				}
-			}
-		}).pipe(Effect.forkScoped);
+		yield* crawlLoop({ nextWait, crawl, parse }).pipe(Effect.forkScoped);
 	}),
 ).pipe(
 	Layer.provide([
