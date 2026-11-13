@@ -10,8 +10,8 @@ export function CoursesErrorState({
 }: Readonly<CoursesErrorStateProps>) {
 	return (
 		<ErrorState
-			title="Помилка завантаження курсів"
-			description="Не вдалося завантажити список курсів. Спробуйте оновити сторінку."
+			title="Помилка завантаження дисциплін"
+			description="Не вдалося завантажити список дисциплін. Спробуйте оновити сторінку."
 			onRetry={onRetry}
 			retryTestId={testIds.courses.retryButton}
 			data-testid={testIds.courses.errorState}

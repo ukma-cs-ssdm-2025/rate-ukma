@@ -78,12 +78,12 @@ function useSemesterOpen(key: string, defaultOpen: boolean) {
 
 const UK_PLURAL = new Intl.PluralRules("uk");
 const COURSE_FORMS: Record<Intl.LDMLPluralRule, string> = {
-	zero: "курсів",
-	one: "курс",
-	two: "курси",
-	few: "курси",
-	many: "курсів",
-	other: "курсу",
+	zero: "дисциплін",
+	one: "дисципліну",
+	two: "дисципліни",
+	few: "дисципліни",
+	many: "дисциплін",
+	other: "дисципліни",
 };
 const DAY_MONTH = new Intl.DateTimeFormat("uk-UA", {
 	day: "numeric",
