@@ -1,15 +1,34 @@
-import { Cause, Effect, Layer, Schedule } from "effect";
+import {
+	Cause,
+	Clock,
+	Duration,
+	Effect,
+	Layer,
+	Result,
+	Schedule,
+	Schema,
+} from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
-import { crawlAllYears } from "../crawl/crawl.ts";
+import {
+	CrawlInterval,
+	crawlAllYears,
+	untilNextCrawl,
+} from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
 import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { RemovalStore } from "../offerings/RemovalStore.ts";
 import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
-import { SazClient } from "../saz/SazClient.ts";
+import { SazClient, SazSignInFailed } from "../saz/SazClient.ts";
 import { parseStudents } from "../students/students.ts";
 import { StudentStore } from "../students/StudentStore.ts";
+
+const signInFailed = (cause: Cause.Cause<unknown>) => {
+	const error = Cause.findError(cause);
+
+	return Result.isSuccess(error) && Schema.is(SazSignInFailed)(error.success);
+};
 
 export const WorkerLive = Layer.effectDiscard(
 	Effect.gen(function* () {
@@ -26,10 +45,12 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.forkScoped,
 		);
 
+		const interval = yield* CrawlInterval;
+
 		// A crash, such as a lost database, leaves the runs open, so a later try
-		// resumes them. A failed sign-in is not tried again, as each try would
-		// send the password.
-		yield* crawlAllYears().pipe(
+		// resumes them. `false` after a failed sign-in, which is not tried again,
+		// as each try would send the password.
+		const crawl = crawlAllYears().pipe(
 			Effect.sandbox,
 			Effect.tapError((cause) =>
 				Cause.hasDies(cause)
@@ -42,23 +63,63 @@ export const WorkerLive = Layer.effectDiscard(
 					Schedule.upTo({ times: 5 }),
 				),
 			}),
-			Effect.catch((cause) => Effect.logError("Crawl failed", cause)),
-			Effect.andThen(parseOfferings("crawl")),
-			Effect.catchCause((cause) =>
-				Effect.logError("Parsing offerings failed", cause),
+			Effect.as(true),
+			Effect.catch((cause) =>
+				Effect.logError("Crawl failed", cause).pipe(
+					Effect.as(!signInFailed(cause)),
+				),
 			),
-			Effect.andThen(parseStudents("crawl")),
-			Effect.catchCause((cause) =>
-				Effect.logError("Parsing students failed", {
-					error: storeFailureOf(cause),
-				}),
-			),
-			Effect.andThen(removeOfferings(threshold)),
-			Effect.catchCause((cause) =>
-				Effect.logError("Removing offerings failed", cause),
-			),
-			Effect.forkScoped,
 		);
+
+		const crawlAndParse = crawl.pipe(
+			Effect.tap(() =>
+				parseOfferings("crawl").pipe(
+					Effect.catchCause((cause) =>
+						Effect.logError("Parsing offerings failed", cause),
+					),
+					Effect.andThen(parseStudents("crawl")),
+					Effect.catchCause((cause) =>
+						Effect.logError("Parsing students failed", {
+							error: storeFailureOf(cause),
+						}),
+					),
+					Effect.andThen(removeOfferings(threshold)),
+					Effect.catchCause((cause) =>
+						Effect.logError("Removing offerings failed", cause),
+					),
+				),
+			),
+		);
+
+		// Crawls on a schedule kept in the runs, so a restart neither crawls
+		// again early nor loses a crawl it cut short.
+		yield* Effect.gen(function* () {
+			let triedAt: number | undefined;
+
+			while (true) {
+				const now = yield* Clock.currentTimeMillis;
+
+				const wait = yield* untilNextCrawl(
+					interval,
+					triedAt === undefined ? undefined : Duration.millis(now - triedAt),
+				);
+
+				if (!Duration.isZero(wait)) {
+					yield* Effect.logInfo("Next crawl scheduled", {
+						at: new Date(now + Duration.toMillis(wait)).toISOString(),
+					});
+					yield* Effect.sleep(wait);
+				}
+
+				triedAt = yield* Clock.currentTimeMillis;
+
+				if (!(yield* crawlAndParse)) {
+					return yield* Effect.logError(
+						"Crawling stopped until the worker restarts: the САЗ sign-in failed",
+					);
+				}
+			}
+		}).pipe(Effect.forkScoped);
 	}),
 ).pipe(
 	Layer.provide([

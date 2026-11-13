@@ -1,4 +1,4 @@
-import { Cause, Effect, Result, Schema } from "effect";
+import { Cause, Config, Duration, Effect, Result, Schema } from "effect";
 import {
 	catalogPath,
 	catalogProblem,
@@ -15,6 +15,7 @@ import {
 import {
 	type ClaimedPage,
 	CrawlStore,
+	type LastCrawl,
 	type OpenRun,
 	type PageCounts,
 	type QueuedPage,
@@ -253,3 +254,41 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 		})),
 	);
 }, Effect.scoped);
+
+/** The time from the start of one САЗ crawl to the start of the next. A crawl
+ *  that runs longer is followed by the next one right away. */
+export const CrawlInterval = Config.Duration("CRAWL_INTERVAL").pipe(
+	Config.withDefault(Duration.hours(24)),
+);
+
+/** How long to wait before the next crawl. A crawl a restart cut short, or
+ *  the first one, starts now; otherwise the next starts `interval` after the
+ *  latest start, the one stored or this worker's own try, since a try that
+ *  fails before it opens a run stores none. */
+export const crawlDelay = (
+	interval: Duration.Duration,
+	last: LastCrawl | undefined,
+	sinceTry: Duration.Duration | undefined,
+): Duration.Duration => {
+	if (sinceTry === undefined && (last === undefined || last.open)) {
+		return Duration.zero;
+	}
+
+	const since = Math.min(
+		last === undefined ? Infinity : last.secondsAgo * 1000,
+		sinceTry === undefined ? Infinity : Duration.toMillis(sinceTry),
+	);
+
+	return Duration.millis(Math.max(0, Duration.toMillis(interval) - since));
+};
+
+/** The wait before the next САЗ crawl, from the runs stored and `sinceTry`,
+ *  the time since this worker last tried one. */
+export const untilNextCrawl = Effect.fn("untilNextCrawl")(function* (
+	interval: Duration.Duration,
+	sinceTry: Duration.Duration | undefined,
+) {
+	const store = yield* CrawlStore;
+
+	return crawlDelay(interval, yield* store.lastCrawl(SAZ_SOURCE), sinceTry);
+});

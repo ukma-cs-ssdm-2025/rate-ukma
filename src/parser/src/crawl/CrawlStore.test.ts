@@ -376,6 +376,46 @@ describe("CrawlStore", () => {
 			}),
 		);
 
+		it.effect("reads the latest start and open runs of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				assert.isUndefined(yield* store.lastCrawl("saz-courses"));
+
+				const [older, newer] = yield* store.startRuns([
+					{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
+					{ sourcePart: "saz-courses:2032-33", pages: [FIRST] },
+				]);
+
+				yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: [SMART_LIST] },
+				]);
+
+				yield* sql`UPDATE runs SET started_at = now() - interval '3 hours' WHERE id = ${older.id}`;
+				yield* sql`UPDATE runs SET started_at = now() - interval '2 hours' WHERE id = ${newer.id}`;
+
+				const running = yield* store.lastCrawl("saz-courses");
+
+				yield* sql`UPDATE runs SET status = 'succeeded' WHERE source_part LIKE 'saz-courses:%'`;
+
+				const finished = yield* store.lastCrawl("saz-courses");
+
+				assert.deepStrictEqual(
+					[running, finished].map((last) => ({
+						hours: Math.round((last?.secondsAgo ?? 0) / 3600),
+						open: last?.open,
+					})),
+					[
+						{ hours: 2, open: true },
+						{ hours: 2, open: false },
+					],
+				);
+			}),
+		);
+
 		it.effect("starts a run with every page it is given queued", () =>
 			Effect.gen(function* () {
 				yield* reset;

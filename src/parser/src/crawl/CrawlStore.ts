@@ -62,6 +62,13 @@ export type OpenRun = typeof OpenRun.Type;
 
 const RunId = Schema.Struct({ id: Schema.BigInt });
 
+/** How long ago a source's latest run started, and whether any of its runs
+ *  is still open. */
+export interface LastCrawl {
+	readonly secondsAgo: number;
+	readonly open: boolean;
+}
+
 export class CrawlStore extends Context.Service<
 	CrawlStore,
 	{
@@ -80,6 +87,8 @@ export class CrawlStore extends Context.Service<
 		 *  pages they had claimed back in the queue. `source` is the part of
 		 *  `source_part` before the colon. */
 		openRuns(source: string): Effect.Effect<ReadonlyArray<OpenRun>>;
+		/** The source's latest crawl, or `undefined` before its first run. */
+		lastCrawl(source: string): Effect.Effect<LastCrawl | undefined>;
 		/** The next pending page of the run, claimed so another worker skips it. */
 		claim(runId: bigint): Effect.Effect<ClaimedPage | undefined>;
 		/** Marks the page done, stores its snapshot when the content hash differs
@@ -170,6 +179,29 @@ export class CrawlStore extends Context.Service<
 				`.pipe(
 					Effect.andThen(findOpenRuns(source)),
 					sql.withTransaction,
+					Effect.orDie,
+				);
+
+			const findLastCrawl = SqlSchema.findOne({
+				Request: Schema.String,
+				Result: Schema.Struct({
+					secondsAgo: Schema.NullOr(Schema.Number),
+					open: Schema.Boolean,
+				}),
+				execute: (source) => sql`
+					SELECT
+						extract(epoch FROM now() - max(started_at))::float8 AS "secondsAgo",
+						coalesce(bool_or(status = 'running'), false) AS open
+					FROM runs
+					WHERE split_part(source_part, ':', 1) = ${source}
+				`,
+			});
+
+			const lastCrawl = (source: string) =>
+				findLastCrawl(source).pipe(
+					Effect.map(({ secondsAgo, open }) =>
+						secondsAgo === null ? undefined : { secondsAgo, open },
+					),
 					Effect.orDie,
 				);
 
@@ -326,6 +358,7 @@ export class CrawlStore extends Context.Service<
 				lockCrawl,
 				startRuns,
 				openRuns,
+				lastCrawl,
 				claim,
 				complete,
 				fail,

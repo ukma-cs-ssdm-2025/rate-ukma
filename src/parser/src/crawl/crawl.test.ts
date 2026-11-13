@@ -1,5 +1,5 @@
 import { assert, describe, it, layer } from "@effect/vitest";
-import { Effect, Exit, Layer } from "effect";
+import { Duration, Effect, Exit, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { catalogPath } from "../saz/catalog.ts";
@@ -15,6 +15,7 @@ import { SmartClient, SmartRequestFailed } from "../smart/SmartClient.ts";
 import {
 	CrawlAlreadyRunning,
 	crawlAllYears,
+	crawlDelay,
 	NoAcademicYears,
 } from "./crawl.ts";
 import {
@@ -213,6 +214,7 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 
 				return open;
 			}),
+		lastCrawl: () => Effect.succeed(undefined),
 		claim: (runId) =>
 			Effect.sync(() => {
 				const next = pages.find(
@@ -454,6 +456,49 @@ describe("crawlAllYears", () => {
 			assert.instanceOf(error, CrawlAlreadyRunning);
 			assert.deepStrictEqual(saz.fetched, []);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+});
+
+describe("crawlDelay", () => {
+	const DAY = Duration.hours(24);
+
+	const hours = (delay: Duration.Duration) =>
+		Duration.toMillis(delay) / 3_600_000;
+
+	const finished = (hoursAgo: number) => ({
+		secondsAgo: hoursAgo * 3600,
+		open: false,
+	});
+
+	it("crawls at once before the first crawl", () => {
+		assert.strictEqual(hours(crawlDelay(DAY, undefined, undefined)), 0);
+	});
+
+	it("resumes at once a crawl a restart cut short", () => {
+		const open = { secondsAgo: 3600, open: true };
+
+		assert.strictEqual(hours(crawlDelay(DAY, open, undefined)), 0);
+	});
+
+	it("waits after a restart until a day has passed since the last start", () => {
+		assert.strictEqual(hours(crawlDelay(DAY, finished(18), undefined)), 6);
+	});
+
+	it("crawls at once when the last crawl started over a day ago", () => {
+		assert.strictEqual(hours(crawlDelay(DAY, finished(30), undefined)), 0);
+	});
+
+	it("waits a day after its own try that stored no run", () => {
+		assert.strictEqual(
+			hours(crawlDelay(DAY, finished(30), Duration.hours(1))),
+			23,
+		);
+	});
+
+	it("does not resume at once a crawl it left open itself", () => {
+		const open = { secondsAgo: 2 * 3600, open: true };
+
+		assert.strictEqual(hours(crawlDelay(DAY, open, Duration.hours(2))), 22);
 	});
 });
 
