@@ -8,6 +8,7 @@ import {
 import {
 	MicrosoftSessions,
 	SignedOut,
+	statusOf,
 	withSignIn,
 } from "../microsoft/session.ts";
 
@@ -143,8 +144,13 @@ export class SazClient extends Context.Service<
 					);
 
 			const signIn = session.signIn(`${SAZ_URL}/auth/o365`, constFalse).pipe(
-				Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
-					Effect.fail(new SazRequestFailed({ path: "/auth/o365", status: 0 })),
+				Effect.catchTag(["HttpClientError", "TimeoutError"], (error) =>
+					Effect.fail(
+						new SazRequestFailed({
+							path: "/auth/o365",
+							status: statusOf(error),
+						}),
+					),
 				),
 				Effect.andThen(Effect.logInfo("Signed in to САЗ")),
 			);

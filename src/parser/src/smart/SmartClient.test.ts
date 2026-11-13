@@ -53,6 +53,8 @@ interface FakeOptions {
 	readonly callbackStalls?: boolean;
 	/** A path whose first answer never finishes. */
 	readonly stallsOnce?: string;
+	/** The status of Microsoft's first answer to the sign-in, if not the form. */
+	readonly authorizeFailsOnce?: number;
 }
 
 const stalled = () => new Response(new ReadableStream({ start: () => {} }));
@@ -82,7 +84,13 @@ const makeFakeFetch = (options: FakeOptions = {}) => {
 		}
 
 		if (url.origin === MICROSOFT && url.pathname.endsWith("/authorize")) {
-			return new Response(microsoftPage({}));
+			const first =
+				count(visits, `GET ${url.host}${url.pathname}`) === 1 &&
+				options.authorizeFailsOnce !== undefined;
+
+			return first
+				? new Response("unavailable", { status: options.authorizeFailsOnce })
+				: new Response(microsoftPage({}));
 		}
 
 		if (url.origin === MICROSOFT && url.pathname === "/common/login") {
@@ -285,6 +293,19 @@ describe("SmartClient", () => {
 			}).pipe(Effect.provide(clientWith(fake)));
 		},
 	);
+
+	it.effect("retries a 503 from Microsoft before the password", () => {
+		const fake = makeFakeFetch({ authorizeFailsOnce: 503 });
+
+		return Effect.gen(function* () {
+			const smart = yield* SmartClient;
+			const fiber = yield* Effect.forkChild(smart.get(LIST));
+
+			yield* TestClock.adjust("3 seconds");
+			assert.deepStrictEqual(yield* Fiber.join(fiber), DEPARTMENTS);
+			assert.strictEqual(count(fake.visits, PASSWORD), 1);
+		}).pipe(Effect.provide(clientWith(fake)));
+	});
 
 	it.effect("fails a sign-in that stops on another host", () =>
 		Effect.gen(function* () {

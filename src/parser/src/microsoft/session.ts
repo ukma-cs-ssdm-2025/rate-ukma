@@ -4,6 +4,7 @@ import {
 	type Duration,
 	Effect,
 	Layer,
+	Predicate,
 	Redacted,
 	Ref,
 	Schema,
@@ -15,7 +16,7 @@ import {
 	HttpClient,
 	HttpClientRequest,
 	type HttpClientError,
-	type HttpClientResponse,
+	HttpClientResponse,
 } from "effect/http";
 
 const MICROSOFT_URL = "https://login.microsoftonline.com";
@@ -98,7 +99,9 @@ export interface Session {
 	/** Drops every cookie, opens `start`, which redirects to Microsoft, and
 	 *  posts the account to its password form. Returns the URL the redirects
 	 *  back to the app land on: a redirect `stopAt` accepts, left unfetched,
-	 *  or a 200 page on `start`'s host. Anything else fails. */
+	 *  or a 200 page on `start`'s host. Anything else fails. A status other
+	 *  than 2xx before the password is an `HttpClientError` with the response,
+	 *  so the caller can retry it as a request. */
 	signIn(
 		start: string,
 		stopAt: (next: URL) => boolean,
@@ -119,36 +122,36 @@ const open = Effect.fnUntraced(function* (
 	const jar = yield* Ref.make(new Map<string, Cookies.Cookies>());
 	const gate = yield* Semaphore.make(1);
 
+	// The permit covers the cookie read and update too, so two requests never
+	// send the same stale cookies or drop each other's.
 	const execute = (request: HttpClientRequest.HttpClientRequest) =>
 		Effect.gen(function* () {
 			const host = new URL(request.url).host;
 			const held = (yield* Ref.get(jar)).get(host) ?? Cookies.empty;
 
-			const response = yield* gate.withPermit(
-				http
-					.execute(
-						HttpClientRequest.setHeader(
-							request,
-							"cookie",
-							Cookies.toCookieHeader(held),
-						),
-					)
-					.pipe(
-						// The body is read here, inside the time limit; later reads
-						// get the cached bytes.
-						Effect.tap((response) => response.arrayBuffer),
-						Effect.timeout(timeout),
-						Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-						Effect.ensuring(Effect.sleep(gap)),
+			const response = yield* http
+				.execute(
+					HttpClientRequest.setHeader(
+						request,
+						"cookie",
+						Cookies.toCookieHeader(held),
 					),
-			);
+				)
+				.pipe(
+					// The body is read here, inside the time limit; later reads
+					// get the cached bytes.
+					Effect.tap((response) => response.arrayBuffer),
+					Effect.timeout(timeout),
+					Effect.provideService(HttpClient.TracerPropagationEnabled, false),
+					Effect.ensuring(Effect.sleep(gap)),
+				);
 
 			yield* Ref.update(jar, (hosts) =>
 				new Map(hosts).set(host, Cookies.merge(held, response.cookies)),
 			);
 
 			return response;
-		});
+		}).pipe(gate.withPermit);
 
 	/** Follows redirects from `request`; a hop `stopAt` accepts is returned
 	 *  as `stoppedAt` without a request. */
@@ -196,7 +199,10 @@ const open = Effect.fnUntraced(function* (
 		Effect.gen(function* () {
 			yield* Ref.set(jar, new Map());
 
-			const first = yield* send(HttpClientRequest.get(start));
+			const first = yield* send(HttpClientRequest.get(start)).pipe(
+				Effect.flatMap(HttpClientResponse.filterStatusOk),
+			);
+
 			const form = yield* readForm(first);
 			const target = new URL(form.urlPost, first.request.url);
 
@@ -268,6 +274,15 @@ const open = Effect.fnUntraced(function* (
 
 	return { send, signIn } satisfies Session;
 });
+
+/** The HTTP status of a failed request, or 0 for a transport error or a
+ *  request that ran out of time. */
+export const statusOf = (
+	error: HttpClientError.HttpClientError | Cause.TimeoutError,
+) =>
+	Predicate.isTagged(error, "HttpClientError")
+		? (error.response?.status ?? 0)
+		: 0;
 
 export class MicrosoftSessions extends Context.Service<
 	MicrosoftSessions,

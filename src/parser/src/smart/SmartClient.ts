@@ -15,6 +15,7 @@ import {
 	MicrosoftSessions,
 	MicrosoftSignInFailed,
 	SignedOut,
+	statusOf,
 	withSignIn,
 } from "../microsoft/session.ts";
 
@@ -154,9 +155,12 @@ export class SmartClient extends Context.Service<
 				yield* Ref.set(held, Option.some(accessToken));
 				yield* Effect.logInfo("Signed in to smart.ukma");
 			}).pipe(
-				Effect.catchTag(["HttpClientError", "TimeoutError"], () =>
+				Effect.catchTag(["HttpClientError", "TimeoutError"], (error) =>
 					Effect.fail(
-						new SmartRequestFailed({ path: "/start-login", status: 0 }),
+						new SmartRequestFailed({
+							path: "/start-login",
+							status: statusOf(error),
+						}),
 					),
 				),
 			);
