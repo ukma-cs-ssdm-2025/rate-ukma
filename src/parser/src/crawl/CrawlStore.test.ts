@@ -376,6 +376,38 @@ describe("CrawlStore", () => {
 			}),
 		);
 
+		it.effect("reads the latest start of each part of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				yield* sql`
+					INSERT INTO runs (source_part, started_at) VALUES
+						('saz-courses:2031-32', now() - interval '5 hours'),
+						('saz-courses:2031-32', now() - interval '2 hours'),
+						('saz-courses:2032-33', now() - interval '3 hours'),
+						('smart-ukma:2031-09-01', now() - interval '1 hour')
+				`;
+
+				const starts = yield* store.lastStarts("saz-courses");
+
+				assert.deepStrictEqual(
+					starts
+						.map(({ sourcePart, secondsAgo }) => ({
+							sourcePart,
+							hours: Math.round(secondsAgo / 3600),
+						}))
+						.sort((a, b) => a.sourcePart.localeCompare(b.sourcePart)),
+					[
+						{ sourcePart: "saz-courses:2031-32", hours: 2 },
+						{ sourcePart: "saz-courses:2032-33", hours: 3 },
+					],
+				);
+			}),
+		);
+
 		it.effect("reads the latest start and open runs of the asked source", () =>
 			Effect.gen(function* () {
 				yield* reset;

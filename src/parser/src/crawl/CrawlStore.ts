@@ -62,6 +62,13 @@ export type OpenRun = typeof OpenRun.Type;
 
 const RunId = Schema.Struct({ id: Schema.BigInt });
 
+const PartStart = Schema.Struct({
+	sourcePart: Schema.String,
+	secondsAgo: Schema.Number,
+});
+
+export type PartStart = typeof PartStart.Type;
+
 /** How long ago a source's latest run started, and whether any of its runs
  *  is still open. */
 export interface LastCrawl {
@@ -87,6 +94,8 @@ export class CrawlStore extends Context.Service<
 		 *  pages they had claimed back in the queue. `source` is the part of
 		 *  `source_part` before the colon. */
 		openRuns(source: string): Effect.Effect<ReadonlyArray<OpenRun>>;
+		/** How long ago each `source_part` of the source last started a run. */
+		lastStarts(source: string): Effect.Effect<ReadonlyArray<PartStart>>;
 		/** The source's latest crawl, or `undefined` before its first run. */
 		lastCrawl(source: string): Effect.Effect<LastCrawl | undefined>;
 		/** The next pending page of the run, claimed so another worker skips it. */
@@ -181,6 +190,22 @@ export class CrawlStore extends Context.Service<
 					sql.withTransaction,
 					Effect.orDie,
 				);
+
+			const findLastStarts = SqlSchema.findAll({
+				Request: Schema.String,
+				Result: PartStart,
+				execute: (source) => sql`
+					SELECT
+						source_part AS "sourcePart",
+						extract(epoch FROM now() - max(started_at))::float8 AS "secondsAgo"
+					FROM runs
+					WHERE split_part(source_part, ':', 1) = ${source}
+					GROUP BY source_part
+				`,
+			});
+
+			const lastStarts = (source: string) =>
+				findLastStarts(source).pipe(Effect.orDie);
 
 			const findLastCrawl = SqlSchema.findOne({
 				Request: Schema.String,
@@ -358,6 +383,7 @@ export class CrawlStore extends Context.Service<
 				lockCrawl,
 				startRuns,
 				openRuns,
+				lastStarts,
 				lastCrawl,
 				claim,
 				complete,

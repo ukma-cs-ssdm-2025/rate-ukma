@@ -15,7 +15,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
 - `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
 - `docs/parser-service/openapi.json` is generated from `Api.ts` by `pnpm openapi`; `src/api/openapi.test.ts` fails when the committed file is stale.
-- `src/worker/`: the background loop, every `CRAWL_INTERVAL`: crawl, parse offerings, parse students (`src/students/`), then removals (`src/offerings/removals.ts`).
+- `src/worker/`: the background loop, every `CRAWL_INTERVAL`: crawl (the two latest years and the older year crawled longest ago, `yearsToCrawl`), parse offerings, parse students (`src/students/`), then removals (`src/offerings/removals.ts`).
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
 - `src/microsoft/`: the cookie session and Microsoft password sign-in both clients use.
 - `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`, read from the `Location` header and never requested so no span or log holds the tokens; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes, longer than a crawl of the four lists, and a held token that gets a 401 or 403 makes the client sign in again once.

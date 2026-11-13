@@ -10,11 +10,7 @@ import {
 } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
-import {
-	CrawlInterval,
-	crawlAllYears,
-	untilNextCrawl,
-} from "../crawl/crawl.ts";
+import { CrawlInterval, crawlYears, untilNextCrawl } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
 import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
@@ -50,7 +46,7 @@ export const WorkerLive = Layer.effectDiscard(
 		// A crash, such as a lost database, leaves the runs open, so a later try
 		// resumes them. `false` after a failed sign-in, which is not tried again,
 		// as each try would send the password.
-		const crawl = crawlAllYears().pipe(
+		const crawl = crawlYears().pipe(
 			Effect.sandbox,
 			Effect.tapError((cause) =>
 				Cause.hasDies(cause)

@@ -14,8 +14,9 @@ import { crawlSmart, SMART_PAGES, SmartCrawlFailed } from "../smart/crawl.ts";
 import { SmartClient, SmartRequestFailed } from "../smart/SmartClient.ts";
 import {
 	CrawlAlreadyRunning,
-	crawlAllYears,
+	crawlYears,
 	crawlDelay,
+	yearsToCrawl,
 	NoAcademicYears,
 } from "./crawl.ts";
 import {
@@ -214,6 +215,7 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 
 				return open;
 			}),
+		lastStarts: () => Effect.succeed([]),
 		lastCrawl: () => Effect.succeed(undefined),
 		claim: (runId) =>
 			Effect.sync(() => {
@@ -276,13 +278,13 @@ const makeMemoryStore = (crashOn?: string, locked = true) => {
 	return { pages, finished, queue, startRun, layer };
 };
 
-describe("crawlAllYears", () => {
+describe("crawlYears", () => {
 	it.effect("crawls each year the catalog offers", () => {
 		const store = makeMemoryStore();
 		const saz = makeFakeSaz();
 
 		return Effect.gen(function* () {
-			yield* crawlAllYears();
+			yield* crawlYears();
 
 			assert.deepStrictEqual(
 				store.pages.map((page) => `${page.runId} ${page.status} ${page.path}`),
@@ -320,7 +322,7 @@ describe("crawlAllYears", () => {
 		const saz = makeFakeSaz();
 
 		return Effect.gen(function* () {
-			yield* crawlAllYears();
+			yield* crawlYears();
 
 			assert.includeMembers(saz.fetched, [
 				"/course/100004",
@@ -337,7 +339,7 @@ describe("crawlAllYears", () => {
 		});
 
 		return Effect.gen(function* () {
-			const error = yield* Effect.flip(crawlAllYears());
+			const error = yield* Effect.flip(crawlYears());
 
 			assert.instanceOf(error, NoAcademicYears);
 			assert.deepStrictEqual(store.pages, []);
@@ -365,7 +367,7 @@ describe("crawlAllYears", () => {
 				);
 			});
 
-			yield* crawlAllYears();
+			yield* crawlYears();
 
 			assert.deepStrictEqual(saz.fetched, ["/course/100001/students"]);
 
@@ -384,7 +386,7 @@ describe("crawlAllYears", () => {
 		});
 
 		return Effect.gen(function* () {
-			yield* crawlAllYears();
+			yield* crawlYears();
 
 			assert.deepStrictEqual(
 				store.pages.map((page) => `${page.runId} ${page.status} ${page.path}`),
@@ -404,7 +406,7 @@ describe("crawlAllYears", () => {
 		});
 
 		return Effect.gen(function* () {
-			const exit = yield* Effect.exit(crawlAllYears());
+			const exit = yield* Effect.exit(crawlYears());
 
 			assert.isTrue(Exit.isFailure(exit));
 			assert.deepStrictEqual(store.finished, [
@@ -424,7 +426,7 @@ describe("crawlAllYears", () => {
 		});
 
 		return Effect.gen(function* () {
-			const exit = yield* Effect.exit(crawlAllYears());
+			const exit = yield* Effect.exit(crawlYears());
 
 			assert.isTrue(Exit.isFailure(exit));
 			assert.deepStrictEqual(store.finished, [
@@ -439,7 +441,7 @@ describe("crawlAllYears", () => {
 		const saz = makeFakeSaz();
 
 		return Effect.gen(function* () {
-			const exit = yield* Effect.exit(crawlAllYears());
+			const exit = yield* Effect.exit(crawlYears());
 
 			assert.isTrue(Exit.isFailure(exit));
 			assert.deepStrictEqual(store.finished, []);
@@ -451,11 +453,38 @@ describe("crawlAllYears", () => {
 		const saz = makeFakeSaz();
 
 		return Effect.gen(function* () {
-			const error = yield* Effect.flip(crawlAllYears());
+			const error = yield* Effect.flip(crawlYears());
 
 			assert.instanceOf(error, CrawlAlreadyRunning);
 			assert.deepStrictEqual(saz.fetched, []);
 		}).pipe(Effect.provide([store.layer, saz.layer]));
+	});
+});
+
+describe("yearsToCrawl", () => {
+	const YEARS_LISTED = [2026, 2025, 2024, 2023, 2022];
+	const DAY = 86_400;
+
+	it("takes the two latest years and the older year crawled longest ago", () => {
+		const ago = new Map([
+			[2026, DAY],
+			[2025, DAY],
+			[2024, 2 * DAY],
+			[2023, 5 * DAY],
+			[2022, 3 * DAY],
+		]);
+
+		assert.deepStrictEqual(yearsToCrawl(YEARS_LISTED, ago), [2023, 2025, 2026]);
+	});
+
+	it("takes an older year never crawled first, the oldest on a tie", () => {
+		const ago = new Map([[2023, 30 * DAY]]);
+
+		assert.deepStrictEqual(yearsToCrawl(YEARS_LISTED, ago), [2022, 2025, 2026]);
+	});
+
+	it("takes every year when the catalog lists only the recent ones", () => {
+		assert.deepStrictEqual(yearsToCrawl([2026, 2025], new Map()), [2025, 2026]);
 	});
 });
 
@@ -585,7 +614,7 @@ const reset = Effect.gen(function* () {
 	yield* sql`TRUNCATE runs, run_pages, page_snapshots RESTART IDENTITY CASCADE`;
 });
 
-describe("crawlAllYears on Postgres", () => {
+describe("crawlYears on Postgres", () => {
 	layer(
 		CrawlStore.layer.pipe(Layer.provideMerge(TestDatabase(testDatabaseUrl))),
 		{ timeout: 30_000, excludeTestServices: true },
@@ -611,7 +640,7 @@ describe("crawlAllYears on Postgres", () => {
 					const sql = yield* SqlClient.SqlClient;
 
 					yield* reset;
-					yield* crawlAllYears();
+					yield* crawlYears();
 
 					const pages = yield* sql<{
 						readonly path: string;
@@ -631,6 +660,51 @@ describe("crawlAllYears on Postgres", () => {
 							"failed 1 /course/100002",
 							"done 2 /course/100003",
 							"done 2 /course/100004",
+						],
+					);
+				}).pipe(Effect.provide(saz.layer));
+			},
+		);
+
+		it.effect(
+			"starts the latest years and the older year crawled longest ago",
+			() => {
+				const select = `<select id="coursefilter-academic_year" name="filter[academic_year][]" multiple>${[
+					2028, 2029, 2030, 2031, 2032,
+				]
+					.map((year) => `<option value="${year}">${year}–${year + 1}</option>`)
+					.join("")}</select>`;
+
+				const saz = makeFakeSaz({ "/course/catalog": Effect.succeed(select) });
+
+				return Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+
+					yield* reset;
+
+					yield* sql`
+					INSERT INTO runs (source_part, status, started_at) VALUES
+						('saz-courses:2028-29', 'succeeded', now() - interval '2 days'),
+						('saz-courses:2029-30', 'succeeded', now() - interval '5 days'),
+						('saz-courses:2029-30', 'succeeded', now() - interval '6 days'),
+						('saz-courses:2030-31', 'succeeded', now() - interval '1 day'),
+						('smart-ukma:2026-11-01', 'succeeded', now() - interval '9 days')
+				`;
+
+					yield* crawlYears();
+
+					const started = yield* sql<{ readonly sourcePart: string }>`
+					SELECT source_part AS "sourcePart" FROM runs
+					WHERE started_at > now() - interval '1 hour'
+					ORDER BY id
+				`;
+
+					assert.deepStrictEqual(
+						started.map(({ sourcePart }) => sourcePart),
+						[
+							"saz-courses:2029-30",
+							"saz-courses:2031-32",
+							"saz-courses:2032-33",
 						],
 					);
 				}).pipe(Effect.provide(saz.layer));
@@ -668,13 +742,13 @@ describe("crawlAllYears on Postgres", () => {
 				);
 
 				const crashed = yield* failSecondYear.pipe(
-					Effect.andThen(Effect.exit(crawlAllYears())),
+					Effect.andThen(Effect.exit(crawlYears())),
 					Effect.scoped,
 				);
 
 				const afterCrash = yield* runs;
 
-				yield* crawlAllYears();
+				yield* crawlYears();
 
 				assert.isTrue(Exit.hasDies(crashed));
 				assert.deepStrictEqual(afterCrash, []);

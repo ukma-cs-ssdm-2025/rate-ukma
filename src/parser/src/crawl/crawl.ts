@@ -189,9 +189,34 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 	);
 });
 
-/** Crawls every academic year the catalog offers, one run per year. Runs that
- *  a crash left open are resumed instead, so finished pages are not fetched again. */
-export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
+/** How many of the latest academic years every crawl covers: the current one,
+ *  and the next once САЗ lists it. Older years change rarely. */
+const RECENT_YEARS = 2;
+
+/** The years one crawl covers: the `RECENT_YEARS` latest, and the older year
+ *  crawled longest ago, never crawled first, so each older year comes round
+ *  in turn. `secondsAgo` maps a year to the time since its last run started. */
+export const yearsToCrawl = (
+	years: ReadonlyArray<number>,
+	secondsAgo: ReadonlyMap<number, number>,
+): ReadonlyArray<number> => {
+	const newestFirst = [...years].sort((a, b) => b - a);
+	const recent = newestFirst.slice(0, RECENT_YEARS);
+	const ago = (year: number) => secondsAgo.get(year) ?? Infinity;
+
+	const [older] = newestFirst
+		.slice(RECENT_YEARS)
+		.sort((a, b) => ago(b) - ago(a) || a - b);
+
+	return [...recent, ...(older === undefined ? [] : [older])].sort(
+		(a, b) => a - b,
+	);
+};
+
+/** Crawls the years `yearsToCrawl` picks from the catalog, one run per year.
+ *  Runs that a crash left open are resumed instead, so finished pages are not
+ *  fetched again. */
+export const crawlYears = Effect.fn("crawlYears")(function* () {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
 
@@ -225,8 +250,18 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 
 		if (years.length === 0) return yield* new NoAcademicYears();
 
+		const secondsAgo = new Map(
+			(yield* store.lastStarts(SAZ_SOURCE)).flatMap(
+				({ sourcePart, secondsAgo }) => {
+					const year = academicYearOf(sourcePart);
+
+					return year === undefined ? [] : [[year, secondsAgo] as const];
+				},
+			),
+		);
+
 		return yield* store.startRuns(
-			years.map((year) => ({
+			yearsToCrawl(years, secondsAgo).map((year) => ({
 				sourcePart: sourcePartOf(year),
 				pages: [{ kind: "catalog", path: catalogPath(year, 1) }],
 			})),
