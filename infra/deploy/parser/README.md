@@ -223,7 +223,7 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 
 - **Database:** all three read `DATABASE_URL` from the `uri` key of the `parser-db-app` Secret.
 - **САЗ account:** the worker reads `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` from the `parser-saz` Secret. Without the Secret its pod stays in `CreateContainerConfigError` and the rollout fails.
-- **Crawling:** the worker crawls when it starts: it resumes unfinished runs, or else starts a new crawl of every academic year, about 15 hours at the default request gap. `kubectl apply` restarts it only when its pod template changes, so a deploy with the same image tag doesn't start a crawl.
+- **Crawling:** the worker starts a crawl every `CRAWL_INTERVAL` (default 24 hours, at least 1 hour), counted from the start of the last one, a resumed crawl included, and parses it when it ends. Each crawl covers the two latest academic years and one older year, the one crawled longest ago, so with 7 older years each is refreshed weekly. That is about 19,000 pages, roughly 6 hours at the default request gap; a crawl that outlasts the interval is followed by the next right away. The schedule is read from the `runs` table, so a restart or deploy resumes a crawl it cut short and otherwise parses once and waits for the next one. A crawl left open by a database outage longer than its retries resumes an hour later.
 - **Security:** pods run as uid 1000 with a read-only root filesystem; `/tmp` is the only writable path. They meet Pod Security `restricted` and get no service account token.
 - **Image tag:** the base sets only the image name; the deploy sets the tag.
 - **Order:** apply the Job alone first (`-l app.kubernetes.io/component=migrate`) and wait for it, then the rest (`-l 'app.kubernetes.io/component!=migrate'`). A Job can't be updated, so delete the previous `parser-migrate` before applying a new one.
@@ -257,7 +257,7 @@ It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `pa
      ```
 2. **САЗ account.** There is no service account yet, so the worker signs in with a team member's own account. **The first deploy starts a crawl with it.**
    - Add the account to `Parser Staging` as `PARSER_CORPORATE_EMAIL` and `PARSER_CORPORATE_PASSWORD`. **Parser Platform** creates the `parser-saz` Secret from them on apply.
-   - To change the account, update both GitHub secrets and run Parser Platform `apply`, then `kubectl -n parser rollout restart deployment/parser-worker`, since a running worker keeps the old values. A failed sign-in isn't retried until the worker restarts, and each try sends the password, so check the account before restarting.
+   - To change the account, update both GitHub secrets and run Parser Platform `apply`, then `kubectl -n parser rollout restart deployment/parser-worker`, since a running worker keeps the old values. A failed sign-in stops the crawls until the worker restarts, and each try sends the password, so check the account before restarting.
 3. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
 4. **Tunnel user.** A node created before the `tunnel` user existed doesn't have it, and Terraform won't add it (it ignores `user_data`). Create it over the admin login, with the `parser-staging-tunnel` key pair from [Before the first `apply`](#before-the-first-apply):
 

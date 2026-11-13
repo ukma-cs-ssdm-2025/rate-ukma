@@ -1,4 +1,4 @@
-import { Cause, Effect, Result, Schema } from "effect";
+import { Cause, Clock, Config, Duration, Effect, Result, Schema } from "effect";
 import {
 	catalogPath,
 	catalogProblem,
@@ -15,6 +15,7 @@ import {
 import {
 	type ClaimedPage,
 	CrawlStore,
+	type LastCrawl,
 	type OpenRun,
 	type PageCounts,
 	type QueuedPage,
@@ -188,9 +189,35 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 	);
 });
 
-/** Crawls every academic year the catalog offers, one run per year. Runs that
- *  a crash left open are resumed instead, so finished pages are not fetched again. */
-export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
+/** How many of the latest academic years every crawl covers: the current one
+ *  and the one before it, or the next once САЗ lists it. Older years change
+ *  rarely. */
+const RECENT_YEARS = 2;
+
+/** The years one crawl covers: the `RECENT_YEARS` latest, and the older year
+ *  crawled longest ago, never crawled first, so each older year comes round
+ *  in turn. `secondsAgo` maps a year to the time since its last run started. */
+export const yearsToCrawl = (
+	years: ReadonlyArray<number>,
+	secondsAgo: ReadonlyMap<number, number>,
+): ReadonlyArray<number> => {
+	const newestFirst = [...years].sort((a, b) => b - a);
+	const recent = newestFirst.slice(0, RECENT_YEARS);
+	const ago = (year: number) => secondsAgo.get(year) ?? Infinity;
+
+	const [older] = newestFirst
+		.slice(RECENT_YEARS)
+		.sort((a, b) => ago(b) - ago(a) || a - b);
+
+	return [...recent, ...(older === undefined ? [] : [older])].sort(
+		(a, b) => a - b,
+	);
+};
+
+/** Crawls the years `yearsToCrawl` picks from the catalog, one run per year.
+ *  Runs that a crash left open are resumed instead, so finished pages are not
+ *  fetched again. */
+export const crawlYears = Effect.fn("crawlYears")(function* () {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
 
@@ -224,8 +251,18 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 
 		if (years.length === 0) return yield* new NoAcademicYears();
 
+		const secondsAgo = new Map(
+			(yield* store.lastStarts(SAZ_SOURCE)).flatMap(
+				({ sourcePart, secondsAgo }) => {
+					const year = academicYearOf(sourcePart);
+
+					return year === undefined ? [] : [[year, secondsAgo] as const];
+				},
+			),
+		);
+
 		return yield* store.startRuns(
-			years.map((year) => ({
+			yearsToCrawl(years, secondsAgo).map((year) => ({
 				sourcePart: sourcePartOf(year),
 				pages: [{ kind: "catalog", path: catalogPath(year, 1) }],
 			})),
@@ -253,3 +290,57 @@ export const crawlAllYears = Effect.fn("crawlAllYears")(function* () {
 		})),
 	);
 }, Effect.scoped);
+
+/** The time from the start of one САЗ crawl to the start of the next. A crawl
+ *  that runs longer is followed by the next one right away. At least an hour,
+ *  so a crawl that fails fast does not ask САЗ again at once. */
+export const CrawlInterval = Config.schema(
+	Schema.DurationFromString.check(
+		Schema.makeIsGreaterThanOrEqualTo({ order: Duration.Order })(
+			Duration.hours(1),
+		),
+	),
+	"CRAWL_INTERVAL",
+).pipe(Config.withDefault(Duration.hours(24)));
+
+/** How long a crawl this worker left open, such as through a database outage
+ *  its retries did not outlast, waits before it resumes. */
+const RESUME_AFTER = Duration.hours(1);
+
+/** How long to wait before the next crawl: `interval` after the latest start,
+ *  the one stored or this worker's own try, since a try that fails before it
+ *  opens a run stores none. A crawl a restart left open resumes at once, and
+ *  one this worker left open `RESUME_AFTER` its try. */
+export const crawlDelay = (
+	interval: Duration.Duration,
+	last: LastCrawl | undefined,
+	sinceTry: Duration.Duration | undefined,
+): Duration.Duration => {
+	const since = Duration.min(
+		last?.ago ?? Duration.infinity,
+		sinceTry ?? Duration.infinity,
+	);
+
+	let gap = interval;
+
+	if (last?.open) {
+		gap = sinceTry === undefined ? Duration.zero : RESUME_AFTER;
+	}
+
+	return Duration.max(Duration.zero, Duration.subtract(gap, since));
+};
+
+/** The wait before the next САЗ crawl, from the runs stored and `triedAt`,
+ *  when this worker last tried one. */
+export const untilNextCrawl = Effect.fn("untilNextCrawl")(function* (
+	interval: Duration.Duration,
+	triedAt: number | undefined,
+) {
+	const store = yield* CrawlStore;
+	const now = yield* Clock.currentTimeMillis;
+
+	const sinceTry =
+		triedAt === undefined ? undefined : Duration.millis(now - triedAt);
+
+	return crawlDelay(interval, yield* store.lastCrawl(SAZ_SOURCE), sinceTry);
+});

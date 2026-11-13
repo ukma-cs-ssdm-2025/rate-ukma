@@ -1,5 +1,5 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Deferred, Effect, Exit, Fiber, Layer } from "effect";
+import { Deferred, Duration, Effect, Exit, Fiber, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { CRAWL_LOCK, SMART_CRAWL_LOCK } from "../db/locks.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
@@ -373,6 +373,80 @@ describe("CrawlStore", () => {
 					`done 1 ${FIRST.path}`,
 					"claimed 1 /course/100001",
 				]);
+			}),
+		);
+
+		it.effect("reads the latest start of each part of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				yield* sql`
+					INSERT INTO runs (source_part, started_at) VALUES
+						('saz-courses:2031-32', now() - interval '5 hours'),
+						('saz-courses:2031-32', now() - interval '2 hours'),
+						('saz-courses:2032-33', now() - interval '3 hours'),
+						('smart-ukma:2031-09-01', now() - interval '1 hour')
+				`;
+
+				const starts = yield* store.lastStarts("saz-courses");
+
+				assert.deepStrictEqual(
+					starts
+						.map(({ sourcePart, secondsAgo }) => ({
+							sourcePart,
+							hours: Math.round(secondsAgo / 3600),
+						}))
+						.sort((a, b) => a.sourcePart.localeCompare(b.sourcePart)),
+					[
+						{ sourcePart: "saz-courses:2031-32", hours: 2 },
+						{ sourcePart: "saz-courses:2032-33", hours: 3 },
+					],
+				);
+			}),
+		);
+
+		it.effect("reads the latest start and open runs of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				assert.isUndefined(yield* store.lastCrawl("saz-courses"));
+
+				const [older, newer] = yield* store.startRuns([
+					{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
+					{ sourcePart: "saz-courses:2032-33", pages: [FIRST] },
+				]);
+
+				yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: [SMART_LIST] },
+				]);
+
+				yield* sql`UPDATE runs SET started_at = now() - interval '3 hours' WHERE id = ${older.id}`;
+				yield* sql`UPDATE runs SET started_at = now() - interval '2 hours' WHERE id = ${newer.id}`;
+
+				const running = yield* store.lastCrawl("saz-courses");
+
+				yield* sql`UPDATE runs SET status = 'succeeded' WHERE source_part LIKE 'saz-courses:%'`;
+
+				const finished = yield* store.lastCrawl("saz-courses");
+
+				assert.deepStrictEqual(
+					[running, finished].map((last) => ({
+						hours: Math.round(
+							last === undefined ? 0 : Duration.toHours(last.ago),
+						),
+						open: last?.open,
+					})),
+					[
+						{ hours: 2, open: true },
+						{ hours: 2, open: false },
+					],
+				);
 			}),
 		);
 

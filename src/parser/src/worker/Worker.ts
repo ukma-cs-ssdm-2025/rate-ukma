@@ -1,7 +1,7 @@
-import { Cause, Effect, Layer, Schedule } from "effect";
+import { Cause, type Duration, Effect, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
-import { crawlAllYears } from "../crawl/crawl.ts";
+import { CrawlInterval, crawlYears, untilNextCrawl } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
 import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
@@ -10,6 +10,7 @@ import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
 import { SazClient } from "../saz/SazClient.ts";
 import { parseStudents } from "../students/students.ts";
 import { StudentStore } from "../students/StudentStore.ts";
+import { crawlLoop } from "./crawlLoop.ts";
 
 export const WorkerLive = Layer.effectDiscard(
 	Effect.gen(function* () {
@@ -26,10 +27,16 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.forkScoped,
 		);
 
+		const interval = yield* CrawlInterval;
+
 		// A crash, such as a lost database, leaves the runs open, so a later try
-		// resumes them. A failed sign-in is not tried again, as each try would
-		// send the password.
-		yield* crawlAllYears().pipe(
+		// resumes them. `false` after a failed sign-in, which is not tried again,
+		// as each try would send the password.
+		const crawl = crawlYears().pipe(
+			Effect.as(true),
+			Effect.catchTag("SazSignInFailed", (error) =>
+				Effect.logError("Crawl failed", error).pipe(Effect.as(false)),
+			),
 			Effect.sandbox,
 			Effect.tapError((cause) =>
 				Cause.hasDies(cause)
@@ -42,8 +49,12 @@ export const WorkerLive = Layer.effectDiscard(
 					Schedule.upTo({ times: 5 }),
 				),
 			}),
-			Effect.catch((cause) => Effect.logError("Crawl failed", cause)),
-			Effect.andThen(parseOfferings("crawl")),
+			Effect.catch((cause) =>
+				Effect.logError("Crawl failed", cause).pipe(Effect.as(true)),
+			),
+		);
+
+		const parse = parseOfferings("crawl").pipe(
 			Effect.catchCause((cause) =>
 				Effect.logError("Parsing offerings failed", cause),
 			),
@@ -57,8 +68,24 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.catchCause((cause) =>
 				Effect.logError("Removing offerings failed", cause),
 			),
-			Effect.forkScoped,
+			Effect.asVoid,
 		);
+
+		// A lost database must not end the loop, so a failed read is tried
+		// again a minute later.
+		const nextWait = (
+			triedAt: number | undefined,
+		): Effect.Effect<Duration.Duration, never, CrawlStore> =>
+			untilNextCrawl(interval, triedAt).pipe(
+				Effect.catchCause((cause) =>
+					Effect.logError("Reading the crawl schedule failed", cause).pipe(
+						Effect.andThen(Effect.sleep("1 minute")),
+						Effect.andThen(Effect.suspend(() => nextWait(triedAt))),
+					),
+				),
+			);
+
+		yield* crawlLoop({ nextWait, crawl, parse }).pipe(Effect.forkScoped);
 	}),
 ).pipe(
 	Layer.provide([
