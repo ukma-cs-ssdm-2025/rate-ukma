@@ -1,5 +1,14 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Effect, Layer, Logger, Redacted, References, Schema } from "effect";
+import {
+	Cause,
+	Effect,
+	Exit,
+	Layer,
+	Logger,
+	Redacted,
+	References,
+	Schema,
+} from "effect";
 import { HttpClientRequest, HttpServer } from "effect/http";
 import {
 	HttpApi,
@@ -146,6 +155,36 @@ describe("ApiKeyAuth", () => {
 
 				for (const name of NAMES) assert.notInclude(audit[0]?.raw, name);
 			}),
+		);
+
+		// A real server answers a defect with 500; the test client lets it
+		// through, so the test checks that the data never comes back.
+		it.effect(
+			"fails the request without the data when the audit row fails",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const key = yield* newKey(["catalog:read"]);
+					const client = yield* probeAs(key.token);
+
+					yield* sql`
+					CREATE FUNCTION refuse_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+					BEGIN RAISE EXCEPTION 'audit refused'; END $$
+				`;
+					yield* sql`
+					CREATE TRIGGER refuse_audit BEFORE INSERT ON audit_log
+					FOR EACH ROW EXECUTE FUNCTION refuse_audit()
+				`;
+
+					const exit = yield* Effect.exit(client.probe.catalog()).pipe(
+						Effect.ensuring(
+							Effect.orDie(sql`DROP FUNCTION refuse_audit() CASCADE`),
+						),
+					);
+
+					assert.isTrue(Exit.isFailure(exit) && Cause.hasDies(exit.cause));
+					assert.deepStrictEqual(yield* auditOf(key.id), []);
+				}),
 		);
 
 		it.effect("refuses a key without the scope with 403 and audits it", () =>
