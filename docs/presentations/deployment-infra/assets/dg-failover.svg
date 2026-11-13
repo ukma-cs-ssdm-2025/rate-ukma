@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 190" width="1000" height="190" role="img" aria-label="The Service parser-db-rw moves to the standby after the primary fails">
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:20px;fill:#111318}
+.mu{fill:#5c6470;font-size:17px}.c{text-anchor:middle}.ac{fill:#0074a3;font-weight:650}.wh{fill:#fff}
+.bd{fill:#fff;stroke:#c9ced4;stroke-width:1.5}.bd.ac{fill:#fff;stroke:#0074a3;stroke-width:2}.bd.now{fill:#0074a3;stroke:#0074a3}
+.bd.new{fill:#fff;stroke:#9aa3ad;stroke-width:1.5;stroke-dasharray:6 5}.bd.soft{fill:#f3f7fa;stroke:none}
+.ln{stroke:#9aa3ad;stroke-width:1.5;fill:none}.ln.ac{stroke:#0074a3;stroke-width:2}.ln.dash{stroke-dasharray:5 5}
+.hd{fill:#9aa3ad}.hd.ac{fill:#0074a3}
+</style>
+<defs><marker id="m16" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="hd ac"/></marker><marker id="m16b" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="hd"/></marker></defs>
+<rect class="bd" x="0" y="50" width="205" height="90" rx="12"/>
+<text class="c" x="102" y="88">App</text>
+<text class="c mu" x="102" y="116">DATABASE_URL</text>
+<path class="ln ac" d="M205 95 H261" marker-end="url(#m16)"/>
+<rect class="bd now" x="265" y="50" width="205" height="90" rx="12"/>
+<text class="c wh" x="367" y="88">parser-db-rw</text>
+<text class="c wh" x="367" y="116" style="font-size:17px">Service</text>
+<path class="ln dash" d="M470 80 H560 V46 H656" marker-end="url(#m16b)"/>
+<path class="ln ac" d="M470 110 H560 V144 H656" marker-end="url(#m16)"/>
+<rect class="bd new" x="660" y="0" width="340" height="86" rx="12"/>
+<text x="684" y="36">Old primary</text>
+<text class="mu" x="684" y="64">pod down, becomes the new standby</text>
+<rect class="bd ac" x="660" y="104" width="340" height="86" rx="12"/>
+<text x="684" y="140">Standby, now primary</text>
+<text class="mu" x="684" y="168">accepts writes</text>
+</svg>
