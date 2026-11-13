@@ -171,6 +171,49 @@ describe("removeOfferings", () => {
 				}),
 		);
 
+		it.effect(
+			"keeps an offering removed when a later run left it out again",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					const sql = yield* SqlClient.SqlClient;
+					const path = "/course/940002";
+					const both = [{ code: "940001" }, { code: "940002" }];
+
+					yield* crawl(2034, both);
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(1);
+					yield* crawl(2034, [{ code: "940001" }]);
+					yield* removeOfferings(1);
+
+					// The run that lists it again stores a page that fails to parse.
+					yield* crawl(2034, both);
+
+					const [page] = yield* sql<{
+						readonly id: bigint;
+						readonly content: string;
+					}>`
+						SELECT id, content FROM page_snapshots
+						WHERE path = ${path} ORDER BY id DESC LIMIT 1
+					`;
+
+					yield* sql`UPDATE page_snapshots SET content = 'broken' WHERE id = ${page?.id}`;
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(1);
+
+					yield* crawl(2034, [{ code: "940001" }]);
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(1);
+
+					// A parser fix reads the page again.
+					yield* sql`UPDATE page_snapshots SET content = ${page?.content ?? ""} WHERE id = ${page?.id}`;
+					yield* parseOfferings("reparse");
+
+					assert.isTrue((yield* offeringsOf(2034)).get("940002")?.removed);
+				}),
+		);
+
 		it.effect("skips the removals of a run that missed a course page", () =>
 			Effect.gen(function* () {
 				yield* reset;
