@@ -321,11 +321,11 @@ export const crawlDelay = (
 		sinceTry ?? Duration.infinity,
 	);
 
-	const gap = last?.open
-		? sinceTry === undefined
-			? Duration.zero
-			: RESUME_AFTER
-		: interval;
+	let gap = interval;
+
+	if (last?.open) {
+		gap = sinceTry === undefined ? Duration.zero : RESUME_AFTER;
+	}
 
 	return Duration.max(Duration.zero, Duration.subtract(gap, since));
 };
