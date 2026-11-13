@@ -111,7 +111,9 @@ test("thanks never interrupts a delete confirmation", async ({ page }) => {
 		myCourses: "rateable",
 	});
 	await page.goto(`/courses/${COURSE.id}`);
-	await page.getByRole("button", { name: "Оцінити курс", exact: true }).click();
+	await page
+		.getByRole("button", { name: "Оцінити дисципліну", exact: true })
+		.click();
 	await score(page);
 	await page.clock.install();
 	await page.clock.pauseAt(new Date(Date.now() + 100));
@@ -156,7 +158,7 @@ for (const rateFlow of ["off", "pending"] as const) {
 		if (rateFlow === "off") {
 			await page.goto(`/courses/${COURSE.id}`);
 			await page
-				.getByRole("button", { name: "Оцінити курс", exact: true })
+				.getByRole("button", { name: "Оцінити дисципліну", exact: true })
 				.click();
 			await score(page);
 			await page.getByTestId(testIds.rating.submitButton).click();
