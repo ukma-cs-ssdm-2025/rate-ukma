@@ -388,16 +388,20 @@ export class StudentStore extends Context.Service<
 							// batch, the newest email and the newest name without `*` (D6), or
 							// the newest name when all have it, set the student, after the new
 							// records joined, so a second parse of the same lists changes
-							// nothing. A record without an email keeps the student's.
+							// nothing. A record without an email keeps the student's, and one
+							// older than the student's details never sets them.
 							const newest = sql`r."snapshotId" DESC, r.cdoc DESC`;
 							const byName = sql`(r."fullName" LIKE '%*%'), ${newest}`;
+							const notOlder = sql`r."snapshotId" >= s.snapshot_id`;
 
 							const persons = sql`(
 								SELECT s.id AS "studentId",
 									(array_agg(r.email ORDER BY ${newest})
-										FILTER (WHERE r.email IS NOT NULL))[1] AS email,
-									(array_agg(r."fullName" ORDER BY ${byName}))[1] AS "fullName",
-									(array_agg(r."firstNameKey" ORDER BY ${byName}))[1] AS "firstNameKey",
+										FILTER (WHERE r.email IS NOT NULL AND ${notOlder}))[1] AS email,
+									(array_agg(r."fullName" ORDER BY ${byName}) FILTER (WHERE ${notOlder}))[1]
+										AS "fullName",
+									(array_agg(r."firstNameKey" ORDER BY ${byName}) FILTER (WHERE ${notOlder}))[1]
+										AS "firstNameKey",
 									max(r."snapshotId") AS "snapshotId"
 								FROM ${recordset(rows.programmes, recordColumns)}
 								JOIN student_programmes sp ON sp.saz_cdoc = r.cdoc
