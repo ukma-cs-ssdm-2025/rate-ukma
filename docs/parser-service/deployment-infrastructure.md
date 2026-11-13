@@ -137,6 +137,8 @@ graph LR
 
 **UKMA Data worker:** reads the САЗ account as `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` from a Kubernetes Secret, next to `DATABASE_URL`.
 
+**UKMA Data reparse:** `reparse` is a command of the image that needs only `DATABASE_URL`. It rebuilds the parsed tables from stored snapshots after a parser fix and sends no request to САЗ. It exits non-zero when Postgres refuses a page, so a Job running it would show Failed; a page that only fails to parse does not fail it. `infra/deploy/parser` has manifests for the api, the worker and the migrate Job only, and the deploy workflow runs only migrate, so no Job manifest runs `reparse` yet: run it by hand with the image and the parser's `DATABASE_URL`.
+
 ### 8. Ingress & TLS
 
 | Option                                 | Pros                                                                                                    | Cons                                                                                     | Decision      |
