@@ -1,6 +1,9 @@
+import uuid
 from typing import Any
 
 from rating_app.application_schemas.instructor import (
+    CourseInstructorMentions,
+    CourseInstructorsQueryParams,
     Instructor,
     InstructorListParams,
     InstructorListResult,
@@ -40,6 +43,21 @@ class InstructorService(IFilterable):
         )
         items = [self.mapper.process(obj) for obj in paginated.page_objects]
         return InstructorListResult(items=items, pagination=paginated.metadata)
+
+    def list_course_instructors(
+        self, course_id: uuid.UUID, params: CourseInstructorsQueryParams
+    ) -> list[CourseInstructorMentions]:
+        qs = self.instructor_repository.mentioned_on_course(
+            course_id=course_id, offering_id=params.offering_id
+        )
+        return [
+            CourseInstructorMentions(
+                instructor=self.mapper.process(obj),
+                ratings_count=obj.ratings_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
+                offering_ratings_count=obj.offering_ratings_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
+            )
+            for obj in qs
+        ]
 
     def get_filter_options(self) -> list[dict[str, Any]]:
         instructors = self.instructor_repository.get_all(ordered=True)

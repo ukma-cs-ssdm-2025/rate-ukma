@@ -4,6 +4,7 @@ import {
 	ANALYTICS,
 	COMMENT_REPLIES,
 	COURSE_DETAIL,
+	COURSE_INSTRUCTORS,
 	COURSE_OFFERINGS,
 	COURSE_OFFERINGS_MANY,
 	COURSE_RATINGS,
@@ -30,15 +31,19 @@ export interface MockOptions {
 	readonly comments?: "empty" | "thread";
 	readonly reviews?: "items" | "empty";
 	readonly notifications?: "none" | "items";
-	readonly session?: "student" | "guest";
+	readonly session?: "student" | "guest" | "superuser";
 	/** `many` gives the first course twenty specialities, like a general course. */
 	readonly specialities?: "one" | "many";
 	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
+	/** `none` is a course nobody has named a teacher on yet. */
+	readonly courseInstructors?: "named" | "none";
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 	readonly ratingSuggestions?: "items" | "empty" | "error";
 	readonly saveRating?: "success" | "error";
+	/** `fe_rate_flow`: `pending` never answers the flags request, so flags stay unresolved. */
+	readonly rateFlow?: "on" | "off" | "pending";
 }
 
 const courseList = {
@@ -70,9 +75,11 @@ export async function mockBackend(
 		session = "student",
 		specialities = "one",
 		title = "short",
+		courseInstructors = "named",
 		loading = false,
 		ratingSuggestions = "empty",
 		saveRating = "success",
+		rateFlow = "on",
 	}: MockOptions = {},
 ): Promise<void> {
 	const saved = new Set<string>();
@@ -147,10 +154,20 @@ export async function mockBackend(
 	> = [
 		[
 			/^\/auth\/session\/$/,
-			() =>
-				session === "guest"
-					? { is_authenticated: false, user: null, expires_at: null }
-					: SESSION,
+			() => {
+				if (session === "guest") {
+					return { is_authenticated: false, user: null, expires_at: null };
+				}
+				if (session === "superuser") {
+					return {
+						...SESSION,
+						is_student: false,
+						is_superuser: true,
+						speciality: null,
+					};
+				}
+				return SESSION;
+			},
 		],
 		[
 			/^\/students\/me\/rating-suggestions\/$/,
@@ -168,7 +185,13 @@ export async function mockBackend(
 		[/^\/auth\/csrf\/$/, () => ({ csrfToken: "shots" })],
 		[
 			/^\/flags\/$/,
-			() => ({ flags: { fe_feed: true, fe_faculty_colors: true } }),
+			() => ({
+				flags: {
+					fe_feed: true,
+					fe_faculty_colors: true,
+					fe_rate_flow: rateFlow === "on",
+				},
+			}),
 		],
 		[/^\/promo-banner\/$/, () => ({ banner: null })],
 		[
@@ -202,6 +225,11 @@ export async function mockBackend(
 				);
 				return { ...visibleCourseList, items, total: items.length };
 			},
+		],
+		[
+			/^\/courses\/[^/]+\/instructors\/$/,
+			() =>
+				courseInstructors === "named" ? COURSE_INSTRUCTORS : { items: [] },
 		],
 		[
 			/^\/courses\/[^/]+\/offerings\/$/,
@@ -389,6 +417,9 @@ export async function mockBackend(
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = new URL(route.request().url());
 		const path = url.pathname.replace(/^\/api\/v1/, "");
+		if (rateFlow === "pending" && path === "/flags/") {
+			await new Promise(() => {});
+		}
 		if (
 			route.request().method() === "POST" &&
 			/^\/courses\/[^/]+\/ratings\/$/.test(path)

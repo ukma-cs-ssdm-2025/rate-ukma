@@ -242,3 +242,74 @@ def test_list_instructors_without_mentioned_only_keeps_unrated(
     data = response.json()
     ids = {item["id"] for item in data["items"]}
     assert {str(rated.id), str(unrated.id)} <= ids
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_course_instructors_count_mentions_and_rank_this_offering_first(
+    token_client, instructor_factory, rating_factory, course_offering_factory
+):
+    offering = course_offering_factory()
+    older = course_offering_factory(course=offering.course)
+    this_term = instructor_factory(last_name="Нова", email="a@x.ua")
+    last_year = instructor_factory(last_name="Старий", email="b@x.ua")
+    elsewhere = instructor_factory(last_name="Сторонній", email="c@x.ua")
+    rating_factory(course_offering=offering).instructors.add(this_term)
+    for _ in range(3):
+        rating_factory(course_offering=older).instructors.add(last_year)
+    for _ in range(5):
+        rating_factory().instructors.add(elsewhere)
+
+    response = token_client.get(
+        reverse("course-instructors", args=[offering.course_id]),
+        {"offering_id": str(offering.id)},
+    )
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [i["instructor"]["last_name"] for i in items] == ["Нова", "Старий"]
+    assert [(i["ratings_count"], i["offering_ratings_count"]) for i in items] == [
+        (1, 1),
+        (3, 0),
+    ]
+    assert "email" not in items[0]["instructor"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_course_instructors_without_offering_rank_by_course_mentions(
+    token_client, instructor_factory, rating_factory, course_offering_factory
+):
+    offering = course_offering_factory()
+    once = instructor_factory(last_name="Раз", email="a@x.ua")
+    twice = instructor_factory(last_name="Двічі", email="b@x.ua")
+    rating_factory(course_offering=offering).instructors.add(once, twice)
+    rating_factory(course_offering=offering).instructors.add(twice)
+
+    response = token_client.get(reverse("course-instructors", args=[offering.course_id]))
+
+    items = response.json()["items"]
+    assert [(i["instructor"]["last_name"], i["ratings_count"]) for i in items] == [
+        ("Двічі", 2),
+        ("Раз", 1),
+    ]
+    assert all(i["offering_ratings_count"] == 0 for i in items)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_course_instructors_empty_when_nobody_named_anyone(token_client, course_factory):
+    course = course_factory()
+
+    response = token_client.get(reverse("course-instructors", args=[course.id]))
+
+    assert response.status_code == 200
+    assert response.json() == {"items": []}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_course_instructors_bad_uuid(token_client):
+    response = token_client.get(reverse("course-instructors", args=["nope"]))
+
+    assert response.status_code == 400

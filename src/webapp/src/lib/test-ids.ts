@@ -78,6 +78,12 @@ export const testIds = {
 		errorMessage: "login-error-message",
 	},
 
+	// Auth pages backdrop (course dots and their tooltips)
+	authShell: {
+		dot: "auth-shell-dot",
+		tooltip: "auth-shell-tooltip",
+	},
+
 	// Header / Navigation
 	header: {
 		root: "header",
@@ -155,6 +161,7 @@ export const testIds = {
 		usefulnessSlider: "rating-usefulness-slider",
 		commentTextarea: "rating-comment-textarea",
 		instructorMultiSelect: "rating-instructor-multiselect",
+		instructorQuickPicks: "rating-instructor-quick-picks",
 		legacyInstructorText: "rating-legacy-instructor-text",
 		anonymousCheckbox: "rating-anonymous-checkbox",
 		submitButton: "rating-submit-button",

@@ -20,7 +20,18 @@ import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { RatingForm, type RatingFormData } from "./RatingForm";
 import { RatingContinuationContext } from "../RatingContinuationContext";
+import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { refreshRatingQueries } from "../refreshRatingQueries";
+
+// Module-level so the form isn't reset on every render.
+const ANONYMOUS_DEFAULTS: RatingFormData = {
+	difficulty: 0,
+	usefulness: 0,
+	comment: "",
+	instructor_ids: [],
+	instructor: "",
+	is_anonymous: true,
+};
 
 interface ExistingRating {
 	id?: string;
@@ -57,6 +68,7 @@ export function RatingModal({
 }: RatingModalProps) {
 	const isEditMode = !!existingRating;
 	const continuation = useContext(RatingContinuationContext);
+	const flowEnabled = useRatingFlowEnabled();
 	const queryClient = useQueryClient();
 	const { user } = useAuth();
 	// Matches the backend byline, which is "last first".
@@ -93,7 +105,7 @@ export function RatingModal({
 			} else {
 				if (!offeringId) {
 					toast.error(
-						"Не вдалося створити оцінку: відсутній ідентифікатор дисципліни",
+						"Не вдалося створити оцінку: відсутній ідентифікатор курсу",
 					);
 					return;
 				}
@@ -110,8 +122,10 @@ export function RatingModal({
 				});
 			}
 
-			if (isEditMode) {
-				toast.success("Оцінку успішно оновлено");
+			if (isEditMode || !flowEnabled) {
+				toast.success(
+					isEditMode ? "Оцінку успішно оновлено" : "Оцінку успішно додано",
+				);
 				await refreshRatingQueries(queryClient, courseId);
 				onSuccess?.();
 				onClose();
@@ -149,14 +163,7 @@ export function RatingModal({
 				is_anonymous: existingRating.is_anonymous ?? false,
 			}
 		: initialAnonymous
-			? {
-					difficulty: 0,
-					usefulness: 0,
-					comment: "",
-					instructor_ids: [],
-					instructor: "",
-					is_anonymous: true,
-				}
+			? ANONYMOUS_DEFAULTS
 			: undefined;
 
 	const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -177,7 +184,7 @@ export function RatingModal({
 						data-testid={testIds.rating.modalTitle}
 					>
 						{courseName?.trim() ||
-							(isEditMode ? "Редагувати оцінку" : "Оцінити дисципліну")}
+							(isEditMode ? "Редагувати оцінку" : "Оцінити курс")}
 					</DialogTitle>
 					<DialogDescription>
 						{isEditMode

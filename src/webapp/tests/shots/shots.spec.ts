@@ -91,6 +91,19 @@ async function expectUncovered(target: Locator) {
 	expect(uncovered).toBe(true);
 }
 
+/** Course page with the rating modal open and one teacher others named picked. */
+async function openRatingWithPickedTeacher(page: Page) {
+	await mockBackend(page, { myCourses: "rateable" });
+	await page.goto(`/courses/${COURSE.id}`);
+	await page.getByRole("heading", { level: 1, name: COURSE.title }).waitFor();
+	await page.getByTestId("course-details-rate-button").click();
+	const modal = page.getByTestId(testIds.rating.modal);
+	await modal
+		.getByRole("button", { name: "Додати: Демченко Олена Петрівна" })
+		.click();
+	return modal;
+}
+
 const ALL_STATES: ReadonlyArray<State> = [
 	{
 		name: "home",
@@ -354,6 +367,63 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.waitFor();
 			await page.getByTestId("course-details-rate-button").click();
 			await page.getByTestId("rating-modal").waitFor();
+			await page.getByTestId(testIds.rating.instructorQuickPicks).waitFor();
+		},
+	},
+	{
+		name: "rating-modal-teacher-picked",
+		section: "Оцінювання",
+		note: "Rating form after tapping a teacher others named on this course",
+		run: async (page) => {
+			const modal = await openRatingWithPickedTeacher(page);
+			await modal
+				.getByTestId(testIds.rating.instructorMultiSelect)
+				.getByText("Демченко Олена Петрівна")
+				.waitFor();
+		},
+	},
+	{
+		name: "rating-modal-teacher-preview",
+		section: "Оцінювання",
+		note: "Preview of the review with a chosen teacher, as others will see it",
+		run: async (page) => {
+			const modal = await openRatingWithPickedTeacher(page);
+			await modal
+				.getByTestId(testIds.rating.commentTextarea)
+				.fill("Чіткі пояснення і корисні практичні.");
+			await modal.getByRole("button", { name: "Як побачать інші" }).click();
+			await modal
+				.getByRole("region", { name: "Попередній перегляд відгуку" })
+				.scrollIntoViewIfNeeded();
+		},
+	},
+	{
+		name: "rating-modal-teacher-chip-hover",
+		section: "Оцінювання",
+		note: "Pointer over a chosen teacher: the whole badge removes it",
+		run: async (page) => {
+			const modal = await openRatingWithPickedTeacher(page);
+			await modal
+				.getByTestId(testIds.rating.instructorMultiSelect)
+				.getByText("Демченко Олена Петрівна")
+				.hover();
+		},
+	},
+	{
+		name: "rating-modal-no-named-teachers",
+		section: "Оцінювання",
+		note: "Rating form on a course where nobody named a teacher yet: the hint stays",
+		run: async (page) => {
+			await mockBackend(page, {
+				myCourses: "rateable",
+				courseInstructors: "none",
+			});
+			await page.goto(`/courses/${COURSE.id}`);
+			await page
+				.getByRole("heading", { level: 1, name: COURSE.title })
+				.waitFor();
+			await page.getByTestId("course-details-rate-button").click();
+			await page.getByText("Можна обрати кількох викладачів").waitFor();
 		},
 	},
 	{
@@ -810,7 +880,10 @@ for (const width of WIDTHS) {
 					localStorage.setItem("rate-ukma-theme", value);
 				}, theme);
 				await state.run(page);
-				await expect(page.locator("html")).toHaveClass(new RegExp(theme));
+				await expect(page.locator("html")).toHaveAttribute(
+					"data-color-scheme",
+					theme,
+				);
 				await page.evaluate(() => document.fonts.ready);
 				mkdirSync(out, { recursive: true });
 				await page.screenshot({

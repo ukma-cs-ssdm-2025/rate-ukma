@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 /**
  * Design-token contrast guard.
  *
- * Parses the oklch() tokens from `styles.css` (`:root` = light, `.dark` =
+ * Parses the oklch() tokens from `styles.css` (`:root` = light, `@variant dark` =
  * dark) and asserts WCAG 2.x contrast ratios for every foreground/background
  * token pair plus the rendered alpha-blend pairs (tinted surfaces, `/60`
  * destructive buttons, `ring/50` focus rings, dimmed secondary text).
@@ -88,10 +88,9 @@ function blend(fg: Rgb, base: Rgb, alpha: number): Rgb {
 function readTokens(block: "light" | "dark"): Map<string, Rgb> {
 	const cssPath = join(dirname(fileURLToPath(import.meta.url)), "styles.css");
 	const css = readFileSync(cssPath, "utf8");
-	const selector = block === "light" ? ":root" : ".dark";
-	const body = new RegExp(
-		`${selector.replace(".", "\\.")}\\s*\\{([\\s\\S]*?)\\}`,
-	).exec(css)?.[1];
+	const selector = block === "light" ? ":root" : "@variant dark";
+	// Light tokens sit in `:root` before its nested `@variant dark` block.
+	const body = new RegExp(`${selector}\\s*\\{([^{}]*)`).exec(css)?.[1];
 	expect(body, `missing ${selector} block in styles.css`).toBeDefined();
 	const tokens = new Map<string, Rgb>();
 	const pattern =

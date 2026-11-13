@@ -1138,6 +1138,76 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/courses/{course_id}/instructors/:
+    get:
+      operationId: courses_instructors_retrieve
+      description: Instructors that ratings of this course name, with mention counts.
+        Never-named instructors are left out, so an empty list means no signal. Pass
+        `offering_id` to count and rank that offering first.
+      summary: List instructors named on a course
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+          format: uuid
+        description: Course whose ratings name the instructors
+        required: true
+      - in: query
+        name: offering_id
+        schema:
+          type: string
+          format: uuid
+        description: Also count mentions on this offering, and rank them first
+      tags:
+      - instructors
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseInstructorList'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/courses/{course_id}/offerings/:
     get:
       operationId: courses_offerings_list
@@ -2929,6 +2999,31 @@ components:
           type: integer
           readOnly: true
           default: 0
+    CourseInstructorList:
+      type: object
+      description: Schema for GET /api/v1/courses/{course_id}/instructors/.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseInstructorMentions'
+      required:
+      - items
+    CourseInstructorMentions:
+      type: object
+      properties:
+        instructor:
+          $ref: '#/components/schemas/Instructor'
+        ratings_count:
+          type: integer
+          description: Ratings on any offering of the course that name this instructor
+        offering_ratings_count:
+          type: integer
+          description: Of those, ratings on the requested offering (0 without offering_id)
+      required:
+      - instructor
+      - offering_ratings_count
+      - ratings_count
     CourseList:
       type: object
       description: Serializer for course list responses
@@ -3846,9 +3941,13 @@ components:
         fe_faculty_colors:
           type: boolean
           description: Whether `fe_faculty_colors` is enabled for the current user.
+        fe_rate_flow:
+          type: boolean
+          description: Whether `fe_rate_flow` is enabled for the current user.
       required:
       - fe_faculty_colors
       - fe_feed
+      - fe_rate_flow
     RatingCreateRequest:
       properties:
         course_offering:
@@ -4032,21 +4131,31 @@ components:
         course_id:
           type: string
           format: uuid
-          readOnly: true
         course_offering_id:
           type: string
           format: uuid
-          readOnly: true
         course_title:
           type: string
-          readOnly: true
         semester:
-          allOf:
-          - $ref: '#/components/schemas/InlineSemester'
-          readOnly: true
+          $ref: '#/components/schemas/RatingSuggestionSemester'
         ratings_count:
           type: integer
-          readOnly: true
+      required:
+      - course_id
+      - course_offering_id
+      - course_title
+      - ratings_count
+      - semester
+    RatingSuggestionSemester:
+      type: object
+      properties:
+        year:
+          type: integer
+        season:
+          type: string
+      required:
+      - season
+      - year
     RatingVoteCreateRequest:
       properties:
         vote_type:
@@ -4159,6 +4268,8 @@ components:
           nullable: true
         is_student:
           type: boolean
+        is_superuser:
+          type: boolean
         speciality:
           allOf:
           - $ref: '#/components/schemas/SessionSpeciality'
@@ -4166,6 +4277,7 @@ components:
       required:
       - is_authenticated
       - is_student
+      - is_superuser
       - speciality
       - user
     SessionSpeciality:

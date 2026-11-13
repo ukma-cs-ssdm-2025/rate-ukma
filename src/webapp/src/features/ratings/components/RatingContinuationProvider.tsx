@@ -10,6 +10,7 @@ import {
 	type FollowUpRating,
 } from "../RatingContinuationContext";
 import { refreshRatingQueries } from "../refreshRatingQueries";
+import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { useRatingSuggestions } from "../hooks/useRatingSuggestions";
 import { toast } from "@/components/ui/Toaster";
 import { RatingSaved } from "./RatingSaved";
@@ -25,11 +26,14 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 	const [completion, setCompletion] = useState<Completion | null>(null);
 	const [visible, setVisible] = useState(false);
 	const [followUp, setFollowUp] = useState<FollowUpRating | null>(null);
+	const flowEnabled = useRatingFlowEnabled();
 	const suggestions = useRatingSuggestions(completion?.courseId, !!completion);
 
 	useEffect(() => {
 		if (!completion) return;
-		if (completion.pathname !== pathname) {
+		if (!flowEnabled || completion.pathname !== pathname) {
+			// The rating is saved either way; only the invitation is dropped.
+			void refreshRatingQueries(queryClient, completion.courseId);
 			setCompletion(null);
 			setVisible(false);
 			return;
@@ -48,12 +52,15 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [completion, pathname, queryClient]);
+	}, [completion, flowEnabled, pathname, queryClient]);
 
 	useEffect(() => {
-		if (followUp && pathname !== `/courses/${followUp.course_id}`)
+		if (
+			followUp &&
+			(!flowEnabled || pathname !== `/courses/${followUp.course_id}`)
+		)
 			setFollowUp(null);
-	}, [followUp, pathname]);
+	}, [followUp, flowEnabled, pathname]);
 
 	const close = () => {
 		setVisible(false);
@@ -70,7 +77,7 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 					} else {
 						setFollowUp(null);
 						void refreshRatingQueries(queryClient, rating.courseId).then(() =>
-							toast.success("Оцінку збережено"),
+							toast.success("Оцінку успішно додано"),
 						);
 					}
 				},
@@ -84,7 +91,7 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 		>
 			{children}
 			<Dialog
-				open={visible && completion?.pathname === pathname}
+				open={flowEnabled && visible && completion?.pathname === pathname}
 				onOpenChange={(open) => {
 					if (!open) close();
 				}}

@@ -125,7 +125,7 @@ function CourseDetailsRoute() {
 		return (
 			<Layout>
 				<ErrorState
-					title="Не вдалося завантажити інформацію про дисципліну"
+					title="Не вдалося завантажити інформацію про курс"
 					role="alert"
 				/>
 			</Layout>
@@ -147,7 +147,7 @@ function CourseDetailsRoute() {
 		!ratedOffering && hasAttendedCourse && selectedOffering ? (
 			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
 				<div className="min-w-0 space-y-0.5">
-					<p className="font-medium">Ви слухали цю дисципліну</p>
+					<p className="font-medium">Ви слухали цей курс</p>
 					<p className="text-sm text-muted-foreground">
 						{canRateNow
 							? "Ваша оцінка допоможе іншим обрати"
@@ -158,13 +158,13 @@ function CourseDetailsRoute() {
 					canRate={canRateNow}
 					onClick={() => setIsRatingModalOpen(true)}
 				>
-					Оцінити дисципліну
+					Оцінити курс
 				</RatingButton>
 			</div>
 		) : null;
 	const nextSuggestion =
 		ratedOffering && arrival?.courseId === courseId && arrival.rated ? (
-			<RatingSuggestionPrompt compact stacked excludeCourse={courseId} />
+			<RatingSuggestionPrompt limit={1} excludeCourse={courseId} />
 		) : null;
 	const about = (
 		<CourseAbout
@@ -211,7 +211,7 @@ function CourseDetailsRoute() {
 							/>
 						) : null}
 
-						{/* Phones read one column: scores and the call to rate, then «Про дисципліну»,
+						{/* Phones read one column: scores and the call to rate, then «Про курс»,
 						    then reviews. Rendered once: the rate button's test id must stay unique. */}
 						{isDesktop ? null : rateAction}
 						{isDesktop ? null : about}

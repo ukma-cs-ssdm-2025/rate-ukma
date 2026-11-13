@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { formatInstructorName } from "./formatInstructorName";
+import {
+	formatInstructorName,
+	formatInstructorShortName,
+} from "./formatInstructorName";
 
 describe("formatInstructorName", () => {
 	it("should order last, first, then patronymic", () => {
@@ -37,5 +40,27 @@ describe("formatInstructorName", () => {
 				patronymic: "Миколайович",
 			}),
 		).toBe("Глибовець Микола Миколайович");
+	});
+});
+
+describe("formatInstructorShortName", () => {
+	it("should keep the surname and shorten the rest to initials", () => {
+		expect(
+			formatInstructorShortName({
+				last_name: "Демченко",
+				first_name: "Олена",
+				patronymic: "Петрівна",
+			}),
+		).toBe("Демченко О. П.");
+	});
+
+	it("should skip a missing patronymic", () => {
+		expect(
+			formatInstructorShortName({
+				last_name: "Коваль",
+				first_name: "Андрій",
+				patronymic: "",
+			}),
+		).toBe("Коваль А.");
 	});
 });
