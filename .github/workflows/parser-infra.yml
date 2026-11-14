@@ -8,12 +8,6 @@ on:
       - .github/workflows/parser-infra.yml
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Parser environment to provision"
-        required: true
-        type: choice
-        options:
-          - staging
       action:
         description: "plan shows the changes - apply plans and then applies them"
         required: true
@@ -27,20 +21,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: parser-infra-${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.ref }}
+  group: parser-infra-${{ github.event_name == 'workflow_dispatch' && 'state' || github.ref }}
   cancel-in-progress: false
 
 env:
   TF_VERSION: 1.16.5
   TF_ROOT: infra/deploy/parser/terraform
+  # The one parser environment (ADR-0015).
+  TF_ENV: live
 
 jobs:
   validate:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        environment: [staging]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -56,7 +49,7 @@ jobs:
         run: terraform fmt -check -recursive -diff
 
       - name: Validate
-        working-directory: ${{ env.TF_ROOT }}/envs/${{ matrix.environment }}
+        working-directory: ${{ env.TF_ROOT }}/envs/${{ env.TF_ENV }}
         run: |
           terraform init -backend=false -input=false
           terraform validate
@@ -65,7 +58,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     # Plan runs first, and the apply job's environment asks for approval.
-    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Plan
+    environment: Parser Plan
     env:
       HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY }}
@@ -75,7 +68,7 @@ jobs:
       TF_VAR_tunnel_ssh_public_key: ${{ secrets.PARSER_TUNNEL_SSH_PUBLIC_KEY }}
     defaults:
       run:
-        working-directory: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
+        working-directory: ${{ env.TF_ROOT }}/envs/${{ env.TF_ENV }}
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
     steps:
@@ -101,7 +94,7 @@ jobs:
           if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
           echo "has_changes=$([ "$code" -eq 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           {
-            echo "### Terraform plan (${{ inputs.environment }})"
+            echo "### Terraform plan"
             echo '```'
             grep -E '^(Plan:|No changes\.)' plan.txt || echo "See job log for details."
             echo '```'
@@ -128,8 +121,8 @@ jobs:
         if: inputs.action == 'apply' && steps.plan.outputs.has_changes == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: tfplan-${{ inputs.environment }}
-          path: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}/parser.tfplan.gpg
+          name: tfplan-${{ env.TF_ENV }}
+          path: ${{ env.TF_ROOT }}/envs/${{ env.TF_ENV }}/parser.tfplan.gpg
           # A pending approval can wait up to 30 days, the file is encrypted.
           retention-days: 30
           if-no-files-found: error
@@ -139,7 +132,7 @@ jobs:
     if: inputs.action == 'apply' && needs.plan.outputs.has_changes == 'true'
     runs-on: ubuntu-24.04
     # Required reviewer: approve after reading the plan in the run summary.
-    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
+    environment: Parser
     env:
       HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY }}
@@ -147,7 +140,7 @@ jobs:
       AWS_SSE_CUSTOMER_KEY: ${{ secrets.TF_STATE_SSE_CUSTOMER_KEY }}
     defaults:
       run:
-        working-directory: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
+        working-directory: ${{ env.TF_ROOT }}/envs/${{ env.TF_ENV }}
     steps:
       # Same run, so the same commit and lock file as the plan.
       - uses: actions/checkout@v5
@@ -161,8 +154,8 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: tfplan-${{ inputs.environment }}
-          path: ${{ env.TF_ROOT }}/envs/${{ inputs.environment }}
+          name: tfplan-${{ env.TF_ENV }}
+          path: ${{ env.TF_ROOT }}/envs/${{ env.TF_ENV }}
 
       # Fails if the key is wrong or the file was changed after upload.
       - name: Decrypt plan
@@ -182,7 +175,7 @@ jobs:
       - name: Outputs
         run: |
           {
-            echo "### Outputs (${{ inputs.environment }})"
+            echo "### Outputs"
             echo '```'
             terraform output
             echo '```'
