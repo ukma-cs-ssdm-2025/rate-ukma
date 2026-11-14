@@ -18,6 +18,7 @@ export type NumberedTable =
 	| "departments"
 	| "programmes"
 	| "offerings"
+	| "courses"
 	| "review_cases"
 	| "students"
 	| "student_programmes"

@@ -2,6 +2,7 @@ import { assert, describe, layer } from "@effect/vitest";
 import { Cause, Effect, Layer, Predicate } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
+import { CourseStore } from "../courses/CourseStore.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { parseOfferings } from "../offerings/offerings.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
@@ -10,7 +11,11 @@ import { studentEntry, studentsPage } from "../saz/studentsPage.fixture.ts";
 import { parseStudents } from "./students.ts";
 import { StudentStore } from "./StudentStore.ts";
 
-const TestLive = Layer.mergeAll(OfferingStore.layer, StudentStore.layer).pipe(
+const TestLive = Layer.mergeAll(
+	CourseStore.layer,
+	OfferingStore.layer,
+	StudentStore.layer,
+).pipe(
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );

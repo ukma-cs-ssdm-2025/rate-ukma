@@ -1,6 +1,7 @@
 import { Cause, type Duration, Effect, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
+import { CourseStore } from "../courses/CourseStore.ts";
 import { CrawlInterval, crawlYears, untilNextCrawl } from "../crawl/crawl.ts";
 import { CrawlStore } from "../crawl/CrawlStore.ts";
 import { parseOfferings, storeFailureOf } from "../offerings/offerings.ts";
@@ -89,6 +90,7 @@ export const WorkerLive = Layer.effectDiscard(
 	}),
 ).pipe(
 	Layer.provide([
+		CourseStore.layer,
 		CrawlStore.layer,
 		OfferingStore.layer,
 		RemovalStore.layer,
