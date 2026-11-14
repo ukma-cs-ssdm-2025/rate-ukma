@@ -4,7 +4,7 @@ from typing import Any
 
 from rating_app.application_schemas.semester import Semester, SemesterInput
 from rating_app.exception.semester_exception import SemesterDoesNotExistError, SemesterNotFoundError
-from rating_app.models.choices import SemesterTerm
+from rating_app.models.choices import PlanYearStatus, SemesterTerm
 from rating_app.repositories import SemesterRepository
 
 
@@ -39,6 +39,8 @@ class SemesterService:
         SemesterTerm.FALL: 11,  # November
     }
 
+    ACADEMIC_YEAR_START_MONTH = 9  # September
+
     def __init__(self, semester_repository: SemesterRepository):
         self.semester_repository = semester_repository
 
@@ -54,7 +56,7 @@ class SemesterService:
     def get_current(self) -> Semester:
         now = datetime.now()
         month = now.month
-        if month >= 9:
+        if month >= self.ACADEMIC_YEAR_START_MONTH:
             term = SemesterTerm.FALL
         elif month < 5:
             term = SemesterTerm.SPRING
@@ -69,6 +71,25 @@ class SemesterService:
             raise SemesterDoesNotExistError(
                 f"Current semester ({now.year} {now.strftime('%B')})"
             ) from exc
+
+    def get_academic_year_start(self, year: int, term: SemesterTerm) -> int:
+        return year if term == SemesterTerm.FALL else year - 1
+
+    def get_current_academic_year_start(self) -> int:
+        now = datetime.now()
+        return now.year if now.month >= self.ACADEMIC_YEAR_START_MONTH else now.year - 1
+
+    def get_academic_year_status(self, academic_year_start: int) -> PlanYearStatus:
+        current_start = self.get_current_academic_year_start()
+        if academic_year_start < current_start:
+            return PlanYearStatus.DONE
+        if academic_year_start == current_start:
+            return PlanYearStatus.CURRENT
+        return PlanYearStatus.PLANNED
+
+    def get_study_year(self, enrollment_year_start: int, year: int, term: SemesterTerm) -> int:
+        """Study year (1-based) of a calendar semester, counted from enrolment."""
+        return self.get_academic_year_start(year, term) - enrollment_year_start + 1
 
     def is_midpoint(
         self,
@@ -152,11 +173,10 @@ class SemesterService:
         return academic_years
 
     def _get_academic_year_range(self, year: int, term: str) -> tuple[int, int] | None:
-        if term == SemesterTerm.FALL:
-            return (year, year + 1)
-        elif term in (SemesterTerm.SPRING, SemesterTerm.SUMMER):
-            return (year - 1, year)
-        return None
+        if term not in SemesterTerm.values:
+            return None
+        start = self.get_academic_year_start(year, SemesterTerm(term))
+        return (start, start + 1)
 
     def _build_semester_terms(
         self, term_labels: dict[str | SemesterTerm, str]

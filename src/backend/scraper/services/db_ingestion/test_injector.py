@@ -569,6 +569,7 @@ def test_injector_invalidates_cache_after_successful_execution(injector, repo_mo
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*course*")
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*ratings*")
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*get_filter_options*")
+    repo_mocks.cache_manager.bump_version.assert_called_once_with("plan:all")
 
 
 @pytest.mark.django_db
@@ -602,6 +603,7 @@ def test_injector_does_not_invalidate_cache_on_exception(injector, repo_mocks):
 
     # Assert
     repo_mocks.cache_manager.invalidate_pattern.assert_not_called()
+    repo_mocks.cache_manager.bump_version.assert_not_called()
 
 
 @pytest.mark.django_db

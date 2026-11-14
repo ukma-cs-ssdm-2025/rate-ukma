@@ -2,6 +2,8 @@
 Application-wide constants.
 """
 
+from rating_app.models.choices import EnrollmentStatus
+
 # PAGINATION
 DEFAULT_PAGE_SIZE = 10
 
@@ -24,6 +26,8 @@ MIN_RATING_VALUE = 1
 MAX_RATING_VALUE = 5
 
 COMMENT_AUTHOR_PREVIEW_LIMIT = 3
+
+ATTENDED_ENROLLMENT_STATUSES = (EnrollmentStatus.ENROLLED, EnrollmentStatus.FORCED)
 
 # ORDERING
 AVG_ORDER_CHOICES = ["asc", "desc"]

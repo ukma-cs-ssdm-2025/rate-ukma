@@ -2,8 +2,9 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from freezegun import freeze_time
 
-from rating_app.models.choices import SemesterTerm
+from rating_app.models.choices import PlanYearStatus, SemesterTerm
 from rating_app.services.semester_service import SemesterService
 
 
@@ -125,3 +126,47 @@ def test_get_filter_options_handles_unknown_term_values(service, semester_repo):
     assert len(result["terms"]) == 1
     assert result["terms"][0]["value"] == "UNKNOWN_TERM"
     assert result["terms"][0]["label"] == "Unknown_Term"
+
+
+@pytest.mark.parametrize(
+    ("year", "term", "expected"),
+    [
+        (2024, SemesterTerm.FALL, 2024),
+        (2025, SemesterTerm.SPRING, 2024),
+        (2025, SemesterTerm.SUMMER, 2024),
+    ],
+)
+def test_get_academic_year_start_returns_year_the_september_opened(service, year, term, expected):
+    assert service.get_academic_year_start(year, term) == expected
+
+
+@pytest.mark.parametrize(
+    ("today", "expected"),
+    [("2024-08-31", 2023), ("2024-09-01", 2024)],
+)
+def test_get_current_academic_year_start_rolls_over_in_september(service, today, expected):
+    with freeze_time(today):
+        assert service.get_current_academic_year_start() == expected
+
+
+@freeze_time("2024-10-15")
+@pytest.mark.parametrize(
+    ("academic_year_start", "expected"),
+    [
+        (2023, PlanYearStatus.DONE),
+        (2024, PlanYearStatus.CURRENT),
+        (2025, PlanYearStatus.PLANNED),
+    ],
+)
+def test_get_academic_year_status_compares_with_current_year(
+    service, academic_year_start, expected
+):
+    assert service.get_academic_year_status(academic_year_start) == expected
+
+
+@pytest.mark.parametrize(
+    ("year", "term", "expected"),
+    [(2023, SemesterTerm.FALL, 1), (2024, SemesterTerm.SPRING, 1), (2024, SemesterTerm.FALL, 2)],
+)
+def test_get_study_year_counts_from_enrolment(service, year, term, expected):
+    assert service.get_study_year(2023, year, term) == expected
