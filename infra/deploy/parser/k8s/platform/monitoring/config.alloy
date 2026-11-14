@@ -1,0 +1,219 @@
+logging {
+	level  = "info"
+	format = "logfmt"
+}
+
+//  Discovery
+
+discovery.kubernetes "pods" {
+	role = "pod"
+
+	namespaces {
+		names = ["parser", "cnpg-system", "cert-manager"]
+	}
+}
+
+discovery.kubernetes "nodes" {
+	role = "node"
+}
+
+//  Logs: pod logs through the Kubernetes API
+
+discovery.relabel "pod_logs" {
+	targets = discovery.kubernetes.pods.targets
+
+	rule {
+		source_labels = ["__meta_kubernetes_namespace"]
+		target_label  = "namespace"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_name"]
+		target_label  = "pod"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component"]
+		target_label  = "component"
+	}
+}
+
+loki.source.kubernetes "pods" {
+	targets    = discovery.relabel.pod_logs.output
+	forward_to = [loki.process.pods.receiver]
+}
+
+loki.process "pods" {
+	// The worker's once-a-minute heartbeat: noise, and it uses the log quota.
+	stage.drop {
+		expression = "Worker tick"
+	}
+	forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+	external_labels = {cluster = "parser-staging"}
+
+	endpoint {
+		url = sys.env("GRAFANA_LOKI_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_LOKI_USER")
+			password = sys.env("GRAFANA_CLOUD_TOKEN")
+		}
+	}
+}
+
+//  Metrics: node (disk matters: local-path doesn't enforce the PVC size)
+
+prometheus.exporter.unix "node" {
+	procfs_path    = "/host/proc"
+	sysfs_path     = "/host/sys"
+	rootfs_path    = "/host/root"
+	set_collectors = ["cpu", "meminfo", "filesystem", "loadavg", "diskstats", "netdev"]
+}
+
+prometheus.scrape "node" {
+	targets         = prometheus.exporter.unix.node.targets
+	scrape_interval = "60s"
+	forward_to      = [prometheus.relabel.node.receiver]
+}
+
+prometheus.relabel "node" {
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|node_(cpu_seconds_total|memory_(MemTotal|MemAvailable)_bytes|filesystem_(size|avail)_bytes|load(1|5|15)|disk_(read|written)_bytes_total|network_(receive|transmit)_bytes_total)"
+		action        = "keep"
+	}
+	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+//  Metrics: containers, scraped straight from the kubelet (port 10250 on the node's address).
+// The kubelet authorises /metrics/cadvisor with nodes/metrics, so Alloy needs no nodes/proxy.
+
+prometheus.scrape "cadvisor" {
+	targets           = discovery.kubernetes.nodes.targets
+	scheme            = "https"
+	metrics_path      = "/metrics/cadvisor"
+	bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	tls_config {
+		ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	}
+	scrape_interval = "60s"
+	forward_to      = [prometheus.relabel.cadvisor.receiver]
+}
+
+prometheus.relabel "cadvisor" {
+	// The free tier allows ~10k active series; cAdvisor alone can go past that.
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|container_(cpu_usage_seconds_total|memory_working_set_bytes|spec_memory_limit_bytes|oom_events_total)"
+		action        = "keep"
+	}
+
+	// up has no namespace or container label, so these two rules let it through by name.
+	rule {
+		source_labels = ["__name__", "namespace"]
+		regex         = "up;.*|[^;]+;(parser|monitoring|cnpg-system|cert-manager|kube-system)"
+		action        = "keep"
+	}
+
+	rule {
+		// Pod-level cgroup rows have no container label.
+		source_labels = ["__name__", "container"]
+		regex         = "up;.*|[^;]+;.+"
+		action        = "keep"
+	}
+	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+//  Metrics: Postgres (CNPG exporter, includes the custom crawl queries)
+
+discovery.relabel "cnpg" {
+	targets = discovery.kubernetes.pods.targets
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_cnpg_io_cluster"]
+		regex         = "parser-db"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_port_number"]
+		regex         = "9187"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_name"]
+		target_label  = "pod"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_cnpg_io_instanceRole"]
+		target_label  = "role"
+	}
+}
+
+prometheus.scrape "cnpg" {
+	targets         = discovery.relabel.cnpg.output
+	scrape_interval = "60s"
+	forward_to      = [prometheus.relabel.cnpg.receiver]
+}
+
+prometheus.relabel "cnpg" {
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|cnpg_(collector_up|pg_database_size_bytes|backends_total|pg_replication_lag|pg_replication_streaming_replicas|pg_stat_archiver_.*|parser_.*)"
+		action        = "keep"
+	}
+	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+//  Metrics: certificate expiry (HTTP-01 renewals fail silently)
+
+discovery.relabel "cert_manager" {
+	targets = discovery.kubernetes.pods.targets
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_port_number"]
+		regex         = "9402"
+		action        = "keep"
+	}
+}
+
+prometheus.scrape "cert_manager" {
+	targets         = discovery.relabel.cert_manager.output
+	scrape_interval = "5m"
+	forward_to      = [prometheus.relabel.cert_manager.receiver]
+}
+
+prometheus.relabel "cert_manager" {
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|certmanager_certificate_(expiration_timestamp_seconds|ready_status)"
+		action        = "keep"
+	}
+	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+//  Push
+
+prometheus.remote_write "grafana_cloud" {
+	external_labels = {cluster = "parser-staging"}
+
+	endpoint {
+		url = sys.env("GRAFANA_PROM_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_PROM_USER")
+			password = sys.env("GRAFANA_CLOUD_TOKEN")
+		}
+	}
+}

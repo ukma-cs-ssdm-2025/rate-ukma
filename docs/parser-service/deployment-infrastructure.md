@@ -256,7 +256,7 @@ graph LR
 
 ### B. Open Questions (Future ADRs/Specs)
 
-1. **Observability**: Monitoring, logging, tracing, and alerting for the parser service are out of scope for this spec. A future ADR should detail: metrics collection (Prometheus or equivalent), log aggregation (ELK, Loki, or equivalent), distributed tracing (Jaeger or equivalent), and alerting rules (Alertmanager or equivalent). This spec assumes the service will be integrated into the rate-ukma observability stack once that is defined.
+1. **Observability**: Decided for staging in [ADR-0014](../architecture/decisions/0014-parser-observability.md). Monitoring, logging, tracing, and alerting for the parser service are out of scope for this spec. A future ADR should detail: metrics collection (Prometheus or equivalent), log aggregation (ELK, Loki, or equivalent), distributed tracing (Jaeger or equivalent), and alerting rules (Alertmanager or equivalent). This spec assumes the service will be integrated into the rate-ukma observability stack once that is defined.
 
 2. **Infrastructure-Level HA (Future)**: This spec defines pod-level HA (automatic failover on container/pod failure). True infrastructure-level HA — protecting against node, storage, or control-plane failures — requires either: (a) multi-node Kubernetes cluster with replicas on different nodes, or (b) cross-cluster replication (active-passive standby in a separate cluster). This should be revisited once uptime/SLA requirements are known and traffic justifies the operational complexity.
 

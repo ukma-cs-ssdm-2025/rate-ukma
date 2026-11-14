@@ -38,7 +38,7 @@ env:
   KUBECTL_VERSION: v1.36.5
   PLATFORM_ROOT: infra/deploy/parser/k8s/platform
   # Applied in this order: each one needs what the previous one installs.
-  PLATFORM_DIRS: operators config database
+  PLATFORM_DIRS: operators config database monitoring
 
 jobs:
   render:
@@ -158,6 +158,32 @@ jobs:
       - name: Apply database
         run: bash scripts/ci/parser-platform-apply-database.sh
 
+      # Alloy pushes logs and metrics to Grafana Cloud with these credentials.
+      # The monitoring namespace comes from config/, applied above.
+      - name: Apply Grafana Cloud secret
+        env:
+          GRAFANA_CLOUD_TOKEN: ${{ secrets.GRAFANA_CLOUD_TOKEN }}
+          GRAFANA_PROM_URL: ${{ secrets.GRAFANA_PROM_URL }}
+          GRAFANA_PROM_USER: ${{ secrets.GRAFANA_PROM_USER }}
+          GRAFANA_LOKI_URL: ${{ secrets.GRAFANA_LOKI_URL }}
+          GRAFANA_LOKI_USER: ${{ secrets.GRAFANA_LOKI_USER }}
+        run: |
+          bash scripts/ci/parser-platform-grafana-secret.sh \
+            | kubectl apply --server-side --field-manager=parser-platform -f -
+
+      - name: Apply monitoring
+        run: |
+          kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/monitoring"
+
+          # Alloy reads the Secret only when it starts, so it must restart when the token changes.
+          # We store a hash of the Secret on the pod: a new hash restarts Alloy, the same hash does nothing.
+          # The hash stays on the cluster, so a re-run after a failed deploy still restarts Alloy.
+          hash=$(kubectl -n monitoring get secret grafana-cloud -o jsonpath='{.data}' | sha256sum | cut -c1-16)
+          kubectl -n monitoring patch deployment alloy --type merge \
+            -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"rateukma.com/grafana-secret-hash\":\"$hash\"}}}}}"
+
+          kubectl -n monitoring rollout status deployment/alloy --timeout=3m
+
       - name: Status
         if: always()
         run: |
@@ -168,5 +194,6 @@ jobs:
             kubectl get pods -n cnpg-system
             kubectl get clusterissuers
             kubectl -n parser get cluster,pods,pvc
+            kubectl get pods -n monitoring
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

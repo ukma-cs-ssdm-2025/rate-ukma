@@ -20,3 +20,4 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0011](0011-saz-data-service.md) - САЗ Data Through a Separate UKMA Data Service
 * [ADR-0012](0012-inp-plan-storage.md) - ІНП Plan Stored in the Backend as One Record per Planned Course
 * [ADR-0013](0013-student-identity.md) - A Student Is Matched by Programme Record and First Name, Not by Email
+* [ADR-0014](0014-parser-observability.md) - UKMA Data Staging Observability with Grafana Alloy and Grafana Cloud

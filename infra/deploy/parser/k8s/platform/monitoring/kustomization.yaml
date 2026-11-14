@@ -1,0 +1,23 @@
+---
+# Grafana Alloy: ships pod logs and cluster metrics to Grafana Cloud.
+# Needs the grafana-cloud Secret, which the platform workflow applies before this.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: alloy
+      app.kubernetes.io/part-of: monitoring
+
+resources:
+  - rbac.yaml
+  - alloy.yaml
+
+# The generated name gets a hash of config.alloy, and kustomize rewrites the Deployment's
+# reference to it, so a config change rolls Alloy.
+configMapGenerator:
+  - name: alloy-config
+    files:
+      - config.alloy

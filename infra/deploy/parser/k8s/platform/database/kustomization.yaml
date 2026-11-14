@@ -5,3 +5,15 @@ kind: Kustomization
 
 resources:
   - cluster.yaml
+
+# The crawl-health queries for CNPG's exporter. A fixed name, because cluster.yaml refers to it and
+# kustomize can't rewrite references inside a CNPG Cluster; the reload label makes CNPG pick up changes.
+configMapGenerator:
+  - name: parser-db-monitoring
+    namespace: parser
+    files:
+      - queries.yaml
+    options:
+      disableNameSuffixHash: true
+      labels:
+        cnpg.io/reload: ""
