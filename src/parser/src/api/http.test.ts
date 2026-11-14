@@ -88,7 +88,7 @@ const seedRows = Effect.gen(function* () {
 		VALUES ('prg_one', 'Уявна інженерія', 'bachelor', ${next})
 	`;
 
-	for (const id of ["crs_old", "crs_new"]) {
+	for (const id of ["crs_a", "crs_b"]) {
 		yield* sql`
 			INSERT INTO courses (id, title, department_id, level, change_no)
 			VALUES (${id}, 'Вигаданий курс 930001', 'dep_one', 'bachelor', ${next})
@@ -124,13 +124,13 @@ const seedRows = Effect.gen(function* () {
 		WHERE id = 'off_930002'
 	`;
 	yield* sql`
-		UPDATE offerings SET course_id = 'crs_new' WHERE id = 'off_930001'
+		UPDATE offerings SET course_id = 'crs_b' WHERE id = 'off_930001'
 	`;
 	yield* sql`
 		UPDATE courses
-		SET merged_into = 'crs_new', removed_at = '2031-09-02T00:00:00Z',
+		SET merged_into = 'crs_b', removed_at = '2031-09-02T00:00:00Z',
 			change_no = ${next}
-		WHERE id = 'crs_old'
+		WHERE id = 'crs_a'
 	`;
 });
 
@@ -237,7 +237,7 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					assert.strictEqual(offering?.credits, 4.5);
 					assert.deepStrictEqual(
 						[...first.items, ...second.items].map(({ courseId }) => courseId),
-						["crs_new", null, null],
+						["crs_b", null, null],
 					);
 					assert.notProperty(offering, "sazTeachers");
 				}),
@@ -289,8 +289,8 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 							removedAt?.toISOString() ?? null,
 						]),
 						[
-							["crs_new", null, null],
-							["crs_old", "crs_new", "2031-09-02T00:00:00.000Z"],
+							["crs_b", null, null],
+							["crs_a", "crs_b", "2031-09-02T00:00:00.000Z"],
 						],
 					);
 					assert.deepStrictEqual(
