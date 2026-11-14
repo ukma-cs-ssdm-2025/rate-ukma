@@ -1100,7 +1100,7 @@
 					},
 					"title": {
 						"type": "string",
-						"description": "From the latest offering"
+						"description": "The title its offerings share"
 					},
 					"departmentId": {
 						"anyOf": [

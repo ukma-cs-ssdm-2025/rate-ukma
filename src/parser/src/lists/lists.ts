@@ -172,7 +172,9 @@ export const Offering = Schema.Struct({
 /** Offerings of one subject across years. */
 export const Course = Schema.Struct({
 	id: Schema.String,
-	title: Schema.String.annotate({ description: "From the latest offering" }),
+	title: Schema.String.annotate({
+		description: "The title its offerings share",
+	}),
 	departmentId: Schema.NullOr(Schema.String),
 	level: Level,
 	mergedInto: Schema.NullOr(Schema.String).annotate({
