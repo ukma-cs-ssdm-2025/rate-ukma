@@ -12,8 +12,9 @@ spec:
   timeZone: Europe/Kyiv
   # crawl-smart also takes a lock, so a second run exits instead of crawling twice.
   concurrencyPolicy: Forbid
-  # A run missed by more than an hour (the node was down) waits for the next day.
-  startingDeadlineSeconds: 3600
+  # A run the node missed while down starts once it is back, if that is within 23 hours,
+  # so it never runs into the next day's schedule.
+  startingDeadlineSeconds: 82800
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
