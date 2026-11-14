@@ -53,6 +53,7 @@ export const CatalogApiHandlers = HttpApiBuilder.group(
 				.handle("faculties", ({ query }) => served(lists.faculties(query)))
 				.handle("departments", ({ query }) => served(lists.departments(query)))
 				.handle("programmes", ({ query }) => served(lists.programmes(query)))
+				.handle("courses", ({ query }) => served(lists.courses(query)))
 				.handle("offerings", ({ query }) => served(lists.offerings(query)));
 		}),
 );

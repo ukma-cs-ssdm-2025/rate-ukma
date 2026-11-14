@@ -53,7 +53,8 @@ const FROM_START = { after: 0, limit: 500 };
 const FINISHED_AT = new Date("2031-09-01T10:00:00Z");
 
 /** Invented catalog rows: three offerings, the second one removed after the
- *  third was added, so it comes last. */
+ *  third was added, so it comes last; two courses, the first merged into the
+ *  second after both were added, so it comes last too. */
 const seedRows = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const next = sql`nextval('change_no_seq')`;
@@ -87,6 +88,13 @@ const seedRows = Effect.gen(function* () {
 		VALUES ('prg_one', 'Уявна інженерія', 'bachelor', ${next})
 	`;
 
+	for (const id of ["crs_a", "crs_b"]) {
+		yield* sql`
+			INSERT INTO courses (id, title, department_id, level, change_no)
+			VALUES (${id}, 'Вигаданий курс 930001', 'dep_one', 'bachelor', ${next})
+		`;
+	}
+
 	for (const code of ["930001", "930002", "930003"]) {
 		yield* sql`
 			INSERT INTO offerings (
@@ -114,6 +122,15 @@ const seedRows = Effect.gen(function* () {
 		UPDATE offerings
 		SET removed_at = '2031-09-02T00:00:00Z', change_no = ${next}
 		WHERE id = 'off_930002'
+	`;
+	yield* sql`
+		UPDATE offerings SET course_id = 'crs_b' WHERE id = 'off_930001'
+	`;
+	yield* sql`
+		UPDATE courses
+		SET merged_into = 'crs_b', removed_at = '2031-09-02T00:00:00Z',
+			change_no = ${next}
+		WHERE id = 'crs_a'
 	`;
 });
 
@@ -218,6 +235,10 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 						{ programmeId: "prg_one", kind: "elective" },
 					]);
 					assert.strictEqual(offering?.credits, 4.5);
+					assert.deepStrictEqual(
+						[...first.items, ...second.items].map(({ courseId }) => courseId),
+						["crs_b", null, null],
+					);
 					assert.notProperty(offering, "sazTeachers");
 				}),
 		);
@@ -251,6 +272,40 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 				assert.strictEqual(departments.items[0]?.facultyId, "fac_one");
 				assert.strictEqual(programmes.items[0]?.level, "bachelor");
 			}),
+		);
+
+		it.effect(
+			"syncs courses in change-number order, merged ones included",
+			() =>
+				Effect.gen(function* () {
+					const { client } = yield* clientAs(["catalog:read"]);
+
+					const page = yield* client.catalog.courses({ query: FROM_START });
+
+					assert.deepStrictEqual(
+						page.items.map(({ id, mergedInto, removedAt }) => [
+							id,
+							mergedInto,
+							removedAt?.toISOString() ?? null,
+						]),
+						[
+							["crs_b", null, null],
+							["crs_a", "crs_b", "2031-09-02T00:00:00.000Z"],
+						],
+					);
+					assert.deepStrictEqual(
+						page.items.map(({ title, departmentId, level }) => [
+							title,
+							departmentId,
+							level,
+						]),
+						[
+							["Вигаданий курс 930001", "dep_one", "bachelor"],
+							["Вигаданий курс 930001", "dep_one", "bachelor"],
+						],
+					);
+					assert.strictEqual(page.cursor, page.items.at(-1)?.changeNo);
+				}),
 		);
 
 		it.effect(
