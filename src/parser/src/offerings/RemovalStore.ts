@@ -36,11 +36,14 @@ const Survey = Schema.Struct({
 	succeeded: Schema.Boolean,
 	missingPages: Schema.BigInt,
 	unparsedPages: Schema.BigInt,
-	firstCatalogPage: Schema.NullOr(Schema.String),
-	laterCatalogPages: Schema.Array(Schema.String),
 	seen: Schema.BigInt,
 	live: Schema.BigInt,
 	candidates: Schema.Array(Schema.String),
+});
+
+const CatalogPage = Schema.Struct({
+	path: Schema.String,
+	content: Schema.String,
 });
 
 const totalOf = (catalogPage: string) =>
@@ -121,18 +124,6 @@ export class RemovalStore extends Context.Service<
 								)
 						) AS "unparsedPages",
 						(
-							SELECT s.content FROM run_pages p
-							JOIN page_snapshots s ON s.id = p.snapshot_id
-							WHERE p.run_id = r.id AND p.kind = 'catalog'
-								AND p.path = ${catalogPath(year, 1)}
-						) AS "firstCatalogPage",
-						ARRAY(
-							SELECT s.content FROM run_pages p
-							JOIN page_snapshots s ON s.id = p.snapshot_id
-							WHERE p.run_id = r.id AND p.kind = 'catalog'
-								AND p.path <> ${catalogPath(year, 1)}
-						) AS "laterCatalogPages",
-						(
 							SELECT count(DISTINCT p.path) FROM run_pages p
 							WHERE p.run_id = r.id AND p.kind = 'course'
 						) AS seen,
@@ -155,35 +146,47 @@ export class RemovalStore extends Context.Service<
 				`,
 			});
 
+			// One row per page: a year's catalog is over 20 MB of HTML, more than
+			// the client takes in one row.
+			const findCatalogPages = SqlSchema.findAll({
+				Request: Schema.BigInt,
+				Result: CatalogPage,
+				execute: (runId) => sql`
+					SELECT p.path, s.content FROM run_pages p
+					JOIN page_snapshots s ON s.id = p.snapshot_id
+					WHERE p.run_id = ${runId} AND p.kind = 'catalog'
+				`,
+			});
+
 			const survey = (runId: bigint, year: number) =>
-				findSurvey({ runId, year }).pipe(
-					Effect.map(
-						({
-							succeeded,
-							missingPages,
-							unparsedPages,
-							firstCatalogPage,
-							laterCatalogPages,
-							seen,
-							live,
-							candidates,
-						}) => ({
-							complete:
-								succeeded && missingPages === 0n && unparsedPages === 0n,
-							missingPages: Number(missingPages),
-							unparsedPages: Number(unparsedPages),
-							listed:
-								firstCatalogPage === null
-									? undefined
-									: totalOf(firstCatalogPage),
-							laterTotals: laterCatalogPages.map(totalOf),
-							seen: Number(seen),
-							live: Number(live),
-							candidates,
-						}),
-					),
-					Effect.orDie,
-				);
+				Effect.gen(function* () {
+					const {
+						succeeded,
+						missingPages,
+						unparsedPages,
+						seen,
+						live,
+						candidates,
+					} = yield* findSurvey({ runId, year });
+
+					const pages = yield* findCatalogPages(runId);
+					const first = pages.find(
+						(page) => page.path === catalogPath(year, 1),
+					);
+
+					return {
+						complete: succeeded && missingPages === 0n && unparsedPages === 0n,
+						missingPages: Number(missingPages),
+						unparsedPages: Number(unparsedPages),
+						listed: first === undefined ? undefined : totalOf(first.content),
+						laterTotals: pages
+							.filter((page) => page !== first)
+							.map((page) => totalOf(page.content)),
+						seen: Number(seen),
+						live: Number(live),
+						candidates,
+					};
+				}).pipe(Effect.orDie);
 
 			const decide = (runId: bigint, decision: "applied" | "held") =>
 				sql`UPDATE runs SET offering_removals = ${decision} WHERE id = ${runId}`.pipe(

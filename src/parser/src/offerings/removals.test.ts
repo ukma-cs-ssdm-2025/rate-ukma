@@ -186,6 +186,39 @@ describe("removeOfferings", () => {
 		);
 
 		it.effect(
+			"decides a run whose catalog pages hold more HTML than one row takes",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					const sql = yield* SqlClient.SqlClient;
+
+					yield* crawl(2038, [{ code: "938001" }, { code: "938002" }]);
+					yield* parseOfferings("crawl");
+					yield* removeOfferings(1);
+
+					// 100 pages of 200 kB: 20 MB, over the client's 16 MB message.
+					const dropped = yield* crawl(
+						2038,
+						[{ code: "938001" }],
+						Array.from({ length: 100 }, () => 1),
+					);
+
+					yield* sql`
+						UPDATE page_snapshots SET content = content || repeat(' ', 200000)
+						WHERE id IN (
+							SELECT snapshot_id FROM run_pages
+							WHERE run_id = ${dropped} AND kind = 'catalog'
+						)
+					`;
+
+					const [decided] = yield* removeOfferings(1);
+
+					assert.deepInclude(decided, { decision: "applied", removed: 1 });
+				}),
+		);
+
+		it.effect(
 			"keeps an offering removed when a later run left it out again",
 			() =>
 				Effect.gen(function* () {
