@@ -24,6 +24,7 @@ on:
         type: choice
         options:
           - staging
+          - live
       version_tag:
         description: "Version or commit SHA to deploy (finds the best matching parser image)"
         required: true
@@ -33,7 +34,7 @@ permissions:
   contents: read
 
 env:
-  # Must be within one minor of the cluster (k3s v1.36).
+  # Must be within one minor of the clusters (k3s v1.36 on staging and live).
   KUBECTL_VERSION: v1.36.5
   KUBECONFORM_VERSION: v0.8.0
   APP_ROOT: infra/deploy/parser/k8s/app
@@ -45,7 +46,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        environment: [staging]
+        environment: [staging, live]
     steps:
       - uses: actions/checkout@v5
         with:
