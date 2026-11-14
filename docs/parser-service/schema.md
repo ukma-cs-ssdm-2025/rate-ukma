@@ -4,8 +4,8 @@ The Postgres tables for the whole [spec](spec.md), drafted from the [САЗ edge
 
 ## Conventions
 
-- **Ids.** Every row a reader sees has `id text`: a type prefix and a ULID, for example `off_01JA2B3C4D5E6F7G8H9J0K1M2N`. Ids never change and carry no meaning (rule 1). The САЗ code, a smart.ukma id or a `cdoc` sits in its own `saz_*` or `smart_*` column as a lookup key. `runs`, `run_pages` and `page_snapshots` keep their `bigint` keys from #761; the API shows them as `run_<n>` and `snp_<n>`.
-- **Change numbers.** Every list a reader syncs has `change_no bigint`. A write takes `pg_advisory_xact_lock` on one fixed key, then `nextval('change_no_seq')`, and holds the lock until it commits, so writes take turns and the numbers commit in order (rule 5). Each list has an index on `change_no`.
+- **Ids.** Every row a reader sees has `id text`: a type prefix and a UUIDv7 from Postgres's `uuidv7()`, for example `off_0192f3a4-7b1c-7d3e-9a2b-4c5d6e7f8a9b`. Ids never change and carry no meaning (rule 1). The САЗ code, a smart.ukma id or a `cdoc` sits in its own `saz_*` or `smart_*` column as a lookup key. `runs`, `run_pages` and `page_snapshots` keep their `bigint` keys from #761; the API shows them as `run_<n>` and `snp_<n>`.
+- **Change numbers.** Every list a reader syncs has `change_no bigint`. A write takes `pg_advisory_xact_lock` on one fixed key, then `nextval('change_no_seq')`, and holds the lock until it commits, so writes take turns and the numbers commit in order (rule 5). Each list has an index on `change_no`. A row takes a number only when its content changed; for an offering, `row_hash` covers its card, terms and programmes, and a faculty or department that now resolves to another row also counts. A trigger on each list fails a statement that writes `change_no` without the lock. Rows stored before change numbers have `add` trail rows with no run or parse. Their `row_hash` starts empty, because SQL cannot compute it, so the first parse after migration 0005 renumbers every stored offering once.
 - **Removal.** Rows that come from a source have `removed_at timestamptz` and are never deleted (rule 4). A row that comes back gets `removed_at = null` and a new change number.
 - **API names.** Columns are snake_case; the API shows them in camelCase (`removedAt`, `mergedInto`, `changeNo`).
 - **Read and derived.** Columns read from a page are rewritten by every parse. Derived columns (marked "derived" below) are written only by the matching step from stored data plus decisions (rule 8).
@@ -28,6 +28,8 @@ erDiagram
   offerings ||--o{ enrollments : ""
   runs ||--o{ run_pages : visits
   page_snapshots ||--o{ run_pages : ""
+  parses ||--o{ parse_failures : records
+  page_snapshots ||--o{ parse_failures : ""
   review_cases ||--o| decisions : "answered by"
 ```
 
@@ -57,7 +59,7 @@ Terms are never removed.
 | `faculty_id` | text | departments only; a parse may change it, for every year at once (C4) |
 | `change_no`, `removed_at` | | |
 
-A department is found by name alone, so a faculty reorganisation moves the department instead of creating it again (C4).
+A department is found by name alone, so a faculty reorganisation moves the department instead of creating it again (C4). When САЗ renames a faculty or department, the row is found by its filter id instead and takes the new name, so its id and its offerings stay; the old name is not kept.
 
 ### `programmes`
 
@@ -166,16 +168,16 @@ Derived links, a list of their own.
 
 ### `students`
 
-A person (glossary: Student).
+A person (glossary: Student). The only table with students' personal fields; teacher names are in `offerings.saz_teachers` and `instructors`.
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | text | `stu_...` |
 | `email` | text null | lower-case (D5); null for the few records with none (D3). Not unique: one email can belong to two people (D14) |
-| `first_name_key` | text null | the first name lower-cased, without spaces, with `` ` ``, `ʼ` and `’` as `'`; the match key with `email` |
+| `first_name_key` | text null | the first name lower-cased, without spaces, with `` ` ``, `ʼ` and `’` as `'`; the match key with `email`. Null when the name does not have three words or holds `*` (D6), so a new record with such a name starts a new student |
 | `full_name` | text | whitespace collapsed; set by the latest list, but a name with `*` never replaces one without it (D6, D7) |
-| `last_name`, `first_name`, `patronymic` | text null | filled only when the name has three words |
-| `change_no`, `removed_at` | | removed when no enrollment of the person is left |
+| `snapshot_id` | bigint | the list that last set the name |
+| `change_no`, `removed_at` | | removed when no programme record of the person is left |
 
 A person is never found by email alone ([ADR-0013](../architecture/decisions/0013-student-identity.md)). A list entry finds its programme record by `cdoc`, and the record keeps its student. A new `cdoc` joins the student with the same `email` and `first_name_key`, else it starts a new student; a new `cdoc` without an email always starts a new student (D3). No unique key on (`email`, `first_name_key`): a staff split leaves two students with the same pair, and the existing `cdoc` link keeps each record with its student. When several students match a new `cdoc`, it joins the one with the newest first enrollment and a `student_match` review case opens. When the email and first name match but the surname differs (D14), the record joins that student and a `student_match` review case asks staff whether it is a second person. When a `cdoc` shows a new email, the record keeps its student and the student takes the new email (D1).
 
@@ -188,7 +190,9 @@ One `cdoc`: a student on one programme (D1).
 | `id` | text | `spr_...` |
 | `saz_cdoc` | text unique | |
 | `student_id` | text | |
+| `spec_name` | text | the programme as the list names it, without a level (D12) |
 | `programme_id` | text null | the programme named `specName` on the cards of the record's offerings; null when those cards name it at both levels (D12) |
+| `snapshot_id` | bigint | the list that last set the row |
 | `change_no`, `removed_at` | | removed when no enrollment of the record is left |
 
 ### `enrollments`
@@ -199,13 +203,25 @@ One `cdoc`: a student on one programme (D1).
 | `offering_id`, `student_programme_id` | text | unique together; one person can be on a list twice (D2) |
 | `kind` | text | `compulsory`, `prof_oriented`, `elective` from `type` (D11) |
 | `status` | text | `enrolled` (10) or `unenrolled` (-10) |
-| `student_state` | text | `enrolled`, `not_studying`, `dropped`, `forced` from `statusLabel` (D8) |
+| `is_student_active` | boolean | false is "не навчається": the person, at crawl time, not the enrollment (D8) |
 | `is_forced` | boolean | |
 | `group_no` | smallint null | (D9) |
 | `grade` | smallint | the student's year of study then |
 | `saz_created_at`, `saz_updated_at` | timestamptz null | null when САЗ sends 0 (D10) |
-| `snapshot_id` | bigint | the students page this row was last parsed from |
 | `change_no`, `removed_at` | | |
+
+The labels (`statusLabel`, `typeLabel`, `statusDescription`) and `isEnrolled`, `isUnenrolled` follow from `status`, `is_student_active` and `is_forced`, so they are not stored.
+
+### `enrollment_lists`
+
+One row per offering whose students page was applied, empty or not. Not numbered: readers do not get it.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `offering_id` | text | key |
+| `snapshot_id` | bigint | the page applied; a crawl skips a list whose latest page this is |
+| `entry_count` | integer | 0 for `[]` |
+| `parsed_at` | timestamptz | |
 
 ## Runs and pages
 
@@ -216,13 +232,12 @@ One `cdoc`: a student on one programme (D1).
 | `runs` | `trigger` | text | `schedule` or `key` |
 | | `key_id` | text null | the key that asked for an extra run |
 | | `offering_removals` | text | `applied`, `held` or `skipped` (see below) |
-| | `lists_kept` | integer | offerings whose students page failed, so their enrollments were kept |
+| | `lists_kept` | integer | offerings whose enrollments were kept: the students page failed, or it emptied while the card still shows enrollments (A7) |
 | `run_pages` | `http_status` | smallint null | 500 for the A2 pages |
-| `page_snapshots` | `parse_status` | text | `ok` or `failed` |
-| | `parse_error` | text null | |
-| | `parser_version` | text | a parser fix re-parses rows with an older version (rule 2) |
 
 A page that fails to parse keeps its last good rows, and `offerings.snapshot_id` still points at the snapshot they came from (rule 6).
+
+Each parse of the stored pages, after a crawl or from the `reparse` command, adds a `parses` row (`trigger` `crawl` or `reparse`, `started_at`, `finished_at`, and a `report` with the pages parsed and the failures counted by reason). Each page that fails adds a `parse_failures` row with the parse, the snapshot, the path and the reason. A `parses` row with no `finished_at` is a parse that is running or crashed. `reparse` parses the latest snapshot of every course page again, so no parser version is kept (rule 2).
 
 ### `changes`
 
@@ -233,9 +248,12 @@ The trail of each run and decision (rule 11).
 | `change_no` | bigint | key; the number the row got |
 | `table_name`, `row_id` | text | |
 | `action` | text | `add`, `change`, `remove`, `restore` |
-| `run_id` | bigint null | |
+| `run_id` | bigint null | the run whose removal step removed the row |
+| `parse_id` | bigint null | the parse that added, changed or restored the row; a parse publishes what a crawl fetched, so a run's added and changed rows are those of the parse after it |
 | `decision_id` | text null | |
 | `at` | timestamptz | |
+
+Each parse's `report` counts its rows by table and action. A removed offering comes back only when a run fetches its page after the removal and no later run that decided removals left it out: its last snapshot stays the latest of its path, so a reparse alone does not restore it, and until then it keeps the content of its last parse. A run that holds the same removals as the year's open `removals_held` case keeps that case. A department takes the faculty of its newest card that names one (latest year, then highest САЗ code), so it moves when САЗ rewrites its cards (C4) and takes no new change number when a parse finds the same pages. Faculties, departments and programmes are not removed yet.
 
 ## Review cases and decisions
 
@@ -278,8 +296,8 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | --- | --- | --- |
 | `id` | text | `key_...` |
 | `name` | text | |
-| `secret_hash` | text | the key is shown once |
-| `scopes` | text[] | |
+| `secret_hash` | text | SHA-256 of the secret; the token `ukd_<id>.<secret>` is shown once |
+| `scopes` | text[] | `catalog:read`, `review:decide`; a scope is added with the first endpoint that needs it, by a migration that widens the check |
 | `created_by` | text null | the key that made it; null for the first, made on the command line |
 | `created_at`, `expires_at`, `revoked_at` | timestamptz | |
 
@@ -289,11 +307,12 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | --- | --- | --- |
 | `id` | text | `aud_...` |
 | `at` | timestamptz | |
-| `key_id` | text | |
-| `staff_user` | text null | |
-| `action` | text | `key_created`, `key_revoked`, `run_started`, `decision_made`, `students_read`, `snapshots_read` |
+| `key_id` | text null | null for an action from the command line |
+| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`; a new action comes with the code that writes it |
+| `route` | text null | the endpoint's method and path template, such as `GET /v1/offerings`; no ids or filter values |
 | `target_id` | text null | |
 | `row_count` | integer null | rows returned for a read; no data values |
+| `reason` | text null | on a `request_denied` row, why the request was refused: `wrong_secret`, `revoked`, `expired`, `missing_scope`, `no_required_scopes` |
 
 ## When a run may remove rows
 
@@ -301,7 +320,7 @@ Decided 2026-10-17, spec rule 6: one removal scope per list, not per run. САЗ
 
 - Offerings of a year, with their term and programme rows: removed when every catalog page and every course page of the run loaded and the catalog pages agree: each reports the same total, and the run collected that many distinct codes. САЗ can add or drop a course between two catalog pages, which shifts the pages and can hide an offering that never left. A page that loaded but failed to parse counts as not loaded. A failed students page does not block them. The removal threshold is a setting, 5% of the year's offerings to start: if the run would remove more, it holds the removals as a `removals_held` review case. Faculties, departments and programmes are not removed in the first release.
 - Enrollments of one offering: replaced only when that offering's students page loaded and parsed in the run. A failed page keeps the offering's last good enrollments, or none.
-- `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed or the catalog pages disagree. `runs.lists_kept` counts the offerings whose enrollments the run kept.
+- `runs.offering_removals` is `applied`, `held` when a review case holds them, or `skipped` when a catalog or course page failed, a course page of the run is not parsed (it failed, or the parse crashed), or the catalog pages disagree; `runs.report.removalsSkipped` says why. One course leaving and another arriving in the same run still pass; the next run restores what that removed. A year whose catalog empties keeps its offerings, since a catalog page without a summary fails the run. `runs.lists_kept` counts the offerings whose enrollments the run kept.
 
 For example, the run for 2020-21 loads every catalog and course page and fails on 139 students pages. It may remove 2020-21 offerings that left the catalog, and it publishes no enrollments for the 139 offerings until САЗ serves their lists.
 

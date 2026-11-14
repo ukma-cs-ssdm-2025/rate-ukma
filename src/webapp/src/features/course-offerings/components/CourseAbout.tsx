@@ -59,8 +59,8 @@ export function CourseAbout({
 	const exam = offeringExamType(latestOffering);
 
 	return (
-		<section aria-label="Про курс" className="min-w-0 space-y-5">
-			<h2 className="text-lg font-semibold tracking-tight">Про курс</h2>
+		<section aria-label="Про дисципліну" className="min-w-0 space-y-5">
+			<h2 className="text-lg font-semibold tracking-tight">Про дисципліну</h2>
 			{description ? (
 				<ExpandableText
 					lines={isPhone ? 3 : 4}
@@ -77,7 +77,7 @@ export function CourseAbout({
 			) : null}
 			{courseOfferings.length > 0 ? (
 				<div className="space-y-2 pt-1">
-					<h3 className="text-sm font-semibold">Історія курсу</h3>
+					<h3 className="text-sm font-semibold">Історія дисципліни</h3>
 					<CourseCazRecords
 						courseOfferings={courseOfferings}
 						initialVisible={isPhone ? 2 : 3}

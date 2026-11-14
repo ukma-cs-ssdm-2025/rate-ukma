@@ -4,23 +4,34 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 ## Run
 
-- Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`.
-- Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role and `parser-migrate` applies migrations.
-- Settings: `DATABASE_URL` (worker and migrate), `PORT` (api, default 8080), and for the worker `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the САЗ account), `SAZ_REQUEST_GAP` (default 1 second) and `SAZ_REQUEST_TIMEOUT` (default 30 seconds, covering the response body).
+- Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`, `pnpm crawl-smart`, `pnpm create-key`, `pnpm revoke-key`, `pnpm list-keys`.
+- Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role on `parser-db` and `parser-migrate` applies migrations. `parser-db` is the parser's own Postgres 18 with its own volume, on `127.0.0.1:${PARSER_POSTGRES_PORT:-5433}`, as staging runs; the Django app keeps `db-rateukma` on Postgres 15.
+- Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the university account, for the worker's САЗ crawl and `crawl-smart`), `SAZ_REQUEST_GAP` and `SMART_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` and `SMART_REQUEST_TIMEOUT` (default 30 seconds, covering the response body), `CRAWL_INTERVAL` (from the start of one САЗ crawl to the start of the next, default 24 hours, at least 1 hour) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
 
 ## Layout
 
-- `src/main.ts`: the `api`, `worker` and `migrate` commands.
-- `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer.
-- `src/worker/`: the background loop.
+- `src/main.ts`: the `api`, `worker`, `migrate`, `reparse` and `crawl-smart` commands. `reparse` rebuilds the parsed tables from stored snapshots and sends nothing to САЗ; `crawl-smart` stores the smart.ukma lists once.
+- `src/keys/`: API keys, their scopes, and the `create-key`, `revoke-key` and `list-keys` commands. `src/audit/Audit.ts` writes the audit log.
+- `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
+- `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
+- `docs/parser-service/openapi.json` is generated from `Api.ts` by `pnpm openapi`; `src/api/openapi.test.ts` fails when the committed file is stale.
+- `src/worker/`: the background loop (`crawlLoop.ts`), every `CRAWL_INTERVAL`: crawl (the two latest years and the older year crawled longest ago, `yearsToCrawl`), parse offerings, parse students (`src/students/`), then removals (`src/offerings/removals.ts`).
+- `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
+- `src/microsoft/`: the cookie session and Microsoft password sign-in both clients use.
+- `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`, read from the `Location` header and never requested so no span or log holds the tokens; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes, longer than a crawl of the four lists, and a held token that gets a 401 or 403 makes the client sign in again once.
 - `src/db/database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
 ## Rules
 
+- Every write to a numbered table (one with `change_no`) runs inside `ChangeLog.withTurn` and takes `nextval('change_no_seq')` only for rows whose content changed; `ChangeLog.track` adds their `changes` rows. `track` requires the `Turn` service, which only `withTurn` provides, and the `require_turn` trigger fails a statement that writes `change_no` without the turn's lock.
 - A new migration is added by hand to the `migrations` record in `src/db/database.ts`; `database.test.ts` checks that its keys are `NNNN_name`, unique by number and in order. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
-- The container contract (one image, commands `api`/`worker`/`migrate`, `DATABASE_URL`, `PORT`, the worker's САЗ account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
+- Every other endpoint sits in a group with `.middleware(ApiKeyAuth)` and is annotated with `RequiredScopes`; without the annotation it refuses every key. A list handler calls `Caller.countRows`, so the audit row has the count and never the values.
+- A list endpoint takes `PageQuery` and returns `Page(item)`: rows above `after` ordered by `change_no`, removed rows included, so readers apply removals. Never page by time or offset (spec rule 5).
+- A write endpoint (start a run, decide a case) records its audit row inside its own transaction, so a failed audit write cannot leave work done behind a 500.
+- A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
+- The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`crawl-smart`/`create-key`/`revoke-key`/`list-keys`, `DATABASE_URL`, `PORT`, the university account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
 
 ## Conventions
 
@@ -44,7 +55,7 @@ Database:
 - A migration must work with the image that is still running. Add tables and columns first; drop or rename them in a later PR, after no deployed code reads them (expand, then contract).
 - Advisory-lock keys go in `src/db/locks.ts` as named constants. A migration or test that needs a key interpolates the constant, never repeats the number. Prefer `pg_advisory_xact_lock`, which commit releases, as `ChangeLog.withTurn` does. A lock that spans transactions, such as the crawl's, is a session lock: take and release it on one reserved connection, since a pooled query may run on another session.
 - A worker step is safe to run twice: queue inserts use `ON CONFLICT`, snapshots dedupe by hash, a crashed run resumes instead of restarting, and `reparse` rebuilds from snapshots. A crash between two statements must not need a manual fix.
-- Every request to another system has a timeout and a capped, spaced retry, as `SazClient` has (`SAZ_REQUEST_TIMEOUT`, `SAZ_REQUEST_GAP`). Retry each request step, not a multi-step sign-in around it, and never retry a failed sign-in: each try sends the password again.
+- Every request to another system has a timeout and a capped, spaced retry, as `SazClient` and `SmartClient` have (`SAZ_REQUEST_TIMEOUT`, `SAZ_REQUEST_GAP`, `SMART_REQUEST_TIMEOUT`, `SMART_REQUEST_GAP`). Retry each request step, not a multi-step sign-in around it, and never retry a failed sign-in: each try sends the password again.
 
 Tests:
 
@@ -72,4 +83,4 @@ The personal `effect-ts` and `install-anti-slop` skills are not needed: everythi
 
 ## Checks
 
-`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests always need `TEST_DATABASE_URL`, a server where they may create and drop databases (CI's Postgres service, or locally the docker compose Postgres as the `postgres` user); without it they fail, locally too. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.
+`pnpm check:all` (oxlint, oxfmt, tsc, vitest) is the gate CI runs. The Postgres tests always need `TEST_DATABASE_URL`, a server where they may create and drop databases (CI's Postgres 18 service, or locally the compose `parser-db` as the `postgres` user); without it they fail, locally too. The anti-slop lint rules are vendored in `tools/oxlint/anti-slop`; `UPSTREAM.md` there lists the update steps.

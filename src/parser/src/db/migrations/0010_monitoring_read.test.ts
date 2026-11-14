@@ -4,7 +4,7 @@ import { SqlClient } from "effect/sql";
 import { TestDatabase, testDatabaseUrl } from "../testing.ts";
 
 layer(TestDatabase(testDatabaseUrl))((it) => {
-	describe("0003_monitoring_read", () => {
+	describe("0010_monitoring_read", () => {
 		it.effect(
 			"lets pg_monitor read the crawl tables but not the snapshots",
 			() =>
