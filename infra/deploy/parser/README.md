@@ -262,9 +262,10 @@ Everything below is done once per environment: replace `Staging` with `Live` in 
 **First rollout of live,** in this order (all manual dispatches):
 
 1. **Provision Parser VM**, `live`: `plan`, then `apply`.
-2. Add the node's secrets, the DNS record `data.rateukma.com` and the deployer kubeconfig (steps below).
-3. **Parser Platform**, `live`: `diff`, then `apply`.
-4. **Deploy Parser**, `live`, the current version. After that, deploys are automatic.
+2. Add the node's secrets and the DNS record `data.rateukma.com` (steps 1–5 below).
+3. **Parser Platform**, `live`: `diff`, then `apply`. It creates `parser-deployer-token`, which the kubeconfig needs.
+4. Build the deployer kubeconfig and store it as `PARSER_DEPLOY_KUBECONFIG` (step 6 below).
+5. **Deploy Parser**, `live`, the current version. After that, deploys are automatic.
 
 1. **Pull token.** The image is private, so the pods pull it with the `parser-ghcr-pull` Secret, which **Parser Platform** creates on apply.
    - Create a **classic** personal access token with only **`read:packages`**. ghcr.io accepts no other kind.
