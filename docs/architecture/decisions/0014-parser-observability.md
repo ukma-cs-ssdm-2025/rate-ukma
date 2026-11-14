@@ -16,7 +16,7 @@ UKMA Data runs on a single-node k3s cluster on staging ([ADR-0011](./0011-saz-da
 
 - **A small node.** One `cx23` VM (2 vCPU, 4 GB) already runs Postgres (1 GiB for two instances), the operators, Traefik, the API and the worker.
 - **No new open ports.** The firewall allows only 22, 80 and 443.
-- **Student data.** `page_snapshots.content` holds student lists. Telemetry that leaves the node may carry ids, paths, counts and error reasons, never page content.
+- **Student data.** `page_snapshots.content` holds student lists. Telemetry that leaves the node carries ids and counts only, never names, emails or page content. Log lines name a page by its path, which holds only ids and numbers (`/course/<id>`, or a catalog year and page), and give the error as a fixed reason such as `HTTP 503`, never text from the page.
 - **Reviewed changes.** The repo is public, and the platform is applied only from CI after review. What we collect should change the same way.
 - **No budget.** The service has no paid infrastructure beyond the VM.
 - **Crawl health lives in the database.** The `runs` and `run_pages` tables already record every crawl; the parser code exposes no metrics.

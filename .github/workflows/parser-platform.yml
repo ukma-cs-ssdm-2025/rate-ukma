@@ -168,25 +168,19 @@ jobs:
           GRAFANA_LOKI_URL: ${{ secrets.GRAFANA_LOKI_URL }}
           GRAFANA_LOKI_USER: ${{ secrets.GRAFANA_LOKI_USER }}
         run: |
-          before=$(kubectl -n monitoring get secret grafana-cloud --ignore-not-found -o jsonpath='{.metadata.resourceVersion}')
-
           bash scripts/ci/parser-platform-grafana-secret.sh \
             | kubectl apply --server-side --field-manager=parser-platform -f -
-
-          after=$(kubectl -n monitoring get secret grafana-cloud -o jsonpath='{.metadata.resourceVersion}')
-
-          # Alloy reads the Secret only at start, so a rotated token needs a restart (in the next step).
-          if [ -n "$before" ] && [ "$before" != "$after" ]; then
-            echo "GRAFANA_SECRET_CHANGED=true" >> "$GITHUB_ENV"
-          fi
 
       - name: Apply monitoring
         run: |
           kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/monitoring"
 
-          if [ "${GRAFANA_SECRET_CHANGED:-}" = true ]; then
-            kubectl -n monitoring rollout restart deployment/alloy
-          fi
+          # Alloy reads the Secret only when it starts, so it must restart when the token changes.
+          # We store a hash of the Secret on the pod: a new hash restarts Alloy, the same hash does nothing.
+          # The hash stays on the cluster, so a re-run after a failed deploy still restarts Alloy.
+          hash=$(kubectl -n monitoring get secret grafana-cloud -o jsonpath='{.data}' | sha256sum | cut -c1-16)
+          kubectl -n monitoring patch deployment alloy --type merge \
+            -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"rateukma.com/grafana-secret-hash\":\"$hash\"}}}}}"
 
           kubectl -n monitoring rollout status deployment/alloy --timeout=3m
 
