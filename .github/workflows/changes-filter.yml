@@ -29,6 +29,9 @@ on:
       parser_changed:
         description: "Whether parser code changed in the caller ref"
         value: ${{ jobs.filter.outputs.parser_changed }}
+      parser_deploy_changed:
+        description: "Whether parser code or its k8s app manifests changed in the caller ref"
+        value: ${{ jobs.filter.outputs.parser_deploy_changed }}
       openapi_changed:
         description: "Whether openapi schema changed in the caller ref"
         value: ${{ jobs.filter.outputs.openapi_changed }}
@@ -43,6 +46,7 @@ env:
   BACKEND_DIR: src/backend
   WEBAPP_DIR: src/webapp
   PARSER_DIR: src/parser
+  PARSER_APP_MANIFESTS_DIR: infra/deploy/parser/k8s/app
   OPENAPI_SCHEMA_FILE: docs/api/openapi-generated.yaml
   CI_DIR: .github
   INFRA_DIR: infra
@@ -54,6 +58,7 @@ jobs:
       backend_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.backend == 'true' }}
       webapp_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.webapp == 'true' }}
       parser_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.parser == 'true' }}
+      parser_deploy_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.parser_deploy == 'true' }}
       openapi_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.openapi == 'true' }}
       ci_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.ci == 'true' }}
       infra_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.infra == 'true' }}
@@ -77,6 +82,9 @@ jobs:
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
             parser:
               - '${{ env.PARSER_DIR }}/**'
+            parser_deploy:
+              - '${{ env.PARSER_DIR }}/**'
+              - '${{ env.PARSER_APP_MANIFESTS_DIR }}/**'
             openapi:
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
             ci:
