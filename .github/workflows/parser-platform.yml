@@ -9,12 +9,6 @@ on:
       - .github/workflows/parser-platform.yml
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Parser environment to update"
-        required: true
-        type: choice
-        options:
-          - staging
       action:
         description: "diff shows the changes - apply applies them"
         required: true
@@ -27,14 +21,14 @@ on:
 permissions:
   contents: read
 
-# One dispatch run per environment at a time, so nothing changes the cluster between diff and apply.
+# One dispatch run at a time, so nothing changes the cluster between diff and apply.
 # Pull requests get their own group, so rendering is never queued behind an approval.
 concurrency:
-  group: parser-platform-${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.ref }}
+  group: parser-platform-${{ github.event_name == 'workflow_dispatch' && 'cluster' || github.ref }}
   cancel-in-progress: false
 
 env:
-  # Keep within one minor version of the cluster (k3s v1.36 on staging).
+  # Keep within one minor version of the cluster (k3s v1.36).
   KUBECTL_VERSION: v1.36.5
   PLATFORM_ROOT: infra/deploy/parser/k8s/platform
   # Applied in this order: each one needs what the previous one installs.
@@ -63,10 +57,10 @@ jobs:
   diff:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    # No reviewer here: the diff runs first, and the apply job's environment asks for approval.
-    # Its PARSER_KUBECONFIG is the admin one, so a dispatch from an allowed branch is cluster-admin without
-    # approval. Accepted on staging: keep the environment's branch policy to main and the branch in review.
-    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Plan
+    # The diff needs no approval, the apply job below does
+    # ! This job still uses the admin kubeconfig, so anyone who can run it has full access to the live cluster
+    # Parser Plan only allows runs from main
+    environment: Parser Plan
     steps:
       - uses: actions/checkout@v5
         with:
@@ -84,8 +78,6 @@ jobs:
           kubeconfig: ${{ secrets.PARSER_KUBECONFIG }}
 
       - name: Diff
-        env:
-          ENVIRONMENT: ${{ inputs.environment }}
         run: bash scripts/ci/parser-platform-diff.sh
 
   apply:
@@ -94,7 +86,7 @@ jobs:
     if: inputs.action == 'apply'
     runs-on: ubuntu-24.04
     # Cluster-admin with a required reviewer: approve after reading the diff in the run summary.
-    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }}
+    environment: Parser
     steps:
       # Same run, the same commit and manifests as the diff.
       - uses: actions/checkout@v5
@@ -188,7 +180,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "### Platform (${{ inputs.environment }})"
+            echo "### Platform"
             echo '```'
             kubectl get pods -n cert-manager
             kubectl get pods -n cnpg-system

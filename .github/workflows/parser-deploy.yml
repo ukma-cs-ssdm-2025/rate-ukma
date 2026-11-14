@@ -8,22 +8,12 @@ on:
       - .github/workflows/parser-deploy.yml
   workflow_call:
     inputs:
-      environment:
-        description: "Parser environment to deploy to"
-        required: true
-        type: string
       version_tag:
         description: "Version to deploy (finds the best matching parser image)"
         required: true
         type: string
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Parser environment to deploy to"
-        required: true
-        type: choice
-        options:
-          - staging
       version_tag:
         description: "Version or commit SHA to deploy (finds the best matching parser image)"
         required: true
@@ -37,15 +27,14 @@ env:
   KUBECTL_VERSION: v1.36.5
   KUBECONFORM_VERSION: v0.8.0
   APP_ROOT: infra/deploy/parser/k8s/app
+  # The one parser environment (ADR-0015).
+  OVERLAY: live
   PARSER_IMAGE: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser
 
 jobs:
   validate:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        environment: [staging]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -67,7 +56,7 @@ jobs:
       - name: Validate rendered manifests
         shell: bash
         run: |
-          kubectl kustomize "$APP_ROOT/overlays/${{ matrix.environment }}" \
+          kubectl kustomize "$APP_ROOT/overlays/$OVERLAY" \
             | kubeconform -strict -summary -kubernetes-version "${KUBECTL_VERSION#v}"
 
   deploy:
@@ -75,11 +64,11 @@ jobs:
     runs-on: ubuntu-24.04
     # No reviewer: every merge deploys. It reaches the node as the tunnel-only user, and the parser-deployer
     # kubeconfig can't read Secrets directly or change RBAC.
-    environment: Parser ${{ inputs.environment == 'staging' && 'Staging' || 'Live' }} Deploy
-    # One deploy per environment at a time; a newer one waits instead of cancelling a migration.
+    environment: Parser Deploy
+    # One deploy at a time; a newer one waits instead of cancelling a migration.
     # Only the newest waiting deploy runs: the ones it replaces add nothing, since migrate applies every pending migration.
     concurrency:
-      group: parser-deploy-${{ inputs.environment }}
+      group: parser-deploy
       cancel-in-progress: false
     permissions:
       contents: read
@@ -110,14 +99,13 @@ jobs:
 
       - name: Render manifests
         env:
-          ENVIRONMENT: ${{ inputs.environment }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           # A throwaway overlay on top of the environment's, so the tag is set by kustomize.
           dir="$APP_ROOT/overlays/.deploy"
           mkdir -p "$dir"
           printf '%s\n' \
-            "resources: [../$ENVIRONMENT]" \
+            "resources: [../$OVERLAY]" \
             "images:" \
             "  - name: $PARSER_IMAGE" \
             "    newTag: \"$TAG\"" > "$dir/kustomization.yaml"
@@ -183,11 +171,10 @@ jobs:
       - name: Status
         if: always() && env.MANIFESTS != ''
         env:
-          ENVIRONMENT: ${{ inputs.environment }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           {
-            echo "### Parser deploy ($ENVIRONMENT)"
+            echo "### Parser deploy"
             echo "Image: \`$PARSER_IMAGE:$TAG\`"
             echo '```'
             kubectl -n parser get deployments,jobs,pods,ingress || true

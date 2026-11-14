@@ -7,7 +7,6 @@ set -euo pipefail
 
 : "${PLATFORM_ROOT:?PLATFORM_ROOT is required}"
 : "${PLATFORM_DIRS:?PLATFORM_DIRS is required}"
-: "${ENVIRONMENT:?ENVIRONMENT is required}"
 : "${GITHUB_STEP_SUMMARY:?GITHUB_STEP_SUMMARY is required}"
 
 diff_file=$(mktemp)
@@ -54,7 +53,7 @@ fi
 
 cat "$diff_file"
 {
-  echo "### Platform diff ($ENVIRONMENT)"
+  echo "### Platform diff"
   if [ "$has_changes" = false ]; then
     echo "No changes."
   else
