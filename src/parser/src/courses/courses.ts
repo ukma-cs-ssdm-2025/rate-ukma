@@ -61,7 +61,8 @@ const courseByKey = (courses: ReadonlyArray<StoredCourse>) => {
 
 /** The courses the rule needs before offerings can link to them: a key no
  *  course holds gets a new course; a removed course whose key has live
- *  offerings again comes back, so its id stays. */
+ *  offerings again comes back, so its id stays. A removed course a decision
+ *  holds a live offering in comes back too. */
 export const planCourses = (
 	offerings: ReadonlyArray<LiveOffering>,
 	courses: ReadonlyArray<StoredCourse>,
@@ -76,6 +77,20 @@ export const planCourses = (
 
 		if (course === undefined) add.set(key, { title, departmentId, level });
 		else if (course.removed) restore.add(course.id);
+	}
+
+	const byId = new Map(courses.map((course) => [course.id, course]));
+
+	for (const { courseId, courseSource } of offerings) {
+		const course = courseId === null ? undefined : byId.get(courseId);
+
+		if (
+			courseSource === "decision" &&
+			course?.removed === true &&
+			course.mergedInto === null
+		) {
+			restore.add(course.id);
+		}
 	}
 
 	return { add: [...add.values()], restore: [...restore] };

@@ -86,6 +86,27 @@ describe("planCourses", () => {
 			{ add: [], restore: ["crs_2"] },
 		);
 	});
+
+	it("restores the removed course a decision holds a live offering in", () => {
+		assert.deepStrictEqual(
+			planCourses(
+				[
+					live("off_1", {
+						title: "Інше",
+						courseId: "crs_3",
+						courseSource: "decision",
+					}),
+					live("off_2", { courseId: "crs_4", courseSource: "decision" }),
+				],
+				[
+					course("crs_1"),
+					course("crs_3", { title: "Ще інше", removed: true }),
+					course("crs_4", { removed: true, mergedInto: "crs_1" }),
+				],
+			).restore,
+			["crs_3"],
+		);
+	});
 });
 
 describe("planLinks", () => {
