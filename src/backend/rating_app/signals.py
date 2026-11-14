@@ -1,11 +1,16 @@
-from django.db import transaction
+from django.contrib.auth.signals import user_logged_in
+from django.db import DatabaseError, transaction
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+
+import structlog
 
 from rateukma.caching.instances import redis_cache_manager
 from rateukma.caching.patterns import FEED_NAMESPACE
 from rating_app.ioc_container.services import feed_service, feed_update_service
-from rating_app.models import FeedEvent, FeedPost
+from rating_app.models import FeedEvent, FeedPost, SignIn
+
+logger = structlog.get_logger(__name__)
 
 
 # Every feed change, including cascaded deletes, lands in `FeedEvent`
@@ -25,3 +30,14 @@ def invalidate_feed_cache(sender, **kwargs) -> None:
 @receiver(post_save, sender=FeedPost)
 def sync_post_to_feed(sender, instance: FeedPost, **kwargs) -> None:
     feed_update_service().sync_post(instance)
+
+
+# No service sees a sign-in, so a signal records it.
+# If the write fails, the sign-in goes on and the error is logged.
+@receiver(user_logged_in)
+def record_sign_in(sender, user, **kwargs) -> None:
+    try:
+        with transaction.atomic():
+            SignIn.objects.create(user=user)
+    except DatabaseError:
+        logger.exception("sign_in_record_failed", user_id=user.pk)
