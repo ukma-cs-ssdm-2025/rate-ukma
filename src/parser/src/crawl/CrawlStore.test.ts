@@ -1,9 +1,10 @@
 import { assert, describe, layer } from "@effect/vitest";
-import { Deferred, Effect, Fiber, Layer } from "effect";
+import { Deferred, Duration, Effect, Exit, Fiber, Layer } from "effect";
 import { SqlClient } from "effect/sql";
+import { CRAWL_LOCK, SMART_CRAWL_LOCK } from "../db/locks.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { CrawlStore, type QueuedPage } from "./CrawlStore.ts";
-import { snapshotOf } from "./snapshot.ts";
+import { snapshotOf, snapshotOfJson } from "./snapshot.ts";
 
 const TestLive = CrawlStore.layer.pipe(
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
@@ -11,16 +12,22 @@ const TestLive = CrawlStore.layer.pipe(
 
 const FIRST: QueuedPage = { kind: "catalog", path: "/course/catalog?page=1" };
 
+const SMART_LIST: QueuedPage = {
+	kind: "smart_departments",
+	path: "/api/department",
+};
+
 const course = (code: string): QueuedPage => ({
 	kind: "course",
 	path: `/course/${code}`,
 });
 
-/** Empties the crawl tables, so each test starts without runs. */
+/** Empties the crawl tables and the rows parsed from them, so each test
+ *  starts without runs. */
 const reset = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 
-	yield* sql`TRUNCATE runs, run_pages, page_snapshots RESTART IDENTITY`;
+	yield* sql`TRUNCATE runs, run_pages, page_snapshots RESTART IDENTITY CASCADE`;
 });
 
 /** Starts a run whose first page links to `next`, with the first page done. */
@@ -29,7 +36,7 @@ const startWith = (next: ReadonlyArray<QueuedPage>) =>
 		const store = yield* CrawlStore;
 
 		const [run] = yield* store.startRuns([
-			{ sourcePart: "saz-courses:2031-32", first: FIRST },
+			{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
 		]);
 
 		const first = yield* store.claim(run.id);
@@ -46,7 +53,7 @@ const fetchOnce = (path: string, body: string) =>
 		const store = yield* CrawlStore;
 
 		const [run] = yield* store.startRuns([
-			{ sourcePart: "saz-courses:2031-32", first: course(path) },
+			{ sourcePart: "saz-courses:2031-32", pages: [course(path)] },
 		]);
 
 		const page = yield* store.claim(run.id);
@@ -231,7 +238,7 @@ describe("CrawlStore", () => {
 					failures: [],
 				});
 
-				const open = yield* store.openRuns;
+				const open = yield* store.openRuns("saz-courses");
 
 				assert.deepStrictEqual(open, [crashed]);
 				assert.deepStrictEqual(yield* pagesOf(crashed.id), [
@@ -260,7 +267,7 @@ describe("CrawlStore", () => {
 				const store = yield* CrawlStore;
 
 				const [run] = yield* store.startRuns([
-					{ sourcePart: "saz-courses:2031-32", first: FIRST },
+					{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
 				]);
 
 				// The crash hit the first page an hour ago.
@@ -269,7 +276,7 @@ describe("CrawlStore", () => {
 					UPDATE run_pages SET claimed_at = claimed_at - interval '1 hour'
 					WHERE run_id = ${run.id}
 				`;
-				yield* store.openRuns;
+				yield* store.openRuns("saz-courses");
 				yield* store.claim(run.id);
 
 				const { seconds } = yield* store.report(run.id);
@@ -325,7 +332,10 @@ describe("CrawlStore", () => {
 				const store = yield* CrawlStore;
 
 				const [first, second] = yield* Effect.scoped(
-					Effect.all([store.lockCrawl, Effect.scoped(store.lockCrawl)]),
+					Effect.all([
+						store.lockCrawl(CRAWL_LOCK),
+						Effect.scoped(store.lockCrawl(CRAWL_LOCK)),
+					]),
 				);
 
 				// A pooled session takes its own lock again, so the release is
@@ -337,6 +347,180 @@ describe("CrawlStore", () => {
 				`;
 
 				assert.deepStrictEqual([first, second, held], [true, false, 0]);
+			}),
+		);
+		it.effect("resumes only the open runs of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const store = yield* CrawlStore;
+				const saz = yield* startWith([course("100001")]);
+
+				const [smart] = yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: [SMART_LIST] },
+				]);
+
+				yield* store.claim(saz.id);
+				yield* store.claim(smart.id);
+
+				const open = yield* store.openRuns("smart-ukma");
+
+				assert.deepStrictEqual(open, [smart]);
+				assert.deepStrictEqual(yield* pagesOf(smart.id), [
+					`pending 0 ${SMART_LIST.path}`,
+				]);
+				assert.deepStrictEqual(yield* pagesOf(saz.id), [
+					`done 1 ${FIRST.path}`,
+					"claimed 1 /course/100001",
+				]);
+			}),
+		);
+
+		it.effect("reads the latest start of each part of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				yield* sql`
+					INSERT INTO runs (source_part, started_at) VALUES
+						('saz-courses:2031-32', now() - interval '5 hours'),
+						('saz-courses:2031-32', now() - interval '2 hours'),
+						('saz-courses:2032-33', now() - interval '3 hours'),
+						('smart-ukma:2031-09-01', now() - interval '1 hour')
+				`;
+
+				const starts = yield* store.lastStarts("saz-courses");
+
+				assert.deepStrictEqual(
+					starts
+						.map(({ sourcePart, secondsAgo }) => ({
+							sourcePart,
+							hours: Math.round(secondsAgo / 3600),
+						}))
+						.sort((a, b) => a.sourcePart.localeCompare(b.sourcePart)),
+					[
+						{ sourcePart: "saz-courses:2031-32", hours: 2 },
+						{ sourcePart: "saz-courses:2032-33", hours: 3 },
+					],
+				);
+			}),
+		);
+
+		it.effect("reads the latest start and open runs of the asked source", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				assert.isUndefined(yield* store.lastCrawl("saz-courses"));
+
+				const [older, newer] = yield* store.startRuns([
+					{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
+					{ sourcePart: "saz-courses:2032-33", pages: [FIRST] },
+				]);
+
+				yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: [SMART_LIST] },
+				]);
+
+				yield* sql`UPDATE runs SET started_at = now() - interval '3 hours' WHERE id = ${older.id}`;
+				yield* sql`UPDATE runs SET started_at = now() - interval '2 hours' WHERE id = ${newer.id}`;
+
+				const running = yield* store.lastCrawl("saz-courses");
+
+				yield* sql`UPDATE runs SET status = 'succeeded' WHERE source_part LIKE 'saz-courses:%'`;
+
+				const finished = yield* store.lastCrawl("saz-courses");
+
+				assert.deepStrictEqual(
+					[running, finished].map((last) => ({
+						hours: Math.round(
+							last === undefined ? 0 : Duration.toHours(last.ago),
+						),
+						open: last?.open,
+					})),
+					[
+						{ hours: 2, open: true },
+						{ hours: 2, open: false },
+					],
+				);
+			}),
+		);
+
+		it.effect("starts a run with every page it is given queued", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const store = yield* CrawlStore;
+
+				const lists: ReadonlyArray<QueuedPage> = [
+					SMART_LIST,
+					{ kind: "smart_teachers", path: "/api/teacher" },
+					{ kind: "smart_disciplines", path: "/api/discipline" },
+					{
+						kind: "smart_teacher_disciplines",
+						path: "/api/teacher/disciplines",
+					},
+				];
+
+				const [run] = yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: lists },
+				]);
+
+				assert.deepStrictEqual(
+					yield* pagesOf(run.id),
+					lists.map(({ path }) => `pending 0 ${path}`),
+				);
+			}),
+		);
+
+		it.effect("stores a smart.ukma list and refuses an unknown kind", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				const sql = yield* SqlClient.SqlClient;
+				const store = yield* CrawlStore;
+
+				const [run] = yield* store.startRuns([
+					{ sourcePart: "smart-ukma:2031-09-01", pages: [SMART_LIST] },
+				]);
+
+				const page = yield* store.claim(run.id);
+
+				assert.isDefined(page);
+				yield* store.complete(run.id, page, snapshotOfJson({ items: [] }), []);
+
+				const unknown = yield* sql`
+					INSERT INTO run_pages (run_id, kind, path)
+					VALUES (${run.id}, 'smart_rooms', '/api/room')
+				`.pipe(Effect.exit);
+
+				const [{ kind }] = yield* sql<{ readonly kind: string }>`
+					SELECT kind FROM page_snapshots WHERE run_id = ${run.id}
+				`;
+
+				assert.strictEqual(kind, "smart_departments");
+				assert.isTrue(Exit.isFailure(unknown));
+			}),
+		);
+
+		it.effect("keeps the smart crawl lock apart from the САЗ crawl lock", () =>
+			Effect.gen(function* () {
+				const store = yield* CrawlStore;
+
+				// Each lock reserves its own session, so a second try at a held key fails.
+				const locked = yield* Effect.scoped(
+					Effect.all([
+						store.lockCrawl(CRAWL_LOCK),
+						store.lockCrawl(SMART_CRAWL_LOCK),
+						store.lockCrawl(SMART_CRAWL_LOCK),
+					]),
+				);
+
+				assert.deepStrictEqual(locked, [true, true, false]);
 			}),
 		);
 	});

@@ -31,6 +31,9 @@ interface FakeOptions {
 	readonly callback?: "session" | "no session" | "error";
 	/** САЗ answers for a path, by how many times it was asked before. */
 	readonly pages?: Record<string, (asked: number) => Response>;
+	/** Microsoft's answer to the sign-in's first request, if not the form.
+	 *  The signed-out page request before it reached Microsoft once. */
+	readonly authorizeFirst?: () => Response;
 }
 
 /** A fake САЗ and Microsoft sign-in: a САЗ page needs the session cookie,
@@ -38,6 +41,7 @@ interface FakeOptions {
 const makeFakeFetch = ({
 	callback = "session",
 	pages = {},
+	authorizeFirst,
 }: FakeOptions = {}) => {
 	const visits: Array<string> = [];
 	/** How many times each fake page was served to a signed-in request. */
@@ -52,6 +56,10 @@ const makeFakeFetch = ({
 			url.origin === MICROSOFT &&
 			url.pathname === "/common/oauth2/authorize"
 		) {
+			const asked = visits.filter((seen) => seen.endsWith("/authorize")).length;
+
+			if (authorizeFirst && asked === 2) return authorizeFirst();
+
 			return new Response(microsoftPage({}), {
 				headers: { "set-cookie": "esctx=e-1; path=/" },
 			});
@@ -109,7 +117,7 @@ const clientWith = (password: string, fake: ReturnType<typeof makeFakeFetch>) =>
 		Layer.provide(
 			ConfigProvider.layer(
 				ConfigProvider.fromEnvRecord({
-					CORPORATE_EMAIL: "test.user@ukma.edu.ua",
+					CORPORATE_EMAIL: "test.user@example.com",
 					CORPORATE_PASSWORD: password,
 					SAZ_REQUEST_GAP: "0 millis",
 				}),
@@ -117,7 +125,56 @@ const clientWith = (password: string, fake: ReturnType<typeof makeFakeFetch>) =>
 		),
 	);
 
+const PASSWORD = "POST login.microsoftonline.com/common/login";
+
+const rateLimited = (seconds: number) => () =>
+	new Response("slow down", {
+		status: 429,
+		headers: { "retry-after": String(seconds) },
+	});
+
 describe("SazClient", () => {
+	it.effect("waits out the Retry-After of a 429 on the sign-in", () => {
+		const fake = makeFakeFetch({ authorizeFirst: rateLimited(30) });
+
+		return Effect.gen(function* () {
+			const saz = yield* SazClient;
+			const fiber = yield* Effect.forkChild(saz.get("/course/100001"));
+
+			yield* TestClock.adjust("29 seconds");
+			assert.strictEqual(
+				fake.visits.filter((seen) => seen === PASSWORD).length,
+				0,
+			);
+
+			yield* TestClock.adjust("2 seconds");
+			assert.strictEqual(
+				yield* Fiber.join(fiber),
+				"<html>course 100001</html>",
+			);
+			assert.strictEqual(
+				fake.visits.filter((seen) => seen === PASSWORD).length,
+				1,
+			);
+		}).pipe(Effect.provide(clientWith("right-password", fake)));
+	});
+
+	it.effect("stops on a sign-in 429 that asks for a long wait", () => {
+		const fake = makeFakeFetch({ authorizeFirst: rateLimited(600) });
+
+		return Effect.gen(function* () {
+			const saz = yield* SazClient;
+			const error = yield* Effect.flip(saz.get("/course/100001"));
+
+			assert.instanceOf(error, SazRateLimited);
+			assert.strictEqual(error.retryAfterSeconds, 600);
+			assert.strictEqual(
+				fake.visits.filter((seen) => seen === PASSWORD).length,
+				0,
+			);
+		}).pipe(Effect.provide(clientWith("right-password", fake)));
+	});
+
 	it.effect("signs in once and reuses the session", () => {
 		const fake = makeFakeFetch();
 
@@ -180,7 +237,7 @@ describe("SazClient", () => {
 			assert.instanceOf(error, SazSignInFailed);
 			assert.strictEqual(
 				error.reason,
-				"signed out of /course/100001 right after a fresh sign-in",
+				"still signed out of /course/100001 after a fresh sign-in",
 			);
 			assert.strictEqual(passwordPosts(fake), 1);
 		}).pipe(Effect.provide(clientWith("right-password", fake)));
@@ -195,7 +252,7 @@ describe("SazClient", () => {
 			const error = yield* Effect.flip(saz.get("/course/100001"));
 
 			assert.instanceOf(error, SazSignInFailed);
-			assert.strictEqual(error.reason, "the САЗ sign-in answered 500");
+			assert.strictEqual(error.reason, "the sign-in ended with HTTP 500");
 			assert.strictEqual(passwordPosts(fake), 1);
 		}).pipe(Effect.provide(clientWith("right-password", fake)));
 	});

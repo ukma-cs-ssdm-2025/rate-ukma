@@ -12,6 +12,12 @@
 		"api": "node src/main.ts api",
 		"worker": "node src/main.ts worker",
 		"migrate": "node src/main.ts migrate",
+		"crawl-smart": "node src/main.ts crawl-smart",
+		"reparse": "node src/main.ts reparse",
+		"create-key": "node src/main.ts create-key",
+		"revoke-key": "node src/main.ts revoke-key",
+		"list-keys": "node src/main.ts list-keys",
+		"openapi": "node src/openapi.ts",
 		"build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/main.js --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
 		"test": "vitest run",
 		"format": "oxfmt",
@@ -25,7 +31,8 @@
 	"dependencies": {
 		"@effect/platform-node": "^4.0.2",
 		"@effect/sql-pg": "^4.0.2",
-		"effect": "^4.0.2"
+		"effect": "^4.0.2",
+		"entities": "^8.1.0"
 	},
 	"devDependencies": {
 		"@effect/vitest": "^4.0.2",
