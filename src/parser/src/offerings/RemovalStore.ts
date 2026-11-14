@@ -155,6 +155,7 @@ export class RemovalStore extends Context.Service<
 					SELECT p.path, s.content FROM run_pages p
 					JOIN page_snapshots s ON s.id = p.snapshot_id
 					WHERE p.run_id = ${runId} AND p.kind = 'catalog'
+					ORDER BY p.id
 				`,
 			});
 
