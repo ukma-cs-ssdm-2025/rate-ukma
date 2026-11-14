@@ -170,6 +170,7 @@ export class RemovalStore extends Context.Service<
 					} = yield* findSurvey({ runId, year });
 
 					const pages = yield* findCatalogPages(runId);
+
 					const first = pages.find(
 						(page) => page.path === catalogPath(year, 1),
 					);
