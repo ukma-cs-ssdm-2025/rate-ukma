@@ -1,6 +1,8 @@
 # UKMA Data (parser) infrastructure
 
-Terraform and Kubernetes config for the UKMA Data service. Design and decisions: [`docs/parser-service/deployment-infrastructure.md`](../../../docs/parser-service/deployment-infrastructure.md).
+Terraform and Kubernetes config for the UKMA Data service. Design and decisions: [`docs/parser-service/deployment-infrastructure.md`](../../../docs/parser-service/deployment-infrastructure.md), narrowed to one environment by [ADR-0015](../../../docs/architecture/decisions/0015-parser-single-live-environment.md).
+
+There is one environment, live, at `data.rateukma.com`. There is no parser staging: every environment would crawl the same real САЗ, so a second one only doubles the crawls. Changes are checked locally (`docker compose --profile dev` in `src`) and by the PR checks below before they reach live. The node was staging until 2026-11; [the migration runbook](../../../docs/runbooks/parser-staging-to-live.md) records how it was renamed.
 
 ```text
 infra/deploy/parser/
@@ -8,7 +10,7 @@ infra/deploy/parser/
 │   ├── modules/
 │   │   └── k3s-node/     # Hetzner VM + firewall, k3s installed by cloud-init
 │   └── envs/
-│       └── staging/      # one root module (and one state file) per environment
+│       └── live/         # the root module and its state file (live/terraform.tfstate)
 └── k8s/
     ├── platform/
     │   ├── operators/    # cert-manager, CloudNativePG (pinned upstream manifests)
@@ -17,21 +19,21 @@ infra/deploy/parser/
     └── app/
         ├── base/         # api, worker, migrate Job, Service, Ingress
         └── overlays/
-            └── staging/  # host data.staging.rateukma.com
+            └── live/     # host data.rateukma.com
 ```
 
 Terraform runs from CI only, via [`.github/workflows/parser-infra.yml`](../../../.github/workflows/parser-infra.yml):
 
 - **Pull requests** touching `terraform/` run `terraform fmt -check` and `terraform validate`. These need no credentials.
-- **Actions → Provision Parser VM → Run workflow** runs `plan`, or `plan` followed by `apply`, against the chosen environment:
+- **Actions → Provision Parser VM → Run workflow** runs `plan`, or `plan` followed by `apply`:
   1. The **plan** job runs at once and writes the full plan to the run summary.
   2. The **apply** job waits for the reviewer, then applies exactly that plan. It is skipped when the plan has no changes.
 
-  One run per environment at a time, so nothing can change the state between plan and apply.
+  One run at a time, so nothing can change the state between plan and apply.
 
 Don't run `apply` from a laptop. The state holds secrets and must live only in the bucket.
 
-## One-time setup (per environment)
+## One-time setup
 
 These steps are manual because Terraform needs them before it can run.
 
@@ -39,20 +41,20 @@ These steps are manual because Terraform needs them before it can run.
 2. **State bucket.** In that project, open Object Storage and create the bucket `rate-ukma-parser-tfstate` in `hel1`. All environments share the bucket and are kept apart by key (`<env>/terraform.tfstate`).
    - Keep it **private** (the default).
    - Turn on **versioning** so a broken state can be rolled back.
-   - If the bucket name is taken, pick another and update `bucket` in every `envs/*/backend.tf`.
+   - If the bucket name is taken, pick another and update `bucket` in `envs/live/backend.tf`.
 3. **Credentials.** In the same project, create:
    - an API token with read & write access (Security → API tokens);
    - an S3 credential pair (Object Storage → S3 credentials);
    - a state encryption key (SSE-C): `openssl rand -base64 32`. Store it in the team password manager too. Terraform needs this exact key for every later plan and apply, and the state can't be read without it.
-4. **GitHub Environments.** Create two under Settings → Environments (later the same pair for `Live`):
+4. **GitHub Environments.** Create two under Settings → Environments (the third, `Parser Deploy`, comes with [the first deploy](#before-the-first-deploy)):
 
    | Environment | Used by | Required reviewer | `HCLOUD_TOKEN` |
    | --- | --- | --- | --- |
-   | `Parser Staging Plan` | plan job | none | **read-only** token |
-   | `Parser Staging` | apply job, Parser Platform | yes | read & write token |
+   | `Parser Plan` | plan job, Parser Platform diff | none (see [Parser Platform](#platform-add-ons-k8splatform)) | **read-only** token |
+   | `Parser` | apply job, Parser Platform apply | yes | read & write token |
 
    - On both, under **Deployment branches and tags**, pick **Selected branches and tags** and allow only `main`. Otherwise a run from any branch could read the secrets.
-   - On `Parser Staging`, leave **Prevent self-review** off if you are the only reviewer.
+   - On `Parser`, leave **Prevent self-review** off if you are the only reviewer.
    - With a read-only token in the plan environment, only an approved run can change Hetzner resources.
    - Add these secrets to both:
 
@@ -66,11 +68,11 @@ These steps are manual because Terraform needs them before it can run.
 
    The plan job also needs `PARSER_SSH_PUBLIC_KEY` and `PARSER_TUNNEL_SSH_PUBLIC_KEY` (see below). The apply job doesn't: the saved plan already holds them.
 
-5. **Check.** Run the workflow with `action: plan`. On an empty environment it should report `No changes.`, and `staging/terraform.tfstate` should appear in the bucket after the first `apply`.
+5. **Check.** Run the workflow with `action: plan`. On an empty project it should plan the server, firewall and SSH key, and `live/terraform.tfstate` should appear in the bucket after the first `apply`.
 
 ## Cluster node (`modules/k3s-node`)
 
-Each environment is one Hetzner VM running single-node k3s:
+The environment is one Hetzner VM running single-node k3s:
 
 - **Firewall:** only 22, 80 and 443 are open. The Kubernetes API (6443) is never public. Reach it through an SSH tunnel.
 - **First boot:** cloud-init creates the `deploy` user (sudo) and the `tunnel` user, turns off root and password SSH logins, and installs the pinned k3s. `tunnel` has no shell and no sudo, and its key may only forward to `127.0.0.1:6443`. Deploy Parser logs in as `tunnel`, so an unreviewed deploy gets no shell on the node.
@@ -90,23 +92,23 @@ Each environment is one Hetzner VM running single-node k3s:
 1. Generate two key pairs for the node, with no passphrase so CI can use them:
 
    ```bash
-   ssh-keygen -t ed25519 -N "" -C parser-staging -f parser-staging                # deploy (admin)
-   ssh-keygen -t ed25519 -N "" -C parser-staging-tunnel -f parser-staging-tunnel  # tunnel only
+   ssh-keygen -t ed25519 -N "" -C parser -f parser                # deploy (admin)
+   ssh-keygen -t ed25519 -N "" -C parser-tunnel -f parser-tunnel  # tunnel only
    ```
 2. Add these secrets:
 
    | Secret | Environment | Value |
    | --- | --- | --- |
-   | `PARSER_SSH_PUBLIC_KEY` | `Parser Staging Plan` | contents of `parser-staging.pub` |
-   | `PARSER_SSH_KEY` | `Parser Staging Plan` and `Parser Staging` | contents of `parser-staging` (the private key) |
-   | `PARSER_TUNNEL_SSH_PUBLIC_KEY` | `Parser Staging Plan` | contents of `parser-staging-tunnel.pub` |
-   | `PARSER_TUNNEL_SSH_KEY` | `Parser Staging Deploy` | contents of `parser-staging-tunnel` (the private key) |
+   | `PARSER_SSH_PUBLIC_KEY` | `Parser Plan` | contents of `parser.pub` |
+   | `PARSER_SSH_KEY` | `Parser Plan` and `Parser` | contents of `parser` (the private key) |
+   | `PARSER_TUNNEL_SSH_PUBLIC_KEY` | `Parser Plan` | contents of `parser-tunnel.pub` |
+   | `PARSER_TUNNEL_SSH_KEY` | `Parser Deploy` | contents of `parser-tunnel` (the private key) |
 
    Then delete the local private keys, or store them in the team password manager.
 
 ### After the first `apply`
 
-1. **DNS:** add a Route 53 A record pointing the staging host at the `ipv4` from the run summary.
+1. **DNS:** add a Route 53 A record pointing `data.rateukma.com` at the `ipv4` from the run summary.
 2. **Check the node:** wait ~2 minutes for cloud-init, then:
 
    ```bash
@@ -114,7 +116,7 @@ Each environment is one Hetzner VM running single-node k3s:
    ```
 
    The node should be `Ready` and encryption `Enabled`.
-3. **Kubeconfig:** copy the admin kubeconfig into the `PARSER_KUBECONFIG` secret of both `Parser Staging Plan` and `Parser Staging`. Keep its `server: https://127.0.0.1:6443`, because CI reaches it through the tunnel.
+3. **Kubeconfig:** copy the admin kubeconfig into the `PARSER_KUBECONFIG` secret of both `Parser Plan` and `Parser`. Keep its `server: https://127.0.0.1:6443`, because CI reaches it through the tunnel.
 
    ```bash
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml
@@ -125,7 +127,7 @@ Each environment is one Hetzner VM running single-node k3s:
    ```bash
    ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml | grep client-certificate-data | awk '{print $2}' | base64 -d | openssl x509 -noout -enddate
    CONFIG=$(ssh deploy@<ipv4> sudo cat /etc/rancher/k3s/k3s.yaml) \
-     && for ENV in "Parser Staging Plan" "Parser Staging"; do
+     && for ENV in "Parser Plan" "Parser"; do
           gh secret set PARSER_KUBECONFIG --env "$ENV" --body "$CONFIG"
         done
    ```
@@ -144,17 +146,17 @@ Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../..
 The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../../../.github/actions/k8s-tunnel/action.yml), an SSH tunnel to `127.0.0.1:6443` on the node.
 Pull requests only render the kustomizations.
 **Actions → Parser Platform → Run workflow** runs `diff`, or `diff` followed by `apply`:
-1. The **diff** job runs at once in `Parser Staging Plan` and writes the diff to the run summary.
-2. The **apply** job waits for the reviewer in `Parser Staging`, then applies the same commit. It runs even when there are no changes, so its readiness checks show whether an earlier failed apply has recovered.
+1. The **diff** job runs at once in `Parser Plan` and writes the diff to the run summary.
+2. The **apply** job waits for the reviewer in `Parser`, then applies the same commit. It runs even when there are no changes, so its readiness checks show whether an earlier failed apply has recovered.
 
 The longer step scripts live in `scripts/ci/parser-platform-*.sh`.
 
-`Parser Staging Plan` has no reviewer, but its `PARSER_KUBECONFIG` is the admin kubeconfig: a dispatch from any branch its deployment branch policy allows runs that branch's scripts as cluster-admin without approval.
-This is accepted on staging. Keep the policy to `main` plus the branch under review, and remove that branch once it is merged. A production environment needs a reviewer on the diff job too, or a scoped identity for it.
+`Parser Plan` has no reviewer, but its `PARSER_KUBECONFIG` is the admin kubeconfig of the live cluster: a dispatch from any branch its deployment branch policy allows runs that branch's scripts as cluster-admin without approval.
+Keep the policy to `main` only, so only reviewed code runs with it. To test an unmerged platform change, add the branch for that one run and remove it right after, or add a required reviewer to `Parser Plan`. A scoped read-only identity for the diff would remove the risk.
 
 ### Before the first run
 
-Both jobs open the tunnel, so add these secrets to **both** `Parser Staging Plan` and `Parser Staging`, next to `PARSER_SSH_KEY` and `PARSER_KUBECONFIG` (which both need too):
+Both jobs open the tunnel, so add these secrets to **both** `Parser Plan` and `Parser`, next to `PARSER_SSH_KEY` and `PARSER_KUBECONFIG` (which both need too):
 
 | Secret | Value |
 | --- | --- |
@@ -168,12 +170,12 @@ The secret is only written if the key was read, so a failed login leaves the old
 IP=<ipv4>
 KEY=$(ssh deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2) \
   && [[ $KEY == "ssh-ed25519 "* ]] \
-  && for ENV in "Parser Staging Plan" "Parser Staging" "Parser Staging Deploy"; do
+  && for ENV in "Parser Plan" "Parser" "Parser Deploy"; do
        gh secret set PARSER_SSH_KNOWN_HOSTS --env "$ENV" --body "$IP $KEY"
      done
 ```
 
-If the VM is recreated, its IP and host key change: update both secrets, in every environment that has them.
+If the VM is recreated, its IP and host key change: update both secrets in all three environments.
 
 ### Check
 
@@ -230,15 +232,15 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 
 Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workflows/parser-deploy.yml):
 
-- **Pull requests** render each overlay and validate it with kubeconform against the Kubernetes 1.36 schemas.
-- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA) to the chosen environment. The `deploy` job:
+- **Pull requests** render the `live` overlay and validate it with kubeconform against the Kubernetes 1.36 schemas.
+- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA). The `deploy` job:
   1. picks the parser image with `scripts/ci/find-image-tags.sh`: the exact tag, or for a version the newest parser release at or below it, since the image is only built when `src/parser` changes;
   2. renders the overlay with that tag;
   3. opens the tunnel as the `tunnel` user with the `parser-deployer` kubeconfig, and checks with `kubectl auth can-i` that it can't read Secrets or change RBAC;
   4. runs the `parser-migrate` Job (`scripts/ci/parser-deploy-migrate.sh`). If it fails, the deploy stops there and the old pods keep serving;
   5. applies the rest and waits for both rollouts;
   6. curls `https://<host>/health`, which checks the certificate too, and waits for the worker's `Worker connected to Postgres` log line.
-- There is no reviewer: one deploy per environment runs at a time, and a newer one waits for it.
+- There is no reviewer: one deploy runs at a time, and a newer one waits for it.
 
 `parser-deployer` is a ServiceAccount in `parser` with a Role (`platform/config/deployer.yaml`) that allows only what the deploy does: apply the Deployments, Service, Ingress and Job, delete the Job, and read pods, logs and events.
 It can't read Secrets through the API, change RBAC or touch anything outside `parser`.
@@ -248,7 +250,7 @@ It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `pa
 
 1. **Pull token.** The image is private, so the pods pull it with the `parser-ghcr-pull` Secret, which **Parser Platform** creates on apply.
    - Create a **classic** personal access token with only **`read:packages`**. ghcr.io accepts no other kind.
-   - Add it to `Parser Staging` as `PARSER_GHCR_PULL_TOKEN`, and its owner's GitHub username as `PARSER_GHCR_PULL_USER`.
+   - Add it to `Parser` as `PARSER_GHCR_PULL_TOKEN`, and its owner's GitHub username as `PARSER_GHCR_PULL_USER`.
    - **On a cluster installed before this Secret existed, and to rotate the token,** apply it over the admin tunnel. A Parser Platform run with no other changes skips apply. When rotating, update both GitHub secrets too.
 
      ```bash
@@ -256,15 +258,15 @@ It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `pa
        | kubectl apply --server-side --field-manager=parser-platform -f -
      ```
 2. **САЗ account.** There is no service account yet, so the worker signs in with a team member's own account. **The first deploy starts a crawl with it.**
-   - Add the account to `Parser Staging` as `PARSER_CORPORATE_EMAIL` and `PARSER_CORPORATE_PASSWORD`. **Parser Platform** creates the `parser-saz` Secret from them on apply.
+   - Add the account to `Parser` as `PARSER_CORPORATE_EMAIL` and `PARSER_CORPORATE_PASSWORD`. **Parser Platform** creates the `parser-saz` Secret from them on apply.
    - To change the account, update both GitHub secrets and run Parser Platform `apply`, then `kubectl -n parser rollout restart deployment/parser-worker`, since a running worker keeps the old values. A failed sign-in stops the crawls until the worker restarts, and each try sends the password, so check the account before restarting.
-3. **DNS.** Add a Route 53 A record `data.staging.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
-4. **Tunnel user.** A node created before the `tunnel` user existed doesn't have it, and Terraform won't add it (it ignores `user_data`). Create it over the admin login, with the `parser-staging-tunnel` key pair from [Before the first `apply`](#before-the-first-apply):
+3. **DNS.** Add a Route 53 A record `data.rateukma.com` → the node's `ipv4`. cert-manager needs it to pass the HTTP-01 challenge.
+4. **Tunnel user.** A node created before the `tunnel` user existed doesn't have it, and Terraform won't add it (it ignores `user_data`). Create it over the admin login, with the `parser-tunnel` key pair from [Before the first `apply`](#before-the-first-apply):
 
    ```bash
    IP=<ipv4>
    ADMIN_KEY=<the deploy private key file>
-   PUB=$(cat parser-staging-tunnel.pub)
+   PUB=$(cat parser-tunnel.pub)
    ssh -i "$ADMIN_KEY" deploy@$IP sudo bash -s <<EOF
    set -euo pipefail
    id tunnel > /dev/null 2>&1 || useradd --create-home --shell /usr/sbin/nologin tunnel
@@ -278,21 +280,21 @@ It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `pa
    Check that it can forward to the API server and do nothing else:
 
    ```bash
-   ssh -i parser-staging-tunnel tunnel@$IP true                                # "This account is currently not available."
-   ssh -i parser-staging-tunnel -N -L 6443:127.0.0.1:6443 tunnel@$IP &         # the tunnel opens
-   kubectl --kubeconfig ~/.kube/parser-staging.yaml get --raw /readyz; echo   # ok
+   ssh -i parser-tunnel tunnel@$IP true                                # "This account is currently not available."
+   ssh -i parser-tunnel -N -L 6443:127.0.0.1:6443 tunnel@$IP &         # the tunnel opens
+   kubectl --kubeconfig ~/.kube/parser.yaml get --raw /readyz; echo   # ok
    kill %1
    ```
-5. **Deploy environment.** Create `Parser Staging Deploy` under Settings → Environments, with no reviewer and, under **Deployment branches and tags**, only `main` allowed. Add `PARSER_SSH_HOST` and `PARSER_SSH_KNOWN_HOSTS` with the same values as in `Parser Staging`, and `PARSER_TUNNEL_SSH_KEY`. Never add `PARSER_SSH_KEY` here: it logs in with sudo.
+5. **Deploy environment.** Create `Parser Deploy` under Settings → Environments, with no reviewer and, under **Deployment branches and tags**, only `main` allowed. Add `PARSER_SSH_HOST` and `PARSER_SSH_KNOWN_HOSTS` with the same values as in `Parser`, and `PARSER_TUNNEL_SSH_KEY`. Never add `PARSER_SSH_KEY` here: it logs in with sudo.
    GitHub can't read a secret back, so it can't copy one between environments: set each again from its source. The host key is read from the node, as in [Before the first run](#before-the-first-run):
 
    ```bash
-   ENV="Parser Staging Deploy"
+   ENV="Parser Deploy"
    KEY=$(ssh -i "$ADMIN_KEY" deploy@$IP cat /etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2) \
      && [[ $KEY == "ssh-ed25519 "* ]] \
      && gh secret set PARSER_SSH_HOST --env "$ENV" --body "$IP" \
      && gh secret set PARSER_SSH_KNOWN_HOSTS --env "$ENV" --body "$IP $KEY" \
-     && gh secret set PARSER_TUNNEL_SSH_KEY --env "$ENV" < parser-staging-tunnel
+     && gh secret set PARSER_TUNNEL_SSH_KEY --env "$ENV" < parser-tunnel
    ```
 
    Then delete the local private keys, or store them in the team password manager.
@@ -300,7 +302,7 @@ It isn't a Secret boundary, though: a pod it deploys can mount any Secret in `pa
 
    ```bash
    bash scripts/ci/parser-deployer-kubeconfig.sh > /tmp/parser-deploy.yaml \
-     && gh secret set PARSER_DEPLOY_KUBECONFIG --env "Parser Staging Deploy" < /tmp/parser-deploy.yaml
+     && gh secret set PARSER_DEPLOY_KUBECONFIG --env "Parser Deploy" < /tmp/parser-deploy.yaml
    rm -f /tmp/parser-deploy.yaml
    ```
 
@@ -312,17 +314,17 @@ Run **Deploy Parser** with a parser tag CI pushed. Its run summary shows the ima
 By hand:
 
 ```bash
-curl -sI https://data.staging.rateukma.com/health          # HTTP/2 200, trusted certificate
+curl -sI https://data.rateukma.com/health                  # HTTP/2 200, trusted certificate
 sudo k3s kubectl -n parser logs deploy/parser-worker        # "Worker connected to Postgres", then "Signed in to САЗ"
 sudo k3s kubectl -n parser get certificate parser-api-tls   # READY True
 ```
 
 ## Upgrading Terraform or providers
 
-The Terraform version is pinned in the workflow (`TF_VERSION`), and provider versions in `envs/*/versions.tf`. After a provider bump, regenerate the lock file for every platform the team uses and commit it:
+The Terraform version is pinned in the workflow (`TF_VERSION`), and provider versions in `envs/live/versions.tf`. After a provider bump, regenerate the lock file for every platform the team uses and commit it:
 
 ```bash
-cd infra/deploy/parser/terraform/envs/staging
+cd infra/deploy/parser/terraform/envs/live
 terraform init -backend=false -upgrade
 terraform providers lock -platform=linux_amd64 -platform=darwin_arm64 -platform=darwin_amd64 -platform=windows_amd64
 ```
