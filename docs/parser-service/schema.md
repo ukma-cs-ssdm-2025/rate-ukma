@@ -140,6 +140,8 @@ Offerings of one subject across years (glossary: Course).
 
 A merge sets `removed_at` and `merged_into` on the old course and moves its offerings, so each moved offering gets a new change number. A reader that holds the old id follows `merged_into`.
 
+Every offering parse ends by grouping (`src/courses/courses.ts`): each live offering whose `course_source` is not `decision` joins the course of its title, `department_id` and `level`, the oldest live one when a key has two; a key no course holds gets a new course. A course found by its key keeps its id, so a parse of unchanged data takes no number. An offering that joins another course takes a new change number, so a parse that also rewrote its card numbers it twice. A course with no live offering left is removed, and comes back with its id when an offering of its key does; offering removals happen after the parse, so the course they empty is removed by the next parse. A removed offering keeps the course it had. Titles are compared exactly: a trailing bracket note or a letter case difference is another course (C3).
+
 ## Instructors
 
 ### `instructors`

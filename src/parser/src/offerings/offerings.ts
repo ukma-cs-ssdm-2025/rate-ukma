@@ -12,6 +12,7 @@ import {
 	Struct,
 } from "effect";
 import { SqlError } from "effect/sql";
+import { groupCourses } from "../courses/courses.ts";
 import { parseFilterOptions } from "../saz/catalog.ts";
 import {
 	Level,
@@ -316,7 +317,7 @@ const writePages = Effect.fnUntraced(function* (
 });
 
 /** Parses the latest snapshot of every course page into offerings and their
- *  reference lists, and records the parse with the rows it numbered. A page
+ *  reference lists, groups the offerings into courses, and records the parse with the rows it numbered. A page
  *  that fails keeps the rows of its last good parse, and the failure is
  *  recorded with its snapshot. Runs take turns, so each reads a catalog page
  *  at least as new as the last. */
@@ -400,6 +401,13 @@ export const parseOfferings = Effect.fn("parseOfferings")(function* (
 
 		yield* store.recordFailures(parseId, failures);
 	}
+
+	// After every batch, so the rule sees the whole catalog.
+	const grouped = yield* groupCourses({ parseId });
+
+	yield* Effect.logInfo("Courses grouped", { grouped }).pipe(
+		Effect.annotateLogs({ parse_id: String(parseId) }),
+	);
 
 	const report: ParseReport = {
 		seconds: Math.round(((yield* Clock.currentTimeMillis) - startedAt) / 1000),

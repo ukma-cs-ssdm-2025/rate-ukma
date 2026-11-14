@@ -3,6 +3,7 @@ import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { HttpServerLive } from "./api/http.ts";
 import { ChangeLog } from "./changes/ChangeLog.ts";
+import { CourseStore } from "./courses/CourseStore.ts";
 import { CrawlStore } from "./crawl/CrawlStore.ts";
 import { PgLive, runMigrations } from "./db/database.ts";
 import { KeysLive, keyCommands } from "./keys/commands.ts";
@@ -30,9 +31,11 @@ const reparse = Command.make("reparse", {}, () =>
 	reparseOfferings.pipe(
 		Effect.andThen(parseStudents("reparse")),
 		Effect.provide(
-			Layer.mergeAll(OfferingStore.layer, StudentStore.layer).pipe(
-				Layer.provide(ChangeLog.layer),
-			),
+			Layer.mergeAll(
+				CourseStore.layer,
+				OfferingStore.layer,
+				StudentStore.layer,
+			).pipe(Layer.provideMerge(ChangeLog.layer)),
 		),
 		Effect.provide(PgLive),
 	),

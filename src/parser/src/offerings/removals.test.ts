@@ -2,6 +2,7 @@ import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
+import { CourseStore } from "../courses/CourseStore.ts";
 import { sourcePartOf } from "../crawl/crawl.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { parseOfferings } from "./offerings.ts";
@@ -104,7 +105,11 @@ describe("planRemovals", () => {
 	});
 });
 
-const TestLive = Layer.mergeAll(OfferingStore.layer, RemovalStore.layer).pipe(
+const TestLive = Layer.mergeAll(
+	CourseStore.layer,
+	OfferingStore.layer,
+	RemovalStore.layer,
+).pipe(
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );

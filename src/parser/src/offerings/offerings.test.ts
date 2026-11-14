@@ -2,6 +2,7 @@ import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Exit, Layer, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
+import { CourseStore } from "../courses/CourseStore.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
 import { parseCoursePage } from "../saz/coursePage.ts";
@@ -178,7 +179,7 @@ describe("offeringRowsOf", () => {
 	});
 });
 
-const TestLive = OfferingStore.layer.pipe(
+const TestLive = Layer.mergeAll(CourseStore.layer, OfferingStore.layer).pipe(
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
@@ -275,7 +276,12 @@ describe("reparse", () => {
 					seconds: report.seconds,
 					parsed: 1,
 					failed: [],
-					changes: [{ table: "offerings", action: "change", rows: 1 }],
+					// The fixed title is a new course key: the offering is written,
+					// then linked to the new course, a number each.
+					changes: [
+						{ table: "offerings", action: "change", rows: 2 },
+						{ table: "courses", action: "add", rows: 1 },
+					],
 					missing: ["filter[faculty]", "filter[subfaculty]", "filter[spec]"],
 				});
 				assert.deepStrictEqual(yield* parses, [
@@ -454,8 +460,10 @@ describe("change tracking", () => {
 					const changed = yield* parseOfferings("crawl");
 					const after = yield* offeringsOf(2031);
 
+					// The new title is a new course, which the offering then joins.
 					assert.deepStrictEqual(changed.changes, [
-						{ table: "offerings", action: "change", rows: 1 },
+						{ table: "offerings", action: "change", rows: 2 },
+						{ table: "courses", action: "add", rows: 1 },
 					]);
 					assert.isAbove(
 						Number(after.get("910001")?.changeNo),

@@ -2,6 +2,7 @@ import { assert, describe, layer } from "@effect/vitest";
 import { Cause, Deferred, Effect, Exit, Fiber, Layer, Schedule } from "effect";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
+import { CourseStore } from "../courses/CourseStore.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import type { OfferingTerm, ParsedOffering } from "../saz/coursePage.ts";
 import { coursePage } from "../saz/coursePage.fixture.ts";
@@ -15,7 +16,7 @@ import {
 } from "./offerings.ts";
 import { NO_FILTERS, reset, snapshot } from "./testing.ts";
 
-const TestLive = OfferingStore.layer.pipe(
+const TestLive = Layer.mergeAll(CourseStore.layer, OfferingStore.layer).pipe(
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
@@ -400,6 +401,8 @@ describe("parseOfferings", () => {
 						{ table: "programmes", action: "add", rows: 1 },
 						{ table: "terms", action: "add", rows: 1 },
 						{ table: "offerings", action: "add", rows: 2 },
+						{ table: "courses", action: "add", rows: 2 },
+						{ table: "offerings", action: "change", rows: 2 },
 					],
 					missing: ["filter[subfaculty]"],
 				});
