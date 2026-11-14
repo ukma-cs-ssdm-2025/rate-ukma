@@ -29,6 +29,10 @@ rules:
   - apiGroups: ["batch"]
     resources: ["jobs"]
     verbs: ["get", "list", "watch", "create", "patch", "delete"]
+  # The crawl-smart CronJob, updated in place.
+  - apiGroups: ["batch"]
+    resources: ["cronjobs"]
+    verbs: ["get", "list", "create", "patch"]
   # Logs and events, to show why a migration or rollout failed.
   - apiGroups: [""]
     resources: ["pods", "events"]

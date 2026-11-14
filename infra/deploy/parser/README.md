@@ -213,17 +213,19 @@ Run `diff`, then `apply`.
 
 ## App (`k8s/app`)
 
-The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three workloads in the `parser` namespace:
+The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as four workloads in the `parser` namespace:
 
 | Workload | Command | Notes |
 | --- | --- | --- |
 | `parser-api` Deployment | `api` | port 8080, probes on `GET /health`, reached through the `parser-api` Service and Ingress |
 | `parser-worker` Deployment | `worker` | no port; `Recreate`, so two workers never run at once |
 | `parser-migrate` Job | `migrate` | runs before each rollout |
+| `parser-crawl-smart` CronJob | `crawl-smart` | daily at 04:00 Kyiv time; `Forbid` overlap, no retry |
 
-- **Database:** all three read `DATABASE_URL` from the `uri` key of the `parser-db-app` Secret.
-- **САЗ account:** the worker reads `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` from the `parser-saz` Secret. Without the Secret its pod stays in `CreateContainerConfigError` and the rollout fails.
-- **Crawling:** the worker starts a crawl every `CRAWL_INTERVAL` (default 24 hours, at least 1 hour), counted from the start of the last one, a resumed crawl included, and parses it when it ends. Each crawl covers the two latest academic years and one older year, the one crawled longest ago, so with 7 older years each is refreshed weekly. That is about 19,000 pages, roughly 6 hours at the default request gap; a crawl that outlasts the interval is followed by the next right away. The schedule is read from the `runs` table, so a restart or deploy resumes a crawl it cut short and otherwise parses once and waits for the next one. A crawl left open by a database outage longer than its retries resumes an hour later.
+- **Database:** all four read `DATABASE_URL` from the `uri` key of the `parser-db-app` Secret.
+- **САЗ account:** the worker and `parser-crawl-smart` read `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` from the `parser-saz` Secret. Without the Secret its pod stays in `CreateContainerConfigError` and the rollout fails.
+- **Crawling:** the worker starts a crawl every `CRAWL_INTERVAL` (default 24 hours, at least 1 hour), counted from the start of the last one, a resumed crawl included, and parses it when it ends. Each crawl covers the two latest academic years and one older year, the one crawled longest ago, so with 7 older years each is refreshed weekly. That is about 19,000 pages, roughly 6 hours at the default request gap; a crawl that outlasts the interval is followed by the next right away. The schedule is read from the `runs` table, so a restart or deploy resumes a crawl it cut short and otherwise parses once and waits for the next one. A crawl left open by a database outage longer than its retries resumes an hour later. `worker.yaml` sets `CRAWL_INTERVAL` explicitly, so an overlay can change it.
+- **smart.ukma:** `parser-crawl-smart` stores the four smart.ukma lists once a day. It doesn't retry, since each try signs in; a run a crash left open resumes the next day. A missed run (more than an hour late) waits for the next day.
 - **Security:** pods run as uid 1000 with a read-only root filesystem; `/tmp` is the only writable path. They meet Pod Security `restricted` and get no service account token.
 - **Image tag:** the base sets only the image name; the deploy sets the tag.
 - **Order:** apply the Job alone first (`-l app.kubernetes.io/component=migrate`) and wait for it, then the rest (`-l 'app.kubernetes.io/component!=migrate'`). A Job can't be updated, so delete the previous `parser-migrate` before applying a new one.

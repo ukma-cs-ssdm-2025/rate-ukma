@@ -49,6 +49,10 @@ spec:
                 secretKeyRef:
                   name: parser-saz
                   key: password
+            # From the start of one САЗ crawl to the start of the next, read from the runs table,
+            # so a deploy or restart doesn't start a crawl before it is due.
+            - name: CRAWL_INTERVAL
+              value: "24 hours"
           resources:
             requests:
               cpu: 50m

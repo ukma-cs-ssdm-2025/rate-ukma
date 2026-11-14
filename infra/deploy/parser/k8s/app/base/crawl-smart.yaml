@@ -1,0 +1,81 @@
+---
+# Stores the smart.ukma lists once a day: four requests, a few seconds.
+# The САЗ crawl is not here: the worker runs it every CRAWL_INTERVAL.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: parser-crawl-smart
+  labels:
+    app.kubernetes.io/component: crawl-smart
+spec:
+  schedule: "0 4 * * *"
+  timeZone: Europe/Kyiv
+  # crawl-smart also takes a lock, so a second run exits instead of crawling twice.
+  concurrencyPolicy: Forbid
+  # A run missed by more than an hour (the node was down) waits for the next day.
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/component: crawl-smart
+    spec:
+      # No retry: each try signs in with the university account. A run a crash left open resumes the next day.
+      backoffLimit: 0
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: crawl-smart
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          # Created by the Parser Platform workflow; the image is private.
+          imagePullSecrets:
+            - name: parser-ghcr-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: crawl-smart
+              image: parser
+              args: ["crawl-smart"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: parser-db-app
+                      key: uri
+                # smart.ukma signs in with the same account as САЗ.
+                - name: CORPORATE_EMAIL
+                  valueFrom:
+                    secretKeyRef:
+                      name: parser-saz
+                      key: email
+                - name: CORPORATE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: parser-saz
+                      key: password
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 64Mi

@@ -190,6 +190,6 @@ jobs:
             echo "### Parser deploy ($ENVIRONMENT)"
             echo "Image: \`$PARSER_IMAGE:$TAG\`"
             echo '```'
-            kubectl -n parser get deployments,jobs,pods,ingress || true
+            kubectl -n parser get deployments,cronjobs,jobs,pods,ingress || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

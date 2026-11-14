@@ -1,5 +1,5 @@
 ---
-# UKMA Data: api, worker and the migrate Job, from one image.
+# UKMA Data: api, worker, the migrate Job and the crawl-smart CronJob, from one image.
 # The deploy applies the migrate Job first (-l app.kubernetes.io/component=migrate), then the rest.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -16,6 +16,7 @@ resources:
   - api.yaml
   - worker.yaml
   - migrate.yaml
+  - crawl-smart.yaml
   - service.yaml
   - ingress.yaml
 
