@@ -1,5 +1,7 @@
 # Deployment Infrastructure Specification: Parser Service
 
+> **Superseded in part by [ADR-0015](../architecture/decisions/0015-parser-single-live-environment.md).** There is one environment, live, on the k3s node that was staging, at `data.rateukma.com`. The production cluster (kubeadm, 16 GB) and the staging/production split below were not built. The rest of this spec still describes how the node runs.
+
 ## Overview
 
 The parser service (currently a Django app within the monolith at `src/backend/scraper/`, run only via ad-hoc management commands) is being extracted into a standalone, independently deployable service. This specification documents how that service will be deployed across two environments (staging and production): a Kubernetes cluster provisioned with Terraform on self-managed VMs via Hetzner, a self-hosted PostgreSQL database within each cluster, container image builds and pushes via the existing GitHub Actions CI, and a publicly exposed API endpoint (API design and business logic are out of scope).
