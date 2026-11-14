@@ -1,5 +1,5 @@
 output "ipv4" {
-  description = "Point the staging DNS A record here."
+  description = "Point the data.rateukma.com DNS A record here."
   value       = module.node.ipv4
 }
 
