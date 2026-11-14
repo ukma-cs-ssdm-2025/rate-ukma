@@ -160,11 +160,28 @@ export const Offering = Schema.Struct({
 	groupSizeMin: Schema.Int,
 	groupSizeMax: Schema.Int,
 	enrolledActive: Schema.NullOr(Schema.Int),
+	courseId: Schema.NullOr(Schema.String).annotate({
+		description: "The course grouping this offering across years",
+	}),
 	terms: Schema.Array(OfferingTerm),
 	programmes: Schema.Array(OfferingProgramme),
 	changeNo,
 	removedAt,
 }).annotate({ identifier: "Offering" });
+
+/** Offerings of one subject across years. */
+export const Course = Schema.Struct({
+	id: Schema.String,
+	title: Schema.String.annotate({ description: "From the latest offering" }),
+	departmentId: Schema.NullOr(Schema.String),
+	level: Level,
+	mergedInto: Schema.NullOr(Schema.String).annotate({
+		description:
+			"The course that now holds its offerings; a reader moves its own data there",
+	}),
+	changeNo,
+	removedAt,
+}).annotate({ identifier: "Course" });
 
 export const ReviewCase = Schema.Struct({
 	id: Schema.String,

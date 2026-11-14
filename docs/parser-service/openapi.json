@@ -361,6 +361,72 @@
 				"summary": "Programmes"
 			}
 		},
+		"/v1/courses": {
+			"get": {
+				"tags": [
+					"catalog"
+				],
+				"operationId": "catalog.courses",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "CoursePage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CoursePage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Courses, each grouping offerings of one subject across years"
+			}
+		},
 		"/v1/offerings": {
 			"get": {
 				"tags": [
@@ -805,6 +871,17 @@
 							}
 						]
 					},
+					"courseId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The course grouping this offering across years"
+					},
 					"terms": {
 						"type": "array",
 						"items": {
@@ -853,6 +930,7 @@
 					"groupSizeMin",
 					"groupSizeMax",
 					"enrolledActive",
+					"courseId",
 					"terms",
 					"programmes",
 					"changeNo",
@@ -975,6 +1053,106 @@
 					"seminarHours",
 					"practiceHours",
 					"control"
+				],
+				"additionalProperties": false
+			},
+			"CoursePage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Course"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"Course": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"title": {
+						"type": "string",
+						"description": "From the latest offering"
+					},
+					"departmentId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"level": {
+						"type": "string",
+						"enum": [
+							"bachelor",
+							"master"
+						]
+					},
+					"mergedInto": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The course that now holds its offerings; a reader moves its own data there"
+					},
+					"changeNo": {
+						"type": "integer"
+					},
+					"removedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Set when the row left its source; readers hide such rows"
+					}
+				},
+				"required": [
+					"id",
+					"title",
+					"departmentId",
+					"level",
+					"mergedInto",
+					"changeNo",
+					"removedAt"
 				],
 				"additionalProperties": false
 			},
@@ -1330,7 +1508,7 @@
 		},
 		{
 			"name": "catalog",
-			"description": "Reference lists and offerings: `catalog:read`"
+			"description": "Reference lists, courses and offerings: `catalog:read`"
 		},
 		{
 			"name": "review",

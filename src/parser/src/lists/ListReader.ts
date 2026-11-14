@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Schema, SchemaTransformation } from "effect";
 import { SqlClient, SqlSchema, type Statement } from "effect/sql";
 import {
+	Course,
 	Department,
 	Faculty,
 	Offering,
@@ -37,6 +38,7 @@ export class ListReader extends Context.Service<
 		faculties: Read<typeof Faculty>;
 		departments: Read<typeof Department>;
 		programmes: Read<typeof Programme>;
+		courses: Read<typeof Course>;
 		offerings: Read<typeof Offering>;
 		reviewCases: Read<typeof ReviewCase>;
 	}
@@ -110,6 +112,16 @@ export class ListReader extends Context.Service<
 						WHERE change_no > ${after} ORDER BY change_no LIMIT ${rows}
 					`,
 				),
+				courses: reader(
+					Course.pipe(numbered),
+					(after, rows) => sql`
+						SELECT id, title, department_id AS "departmentId", level,
+							merged_into AS "mergedInto", change_no AS "changeNo",
+							removed_at AS "removedAt"
+						FROM courses
+						WHERE change_no > ${after} ORDER BY change_no LIMIT ${rows}
+					`,
+				),
 				offerings: reader(
 					Offering.pipe(numbered),
 					(after, rows) => sql`
@@ -124,6 +136,7 @@ export class ListReader extends Context.Service<
 							o.group_size_min AS "groupSizeMin",
 							o.group_size_max AS "groupSizeMax",
 							o.enrolled_active AS "enrolledActive",
+							o.course_id AS "courseId",
 							coalesce(t.terms, '[]') AS terms,
 							coalesce(p.programmes, '[]') AS programmes,
 							o.change_no AS "changeNo", o.removed_at AS "removedAt"

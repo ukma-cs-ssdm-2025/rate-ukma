@@ -11,6 +11,7 @@ import {
 } from "effect/http-api";
 import { Scope } from "../keys/scopes.ts";
 import {
+	Course,
 	Department,
 	Faculty,
 	Offering,
@@ -96,6 +97,13 @@ export class CatalogApi extends HttpApiGroup.make("catalog")
 			query: PageQuery,
 			success: Page(Programme, "ProgrammePage"),
 		}).annotate(OpenApi.Summary, "Programmes"),
+		HttpApiEndpoint.get("courses", "/courses", {
+			query: PageQuery,
+			success: Page(Course, "CoursePage"),
+		}).annotate(
+			OpenApi.Summary,
+			"Courses, each grouping offerings of one subject across years",
+		),
 		HttpApiEndpoint.get("offerings", "/offerings", {
 			query: PageQuery,
 			success: Page(Offering, "OfferingPage"),
@@ -106,7 +114,7 @@ export class CatalogApi extends HttpApiGroup.make("catalog")
 	)
 	.annotate(
 		OpenApi.Description,
-		"Reference lists and offerings: `catalog:read`",
+		"Reference lists, courses and offerings: `catalog:read`",
 	)
 	.annotateEndpoints(RequiredScopes, ["catalog:read"])
 	.middleware(ApiKeyAuth)
