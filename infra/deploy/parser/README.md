@@ -235,6 +235,73 @@ sudo k3s kubectl -n parser get objectstore parser-backups -o jsonpath='{.status.
 
 The backups hold the crawled САЗ data, student lists included. Keep the bucket private and the keys in the password manager.
 
+### Restoring a backup
+
+Two cases: a **drill** restores into a throwaway cluster next to `parser-db` and leaves it untouched; a **recovery** replaces `parser-db` with its backup. Do the drill at least once after backups are set up, and after every Postgres major or plugin upgrade, so a recovery isn't the first restore.
+
+Both need the admin kubeconfig: run them on the node with `sudo k3s kubectl`. A restore replays WAL since the base backup it starts from, so it takes minutes to tens of minutes.
+
+#### Drill
+
+[`k8s/restore/parser-db-restore.yaml`](k8s/restore/parser-db-restore.yaml) is a one-instance cluster, `parser-db-restore`, bootstrapped from the latest backup. It has no WAL archiving, so it can't write to the bucket. It takes another 512 Mi on the node: check `free -m` first, and wait for the crawl to finish if memory is tight.
+
+```bash
+sudo k3s kubectl -n parser get objectstore parser-backups -o jsonpath='{.status.serverRecoveryWindow}'   # what can be restored
+sudo k3s kubectl apply -f parser-db-restore.yaml   # copied to the node, or piped over ssh
+sudo k3s kubectl -n parser get cluster parser-db-restore -w   # Setting up primary, then Cluster in healthy state
+```
+
+Compare the two databases. The restored one should match `parser-db` up to the last archived WAL, so allow for runs the worker finished in the last minutes:
+
+```bash
+Q="SELECT status, count(*), max(finished_at) FROM runs GROUP BY status ORDER BY status"
+for c in parser-db parser-db-restore; do
+  pod=$(sudo k3s kubectl -n parser get pods -l cnpg.io/cluster=$c,cnpg.io/instanceRole=primary -o name)
+  echo "== $c"; sudo k3s kubectl -n parser exec "$pod" -c postgres -- psql -d parser -c "$Q"
+done
+```
+
+Then delete the drill cluster. CNPG deletes its volume with it:
+
+```bash
+sudo k3s kubectl -n parser delete cluster parser-db-restore
+```
+
+Write the date and the result in #772 or the follow-up issue, not in the repo.
+
+#### Recovery
+
+Use it when `parser-db`'s data is lost or broken: the node was recreated, the volume was deleted, or a bad migration damaged the data. Every write since the restore point is lost, and the crawl redoes them.
+
+1. **Stop the app,** so nothing writes to the old database or fails against a missing one:
+
+   ```bash
+   sudo k3s kubectl -n parser scale deployment parser-api parser-worker --replicas=0
+   ```
+
+2. **Pick the target.** The latest state by default. After a bad migration, pick a time just before it (UTC, inside `serverRecoveryWindow`).
+3. **Change `database/cluster.yaml` in a PR:**
+   - replace `bootstrap.initdb` with the `bootstrap.recovery` and `externalClusters` blocks from `k8s/restore/parser-db-restore.yaml`, with the `recoveryTarget` from step 2 if any;
+   - add `serverName: parser-db-2` (the next free name) to the plugin's `parameters`. The restored cluster starts a new timeline, and barman refuses to archive into a path that already holds `parser-db`'s backups;
+   - set the same `serverName` in `k8s/restore/parser-db-restore.yaml`, so later drills restore from the new path.
+
+   Merge it. `bootstrap` only matters when the cluster is created, so the recovery block can stay.
+4. **Delete the old cluster**, if it still exists. This deletes its volumes and everything in them, and leaves the bucket alone:
+
+   ```bash
+   sudo k3s kubectl -n parser delete cluster parser-db
+   ```
+
+5. **Run Parser Platform** with `apply`. It recreates `parser-db` from the backup and waits until it is ready and archiving WAL again.
+6. **Start the app.** The restored cluster gets a new password in `parser-db-app`, and pods read it only when they start:
+
+   ```bash
+   sudo k3s kubectl -n parser scale deployment parser-api parser-worker --replicas=1
+   curl -sI https://data.rateukma.com/health   # HTTP/2 200
+   ```
+
+7. **Clean up after 7 days.** Nothing prunes the old `parser-db/` path in the bucket any more. Once the new path has a week of backups, delete `parser-db/` from `rate-ukma-parser-backups`.
+
 ### Upgrading an operator
 
 Change its version in `operators/kustomization.yaml` and check the release notes for the supported Kubernetes versions.

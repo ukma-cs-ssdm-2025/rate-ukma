@@ -1,0 +1,47 @@
+# A throwaway Postgres cluster restored from parser-db's backups, to prove the backups restore.
+# Not part of any kustomization: applied by hand, checked and deleted, as described in
+# infra/deploy/parser/README.md ("Restoring a backup").
+# It has no plugins section, so it never archives WAL and can't write over parser-db's backups.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: parser-db-restore
+  namespace: parser
+spec:
+  instances: 1
+  # Keep in step with database/cluster.yaml: a backup restores only into the same Postgres major.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-minimal-trixie
+
+  bootstrap:
+    recovery:
+      source: parser-db-backup
+      database: parser
+      owner: parser
+      # Without a target, recovery replays all archived WAL: the latest state.
+      # For a point in time, uncomment and set it in UTC:
+      # recoveryTarget:
+      #   targetTime: "2026-11-15 12:00:00+00"
+
+  externalClusters:
+    - name: parser-db-backup
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: parser-backups
+          # The archive path of the cluster to restore from.
+          serverName: parser-db
+
+  storage:
+    storageClass: local-path
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      shared_buffers: 128MB
