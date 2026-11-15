@@ -149,6 +149,7 @@ describe("course decisions", () => {
 							yield* refused(first, master),
 							yield* refused(second, master),
 							yield* refused("crs_missing", second),
+							yield* refused(first, "crs_missing"),
 							yield* Effect.flip(unmergeCourse(keyId, second)).pipe(
 								Effect.map(reasonOf),
 							),
@@ -159,10 +160,35 @@ describe("course decisions", () => {
 							"course_merged",
 							"level_mismatch",
 							"CourseNotFound",
+							"CourseNotFound",
 							"not_merged",
 						],
 					);
 					assert.strictEqual(yield* lastChange, last);
+				}),
+		);
+
+		it.effect(
+			"brings back a removed course a merge moves live offerings to",
+			() =>
+				Effect.gen(function* () {
+					const { keyId, first, second } = yield* setUp();
+
+					// Its only offering takes the first course's title, so it empties.
+					yield* write([offering("900063")]);
+					yield* groupCourses({});
+
+					assert.deepInclude(
+						(yield* courses).find(({ id }) => id === second),
+						{ removed: true },
+					);
+
+					yield* mergeCourse(keyId, first, second);
+
+					assert.deepInclude(
+						(yield* courses).find(({ id }) => id === second),
+						{ removed: false, mergedInto: null },
+					);
 				}),
 		);
 

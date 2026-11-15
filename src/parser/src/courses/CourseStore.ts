@@ -66,8 +66,8 @@ export class CourseStore extends Context.Service<
 			ids: ReadonlyArray<string>,
 		): Effect.Effect<ReadonlyArray<StoredCourse>, never, Turn>;
 		/** A staff merge: moves every offering of the course to `into`, held
-		 *  there by the decision, brings `into` back if it was removed, then
-		 *  merges the course. */
+		 *  there by the decision, brings `into` back if it was removed and now
+		 *  holds a live offering, then merges the course. */
 		decideMerge(id: string, into: string): Effect.Effect<void, never, Turn>;
 		/** Undoes a merge: the course comes back and takes back, held by the
 		 *  decision, the offerings of its key from the courses its merge leads
@@ -246,6 +246,10 @@ export class CourseStore extends Context.Service<
 							UPDATE courses
 							SET removed_at = NULL, change_no = nextval('change_no_seq')
 							WHERE id = ${into} AND removed_at IS NOT NULL
+								AND EXISTS (
+									SELECT 1 FROM offerings
+									WHERE course_id = ${into} AND removed_at IS NULL
+								)
 							RETURNING id, change_no, 'restore' AS action
 						`,
 					);
