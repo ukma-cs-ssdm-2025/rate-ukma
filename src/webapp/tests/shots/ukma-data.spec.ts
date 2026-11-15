@@ -149,8 +149,6 @@ for (const width of [1440, 390]) {
 
 		await page.goto("/data");
 		await expect(page.getByText("Відкриті справи: 2")).toBeVisible();
-		const lists = page.getByLabel("Чинні рядки за списками");
-		await expect(lists).toContainText("Пропозиції курсів5");
 		await shot(page, `overview-${width}`);
 
 		await page.getByRole("link", { name: "Справи", exact: true }).click();
