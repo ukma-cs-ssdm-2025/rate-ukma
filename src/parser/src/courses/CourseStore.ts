@@ -61,6 +61,18 @@ export class CourseStore extends Context.Service<
 			merge: ReadonlyArray<CourseMerge>,
 			remove: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
+		/** The courses of these ids that exist. */
+		find(
+			ids: ReadonlyArray<string>,
+		): Effect.Effect<ReadonlyArray<StoredCourse>, never, Turn>;
+		/** A staff merge: moves every offering of the course to `into`, held
+		 *  there by the decision, brings `into` back if it was removed, then
+		 *  merges the course. */
+		decideMerge(id: string, into: string): Effect.Effect<void, never, Turn>;
+		/** Undoes a merge: the course comes back and takes back, held by the
+		 *  decision, the offerings of its key from the courses its merge leads
+		 *  to. */
+		decideUnmerge(id: string): Effect.Effect<void, never, Turn>;
 	}
 >()("ukma-data/courses/CourseStore") {
 	static readonly layer = Layer.effect(
@@ -200,11 +212,103 @@ export class CourseStore extends Context.Service<
 					}
 				});
 
+			const findByIds = SqlSchema.findAll({
+				Request: Schema.Array(Schema.String),
+				Result: CourseRow,
+				execute: (ids) => sql`
+					SELECT id, title, department_id AS "departmentId", level,
+						removed_at IS NOT NULL AS removed, merged_into AS "mergedInto",
+						merge_source AS "mergeSource"
+					FROM courses
+					WHERE id IN ${sql.in(ids)}
+				`,
+			});
+
+			const decision = {};
+
+			const decideMerge = (id: string, into: string) =>
+				Effect.gen(function* () {
+					yield* changes.track(
+						"offerings",
+						decision,
+						sql`
+							UPDATE offerings
+							SET course_id = ${into}, course_source = 'decision',
+								change_no = nextval('change_no_seq')
+							WHERE course_id = ${id}
+							RETURNING id, change_no, 'change' AS action
+						`,
+					);
+					yield* changes.track(
+						"courses",
+						decision,
+						sql`
+							UPDATE courses
+							SET removed_at = NULL, change_no = nextval('change_no_seq')
+							WHERE id = ${into} AND removed_at IS NOT NULL
+							RETURNING id, change_no, 'restore' AS action
+						`,
+					);
+					yield* changes.track(
+						"courses",
+						decision,
+						sql`
+							UPDATE courses c
+							SET merged_into = ${into}, merge_source = 'decision',
+								removed_at = coalesce(c.removed_at, now()),
+								change_no = nextval('change_no_seq')
+							FROM courses prev
+							WHERE c.id = ${id} AND prev.id = c.id
+							RETURNING c.id, c.change_no,
+								CASE WHEN prev.removed_at IS NULL THEN 'remove' ELSE 'change' END
+									AS action
+						`,
+					);
+				});
+
+			const decideUnmerge = (id: string) =>
+				Effect.gen(function* () {
+					yield* changes.track(
+						"offerings",
+						decision,
+						sql`
+							WITH RECURSIVE chain AS (
+								SELECT merged_into AS id FROM courses WHERE id = ${id}
+								UNION
+								SELECT c.merged_into FROM courses c JOIN chain ON c.id = chain.id
+								WHERE c.merged_into IS NOT NULL
+							)
+							UPDATE offerings o
+							SET course_id = k.id, course_source = 'decision',
+								change_no = nextval('change_no_seq')
+							FROM courses k
+							WHERE k.id = ${id} AND o.course_id IN (SELECT id FROM chain)
+								AND (o.title, o.department_id, o.level)
+									IS NOT DISTINCT FROM (k.title, k.department_id, k.level)
+							RETURNING o.id, o.change_no, 'change' AS action
+						`,
+					);
+					yield* changes.track(
+						"courses",
+						decision,
+						sql`
+							UPDATE courses
+							SET merged_into = NULL, merge_source = NULL, removed_at = NULL,
+								change_no = nextval('change_no_seq')
+							WHERE id = ${id}
+							RETURNING id, change_no, 'restore' AS action
+						`,
+					);
+				});
+
 			return CourseStore.of({
 				liveOfferings: findLiveOfferings().pipe(Effect.orDie),
 				courses: findCourses().pipe(Effect.orDie),
 				open,
 				link,
+				find: (ids) => findByIds(ids).pipe(Effect.orDie),
+				decideMerge,
+				decideUnmerge,
 			});
 		}),
 	);

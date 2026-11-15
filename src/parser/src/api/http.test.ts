@@ -10,6 +10,7 @@ import {
 import { HttpApiError, HttpApiMiddleware, HttpApiTest } from "effect/http-api";
 import { SqlClient } from "effect/sql";
 import { ChangeLog } from "../changes/ChangeLog.ts";
+import { CourseStore } from "../courses/CourseStore.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
@@ -147,7 +148,9 @@ const TestLive = Layer.mergeAll(
 	// routes to it a second time.
 	Layer.empty.pipe(Layer.provide(HttpRouter.serve(ApiRoutes))),
 ).pipe(
-	Layer.provideMerge(Layer.mergeAll(ListReader.layer, AuthLive)),
+	Layer.provideMerge(
+		Layer.mergeAll(ListReader.layer, CourseStore.layer, AuthLive),
+	),
 	Layer.provideMerge(NodeHttpServer.layerTest),
 	Layer.provideMerge(Layer.effectDiscard(seed)),
 	Layer.provideMerge(ChangeLog.layer),
@@ -366,6 +369,54 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					assert.deepStrictEqual(audit, [
 						{ route: "GET /v1/review-cases", rowCount: 1 },
 					]);
+				}),
+		);
+
+		it.effect(
+			"needs review:decide to merge or unmerge a course and answers 404 or 409",
+			() =>
+				Effect.gen(function* () {
+					const catalog = yield* clientAs(["catalog:read"]);
+
+					const denied = yield* Effect.flip(
+						catalog.client.review.unmergeCourse({ params: { id: "crs_a" } }),
+					);
+
+					assert.strictEqual(denied._tag, "Forbidden");
+
+					const { client } = yield* clientAs(["review:decide", "catalog:read"]);
+
+					yield* client.review.unmergeCourse({ params: { id: "crs_a" } });
+
+					const missing = yield* Effect.flip(
+						client.review.mergeCourse({
+							params: { id: "crs_missing" },
+							payload: { into: "crs_b" },
+						}),
+					);
+
+					const self = yield* Effect.flip(
+						client.review.mergeCourse({
+							params: { id: "crs_a" },
+							payload: { into: "crs_a" },
+						}),
+					);
+
+					assert.strictEqual(missing._tag, "CourseNotFound");
+					assert.deepInclude(self, { reason: "same_course" });
+
+					yield* client.review.mergeCourse({
+						params: { id: "crs_a" },
+						payload: { into: "crs_b" },
+					});
+
+					const page = yield* client.catalog.courses({ query: FROM_START });
+
+					assert.deepInclude(page.items.at(-1), {
+						id: "crs_a",
+						mergedInto: "crs_b",
+						mergeSource: "decision",
+					});
 				}),
 		);
 
