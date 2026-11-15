@@ -116,7 +116,8 @@ export class ListReader extends Context.Service<
 					Course.pipe(numbered),
 					(after, rows) => sql`
 						SELECT id, title, department_id AS "departmentId", level,
-							merged_into AS "mergedInto", change_no AS "changeNo",
+							merged_into AS "mergedInto", merge_source AS "mergeSource",
+							change_no AS "changeNo",
 							removed_at AS "removedAt"
 						FROM courses
 						WHERE change_no > ${after} ORDER BY change_no LIMIT ${rows}

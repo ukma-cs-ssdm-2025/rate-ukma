@@ -179,7 +179,11 @@ export const Course = Schema.Struct({
 	level: Level,
 	mergedInto: Schema.NullOr(Schema.String).annotate({
 		description:
-			"The course that now holds its offerings, after a department handoff or a staff merge; a reader moves its own data there",
+			"The course that now holds its offerings; a reader moves its own data there",
+	}),
+	mergeSource: Schema.NullOr(Schema.Literals(["rule", "decision"])).annotate({
+		description:
+			"Who merged it: `rule` for a department handoff, which a later parse undoes when the handoff stops holding, or `decision` for staff",
 	}),
 	changeNo,
 	removedAt,

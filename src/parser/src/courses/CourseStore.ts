@@ -33,6 +33,7 @@ const CourseRow = Schema.Struct({
 	level: Level,
 	removed: Schema.Boolean,
 	mergedInto: Schema.NullOr(Schema.String),
+	mergeSource: Schema.NullOr(Schema.Literals(["rule", "decision"])),
 });
 
 /** Every method needs the writers' turn, so the rule reads and writes the
@@ -43,11 +44,13 @@ export class CourseStore extends Context.Service<
 		liveOfferings: Effect.Effect<ReadonlyArray<LiveOffering>, never, Turn>;
 		/** Every course, removed and merged ones included. */
 		courses: Effect.Effect<ReadonlyArray<StoredCourse>, never, Turn>;
-		/** Adds a course for each key and brings the removed courses back. */
+		/** Adds a course for each key, brings the removed courses back and
+		 *  undoes the rule's merges. */
 		open(
 			source: ChangeSource,
 			add: ReadonlyArray<CourseKey>,
 			restore: ReadonlyArray<string>,
+			unmerge: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
 		/** Links the offerings by the rule, then merges the handed-off courses
 		 *  and removes the other emptied ones. */
@@ -83,7 +86,8 @@ export class CourseStore extends Context.Service<
 				Result: CourseRow,
 				execute: () => sql`
 					SELECT id, title, department_id AS "departmentId", level,
-						removed_at IS NOT NULL AS removed, merged_into AS "mergedInto"
+						removed_at IS NOT NULL AS removed, merged_into AS "mergedInto",
+						merge_source AS "mergeSource"
 					FROM courses
 					ORDER BY id
 				`,
@@ -93,8 +97,23 @@ export class CourseStore extends Context.Service<
 				source: ChangeSource,
 				add: ReadonlyArray<CourseKey>,
 				restore: ReadonlyArray<string>,
+				unmerge: ReadonlyArray<string>,
 			) =>
 				Effect.gen(function* () {
+					if (unmerge.length > 0) {
+						yield* changes.track(
+							"courses",
+							source,
+							sql`
+								UPDATE courses
+								SET merged_into = NULL, merge_source = NULL, removed_at = NULL,
+									change_no = nextval('change_no_seq')
+								WHERE id IN ${sql.in(unmerge)} AND merge_source = 'rule'
+								RETURNING id, change_no, 'restore' AS action
+							`,
+						);
+					}
+
 					if (add.length > 0) {
 						yield* changes.track(
 							"courses",
@@ -152,7 +171,7 @@ export class CourseStore extends Context.Service<
 							source,
 							sql`
 								UPDATE courses c
-								SET merged_into = r.into,
+								SET merged_into = r.into, merge_source = 'rule',
 									removed_at = coalesce(c.removed_at, now()),
 									change_no = nextval('change_no_seq')
 								FROM courses prev, ${recordset(merge, { courseId: "text", into: "text" })}

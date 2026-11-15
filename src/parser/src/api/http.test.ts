@@ -128,7 +128,7 @@ const seedRows = Effect.gen(function* () {
 	`;
 	yield* sql`
 		UPDATE courses
-		SET merged_into = 'crs_b', removed_at = '2031-09-02T00:00:00Z',
+		SET merged_into = 'crs_b', merge_source = 'decision', removed_at = '2031-09-02T00:00:00Z',
 			change_no = ${next}
 		WHERE id = 'crs_a'
 	`;
@@ -283,14 +283,15 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					const page = yield* client.catalog.courses({ query: FROM_START });
 
 					assert.deepStrictEqual(
-						page.items.map(({ id, mergedInto, removedAt }) => [
+						page.items.map(({ id, mergedInto, mergeSource, removedAt }) => [
 							id,
 							mergedInto,
+							mergeSource,
 							removedAt?.toISOString() ?? null,
 						]),
 						[
-							["crs_b", null, null],
-							["crs_a", "crs_b", "2031-09-02T00:00:00.000Z"],
+							["crs_b", null, null, null],
+							["crs_a", "crs_b", "decision", "2031-09-02T00:00:00.000Z"],
 						],
 					);
 					assert.deepStrictEqual(

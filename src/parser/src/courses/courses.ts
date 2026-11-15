@@ -24,6 +24,8 @@ export interface StoredCourse extends CourseKey {
 	readonly id: string;
 	readonly removed: boolean;
 	readonly mergedInto: string | null;
+	/** `rule` for a department handoff, `decision` for a staff merge. */
+	readonly mergeSource: "rule" | "decision" | null;
 }
 
 export interface OfferingLink {
@@ -144,14 +146,47 @@ const courseByKey = (courses: ReadonlyArray<StoredCourse>) => {
  *  course holds gets a new course; a removed course whose key has live
  *  offerings again comes back, so its id stays. A key handed off to another
  *  department gets a course too, unless one was merged already, so the merge
- *  shows in `merged_into` even on a first grouping. A removed course a
+ *  shows in `merged_into` even on a first grouping. A course the rule merged
+ *  whose handoff no longer holds, while its key has live offerings, is
+ *  unmerged and takes them back; a staff merge never is. A removed course a
  *  decision holds a live offering in comes back too. */
 export const planCourses = (
 	offerings: ReadonlyArray<LiveOffering>,
 	courses: ReadonlyArray<StoredCourse>,
 ) => {
-	const byKey = courseByKey(courses);
 	const targetOf = handoffTargets(offerings);
+
+	const standing = new Set(
+		ruled(offerings).flatMap((offering) =>
+			keyOf(targetOf(offering)) === keyOf(offering) ? [keyOf(offering)] : [],
+		),
+	);
+
+	const held = courseByKey(courses);
+	const unmerge = new Map<string, string>();
+
+	for (const course of courses) {
+		const key = keyOf(course);
+
+		if (
+			course.mergeSource === "rule" &&
+			standing.has(key) &&
+			!held.has(key) &&
+			!unmerge.has(key)
+		) {
+			unmerge.set(key, course.id);
+		}
+	}
+
+	const unmerged = new Set(unmerge.values());
+
+	const byKey = courseByKey(
+		courses.map((course) =>
+			unmerged.has(course.id)
+				? { ...course, removed: false, mergedInto: null, mergeSource: null }
+				: course,
+		),
+	);
 
 	const mergedKeys = new Set(
 		courses.flatMap((course) =>
@@ -189,7 +224,11 @@ export const planCourses = (
 		}
 	}
 
-	return { add: [...add.values()], restore: [...restore] };
+	return {
+		add: [...add.values()],
+		restore: [...restore],
+		unmerge: [...unmerged],
+	};
 };
 
 /** Each ruled offering's link, where it differs from the stored one; the
@@ -249,9 +288,13 @@ export const groupCourses = Effect.fn("groupCourses")(function* (
 	return yield* changes.withTurn(
 		Effect.gen(function* () {
 			const offerings = yield* store.liveOfferings;
-			const { add, restore } = planCourses(offerings, yield* store.courses);
 
-			yield* store.open(source, add, restore);
+			const { add, restore, unmerge } = planCourses(
+				offerings,
+				yield* store.courses,
+			);
+
+			yield* store.open(source, add, restore, unmerge);
 
 			const { links, merge, remove } = planLinks(
 				offerings,
@@ -263,6 +306,7 @@ export const groupCourses = Effect.fn("groupCourses")(function* (
 			return {
 				added: add.length,
 				restored: restore.length,
+				unmerged: unmerge.length,
 				moved: links.length,
 				merged: merge.length,
 				removed: remove.length,
