@@ -126,6 +126,26 @@ describe("planCourses", () => {
 		);
 	});
 
+	it("undoes every rule merge of a key whose handoff no longer holds", () => {
+		const merged = {
+			removed: true,
+			mergedInto: "crs_3",
+			mergeSource: "rule",
+		} as const;
+
+		assert.deepStrictEqual(
+			planCourses(
+				[live("off_1"), live("off_2", { departmentId: "dep_b" })],
+				[
+					course("crs_1", merged),
+					course("crs_2", merged),
+					course("crs_3", { departmentId: "dep_b" }),
+				],
+			).unmerge,
+			["crs_1", "crs_2"],
+		);
+	});
+
 	it("restores a removed course of the key, skips merged ones and decided offerings", () => {
 		assert.deepStrictEqual(
 			planCourses(

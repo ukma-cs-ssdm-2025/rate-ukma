@@ -163,22 +163,18 @@ export const planCourses = (
 	);
 
 	const held = courseByKey(courses);
-	const unmerge = new Map<string, string>();
 
-	for (const course of courses) {
-		const key = keyOf(course);
-
-		if (
+	// Every one of them: a key the rule merged twice keeps no stale redirect.
+	// Grouping keeps the oldest and removes the others once they are empty.
+	const unmerged = new Set(
+		courses.flatMap((course) =>
 			course.mergeSource === "rule" &&
-			standing.has(key) &&
-			!held.has(key) &&
-			!unmerge.has(key)
-		) {
-			unmerge.set(key, course.id);
-		}
-	}
-
-	const unmerged = new Set(unmerge.values());
+			standing.has(keyOf(course)) &&
+			!held.has(keyOf(course))
+				? [course.id]
+				: [],
+		),
+	);
 
 	const byKey = courseByKey(
 		courses.map((course) =>
