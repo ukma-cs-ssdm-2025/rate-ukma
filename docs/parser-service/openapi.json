@@ -647,10 +647,10 @@
 						"type": "string"
 					},
 					"candidates": {
-						"description": "Ids only"
+						"description": "Ids only. `course_match`: `{ courseIds }`, the courses it asks about; `student_match`: `{ studentIds }`; `removals_held`: `{ academicYear, offeringIds }`"
 					},
 					"safeAnswer": {
-						"description": "What was published"
+						"description": "What was published. `course_match`: `{ answer: \"keep_apart\" }` or `{ answer: \"keep_merged\" }`; `student_match`: `{ studentId }`; `removals_held`: `{ removals: \"held\" }`"
 					},
 					"status": {
 						"type": "string",

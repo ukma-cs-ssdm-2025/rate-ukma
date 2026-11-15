@@ -314,7 +314,7 @@ GET /course/900123/students -> 500
 
 - Count: 242 title groups differ only by a note in brackets at the end, 2 only by letter case.
 - Codes: 345718, 345745, 351378, 351381 (one group).
-- Handled by: the review case "an offering may belong to an existing course", with a new course as the safe answer. A trailing note can be the language of a separate course, so it is not merged without staff.
+- Handled by: a `course_match` review case on the two courses, with keeping them apart as the safe answer. A trailing note can be the language of a separate course, so it is not merged without staff.
 
 ```text
 Теорія умовних прикладів

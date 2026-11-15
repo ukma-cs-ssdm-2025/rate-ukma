@@ -142,6 +142,8 @@ A merge sets `removed_at` and `merged_into` on the old course and moves its offe
 
 Every offering parse ends by grouping (`src/courses/courses.ts`): each live offering whose `course_source` is not `decision` joins the course of its title, `department_id` and `level`, the oldest live one when a key has two; a key no course holds gets a new course. A course found by its key keeps its id, so a parse of unchanged data takes no number. An offering that joins another course takes a new change number, so a parse that also rewrote its card numbers it twice. A course with no live offering left is removed, and comes back with its id when an offering of its key does; offering removals happen after the parse, so the course they empty is removed by the next parse. A removed offering keeps the course it had. Titles are compared exactly: a trailing bracket note or a letter case difference is another course (C3).
 
+Grouping then opens a `course_match` review case for each course pair or course a person should look at; the rule keeps its answer meanwhile. Two live courses of one title and level under different departments whose academic years never overlap look like a department that moved, unless the title is generic: kept apart, `safe_answer` `{"answer": "keep_apart"}`. Overlapping years mean two departments teach it, so no case. Two courses of one department and level whose titles differ only by letter case, spaces or a trailing bracket note are kept apart too. A course of a generic title, one that 5 or more departments use at its level (theses, coursework, exams, practice), with two or more live offerings may mix subjects: kept merged, `{"answer": "keep_merged"}`, and the case asks whether to split it. `candidates` is `{"courseIds": [...]}`, sorted, and `subject_id` the newest of them. A case is the same while its subject and courses are, so grouping again opens no duplicate; an open case its courses no longer call for, as when one is removed or merged, becomes `obsolete`.
+
 Readers sync courses from `GET /v1/courses` (`catalog:read`), removed and merged ones included, and each offering names its course in `courseId`.
 
 ## Instructors
@@ -267,8 +269,8 @@ Each parse's `report` counts its rows by table and action. A removed offering co
 | --- | --- | --- |
 | `id` | text | `rev_...` |
 | `kind` | text | `course_match`, `instructor_match`, `student_match`, `removals_held` |
-| `subject_id` | text | the offering, the programme record for `student_match`, or the run for held removals |
-| `candidates` | jsonb | ids only: courses, instructors, the student a programme record joined, or the rows the run would remove |
+| `subject_id` | text | the newest course of `course_match`, the programme record for `student_match`, or the run for held removals |
+| `candidates` | jsonb | ids only: `{courseIds}` the courses a `course_match` asks about, instructors, `{studentIds}` the students a programme record matched, or `{academicYear, offeringIds}` the rows the run would remove |
 | `safe_answer` | jsonb | what was published |
 | `status` | text | `open`, `decided`, `obsolete` (a later run made it moot) |
 | `run_id` | bigint | the run that opened it |
