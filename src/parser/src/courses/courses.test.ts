@@ -19,6 +19,7 @@ import { CourseStore } from "./CourseStore.ts";
 
 const live = (id: string, patch: Partial<LiveOffering> = {}): LiveOffering => ({
 	id,
+	academicYear: 2031,
 	title: "Вигадана алгебра",
 	departmentId: "dep_a",
 	level: "bachelor",
@@ -37,6 +38,7 @@ const course = (
 	level: "bachelor",
 	removed: false,
 	mergedInto: null,
+	mergeSource: null,
 	...patch,
 });
 
@@ -71,6 +73,79 @@ describe("planCourses", () => {
 		);
 	});
 
+	it("adds the course of a handoff and one to merge, unless that one was merged", () => {
+		const offerings = [
+			live("off_1"),
+			live("off_2", { departmentId: "dep_b", academicYear: 2032 }),
+		];
+
+		assert.deepStrictEqual(
+			planCourses(offerings, []).add.map(({ departmentId }) => departmentId),
+			["dep_b", "dep_a"],
+		);
+		assert.deepStrictEqual(
+			planCourses(offerings, [
+				course("crs_1", {
+					removed: true,
+					mergedInto: "crs_2",
+					mergeSource: "rule",
+				}),
+				course("crs_2", { departmentId: "dep_b" }),
+			]),
+			{ add: [], restore: [], unmerge: [] },
+		);
+	});
+
+	it("undoes the rule's merge whose handoff no longer holds, never a staff one", () => {
+		const merged = { removed: true, mergedInto: "crs_3" };
+
+		assert.deepStrictEqual(
+			planCourses(
+				[
+					live("off_1"),
+					live("off_2", { departmentId: "dep_b" }),
+					live("off_3", { title: "Інше" }),
+					live("off_4", { title: "Інше", departmentId: "dep_b" }),
+				],
+				[
+					course("crs_1", { ...merged, mergeSource: "rule" }),
+					course("crs_2", {
+						...merged,
+						title: "Інше",
+						mergeSource: "decision",
+					}),
+					course("crs_3", { departmentId: "dep_b" }),
+					course("crs_4", { title: "Інше", departmentId: "dep_b" }),
+				],
+			),
+			{
+				add: [{ title: "Інше", departmentId: "dep_a", level: "bachelor" }],
+				restore: [],
+				unmerge: ["crs_1"],
+			},
+		);
+	});
+
+	it("undoes every rule merge of a key whose handoff no longer holds", () => {
+		const merged = {
+			removed: true,
+			mergedInto: "crs_3",
+			mergeSource: "rule",
+		} as const;
+
+		assert.deepStrictEqual(
+			planCourses(
+				[live("off_1"), live("off_2", { departmentId: "dep_b" })],
+				[
+					course("crs_1", merged),
+					course("crs_2", merged),
+					course("crs_3", { departmentId: "dep_b" }),
+				],
+			).unmerge,
+			["crs_1", "crs_2"],
+		);
+	});
+
 	it("restores a removed course of the key, skips merged ones and decided offerings", () => {
 		assert.deepStrictEqual(
 			planCourses(
@@ -79,11 +154,11 @@ describe("planCourses", () => {
 					live("off_2", { title: "Інше", courseSource: "decision" }),
 				],
 				[
-					course("crs_1", { mergedInto: "crs_9" }),
+					course("crs_1", { mergedInto: "crs_9", mergeSource: "decision" }),
 					course("crs_2", { removed: true }),
 				],
 			),
-			{ add: [], restore: ["crs_2"] },
+			{ add: [], restore: ["crs_2"], unmerge: [] },
 		);
 	});
 
@@ -101,7 +176,11 @@ describe("planCourses", () => {
 				[
 					course("crs_1"),
 					course("crs_3", { title: "Ще інше", removed: true }),
-					course("crs_4", { removed: true, mergedInto: "crs_1" }),
+					course("crs_4", {
+						removed: true,
+						mergedInto: "crs_1",
+						mergeSource: "decision",
+					}),
 				],
 			).restore,
 			["crs_3"],
@@ -127,8 +206,106 @@ describe("planLinks", () => {
 			),
 			{
 				links: [{ offeringId: "off_1", courseId: "crs_2" }],
+				merge: [],
 				remove: ["crs_3", "crs_5"],
 			},
+		);
+	});
+
+	it("merges a department handoff into the latest department's course", () => {
+		const other = { title: "Інше" };
+
+		assert.deepStrictEqual(
+			planLinks(
+				[
+					live("off_1", { courseId: "crs_1" }),
+					live("off_2", { departmentId: "dep_b", academicYear: 2032 }),
+					live("off_3", { departmentId: "dep_c", academicYear: 2033 }),
+					live("off_4", { departmentId: "dep_c", academicYear: 2034 }),
+					// A gap: kept apart.
+					live("off_5", { ...other, courseId: "crs_5" }),
+					live("off_6", {
+						...other,
+						departmentId: "dep_b",
+						academicYear: 2033,
+					}),
+				],
+				[
+					course("crs_1"),
+					course("crs_2", { departmentId: "dep_b" }),
+					course("crs_3", { departmentId: "dep_c" }),
+					course("crs_5", other),
+					course("crs_6", { ...other, departmentId: "dep_b" }),
+				],
+			),
+			{
+				links: [
+					{ offeringId: "off_1", courseId: "crs_3" },
+					{ offeringId: "off_2", courseId: "crs_3" },
+					{ offeringId: "off_3", courseId: "crs_3" },
+					{ offeringId: "off_4", courseId: "crs_3" },
+					{ offeringId: "off_6", courseId: "crs_6" },
+				],
+				merge: [
+					{ courseId: "crs_1", into: "crs_3" },
+					{ courseId: "crs_2", into: "crs_3" },
+				],
+				remove: [],
+			},
+		);
+	});
+
+	it("keeps apart overlapping years and a handoff with two ways in or out", () => {
+		const { merge } = planLinks(
+			[
+				live("off_1"),
+				live("off_2", { departmentId: "dep_b" }),
+				live("off_3", { departmentId: "dep_b", academicYear: 2032 }),
+				live("off_4", { title: "Інше" }),
+				live("off_5", {
+					title: "Інше",
+					departmentId: "dep_b",
+					academicYear: 2032,
+				}),
+				live("off_6", {
+					title: "Інше",
+					departmentId: "dep_c",
+					academicYear: 2032,
+				}),
+				live("off_7", { title: "Третє" }),
+				live("off_8", { title: "Третє", departmentId: "dep_c" }),
+				live("off_9", {
+					title: "Третє",
+					departmentId: "dep_b",
+					academicYear: 2032,
+				}),
+			],
+			[
+				course("crs_1"),
+				course("crs_2", { departmentId: "dep_b" }),
+				course("crs_4", { title: "Інше" }),
+				course("crs_5", { title: "Інше", departmentId: "dep_b" }),
+				course("crs_6", { title: "Інше", departmentId: "dep_c" }),
+				course("crs_7", { title: "Третє" }),
+				course("crs_8", { title: "Третє", departmentId: "dep_c" }),
+				course("crs_9", { title: "Третє", departmentId: "dep_b" }),
+			],
+		);
+
+		assert.deepStrictEqual(merge, []);
+	});
+
+	it("keeps a handed-off course a decision holds an offering in", () => {
+		assert.deepStrictEqual(
+			planLinks(
+				[
+					live("off_1", { courseId: "crs_1" }),
+					live("off_2", { courseId: "crs_1", courseSource: "decision" }),
+					live("off_3", { departmentId: "dep_b", academicYear: 2032 }),
+				],
+				[course("crs_1"), course("crs_2", { departmentId: "dep_b" })],
+			).merge,
+			[],
 		);
 	});
 });
@@ -178,10 +355,14 @@ const courses = Effect.gen(function* () {
 
 	return yield* sql<{
 		readonly id: string;
+		readonly departmentId: string | null;
+		readonly mergedInto: string | null;
+		readonly mergeSource: string | null;
 		readonly removed: boolean;
 		readonly changeNo: bigint;
 	}>`
-		SELECT id, removed_at IS NOT NULL AS removed, change_no AS "changeNo"
+		SELECT id, department_id AS "departmentId", merged_into AS "mergedInto",
+			merge_source AS "mergeSource", removed_at IS NOT NULL AS removed, change_no AS "changeNo"
 		FROM courses ORDER BY id
 	`;
 });
@@ -197,6 +378,8 @@ const lastChange = Effect.gen(function* () {
 });
 
 const noUnit = { faculty: null, department: null };
+
+const otherDepartment = { department: "Кафедра вигаданої логіки" };
 
 describe("groupCourses", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {
@@ -247,8 +430,9 @@ describe("groupCourses", () => {
 				yield* write([
 					offering("900011"),
 					offering("900012", { level: "master" }),
+					offering("900013", { ...otherDepartment, academicYear: 2032 }),
 				]);
-				yield* groupCourses({});
+				assert.deepInclude(yield* groupCourses({}), { merged: 1 });
 
 				const before = { groups: yield* groups, courses: yield* courses };
 				const last = yield* lastChange;
@@ -256,7 +440,9 @@ describe("groupCourses", () => {
 				assert.deepStrictEqual(yield* groupCourses({}), {
 					added: 0,
 					restored: 0,
+					unmerged: 0,
 					moved: 0,
+					merged: 0,
 					removed: 0,
 				});
 				assert.deepStrictEqual(
@@ -319,6 +505,156 @@ describe("groupCourses", () => {
 					assert.deepStrictEqual(
 						(yield* groups).map(({ courseId }) => courseId),
 						[first?.id, first?.id],
+					);
+				}),
+		);
+
+		it.effect(
+			"merges a department handoff and follows it to the next department",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					yield* write([
+						offering("900031"),
+						offering("900032", { ...otherDepartment, academicYear: 2032 }),
+						offering("900033", { ...otherDepartment, academicYear: 2033 }),
+					]);
+					yield* groupCourses({});
+
+					const handedOff = yield* groups;
+					const target = handedOff[1]?.courseId;
+
+					assert.deepStrictEqual(
+						handedOff.map(({ courseId }) => courseId),
+						Array(3).fill(target),
+					);
+					assert.sameDeepMembers(
+						(yield* courses).map(({ id, mergedInto, removed }) => ({
+							target: id === target,
+							mergedInto,
+							removed,
+						})),
+						[
+							{ target: true, mergedInto: null, removed: false },
+							{ target: false, mergedInto: target, removed: true },
+						],
+					);
+
+					yield* write([
+						offering("900034", {
+							department: "Кафедра вигаданої етики",
+							academicYear: 2034,
+						}),
+					]);
+
+					assert.deepInclude(yield* groupCourses({}), {
+						added: 1,
+						moved: 4,
+						merged: 2,
+						removed: 0,
+					});
+
+					const chained = yield* groups;
+					const all = yield* courses;
+					const third = chained[3]?.courseId;
+
+					assert.deepStrictEqual(
+						chained.map(({ courseId }) => courseId),
+						Array(4).fill(third),
+					);
+					assert.strictEqual(
+						all.find(({ id }) => id === target)?.mergedInto,
+						third,
+					);
+					assert.strictEqual(
+						all.filter(({ mergedInto }) => mergedInto === null).length,
+						1,
+					);
+				}),
+		);
+
+		it.effect("undoes the rule's merge when the handoff stops holding", () =>
+			Effect.gen(function* () {
+				yield* reset;
+
+				yield* write([
+					offering("900041"),
+					offering("900042", { ...otherDepartment, academicYear: 2032 }),
+				]);
+				yield* groupCourses({});
+
+				const [merged] = (yield* courses).filter(
+					({ mergedInto }) => mergedInto !== null,
+				);
+
+				assert.strictEqual(merged?.mergeSource, "rule");
+
+				// The earlier department teaches it again in the later year.
+				yield* write([offering("900043", { academicYear: 2032 })]);
+
+				assert.deepInclude(yield* groupCourses({}), {
+					added: 0,
+					unmerged: 1,
+					moved: 2,
+					merged: 0,
+				});
+				assert.deepStrictEqual(
+					(yield* groups).map(({ courseId }) => courseId === merged?.id),
+					[true, false, true],
+				);
+				assert.deepInclude(
+					(yield* courses).find(({ id }) => id === merged?.id),
+					{ mergedInto: null, mergeSource: null, removed: false },
+				);
+
+				const last = yield* lastChange;
+
+				assert.deepInclude(yield* groupCourses({}), {
+					unmerged: 0,
+					moved: 0,
+				});
+				assert.strictEqual(yield* lastChange, last);
+			}),
+		);
+
+		it.effect(
+			"points a rule merge at the course its shortened chain ends in",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					const third = { department: "Кафедра вигаданої етики" };
+
+					yield* write([
+						offering("900051"),
+						offering("900052", { ...otherDepartment, academicYear: 2032 }),
+						offering("900053", { ...third, academicYear: 2033 }),
+					]);
+					yield* groupCourses({});
+
+					// The third department teaches it in the first year too, so the
+					// second no longer hands off to it.
+					yield* write([offering("900054", third)]);
+
+					assert.deepInclude(yield* groupCourses({}), {
+						unmerged: 1,
+						merged: 1,
+					});
+
+					const [first, second, , late] = yield* groups;
+					const all = yield* courses;
+
+					assert.strictEqual(first?.courseId, second?.courseId);
+					assert.notStrictEqual(second?.courseId, late?.courseId);
+					assert.sameDeepMembers(
+						all
+							.filter(({ mergedInto }) => mergedInto !== null)
+							.map(({ mergedInto, mergeSource }) => ({
+								mergedInto,
+								mergeSource,
+							})),
+						[{ mergedInto: second?.courseId, mergeSource: "rule" }],
 					);
 				}),
 		);

@@ -308,7 +308,7 @@ GET /course/900123/students -> 500
 ### C2. Same course across years
 
 - Count: 5,802 groups by title and department; 4,230 span two or more years and 911 span all nine. 183 title and department pairs exist at both levels.
-- Handled by: the first course rule: title, department and level, so a bachelor's and a master's course with one title stay apart. Rate UKMA's importer groups by title, faculty, programmes and level, but a faculty can change for every year at once (C4), so the service groups by `department_id` and keeps the faculty as an attribute of the department. The САЗ code never links years (A8).
+- Handled by: the first course rule: title, department and level, so a bachelor's and a master's course with one title stay apart. Rate UKMA's importer groups by title, faculty, programmes and level, but a faculty can change for every year at once (C4), so the service groups by `department_id` and keeps the faculty as an attribute of the department. The САЗ code never links years (A8). A title that moves to another department from one year to the next (a department renamed or a course handed over) stays one course: the earlier department's course is merged into the later one's.
 
 ### C3. Titles that differ a little between years
 

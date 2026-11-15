@@ -8,6 +8,7 @@ import {
 import { recordsetOf } from "../db/recordset.ts";
 import type {
 	CourseKey,
+	CourseMerge,
 	LiveOffering,
 	OfferingLink,
 	StoredCourse,
@@ -17,6 +18,7 @@ const Level = Schema.Literals(["bachelor", "master"]);
 
 const LiveOfferingRow = Schema.Struct({
 	id: Schema.String,
+	academicYear: Schema.Int,
 	title: Schema.String,
 	departmentId: Schema.NullOr(Schema.String),
 	level: Level,
@@ -31,6 +33,7 @@ const CourseRow = Schema.Struct({
 	level: Level,
 	removed: Schema.Boolean,
 	mergedInto: Schema.NullOr(Schema.String),
+	mergeSource: Schema.NullOr(Schema.Literals(["rule", "decision"])),
 });
 
 /** Every method needs the writers' turn, so the rule reads and writes the
@@ -41,16 +44,21 @@ export class CourseStore extends Context.Service<
 		liveOfferings: Effect.Effect<ReadonlyArray<LiveOffering>, never, Turn>;
 		/** Every course, removed and merged ones included. */
 		courses: Effect.Effect<ReadonlyArray<StoredCourse>, never, Turn>;
-		/** Adds a course for each key and brings the removed courses back. */
+		/** Adds a course for each key, brings the removed courses back and
+		 *  undoes the rule's merges. */
 		open(
 			source: ChangeSource,
 			add: ReadonlyArray<CourseKey>,
 			restore: ReadonlyArray<string>,
+			unmerge: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
-		/** Links the offerings by the rule, then removes the emptied courses. */
+		/** Links the offerings by the rule, then merges the handed-off courses
+		 *  (or points a rule merge at its new course) and removes the other
+		 *  emptied ones. */
 		link(
 			source: ChangeSource,
 			links: ReadonlyArray<OfferingLink>,
+			merge: ReadonlyArray<CourseMerge>,
 			remove: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
 	}
@@ -66,8 +74,8 @@ export class CourseStore extends Context.Service<
 				Request: Schema.Void,
 				Result: LiveOfferingRow,
 				execute: () => sql`
-					SELECT id, title, department_id AS "departmentId", level,
-						course_id AS "courseId", course_source AS "courseSource"
+					SELECT id, academic_year AS "academicYear", title,
+						department_id AS "departmentId", level, course_id AS "courseId", course_source AS "courseSource"
 					FROM offerings
 					WHERE removed_at IS NULL
 					ORDER BY id
@@ -79,7 +87,8 @@ export class CourseStore extends Context.Service<
 				Result: CourseRow,
 				execute: () => sql`
 					SELECT id, title, department_id AS "departmentId", level,
-						removed_at IS NOT NULL AS removed, merged_into AS "mergedInto"
+						removed_at IS NOT NULL AS removed, merged_into AS "mergedInto",
+						merge_source AS "mergeSource"
 					FROM courses
 					ORDER BY id
 				`,
@@ -89,8 +98,23 @@ export class CourseStore extends Context.Service<
 				source: ChangeSource,
 				add: ReadonlyArray<CourseKey>,
 				restore: ReadonlyArray<string>,
+				unmerge: ReadonlyArray<string>,
 			) =>
 				Effect.gen(function* () {
+					if (unmerge.length > 0) {
+						yield* changes.track(
+							"courses",
+							source,
+							sql`
+								UPDATE courses
+								SET merged_into = NULL, merge_source = NULL, removed_at = NULL,
+									change_no = nextval('change_no_seq')
+								WHERE id IN ${sql.in(unmerge)} AND merge_source = 'rule'
+								RETURNING id, change_no, 'restore' AS action
+							`,
+						);
+					}
+
 					if (add.length > 0) {
 						yield* changes.track(
 							"courses",
@@ -121,6 +145,7 @@ export class CourseStore extends Context.Service<
 			const link = (
 				source: ChangeSource,
 				links: ReadonlyArray<OfferingLink>,
+				merge: ReadonlyArray<CourseMerge>,
 				remove: ReadonlyArray<string>,
 			) =>
 				Effect.gen(function* () {
@@ -136,6 +161,27 @@ export class CourseStore extends Context.Service<
 								WHERE o.id = r."offeringId"
 									AND o.course_id IS DISTINCT FROM r."courseId"
 								RETURNING o.id, o.change_no, 'change' AS action
+							`,
+						);
+					}
+
+					// Removed with the merge, so a reader that applies removals drops it.
+					if (merge.length > 0) {
+						yield* changes.track(
+							"courses",
+							source,
+							sql`
+								UPDATE courses c
+								SET merged_into = r.into, merge_source = 'rule',
+									removed_at = coalesce(c.removed_at, now()),
+									change_no = nextval('change_no_seq')
+								FROM courses prev, ${recordset(merge, { courseId: "text", into: "text" })}
+								WHERE c.id = r."courseId" AND prev.id = c.id
+									AND c.merged_into IS DISTINCT FROM r.into
+									AND c.merge_source IS DISTINCT FROM 'decision'
+								RETURNING c.id, c.change_no,
+									CASE WHEN prev.removed_at IS NULL THEN 'remove' ELSE 'change' END
+										AS action
 							`,
 						);
 					}

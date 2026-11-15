@@ -1130,6 +1130,21 @@
 						],
 						"description": "The course that now holds its offerings; a reader moves its own data there"
 					},
+					"mergeSource": {
+						"anyOf": [
+							{
+								"type": "string",
+								"enum": [
+									"rule",
+									"decision"
+								]
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Who merged it: `rule` for a department handoff, which a later parse undoes when the handoff stops holding, or `decision` for staff"
+					},
 					"changeNo": {
 						"type": "integer"
 					},
@@ -1151,6 +1166,7 @@
 					"departmentId",
 					"level",
 					"mergedInto",
+					"mergeSource",
 					"changeNo",
 					"removedAt"
 				],

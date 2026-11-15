@@ -11,6 +11,7 @@ import Students from "./migrations/0008_students.ts";
 import SmartSnapshots from "./migrations/0009_smart_snapshots.ts";
 import MonitoringRead from "./migrations/0010_monitoring_read.ts";
 import Courses from "./migrations/0011_courses.ts";
+import CourseMergeSource from "./migrations/0012_course_merge_source.ts";
 
 export const PgLive = PgClient.layerConfig({
 	url: Config.Redacted("DATABASE_URL"),
@@ -29,6 +30,7 @@ export const migrations = {
 	"0009_smart_snapshots": SmartSnapshots,
 	"0010_monitoring_read": MonitoringRead,
 	"0011_courses": Courses,
+	"0012_course_merge_source": CourseMergeSource,
 };
 
 export const runMigrations = PgMigrator.run({
