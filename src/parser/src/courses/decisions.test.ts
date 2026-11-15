@@ -193,6 +193,44 @@ describe("course decisions", () => {
 				}),
 		);
 
+		it.effect(
+			"points a course merged into an unmerged one at that one's target",
+			() =>
+				Effect.gen(function* () {
+					const { keyId, first, second } = yield* setUp();
+
+					yield* write([offering("900065", { title: "Вигадана етика" })]);
+					yield* groupCourses({});
+
+					const third =
+						(yield* groups).find(({ sazCode }) => sazCode === "900065")
+							?.courseId ?? "";
+
+					yield* mergeCourse(keyId, first, second);
+					yield* mergeCourse(keyId, second, third);
+					yield* unmergeCourse(keyId, second);
+
+					const all = yield* courses;
+
+					assert.deepStrictEqual(
+						[first, second].map(
+							(id) => all.find((row) => row.id === id)?.mergedInto,
+						),
+						[third, null],
+					);
+					const courseOf = new Map(
+						(yield* groups).map((row) => [row.sazCode, row.courseId]),
+					);
+
+					assert.deepStrictEqual(
+						["900061", "900062", "900063", "900065"].map((code) =>
+							courseOf.get(code),
+						),
+						[third, third, second, third],
+					);
+				}),
+		);
+
 		it.effect("unmerges a staff merge, and the next grouping keeps it", () =>
 			Effect.gen(function* () {
 				const { keyId, first, second } = yield* setUp();

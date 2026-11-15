@@ -71,7 +71,7 @@ export class CourseStore extends Context.Service<
 		decideMerge(id: string, into: string): Effect.Effect<void, never, Turn>;
 		/** Undoes a merge: the course comes back and takes back, held by the
 		 *  decision, the offerings of its key from the courses its merge leads
-		 *  to. */
+		 *  to; a course merged into it points at its target instead. */
 		decideUnmerge(id: string): Effect.Effect<void, never, Turn>;
 	}
 >()("ukma-data/courses/CourseStore") {
@@ -290,6 +290,19 @@ export class CourseStore extends Context.Service<
 								AND (o.title, o.department_id, o.level)
 									IS NOT DISTINCT FROM (k.title, k.department_id, k.level)
 							RETURNING o.id, o.change_no, 'change' AS action
+						`,
+					);
+					// A course merged into this one keeps its offerings where this
+					// one's merge took them, so its link skips this course.
+					yield* changes.track(
+						"courses",
+						decision,
+						sql`
+							UPDATE courses c
+							SET merged_into = k.merged_into, change_no = nextval('change_no_seq')
+							FROM courses k
+							WHERE k.id = ${id} AND c.merged_into = ${id}
+							RETURNING c.id, c.change_no, 'change' AS action
 						`,
 					);
 					yield* changes.track(
