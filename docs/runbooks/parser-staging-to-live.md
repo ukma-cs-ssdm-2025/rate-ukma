@@ -26,9 +26,13 @@ dig +short data.rateukma.com   # the node's IPv4
 The state moves from `staging/terraform.tfstate` to `live/terraform.tfstate`. The copy runs server-side, so the state never reaches your laptop. The bucket has versioning, and the old object stays until step 8.
 
 ```bash
-export AWS_ACCESS_KEY_ID=<TF_STATE_ACCESS_KEY> AWS_SECRET_ACCESS_KEY=<TF_STATE_SECRET_KEY>
+# Silent prompts keep the keys out of shell history.
+read -rsp 'TF_STATE_ACCESS_KEY: ' AWS_ACCESS_KEY_ID; echo
+read -rsp 'TF_STATE_SECRET_KEY: ' AWS_SECRET_ACCESS_KEY; echo
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 # The secret is base64; the AWS CLI wants the 32 raw bytes, so read them from a file.
-KEY_FILE=$(mktemp) && echo '<TF_STATE_SSE_CUSTOMER_KEY>' | base64 -d > "$KEY_FILE"
+read -rsp 'TF_STATE_SSE_CUSTOMER_KEY: ' SSE_KEY; echo
+KEY_FILE=$(mktemp) && printf '%s' "$SSE_KEY" | base64 -d > "$KEY_FILE" && unset SSE_KEY
 S3="aws s3api --endpoint-url https://hel1.your-objectstorage.com --region hel1"
 SSE="--sse-customer-algorithm AES256 --sse-customer-key fileb://$KEY_FILE"
 $S3 copy-object --bucket rate-ukma-parser-tfstate \
@@ -84,6 +88,8 @@ Just after the apply, update the Grafana dashboard **UKMA Data Staging** (uid `a
 - rename it to **UKMA Data**;
 - in all 11 panel queries, replace `cluster="parser-staging"` with `cluster="parser-live"`.
 
+Then check the alerting the same way. In **Alerting → Alert rules**, search for `parser-staging`, and in **Alerting → Notification policies**, look for matchers on `cluster`. Replace every `parser-staging` with `parser-live`. When this runbook was written the stack had no alert rules yet (they come in a follow-up PR), so there was nothing to change. If you do change rules, check that each one shows recent data under `parser-live`, not `No data`.
+
 Data from before the switch stays under the old label until its 14-day retention runs out.
 
 ### 7. Deploy
@@ -96,7 +102,7 @@ sudo k3s kubectl -n parser get certificate parser-api-tls   # READY True
 sudo k3s kubectl -n parser logs deploy/parser-worker        # resumes or waits for the next crawl
 ```
 
-The rollout restarts the worker. It resumes a crawl it interrupted, so no crawl is lost.
+The overlay changes only the Ingress. If the image and pod settings are unchanged, the worker keeps running, its crawl continues without interruption, and the deploy's log check finds `tick` rather than `connected`. That is expected, not a failed deploy. If the worker restarts, it resumes any crawl it interrupted, so no crawl is lost.
 
 ### 8. Clean up
 
@@ -110,3 +116,4 @@ Wait at least a day after step 7, until the dashboard shows a successful crawl u
 
 - **Before step 5:** revert the PR. The old environments and the old state object are still there, and the new DNS record does no harm.
 - **After step 5:** Terraform has only renamed things. Revert the PR, copy `live/terraform.tfstate` back to `staging/` (step 2 with the keys swapped), and run Provision Parser VM, Parser Platform and Deploy Parser against the old names.
+- **After step 8:** the old DNS record, environments and state key are gone, so restore them first. Add the Route 53 A record `data.staging.rateukma.com` again (the node's IPv4). Create `Parser Staging Plan`, `Parser Staging` and `Parser Staging Deploy` with the reviewers, branch policy and secrets from the step 3 table, and check them with the `gh secret list` loop. Then revert the PR and copy the state back as above. Run the old workflows only once all three are in place.

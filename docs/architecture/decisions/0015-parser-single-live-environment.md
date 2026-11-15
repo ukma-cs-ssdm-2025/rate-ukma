@@ -16,7 +16,7 @@ The [deployment spec](../../parser-service/deployment-infrastructure.md) planned
 
 - **No sandbox for the data source.** САЗ and smart.ukma have no test instance. Staging signs in to the real САЗ with a real account and crawls the same pages live would, so a second environment tests nothing that live doesn't already run.
 - **Two crawls for the same data.** Each worker runs a daily crawl of about 19,000 pages, roughly 6 hours ([`infra/deploy/parser/README.md`](../../../infra/deploy/parser/README.md)). Two environments would double the load on a system we don't own, from the same account, and produce identical snapshots.
-- **The staging node is already hardened.** It has Secrets encryption at rest, a tunnel-only deploy user, a least-privilege deployer, delete and rebuild protection, and alerts on disk, memory, certificates and crawl health.
+- **The staging node is already hardened.** It has Secrets encryption at rest, a tunnel-only deploy user, a least-privilege deployer, delete and rebuild protection, and metrics and logs in Grafana Cloud. Alerts on disk, memory, certificates and crawl health come in a follow-up PR.
 - **No budget.** A second VM and a second set of secrets and environments cost money and upkeep for a team of students.
 - **No consumers yet.** No client in this repo calls the UKMA Data API, so the host can change now without breaking anyone.
 
