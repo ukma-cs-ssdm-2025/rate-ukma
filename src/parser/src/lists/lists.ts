@@ -179,7 +179,7 @@ export const Course = Schema.Struct({
 	level: Level,
 	mergedInto: Schema.NullOr(Schema.String).annotate({
 		description:
-			"The course that now holds its offerings; a reader moves its own data there",
+			"The course that now holds its offerings, after a department handoff or a staff merge; a reader moves its own data there",
 	}),
 	changeNo,
 	removedAt,
@@ -194,14 +194,8 @@ export const ReviewCase = Schema.Struct({
 		"removals_held",
 	]),
 	subjectId: Schema.String,
-	candidates: Schema.Json.annotate({
-		description:
-			"Ids only. `course_match`: `{ courseIds }`, the courses it asks about; `student_match`: `{ studentIds }`; `removals_held`: `{ academicYear, offeringIds }`",
-	}),
-	safeAnswer: Schema.Json.annotate({
-		description:
-			'What was published. `course_match`: `{ answer: "keep_apart" }` or `{ answer: "keep_merged" }`; `student_match`: `{ studentId }`; `removals_held`: `{ removals: "held" }`',
-	}),
+	candidates: Schema.Json.annotate({ description: "Ids only" }),
+	safeAnswer: Schema.Json.annotate({ description: "What was published" }),
 	status: Schema.Literals(["open", "decided", "obsolete"]),
 	runId: Schema.NullOr(Schema.String),
 	decisionId: Schema.NullOr(Schema.String),

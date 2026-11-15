@@ -11,7 +11,6 @@ import type { ParsedOffering } from "../saz/coursePage.ts";
 import {
 	groupCourses,
 	type LiveOffering,
-	planCases,
 	planCourses,
 	planLinks,
 	type StoredCourse,
@@ -73,6 +72,25 @@ describe("planCourses", () => {
 		);
 	});
 
+	it("adds the course of a handoff and one to merge, unless that one was merged", () => {
+		const offerings = [
+			live("off_1"),
+			live("off_2", { departmentId: "dep_b", academicYear: 2032 }),
+		];
+
+		assert.deepStrictEqual(
+			planCourses(offerings, []).add.map(({ departmentId }) => departmentId),
+			["dep_b", "dep_a"],
+		);
+		assert.deepStrictEqual(
+			planCourses(offerings, [
+				course("crs_1", { removed: true, mergedInto: "crs_2" }),
+				course("crs_2", { departmentId: "dep_b" }),
+			]),
+			{ add: [], restore: [] },
+		);
+	});
+
 	it("restores a removed course of the key, skips merged ones and decided offerings", () => {
 		assert.deepStrictEqual(
 			planCourses(
@@ -129,85 +147,93 @@ describe("planLinks", () => {
 			),
 			{
 				links: [{ offeringId: "off_1", courseId: "crs_2" }],
+				merge: [],
 				remove: ["crs_3", "crs_5"],
 			},
 		);
 	});
-});
 
-describe("planCases", () => {
-	const answers = (
-		offerings: ReadonlyArray<LiveOffering>,
-		courses: ReadonlyArray<StoredCourse>,
-	) =>
-		planCases(offerings, courses).map(
-			({ subjectId, courseIds, answer }) =>
-				`${subjectId}: ${courseIds.join(" ")} ${answer}`,
-		);
+	it("merges a department handoff into the latest department's course", () => {
+		const other = { title: "Інше" };
 
-	it("keeps apart one title under two departments whose years never overlap", () => {
 		assert.deepStrictEqual(
-			answers(
+			planLinks(
 				[
 					live("off_1", { courseId: "crs_1" }),
-					live("off_2", { courseId: "crs_2", academicYear: 2032 }),
-					live("off_3", { courseId: "crs_3", academicYear: 2032 }),
-					live("off_4", { courseId: "crs_4", academicYear: 2033 }),
+					live("off_2", { departmentId: "dep_b", academicYear: 2032 }),
+					live("off_3", { departmentId: "dep_c", academicYear: 2033 }),
+					live("off_4", { departmentId: "dep_c", academicYear: 2034 }),
+					// A gap: kept apart.
+					live("off_5", { ...other, courseId: "crs_5" }),
+					live("off_6", {
+						...other,
+						departmentId: "dep_b",
+						academicYear: 2033,
+					}),
 				],
 				[
 					course("crs_1"),
 					course("crs_2", { departmentId: "dep_b" }),
 					course("crs_3", { departmentId: "dep_c" }),
-					course("crs_4", { departmentId: null }),
-					course("crs_5", { departmentId: "dep_d", removed: true }),
-					course("crs_6", { departmentId: "dep_e", mergedInto: "crs_1" }),
-					course("crs_7", { departmentId: "dep_f" }),
+					course("crs_5", other),
+					course("crs_6", { ...other, departmentId: "dep_b" }),
 				],
 			),
-			["crs_2: crs_1 crs_2 keep_apart", "crs_3: crs_1 crs_3 keep_apart"],
+			{
+				links: [
+					{ offeringId: "off_1", courseId: "crs_3" },
+					{ offeringId: "off_2", courseId: "crs_3" },
+					{ offeringId: "off_3", courseId: "crs_3" },
+					{ offeringId: "off_4", courseId: "crs_3" },
+					{ offeringId: "off_6", courseId: "crs_6" },
+				],
+				merge: [
+					{ courseId: "crs_1", into: "crs_3" },
+					{ courseId: "crs_2", into: "crs_3" },
+				],
+				remove: [],
+			},
 		);
 	});
 
-	it("keeps apart titles that differ by letter case, spaces or a bracket note", () => {
-		assert.deepStrictEqual(
-			answers(
-				["crs_1", "crs_2", "crs_3", "crs_4", "crs_5"].map((courseId, i) =>
-					live(`off_${i}`, { courseId }),
-				),
-				[
-					course("crs_1"),
-					course("crs_2", { title: "вигадана  алгебра" }),
-					course("crs_3", { title: "Вигадана алгебра (англ. мовою)" }),
-					course("crs_4", { title: "Вигадана алгебра", level: "master" }),
-					course("crs_5", { title: "Вигадана алгебра 2" }),
-				],
-			),
+	it("keeps apart overlapping years and a handoff with two ways in or out", () => {
+		const { merge } = planLinks(
 			[
-				"crs_2: crs_1 crs_2 keep_apart",
-				"crs_3: crs_1 crs_3 keep_apart",
-				"crs_3: crs_2 crs_3 keep_apart",
+				live("off_1"),
+				live("off_2", { departmentId: "dep_b" }),
+				live("off_3", { departmentId: "dep_b", academicYear: 2032 }),
+				live("off_4", { title: "Інше" }),
+				live("off_5", {
+					title: "Інше",
+					departmentId: "dep_b",
+					academicYear: 2032,
+				}),
+				live("off_6", {
+					title: "Інше",
+					departmentId: "dep_c",
+					academicYear: 2032,
+				}),
+				live("off_7", { title: "Третє" }),
+				live("off_8", { title: "Третє", departmentId: "dep_c" }),
+				live("off_9", {
+					title: "Третє",
+					departmentId: "dep_b",
+					academicYear: 2032,
+				}),
+			],
+			[
+				course("crs_1"),
+				course("crs_2", { departmentId: "dep_b" }),
+				course("crs_4", { title: "Інше" }),
+				course("crs_5", { title: "Інше", departmentId: "dep_b" }),
+				course("crs_6", { title: "Інше", departmentId: "dep_c" }),
+				course("crs_7", { title: "Третє" }),
+				course("crs_8", { title: "Третє", departmentId: "dep_c" }),
+				course("crs_9", { title: "Третє", departmentId: "dep_b" }),
 			],
 		);
-	});
 
-	it("asks to split a generic title's course of two or more offerings", () => {
-		const departments = ["dep_a", "dep_b", "dep_c", "dep_d", "dep_e"];
-		const generic = { title: "Вигадана робота" };
-
-		assert.deepStrictEqual(
-			answers(
-				[
-					live("off_0", { ...generic, courseId: "crs_1", academicYear: 2032 }),
-					...departments.map((_, i) =>
-						live(`off_${i + 1}`, { ...generic, courseId: `crs_${i + 1}` }),
-					),
-				],
-				departments.map((departmentId, i) =>
-					course(`crs_${i + 1}`, { ...generic, departmentId }),
-				),
-			),
-			["crs_1: crs_1 keep_merged"],
-		);
+		assert.deepStrictEqual(merge, []);
 	});
 });
 
@@ -256,10 +282,13 @@ const courses = Effect.gen(function* () {
 
 	return yield* sql<{
 		readonly id: string;
+		readonly departmentId: string | null;
+		readonly mergedInto: string | null;
 		readonly removed: boolean;
 		readonly changeNo: bigint;
 	}>`
-		SELECT id, removed_at IS NOT NULL AS removed, change_no AS "changeNo"
+		SELECT id, department_id AS "departmentId", merged_into AS "mergedInto",
+			removed_at IS NOT NULL AS removed, change_no AS "changeNo"
 		FROM courses ORDER BY id
 	`;
 });
@@ -272,22 +301,6 @@ const lastChange = Effect.gen(function* () {
 	`;
 
 	return row?.n;
-});
-
-const reviewCases = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-
-	return yield* sql<{
-		readonly subjectId: string;
-		readonly candidates: { readonly courseIds: ReadonlyArray<string> };
-		readonly safeAnswer: unknown;
-		readonly status: string;
-		readonly changeNo: bigint;
-	}>`
-		SELECT subject_id AS "subjectId", candidates, safe_answer AS "safeAnswer",
-			status, change_no AS "changeNo"
-		FROM review_cases WHERE kind = 'course_match' ORDER BY change_no
-	`;
 });
 
 const noUnit = { faculty: null, department: null };
@@ -345,22 +358,22 @@ describe("groupCourses", () => {
 					offering("900012", { level: "master" }),
 					offering("900013", { ...otherDepartment, academicYear: 2032 }),
 				]);
-				assert.deepInclude(yield* groupCourses({}), {
-					cases: { opened: 1, closed: 0 },
-				});
+				assert.deepInclude(yield* groupCourses({}), { merged: 1 });
 
-				const state = Effect.all({ groups, courses, reviewCases });
-				const before = yield* state;
+				const before = { groups: yield* groups, courses: yield* courses };
 				const last = yield* lastChange;
 
 				assert.deepStrictEqual(yield* groupCourses({}), {
 					added: 0,
 					restored: 0,
 					moved: 0,
+					merged: 0,
 					removed: 0,
-					cases: { opened: 0, closed: 0 },
 				});
-				assert.deepStrictEqual(yield* state, before);
+				assert.deepStrictEqual(
+					{ groups: yield* groups, courses: yield* courses },
+					before,
+				);
 				assert.strictEqual(yield* lastChange, last);
 			}),
 		);
@@ -422,7 +435,7 @@ describe("groupCourses", () => {
 		);
 
 		it.effect(
-			"opens a case for a moved department and makes it obsolete when a course is removed",
+			"merges a department handoff and follows it to the next department",
 			() =>
 				Effect.gen(function* () {
 					yield* reset;
@@ -430,68 +443,93 @@ describe("groupCourses", () => {
 					yield* write([
 						offering("900031"),
 						offering("900032", { ...otherDepartment, academicYear: 2032 }),
-						offering("900033", { title: "вступ до  вигаданих систем" }),
-						offering("900034", {
-							...otherDepartment,
-							title: "Інша вигадана тема",
-						}),
+						offering("900033", { ...otherDepartment, academicYear: 2033 }),
 					]);
 					yield* groupCourses({});
 
-					const courseOf = new Map(
-						(yield* groups).map((row) => [row.sazCode, row.courseId]),
+					const handedOff = yield* groups;
+					const target = handedOff[1]?.courseId;
+
+					assert.deepStrictEqual(
+						handedOff.map(({ courseId }) => courseId),
+						Array(3).fill(target),
 					);
-
-					const first = courseOf.get("900031");
-					const moved = courseOf.get("900032");
-					const folded = courseOf.get("900033");
-
-					const sorted = (...ids: Array<string | undefined>) =>
-						ids.map(String).sort();
-
 					assert.sameDeepMembers(
-						(yield* reviewCases).map(
-							({ subjectId, candidates, safeAnswer, status }) => ({
-								subjectId,
-								candidates,
-								safeAnswer,
-								status,
-							}),
-						),
+						(yield* courses).map(({ id, mergedInto, removed }) => ({
+							target: id === target,
+							mergedInto,
+							removed,
+						})),
 						[
-							{
-								subjectId: sorted(first, moved)[1],
-								candidates: { courseIds: sorted(first, moved) },
-								safeAnswer: { answer: "keep_apart" },
-								status: "open",
-							},
-							{
-								subjectId: sorted(first, folded)[1],
-								candidates: { courseIds: sorted(first, folded) },
-								safeAnswer: { answer: "keep_apart" },
-								status: "open",
-							},
+							{ target: true, mergedInto: null, removed: false },
+							{ target: false, mergedInto: target, removed: true },
 						],
 					);
 
-					// The moved course's only offering moves into the first one's year,
-					// so the years overlap: no longer a move.
-					yield* write([offering("900032", otherDepartment)]);
+					yield* write([
+						offering("900034", {
+							department: "Кафедра вигаданої етики",
+							academicYear: 2034,
+						}),
+					]);
 
 					assert.deepInclude(yield* groupCourses({}), {
-						cases: { opened: 0, closed: 1 },
+						added: 1,
+						moved: 4,
+						merged: 1,
+						removed: 0,
 					});
 
-					// The folded title's course empties and is removed.
-					yield* write([offering("900033")]);
+					const chained = yield* groups;
+					const all = yield* courses;
+					const third = chained[3]?.courseId;
 
-					assert.deepInclude(yield* groupCourses({}), {
-						removed: 1,
-						cases: { opened: 0, closed: 1 },
-					});
 					assert.deepStrictEqual(
-						(yield* reviewCases).map(({ status }) => status),
-						["obsolete", "obsolete"],
+						chained.map(({ courseId }) => courseId),
+						Array(4).fill(third),
+					);
+					assert.strictEqual(
+						all.find(({ id }) => id === target)?.mergedInto,
+						third,
+					);
+					assert.strictEqual(
+						all.filter(({ mergedInto }) => mergedInto === null).length,
+						1,
+					);
+				}),
+		);
+
+		it.effect(
+			"keeps a merge when the handoff stops holding and starts a new course",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					yield* write([
+						offering("900041"),
+						offering("900042", { ...otherDepartment, academicYear: 2032 }),
+					]);
+					yield* groupCourses({});
+
+					const [merged] = (yield* courses).filter(
+						({ mergedInto }) => mergedInto !== null,
+					);
+
+					yield* write([offering("900043", { academicYear: 2032 })]);
+
+					assert.deepInclude(yield* groupCourses({}), {
+						added: 1,
+						moved: 2,
+						merged: 0,
+					});
+
+					const [first, , late] = yield* groups;
+
+					assert.strictEqual(first?.courseId, late?.courseId);
+					assert.notStrictEqual(first?.courseId, merged?.id);
+					assert.deepInclude(
+						(yield* courses).find(({ id }) => id === merged?.id),
+						{ mergedInto: merged?.mergedInto, removed: true },
 					);
 				}),
 		);

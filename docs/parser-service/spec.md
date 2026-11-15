@@ -101,8 +101,7 @@ The cases below are where we start. We can add, change or drop cases as we work 
 
 | Case | Safe answer | Staff can |
 | --- | --- | --- |
-| Two courses may be one (a moved department, a title that differs by a note or letter case) | two courses | merge, or keep apart |
-| A course of a generic title may hold different subjects | one course | split, or keep merged |
+| An offering may belong to an existing course | a new course | merge, or keep apart |
 | A teacher may teach an offering | no link | link, or keep unlinked |
 | A run would remove more offerings than the threshold allows | removals held | apply, or drop |
 | A programme record matches a student by email and first name, but not by surname | the same student | split, or keep together |

@@ -31,13 +31,9 @@ export interface OfferingLink {
 	readonly courseId: string;
 }
 
-/** A `course_match` case: `courseIds` (sorted) are the courses it asks
- *  about, and `subjectId` the newest of them. Two courses kept apart, or one
- *  course the rule merged that staff may split. */
-export interface CourseCase {
-	readonly subjectId: string;
-	readonly courseIds: ReadonlyArray<string>;
-	readonly answer: "keep_apart" | "keep_merged";
+export interface CourseMerge {
+	readonly courseId: string;
+	readonly into: string;
 }
 
 const keyOf = ({ title, departmentId, level }: CourseKey) =>
@@ -45,6 +41,81 @@ const keyOf = ({ title, departmentId, level }: CourseKey) =>
 
 const ruled = (offerings: ReadonlyArray<LiveOffering>) =>
 	offerings.filter(({ courseSource }) => courseSource !== "decision");
+
+/** Department handoff: a title and level whose last year under one
+ *  department is right before its first year under another, with no gap and
+ *  no overlap, is one course that moved. Each key maps to the last key of its
+ *  chain (A, then B, then C), so the course keeps the latest department. A
+ *  handoff counts only when it is the one way on from its key and the one way
+ *  in to the next, so two departments taking a title over at once stay
+ *  apart. Offerings a decision holds neither make nor break a handoff. */
+const handoffTargets = (offerings: ReadonlyArray<LiveOffering>) => {
+	interface Span {
+		readonly course: CourseKey;
+		readonly first: number;
+		readonly last: number;
+	}
+
+	const spans = new Map<string, Span>();
+
+	for (const { title, departmentId, level, academicYear } of ruled(offerings)) {
+		if (departmentId === null) continue;
+
+		const course = { title, departmentId, level };
+		const span = spans.get(keyOf(course));
+
+		spans.set(keyOf(course), {
+			course,
+			first: Math.min(span?.first ?? academicYear, academicYear),
+			last: Math.max(span?.last ?? academicYear, academicYear),
+		});
+	}
+
+	const byTitle = new Map<string, Array<Span>>();
+
+	for (const span of spans.values()) {
+		const title = JSON.stringify([span.course.title, span.course.level]);
+		const bucket = byTitle.get(title);
+
+		if (bucket === undefined) byTitle.set(title, [span]);
+		else bucket.push(span);
+	}
+
+	const next = new Map<string, Array<string>>();
+	const previous = new Map<string, Array<string>>();
+
+	for (const bucket of byTitle.values()) {
+		for (const from of bucket) {
+			for (const to of bucket) {
+				if (from.last + 1 !== to.first) continue;
+
+				const fromKey = keyOf(from.course);
+				const toKey = keyOf(to.course);
+
+				next.set(fromKey, [...(next.get(fromKey) ?? []), toKey]);
+				previous.set(toKey, [...(previous.get(toKey) ?? []), fromKey]);
+			}
+		}
+	}
+
+	const step = (key: string) => {
+		const [to, ...more] = next.get(key) ?? [];
+
+		return to !== undefined &&
+			more.length === 0 &&
+			previous.get(to)?.length === 1
+			? to
+			: undefined;
+	};
+
+	return (course: CourseKey): CourseKey => {
+		let key = keyOf(course);
+
+		for (let to = step(key); to !== undefined; to = step(key)) key = to;
+
+		return spans.get(key)?.course ?? course;
+	};
+};
 
 /** The course each key's offerings join: a merged course is never one, a live
  *  course wins over a removed one, then the oldest (ids are UUIDv7). */
@@ -71,22 +142,37 @@ const courseByKey = (courses: ReadonlyArray<StoredCourse>) => {
 
 /** The courses the rule needs before offerings can link to them: a key no
  *  course holds gets a new course; a removed course whose key has live
- *  offerings again comes back, so its id stays. A removed course a decision
- *  holds a live offering in comes back too. */
+ *  offerings again comes back, so its id stays. A key handed off to another
+ *  department gets a course too, unless one was merged already, so the merge
+ *  shows in `merged_into` even on a first grouping. A removed course a
+ *  decision holds a live offering in comes back too. */
 export const planCourses = (
 	offerings: ReadonlyArray<LiveOffering>,
 	courses: ReadonlyArray<StoredCourse>,
 ) => {
 	const byKey = courseByKey(courses);
+	const targetOf = handoffTargets(offerings);
+
+	const mergedKeys = new Set(
+		courses.flatMap((course) =>
+			course.mergedInto === null ? [] : [keyOf(course)],
+		),
+	);
+
 	const add = new Map<string, CourseKey>();
 	const restore = new Set<string>();
 
 	for (const { title, departmentId, level } of ruled(offerings)) {
-		const key = keyOf({ title, departmentId, level });
-		const course = byKey.get(key);
+		const own = keyOf({ title, departmentId, level });
+		const target = targetOf({ title, departmentId, level });
+		const course = byKey.get(keyOf(target));
 
-		if (course === undefined) add.set(key, { title, departmentId, level });
+		if (course === undefined) add.set(keyOf(target), target);
 		else if (course.removed) restore.add(course.id);
+
+		if (keyOf(target) !== own && !byKey.has(own) && !mergedKeys.has(own)) {
+			add.set(own, { title, departmentId, level });
+		}
 	}
 
 	const byId = new Map(courses.map((course) => [course.id, course]));
@@ -106,13 +192,16 @@ export const planCourses = (
 	return { add: [...add.values()], restore: [...restore] };
 };
 
-/** Each ruled offering's link, where it differs from the stored one, and the
- *  live courses no live offering is left in. */
+/** Each ruled offering's link, where it differs from the stored one; the
+ *  courses no offering is left in whose key was handed off, merged into the
+ *  course that took it over; and the other live courses no live offering is
+ *  left in. */
 export const planLinks = (
 	offerings: ReadonlyArray<LiveOffering>,
 	courses: ReadonlyArray<StoredCourse>,
 ) => {
 	const byKey = courseByKey(courses);
+	const targetOf = handoffTargets(offerings);
 	const links: Array<OfferingLink> = [];
 	const used = new Set<string>();
 
@@ -120,7 +209,7 @@ export const planLinks = (
 		const courseId =
 			offering.courseSource === "decision"
 				? offering.courseId
-				: (byKey.get(keyOf(offering))?.id ?? null);
+				: (byKey.get(keyOf(targetOf(offering)))?.id ?? null);
 
 		if (courseId === null) continue;
 
@@ -131,138 +220,26 @@ export const planLinks = (
 		}
 	}
 
-	return {
-		links,
-		remove: courses.flatMap(({ id, removed, mergedInto }) =>
-			!removed && mergedInto === null && !used.has(id) ? [id] : [],
-		),
-	};
-};
+	const merge: Array<CourseMerge> = [];
+	const remove: Array<string> = [];
 
-/** A title used by this many departments at one level names a kind of work,
- *  not a subject: theses, coursework, exams, practice, guest courses. On
- *  staging data every title at 5 or more departments is one (19 titles); at 4
- *  real subjects such as an economics course start to appear. */
-const GENERIC_DEPARTMENTS = 5;
+	for (const course of courses) {
+		if (course.mergedInto !== null || used.has(course.id)) continue;
 
-/** The title without letter case, repeated spaces or a trailing bracket note
- *  such as "(англ. мовою)" (C3). */
-const foldTitle = (title: string) =>
-	title
-		.replace(/\s*\([^()]*\)\s*$/u, "")
-		.toLowerCase()
-		.replace(/\s+/gu, " ")
-		.trim();
+		const target = keyOf(targetOf(course));
+		const into = target === keyOf(course) ? undefined : byKey.get(target);
 
-const groupBy = <T>(items: ReadonlyArray<T>, key: (item: T) => string) => {
-	const groups = new Map<string, Array<T>>();
-
-	for (const item of items) {
-		const k = key(item);
-		const group = groups.get(k);
-
-		if (group === undefined) groups.set(k, [item]);
-		else group.push(item);
+		if (into !== undefined) merge.push({ courseId: course.id, into: into.id });
+		else if (!course.removed) remove.push(course.id);
 	}
 
-	return groups.values();
-};
-
-/** The review cases the live courses call for, each with the rule's answer:
- *  - a course of a generic title with two or more offerings may mix
- *    subjects: kept merged;
- *  - two courses of one title and level under different departments, in years
- *    that never overlap, look like a moved department: kept apart. Overlapping
- *    years are two departments teaching it, so no case;
- *  - two courses of one department and level whose titles differ only by
- *    letter case, spaces or a trailing bracket note: kept apart. */
-export const planCases = (
-	offerings: ReadonlyArray<LiveOffering>,
-	courses: ReadonlyArray<StoredCourse>,
-) => {
-	const years = new Map<string, Set<number>>();
-	const sizes = new Map<string, number>();
-	const departments = new Map<string, Set<string>>();
-
-	for (const { courseId, academicYear } of offerings) {
-		if (courseId === null) continue;
-		years.set(courseId, (years.get(courseId) ?? new Set()).add(academicYear));
-		sizes.set(courseId, (sizes.get(courseId) ?? 0) + 1);
-	}
-
-	// A course whose offerings were all just removed has no years; the next
-	// grouping removes it.
-	const live = courses.filter(
-		({ id, removed, mergedInto }) =>
-			!removed && mergedInto === null && years.has(id),
-	);
-
-	const titleKey = ({ title, level }: CourseKey) =>
-		JSON.stringify([title, level]);
-
-	for (const course of live) {
-		if (course.departmentId === null) continue;
-		const key = titleKey(course);
-		departments.set(
-			key,
-			(departments.get(key) ?? new Set()).add(course.departmentId),
-		);
-	}
-
-	const generic = (course: CourseKey) =>
-		(departments.get(titleKey(course))?.size ?? 0) >= GENERIC_DEPARTMENTS;
-
-	const cases: Array<CourseCase> = live.flatMap(({ id, ...key }) =>
-		generic(key) && (sizes.get(id) ?? 0) >= 2
-			? [{ subjectId: id, courseIds: [id], answer: "keep_merged" as const }]
-			: [],
-	);
-
-	const pairs = (
-		groups: Iterable<ReadonlyArray<StoredCourse>>,
-		apart: (a: StoredCourse, b: StoredCourse) => boolean,
-	) => {
-		for (const group of groups) {
-			const sorted = [...group].sort((a, b) => (a.id < b.id ? -1 : 1));
-
-			sorted.forEach((a, i) => {
-				for (const b of sorted.slice(i + 1)) {
-					if (apart(a, b)) {
-						cases.push({
-							subjectId: b.id,
-							courseIds: [a.id, b.id],
-							answer: "keep_apart",
-						});
-					}
-				}
-			});
-		}
-	};
-
-	pairs(
-		groupBy(live, titleKey),
-		(a, b) =>
-			a.departmentId !== null &&
-			b.departmentId !== null &&
-			a.departmentId !== b.departmentId &&
-			!generic(a) &&
-			![...(years.get(a.id) ?? [])].some((year) => years.get(b.id)?.has(year)),
-	);
-	pairs(
-		groupBy(live, ({ title, departmentId, level }) =>
-			JSON.stringify([foldTitle(title), departmentId, level]),
-		),
-		(a, b) => a.title !== b.title,
-	);
-
-	return cases;
+	return { links, merge, remove };
 };
 
 /** Groups the live offerings into courses by the course rule, in one writers'
  *  turn. Ids stay: a course is found by its key, and only a new key, a moved
  *  offering or an emptied course takes a change number. An offering that is
- *  removed keeps the course it had. Then it opens the review cases the courses
- *  call for and makes the open ones they no longer call for obsolete. */
+ *  removed keeps the course it had. */
 export const groupCourses = Effect.fn("groupCourses")(function* (
 	source: ChangeSource,
 ) {
@@ -276,21 +253,19 @@ export const groupCourses = Effect.fn("groupCourses")(function* (
 
 			yield* store.open(source, add, restore);
 
-			const { links, remove } = planLinks(offerings, yield* store.courses);
-
-			yield* store.link(source, links, remove);
-
-			const cases = yield* store.review(
-				source,
-				planCases(yield* store.liveOfferings, yield* store.courses),
+			const { links, merge, remove } = planLinks(
+				offerings,
+				yield* store.courses,
 			);
+
+			yield* store.link(source, links, merge, remove);
 
 			return {
 				added: add.length,
 				restored: restore.length,
 				moved: links.length,
+				merged: merge.length,
 				removed: remove.length,
-				cases,
 			};
 		}),
 	);

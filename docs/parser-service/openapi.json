@@ -647,10 +647,10 @@
 						"type": "string"
 					},
 					"candidates": {
-						"description": "Ids only. `course_match`: `{ courseIds }`, the courses it asks about; `student_match`: `{ studentIds }`; `removals_held`: `{ academicYear, offeringIds }`"
+						"description": "Ids only"
 					},
 					"safeAnswer": {
-						"description": "What was published. `course_match`: `{ answer: \"keep_apart\" }` or `{ answer: \"keep_merged\" }`; `student_match`: `{ studentId }`; `removals_held`: `{ removals: \"held\" }`"
+						"description": "What was published"
 					},
 					"status": {
 						"type": "string",
@@ -1128,7 +1128,7 @@
 								"type": "null"
 							}
 						],
-						"description": "The course that now holds its offerings; a reader moves its own data there"
+						"description": "The course that now holds its offerings, after a department handoff or a staff merge; a reader moves its own data there"
 					},
 					"changeNo": {
 						"type": "integer"

@@ -7,8 +7,8 @@ import {
 } from "../changes/ChangeLog.ts";
 import { recordsetOf } from "../db/recordset.ts";
 import type {
-	CourseCase,
 	CourseKey,
+	CourseMerge,
 	LiveOffering,
 	OfferingLink,
 	StoredCourse,
@@ -49,18 +49,14 @@ export class CourseStore extends Context.Service<
 			add: ReadonlyArray<CourseKey>,
 			restore: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
-		/** Links the offerings by the rule, then removes the emptied courses. */
+		/** Links the offerings by the rule, then merges the handed-off courses
+		 *  and removes the other emptied ones. */
 		link(
 			source: ChangeSource,
 			links: ReadonlyArray<OfferingLink>,
+			merge: ReadonlyArray<CourseMerge>,
 			remove: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
-		/** Opens a `course_match` case for each new one and makes the open
-		 *  cases not among them obsolete. */
-		review(
-			source: ChangeSource,
-			cases: ReadonlyArray<CourseCase>,
-		): Effect.Effect<{ opened: number; closed: number }, never, Turn>;
 	}
 >()("ukma-data/courses/CourseStore") {
 	static readonly layer = Layer.effect(
@@ -75,8 +71,7 @@ export class CourseStore extends Context.Service<
 				Result: LiveOfferingRow,
 				execute: () => sql`
 					SELECT id, academic_year AS "academicYear", title,
-						department_id AS "departmentId", level, course_id AS "courseId",
-						course_source AS "courseSource"
+						department_id AS "departmentId", level, course_id AS "courseId", course_source AS "courseSource"
 					FROM offerings
 					WHERE removed_at IS NULL
 					ORDER BY id
@@ -130,6 +125,7 @@ export class CourseStore extends Context.Service<
 			const link = (
 				source: ChangeSource,
 				links: ReadonlyArray<OfferingLink>,
+				merge: ReadonlyArray<CourseMerge>,
 				remove: ReadonlyArray<string>,
 			) =>
 				Effect.gen(function* () {
@@ -149,6 +145,26 @@ export class CourseStore extends Context.Service<
 						);
 					}
 
+					// Removed with the merge, so a reader that applies removals drops it.
+					if (merge.length > 0) {
+						yield* changes.track(
+							"courses",
+							source,
+							sql`
+								UPDATE courses c
+								SET merged_into = r.into,
+									removed_at = coalesce(c.removed_at, now()),
+									change_no = nextval('change_no_seq')
+								FROM courses prev, ${recordset(merge, { courseId: "text", into: "text" })}
+								WHERE c.id = r."courseId" AND prev.id = c.id
+									AND c.merged_into IS NULL
+								RETURNING c.id, c.change_no,
+									CASE WHEN prev.removed_at IS NULL THEN 'remove' ELSE 'change' END
+										AS action
+							`,
+						);
+					}
+
 					if (remove.length > 0) {
 						yield* changes.track(
 							"courses",
@@ -163,71 +179,11 @@ export class CourseStore extends Context.Service<
 					}
 				});
 
-			const review = (source: ChangeSource, cases: ReadonlyArray<CourseCase>) =>
-				Effect.gen(function* () {
-					const wanted = sql`${recordset(
-						cases.map(({ subjectId, courseIds, answer }) => ({
-							subjectId,
-							candidates: { courseIds },
-							safeAnswer: { answer },
-						})),
-						{ subjectId: "text", candidates: "jsonb", safeAnswer: "jsonb" },
-						"c",
-					)}`;
-
-					// A case is the same when its subject and courses are: closed when
-					// its courses no longer call for it, as when one is removed or
-					// merged (so this runs with no cases too), and not opened again
-					// while open or decided.
-					const closed = yield* changes.track(
-						"review_cases",
-						source,
-						sql`
-							UPDATE review_cases rc
-							SET status = 'obsolete', change_no = nextval('change_no_seq')
-							WHERE rc.kind = 'course_match' AND rc.status = 'open'
-								AND NOT EXISTS (
-									SELECT 1 FROM ${wanted}
-									WHERE c."subjectId" = rc.subject_id
-										AND c.candidates = rc.candidates
-								)
-							RETURNING rc.id, rc.change_no, 'change' AS action
-						`,
-					);
-
-					const opened =
-						cases.length === 0
-							? []
-							: yield* changes.track(
-									"review_cases",
-									source,
-									sql`
-										INSERT INTO review_cases (
-											kind, subject_id, candidates, safe_answer, run_id, change_no
-										)
-										SELECT 'course_match', c."subjectId", c.candidates,
-											c."safeAnswer", ${source.runId ?? null}, nextval('change_no_seq')
-										FROM ${wanted}
-										WHERE NOT EXISTS (
-											SELECT 1 FROM review_cases rc
-											WHERE rc.kind = 'course_match'
-												AND rc.status IN ('open', 'decided')
-												AND rc.subject_id = c."subjectId"
-												AND rc.candidates = c.candidates
-										)
-										RETURNING id, change_no, 'add' AS action
-									`,
-								);
-
-					return { opened: opened.length, closed: closed.length };
-				});
-
 			return CourseStore.of({
 				liveOfferings: findLiveOfferings().pipe(Effect.orDie),
 				courses: findCourses().pipe(Effect.orDie),
 				open,
 				link,
-				review,
 			});
 		}),
 	);
