@@ -140,7 +140,8 @@ Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../..
 
 - **`operators/`:** upstream cert-manager and CloudNativePG manifests, pinned to exact releases.
 - **`config/`:** the `parser` namespace, the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers, and the `parser-deployer` ServiceAccount that Deploy Parser uses. It needs the operator CRDs, so it is applied second.
-- **`database/`:** the `parser-db` Postgres cluster. It needs the CNPG CRDs and the `parser` namespace, so it is applied last.
+- **`plugins/`:** the CNPG barman-cloud plugin, pinned to an exact release. It needs cert-manager, so it comes after `config/`.
+- **`database/`:** the `parser-db` Postgres cluster and its backups. It needs the CNPG and barman-cloud CRDs and the `parser` namespace.
 - **Ingress:** the Traefik bundled with k3s, IngressClass `traefik`. It is not in this folder.
 
 The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../../../.github/actions/k8s-tunnel/action.yml), an SSH tunnel to `127.0.0.1:6443` on the node.
@@ -185,7 +186,8 @@ A following `diff` run should print no changes.
 
 ### Database (`parser-db`)
 
-- **Two instances**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`: a primary and a streaming standby. Backups come with #772.
+- **Two instances**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`: a primary and a streaming standby.
+- **Backups** (`database/backup.yaml`): the barman-cloud plugin archives WAL continuously and takes a base backup daily at 02:00 UTC to the `rate-ukma-parser-backups` bucket. Retention is a 7-day recovery window: the database can be restored to any point in the last 7 days. The apply fails if WAL archiving doesn't start.
 - **Failover:** when the primary pod fails, CNPG promotes the standby and moves the `parser-db-rw` Service to it, then recreates the old pod as the new standby. Both run on the one node, so a node failure still takes the database down. Replication is asynchronous, so a failover can lose the last commits not yet streamed.
 - **WAL cap:** while the standby is down, its replication slot keeps WAL on the primary, up to `max_slot_wal_keep_size` (2GB), so it can't fill the node's disk. A standby further behind than that loses its slot and has to be recreated.
 - **Credentials:** CNPG generates them and stores them in the `parser-db-app` Secret. Its `uri` key is the service's `DATABASE_URL`, so no DB password passes through GitHub or Terraform.
@@ -207,6 +209,27 @@ To check failover, delete the primary pod and watch the standby take over:
 sudo k3s kubectl -n parser delete pod <primary>
 sudo k3s kubectl -n parser get cluster parser-db -w   # Failing over, then Cluster in healthy state with the other instance as primary
 ```
+
+### Backups
+
+**Before the first apply with backups:**
+
+1. In the parser's Hetzner project, open Object Storage and create the bucket `rate-ukma-parser-backups` in `hel1`. Keep it **private**. Leave versioning off: barman deletes expired backups itself, and versioning would keep them anyway.
+2. Create a separate S3 credential pair for it (Object Storage → S3 credentials), so the Terraform state keys stay off the cluster. Hetzner keys reach every bucket in the project, but the state is SSE-C encrypted and can't be read without its key.
+3. Add the pair to `Parser` as `PARSER_BACKUP_S3_ACCESS_KEY` and `PARSER_BACKUP_S3_SECRET_KEY`. **Parser Platform** creates the `parser-db-backup-s3` Secret from them on apply.
+
+Adding the plugin to `parser-db` restarts both instances, the standby first, with a switchover (`primaryUpdateMethod: switchover`).
+
+**Check** on the node:
+
+```bash
+sudo k3s kubectl -n parser get cluster parser-db \
+  -o jsonpath='{.status.conditions[?(@.type=="ContinuousArchiving")].status}'   # True
+sudo k3s kubectl -n parser get scheduledbackup,backup   # parser-db-daily, and a Backup with PHASE completed
+sudo k3s kubectl -n parser get objectstore parser-backups -o jsonpath='{.status.serverRecoveryWindow}'   # first and last recoverability point
+```
+
+The backups hold the crawled САЗ data, student lists included. Keep the bucket private and the keys in the password manager.
 
 ### Upgrading an operator
 

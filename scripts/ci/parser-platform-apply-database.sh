@@ -20,6 +20,15 @@ fi
 # The first start pulls the image and runs initdb.
 kubectl -n parser wait --for=condition=Ready cluster/parser-db --timeout=10m
 
+# WAL archiving through the barman-cloud plugin: False means the bucket or its keys are wrong.
+# The plugin reports the first archived segment within a few minutes of the apply.
+if ! kubectl -n parser wait --for=condition=ContinuousArchiving cluster/parser-db --timeout=5m; then
+  kubectl -n parser get cluster parser-db \
+    -o jsonpath='{range .status.conditions[?(@.type=="ContinuousArchiving")]}{.reason}: {.message}{"\n"}{end}'
+  echo "::error::WAL archiving to the backup bucket is not working"
+  exit 1
+fi
+
 # The service reads DATABASE_URL from this Secret.
 uri=$(kubectl -n parser get secret parser-db-app -o jsonpath='{.data.uri}')
 [ -n "$uri" ] || { echo "::error::parser-db-app has no uri key"; exit 1; }

@@ -16,6 +16,13 @@ spec:
   primaryUpdateMethod: switchover
   imageName: ghcr.io/cloudnative-pg/postgresql:18.6-minimal-trixie
 
+  # WAL archiving to the parser-backups ObjectStore (backup.yaml). CNPG also takes base backups through it.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: parser-backups
+
   # Crawl health as metrics (cnpg_parser_*), from queries.yaml. Alloy scrapes them on :9187.
   monitoring:
     customQueriesConfigMap:
