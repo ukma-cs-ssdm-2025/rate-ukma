@@ -5,6 +5,7 @@ on:
     paths:
       - src/**
       - .github/**
+      - docs/parser-service/openapi.json
 
 jobs:
   changes-filter:

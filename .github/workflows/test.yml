@@ -107,7 +107,7 @@ jobs:
     runs-on: ubuntu-24.04
     services:
       postgres:
-        image: postgres:15
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: postgres
         ports:
@@ -132,6 +132,9 @@ jobs:
       - name: Run lint, format, typecheck and tests
         working-directory: ${{ env.PARSER_DIR }}
         run: pnpm check:all
+
+      - name: Lint the generated OpenAPI file
+        run: npx --yes @redocly/cli@2.57.0 lint docs/parser-service/openapi.json
 
   test-backend:
     if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'

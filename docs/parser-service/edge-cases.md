@@ -94,7 +94,7 @@ GET /course/900123/students -> 500
 
 - Count: 7,461 lists are `[]`: 1,960 recommended bachelor's, 1,236 not-recommended bachelor's and 4,265 master's. On exactly these 7,461 the card has no enrollment block, and no non-empty list lacks it.
 - Codes: 208933, 208937, 208938, 208940, 208942.
-- Handled by: a parser rule. `[]` is a valid list with no enrollments, not a failure.
+- Handled by: a parser rule. `[]` is a valid list with no enrollments, not a failure. A list that empties while the offering's card still has the enrollment block is kept: its enrollments stay, it counts in `lists_kept`, and the next parse tries it again until the card loses the block too.
 
 ```json
 []
@@ -401,7 +401,7 @@ Every list is a JSON array of objects with the same 17 keys (575,305 entries).
 | -10 | виписано | 5,266 |
 
   "не навчається" means the person is no longer a student, not that they left the course. `isForced` is true on 6,602 entries.
-- Handled by: `enrollments.status` is `enrolled` (10) or `unenrolled` (-10). `enrollments.student_state` keeps the label and `is_forced` the flag. Rate UKMA's scraper also counts "не навчається" as enrolled.
+- Handled by: `enrollments.status` is `enrolled` (10) or `unenrolled` (-10). `enrollments.is_student_active` keeps the person's state and `is_forced` the flag; the label follows from them. Rate UKMA's scraper also counts "не навчається" as enrolled.
 
 ```json
 {"status": 10, "statusLabel": "не навчається", "isStudentActive": false, "isEnrolled": true, "isUnenrolled": false, "isForced": false}

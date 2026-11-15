@@ -17,6 +17,9 @@ importers:
       effect:
         specifier: ^4.0.2
         version: 4.0.2
+      entities:
+        specifier: ^8.1.0
+        version: 8.1.0
     devDependencies:
       '@effect/vitest':
         specifier: ^4.0.2
@@ -788,6 +791,10 @@ packages:
   effect@4.0.2:
     resolution: {integrity: sha512-YeYnLqSFrL4+tCOXRrfNP03w8FILoF/wDl+ukraJAGzXrjcS383W7LAAvGBbLatEyktmLxRq+9xJinx7QzXW5A==}
 
+  entities@8.1.0:
+    resolution: {integrity: sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA==}
+    engines: {node: '>=20.19.0'}
+
   es-module-lexer@2.3.2:
     resolution: {integrity: sha512-poHGpORABojJJucnV9KbOavETW8lBVnphkW77ER5/BQ5Fz7oXSoCNek7IH3vR5nRjdsEz926ibFYX8KtLQmdyw==}
 
@@ -1487,6 +1494,8 @@ snapshots:
   detect-libc@2.1.2: {}
 
   effect@4.0.2: {}
+
+  entities@8.1.0: {}
 
   es-module-lexer@2.3.2: {}
 

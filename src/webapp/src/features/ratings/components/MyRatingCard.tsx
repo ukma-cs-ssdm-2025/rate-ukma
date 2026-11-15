@@ -54,11 +54,11 @@ export function MyRatingCard({
 						className="line-clamp-2 font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
 						data-testid={testIds.myRatings.courseTitleLink}
 					>
-						{course.course_title ?? "Курс"}
+						{course.course_title ?? "Дисципліна"}
 					</Link>
 				) : (
 					<span className="line-clamp-2 font-medium text-foreground">
-						{course.course_title ?? "Курс"}
+						{course.course_title ?? "Дисципліна"}
 					</span>
 				)}
 				{comment ? (
