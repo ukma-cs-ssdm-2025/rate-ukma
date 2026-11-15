@@ -218,6 +218,7 @@ describe("course decisions", () => {
 						),
 						[third, null],
 					);
+
 					const courseOf = new Map(
 						(yield* groups).map((row) => [row.sazCode, row.courseId]),
 					);
