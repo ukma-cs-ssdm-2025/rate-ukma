@@ -57,7 +57,7 @@ loki.process "pods" {
 }
 
 loki.write "grafana_cloud" {
-	external_labels = {cluster = "parser-staging"}
+	external_labels = {cluster = "parser-live"}
 
 	endpoint {
 		url = sys.env("GRAFANA_LOKI_URL")
@@ -206,7 +206,7 @@ prometheus.relabel "cert_manager" {
 //  Push
 
 prometheus.remote_write "grafana_cloud" {
-	external_labels = {cluster = "parser-staging"}
+	external_labels = {cluster = "parser-live"}
 
 	endpoint {
 		url = sys.env("GRAFANA_PROM_URL")

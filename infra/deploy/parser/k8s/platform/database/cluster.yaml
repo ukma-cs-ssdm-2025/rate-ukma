@@ -32,7 +32,7 @@ spec:
     storageClass: local-path
     size: 5Gi
 
-  # Sized for the 4 GB staging node: two instances take 1 GiB.
+  # Sized for the 4 GB node: two instances take 1 GiB.
   resources:
     requests:
       cpu: 100m

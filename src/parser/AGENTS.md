@@ -5,7 +5,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 ## Run
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`, `pnpm crawl-smart`, `pnpm create-key`, `pnpm revoke-key`, `pnpm list-keys`.
-- Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role on `parser-db` and `parser-migrate` applies migrations. `parser-db` is the parser's own Postgres 18 with its own volume, on `127.0.0.1:${PARSER_POSTGRES_PORT:-5433}`, as staging runs; the Django app keeps `db-rateukma` on Postgres 15.
+- Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role on `parser-db` and `parser-migrate` applies migrations. `parser-db` is the parser's own Postgres 18 with its own volume, on `127.0.0.1:${PARSER_POSTGRES_PORT:-5433}`, as live runs; the Django app keeps `db-rateukma` on Postgres 15.
 - Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the university account, for the worker's САЗ crawl and `crawl-smart`), `SAZ_REQUEST_GAP` and `SMART_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` and `SMART_REQUEST_TIMEOUT` (default 30 seconds, covering the response body), `CRAWL_INTERVAL` (from the start of one САЗ crawl to the start of the next, default 24 hours, at least 1 hour) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
 
 ## Layout
