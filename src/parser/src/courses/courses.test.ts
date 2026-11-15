@@ -531,7 +531,7 @@ describe("groupCourses", () => {
 					assert.deepInclude(yield* groupCourses({}), {
 						added: 1,
 						moved: 4,
-						merged: 1,
+						merged: 2,
 						removed: 0,
 					});
 
@@ -596,6 +596,47 @@ describe("groupCourses", () => {
 				});
 				assert.strictEqual(yield* lastChange, last);
 			}),
+		);
+
+		it.effect(
+			"points a rule merge at the course its shortened chain ends in",
+			() =>
+				Effect.gen(function* () {
+					yield* reset;
+
+					const third = { department: "Кафедра вигаданої етики" };
+
+					yield* write([
+						offering("900051"),
+						offering("900052", { ...otherDepartment, academicYear: 2032 }),
+						offering("900053", { ...third, academicYear: 2033 }),
+					]);
+					yield* groupCourses({});
+
+					// The third department teaches it in the first year too, so the
+					// second no longer hands off to it.
+					yield* write([offering("900054", third)]);
+
+					assert.deepInclude(yield* groupCourses({}), {
+						unmerged: 1,
+						merged: 1,
+					});
+
+					const [first, second, , late] = yield* groups;
+					const all = yield* courses;
+
+					assert.strictEqual(first?.courseId, second?.courseId);
+					assert.notStrictEqual(second?.courseId, late?.courseId);
+					assert.sameDeepMembers(
+						all
+							.filter(({ mergedInto }) => mergedInto !== null)
+							.map(({ mergedInto, mergeSource }) => ({
+								mergedInto,
+								mergeSource,
+							})),
+						[{ mergedInto: second?.courseId, mergeSource: "rule" }],
+					);
+				}),
 		);
 	});
 });

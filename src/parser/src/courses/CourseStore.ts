@@ -53,7 +53,8 @@ export class CourseStore extends Context.Service<
 			unmerge: ReadonlyArray<string>,
 		): Effect.Effect<void, never, Turn>;
 		/** Links the offerings by the rule, then merges the handed-off courses
-		 *  and removes the other emptied ones. */
+		 *  (or points a rule merge at its new course) and removes the other
+		 *  emptied ones. */
 		link(
 			source: ChangeSource,
 			links: ReadonlyArray<OfferingLink>,
@@ -176,7 +177,8 @@ export class CourseStore extends Context.Service<
 									change_no = nextval('change_no_seq')
 								FROM courses prev, ${recordset(merge, { courseId: "text", into: "text" })}
 								WHERE c.id = r."courseId" AND prev.id = c.id
-									AND c.merged_into IS NULL
+									AND c.merged_into IS DISTINCT FROM r.into
+									AND c.merge_source IS DISTINCT FROM 'decision'
 								RETURNING c.id, c.change_no,
 									CASE WHEN prev.removed_at IS NULL THEN 'remove' ELSE 'change' END
 										AS action

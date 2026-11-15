@@ -232,8 +232,8 @@ export const planCourses = (
 };
 
 /** Each ruled offering's link, where it differs from the stored one; the
- *  courses no offering is left in whose key was handed off, merged into the
- *  course that took it over; and the other live courses no live offering is
+ *  courses no offering is left in whose key was handed off, merged (or merged
+ *  again) into the course that took it over; and the other live courses no live offering is
  *  left in. */
 export const planLinks = (
 	offerings: ReadonlyArray<LiveOffering>,
@@ -262,14 +262,21 @@ export const planLinks = (
 	const merge: Array<CourseMerge> = [];
 	const remove: Array<string> = [];
 
+	// A course the rule merged is pointed again at the course its key now
+	// hands off to, as when a chain gets shorter or longer.
 	for (const course of courses) {
-		if (course.mergedInto !== null || used.has(course.id)) continue;
+		if (course.mergeSource === "decision" || used.has(course.id)) continue;
 
 		const target = keyOf(targetOf(course));
 		const into = target === keyOf(course) ? undefined : byKey.get(target);
 
-		if (into !== undefined) merge.push({ courseId: course.id, into: into.id });
-		else if (!course.removed) remove.push(course.id);
+		if (into !== undefined) {
+			if (into.id !== course.mergedInto) {
+				merge.push({ courseId: course.id, into: into.id });
+			}
+		} else if (!course.removed && course.mergedInto === null) {
+			remove.push(course.id);
+		}
 	}
 
 	return { links, merge, remove };
