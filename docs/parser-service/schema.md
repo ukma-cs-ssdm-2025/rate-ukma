@@ -317,9 +317,10 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | `id` | text | `aud_...` |
 | `at` | timestamptz | |
 | `key_id` | text null | null for an action from the command line |
-| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`; a new action comes with the code that writes it |
+| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`, `course_merged`, `course_unmerged`; a new action comes with the code that writes it |
 | `route` | text null | the endpoint's method and path template, such as `GET /v1/offerings`; no ids or filter values |
-| `target_id` | text null | |
+| `target_id` | text null | the key, or the course a merge or unmerge decided |
+| `related_id` | text null | the course a merge moved into |
 | `row_count` | integer null | rows returned for a read; no data values |
 | `reason` | text null | on a `request_denied` row, why the request was refused: `wrong_secret`, `revoked`, `expired`, `missing_scope`, `no_required_scopes` |
 

@@ -105,10 +105,11 @@ describe("course decisions", () => {
 				);
 				assert.deepStrictEqual(
 					yield* sql`
-						SELECT target_id AS "targetId" FROM audit_log
+						SELECT target_id AS "targetId", related_id AS "relatedId"
+						FROM audit_log
 						WHERE key_id = ${keyId} AND action = 'course_merged'
 					`,
-					[{ targetId: first }],
+					[{ targetId: first, relatedId: second }],
 				);
 
 				const last = yield* lastChange;

@@ -12,4 +12,7 @@ export default Effect.gen(function* () {
 				'course_merged', 'course_unmerged'
 			))
 	`;
+
+	// The second id an action names: the course a merge moved into.
+	yield* sql`ALTER TABLE audit_log ADD COLUMN related_id text`;
 });

@@ -68,7 +68,12 @@ export const mergeCourse = Effect.fn("mergeCourse")(function* (
 			if (refused !== undefined) return yield* refuse(refused);
 
 			yield* store.decideMerge(id, into);
-			yield* audit.record({ action: "course_merged", keyId, targetId: id });
+			yield* audit.record({
+				action: "course_merged",
+				keyId,
+				targetId: id,
+				relatedId: into,
+			});
 		}),
 	);
 });
