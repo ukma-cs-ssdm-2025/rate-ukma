@@ -42,6 +42,7 @@ PROGRAMME = {
 }
 OFFERING = {
     "id": "o-1",
+    "courseId": "c-1",
     "sazCode": "TST-0001",
     "academicYear": 2030,
     "title": "Вступ до вигаданих наук",

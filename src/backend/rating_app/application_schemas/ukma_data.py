@@ -94,6 +94,7 @@ class UkmaDataOfferingProgramme(UkmaDataModel):
 
 class UkmaDataOffering(UkmaDataModel):
     id: str
+    course_id: str | None
     saz_code: str
     academic_year: int
     title: str
