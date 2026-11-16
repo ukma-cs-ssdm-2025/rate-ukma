@@ -20,6 +20,7 @@ const CSRF_HEADER_NAME = "X-CSRFToken";
 const LOGIN_PATH_PREFIX = "/login";
 const AUTH_PATH_PREFIX = "/auth";
 const AUTH_SESSION_ENDPOINT_SUBSTRING = "/auth/session";
+const UKMA_DATA_PATH_PREFIX = "/api/v1/ukma-data/";
 
 const getCsrfToken = () => {
 	if (typeof document === "undefined") {
@@ -73,6 +74,11 @@ const handleSessionExpiry = (error: unknown): boolean => {
 		return false;
 	}
 	if (requestUrl?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) return false;
+	// A signed-in user who is not a superuser gets 403 here; the staff section
+	// shows its own "superusers only" page instead of signing them out.
+	if (status === 403 && requestUrl?.startsWith(UKMA_DATA_PATH_PREFIX)) {
+		return false;
+	}
 
 	notifySessionExpired();
 

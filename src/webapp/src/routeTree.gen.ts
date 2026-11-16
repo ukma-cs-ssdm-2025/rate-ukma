@@ -11,13 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConnectionErrorRouteImport } from './routes/connection-error'
+import { Route as DataRouteImport } from './routes/data'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyRatingsRouteImport } from './routes/my-ratings'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
+import { Route as DataIndexRouteImport } from './routes/data.index'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginFailedRouteImport } from './routes/login.failed'
+import { Route as DataCasesIndexRouteImport } from './routes/data.cases.index'
+import { Route as DataCasesCaseIdRouteImport } from './routes/data.cases.$caseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -27,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const ConnectionErrorRoute = ConnectionErrorRouteImport.update({
   id: '/connection-error',
   path: '/connection-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataRoute = DataRouteImport.update({
+  id: '/data',
+  path: '/data',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -54,6 +63,11 @@ const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
   path: '/courses/$courseId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DataIndexRoute = DataIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DataRoute,
+} as any)
 const LoginIndexRoute = LoginIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -64,17 +78,31 @@ const LoginFailedRoute = LoginFailedRouteImport.update({
   path: '/failed',
   getParentRoute: () => LoginRoute,
 } as any)
+const DataCasesIndexRoute = DataCasesIndexRouteImport.update({
+  id: '/cases/',
+  path: '/cases/',
+  getParentRoute: () => DataRoute,
+} as any)
+const DataCasesCaseIdRoute = DataCasesCaseIdRouteImport.update({
+  id: '/cases/$caseId',
+  path: '/cases/$caseId',
+  getParentRoute: () => DataRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/connection-error': typeof ConnectionErrorRoute
+  '/data': typeof DataRouteWithChildren
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
+  '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/data/cases/$caseId': typeof DataCasesCaseIdRoute
+  '/data/cases/': typeof DataCasesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,32 +112,43 @@ export interface FileRoutesByTo {
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
+  '/data': typeof DataIndexRoute
   '/login': typeof LoginIndexRoute
+  '/data/cases/$caseId': typeof DataCasesCaseIdRoute
+  '/data/cases': typeof DataCasesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/connection-error': typeof ConnectionErrorRoute
+  '/data': typeof DataRouteWithChildren
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/login/failed': typeof LoginFailedRoute
+  '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/data/cases/$caseId': typeof DataCasesCaseIdRoute
+  '/data/cases/': typeof DataCasesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/connection-error'
+    | '/data'
     | '/explore'
     | '/feed'
     | '/login'
     | '/my-ratings'
     | '/courses/$courseId'
     | '/login/failed'
+    | '/data/'
     | '/login/'
+    | '/data/cases/$caseId'
+    | '/data/cases/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,23 +158,31 @@ export interface FileRouteTypes {
     | '/my-ratings'
     | '/courses/$courseId'
     | '/login/failed'
+    | '/data'
     | '/login'
+    | '/data/cases/$caseId'
+    | '/data/cases'
   id:
     | '__root__'
     | '/'
     | '/connection-error'
+    | '/data'
     | '/explore'
     | '/feed'
     | '/login'
     | '/my-ratings'
     | '/courses/$courseId'
     | '/login/failed'
+    | '/data/'
     | '/login/'
+    | '/data/cases/$caseId'
+    | '/data/cases/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConnectionErrorRoute: typeof ConnectionErrorRoute
+  DataRoute: typeof DataRouteWithChildren
   ExploreRoute: typeof ExploreRoute
   FeedRoute: typeof FeedRoute
   LoginRoute: typeof LoginRouteWithChildren
@@ -157,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/connection-error'
       fullPath: '/connection-error'
       preLoaderRoute: typeof ConnectionErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data': {
+      id: '/data'
+      path: '/data'
+      fullPath: '/data'
+      preLoaderRoute: typeof DataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -194,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/data/': {
+      id: '/data/'
+      path: '/'
+      fullPath: '/data/'
+      preLoaderRoute: typeof DataIndexRouteImport
+      parentRoute: typeof DataRoute
+    }
     '/login/': {
       id: '/login/'
       path: '/'
@@ -208,8 +269,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginFailedRouteImport
       parentRoute: typeof LoginRoute
     }
+    '/data/cases/': {
+      id: '/data/cases/'
+      path: '/cases'
+      fullPath: '/data/cases/'
+      preLoaderRoute: typeof DataCasesIndexRouteImport
+      parentRoute: typeof DataRoute
+    }
+    '/data/cases/$caseId': {
+      id: '/data/cases/$caseId'
+      path: '/cases/$caseId'
+      fullPath: '/data/cases/$caseId'
+      preLoaderRoute: typeof DataCasesCaseIdRouteImport
+      parentRoute: typeof DataRoute
+    }
   }
 }
+
+interface DataRouteChildren {
+  DataIndexRoute: typeof DataIndexRoute
+  DataCasesCaseIdRoute: typeof DataCasesCaseIdRoute
+  DataCasesIndexRoute: typeof DataCasesIndexRoute
+}
+
+const DataRouteChildren: DataRouteChildren = {
+  DataIndexRoute: DataIndexRoute,
+  DataCasesCaseIdRoute: DataCasesCaseIdRoute,
+  DataCasesIndexRoute: DataCasesIndexRoute,
+}
+
+const DataRouteWithChildren = DataRoute._addFileChildren(DataRouteChildren)
 
 interface LoginRouteChildren {
   LoginFailedRoute: typeof LoginFailedRoute
@@ -226,6 +315,7 @@ const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConnectionErrorRoute: ConnectionErrorRoute,
+  DataRoute: DataRouteWithChildren,
   ExploreRoute: ExploreRoute,
   FeedRoute: FeedRoute,
   LoginRoute: LoginRouteWithChildren,
