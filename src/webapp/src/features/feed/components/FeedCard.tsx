@@ -183,14 +183,19 @@ export function FeedCard({
 	);
 }
 
-// Decorative: the title next to it already names the channel.
+// Decorative: the title next to it already names the channel. Uploads are
+// round photos and rounded-square logos alike, so a squircle mask suits both,
+// and `object-contain` never crops a logo that is not square.
 function FeedAvatar({ src, className }: { src: string; className: string }) {
 	return (
 		<img
 			src={src}
 			alt=""
 			loading="lazy"
-			className={cn("shrink-0 rounded-full bg-muted object-cover", className)}
+			className={cn(
+				"shrink-0 rounded-[28%] bg-background object-contain ring-1 ring-foreground/10",
+				className,
+			)}
 		/>
 	);
 }

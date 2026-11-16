@@ -232,14 +232,15 @@ const reviews: FeedItem[] = COURSES.slice(0, 6).map((course, index) => ({
 	course_avg_usefulness: course.avg_usefulness,
 })) satisfies FeedItem[];
 
-// Invented square logos so the promo avatars render without a network fetch.
+// Invented images in the two shapes admins upload: a round photo on a white
+// square and a rounded-square logo with transparent corners.
 const svg = (body: string) =>
 	`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">${body}</svg>`)}`;
 const HACKATHON_LOGO = svg(
-	'<rect width="120" height="120" fill="#0b6fb3"/><path d="M48 40 28 60l20 20M72 40l20 20-20 20" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>',
+	'<rect width="120" height="120" fill="#fff"/><circle cx="60" cy="60" r="50" fill="#0b6fb3"/><path d="M50 44 34 60l16 16M70 44l16 16-16 16" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>',
 );
 const BOARDGAMES_LOGO = svg(
-	'<rect width="120" height="120" fill="#f2b53a"/><rect x="30" y="30" width="60" height="60" rx="12" fill="#1f2937"/><g fill="#fff"><circle cx="46" cy="46" r="6"/><circle cx="60" cy="60" r="6"/><circle cx="74" cy="74" r="6"/></g>',
+	'<rect width="120" height="120" rx="26" fill="#1f2937"/><g fill="#fff"><circle cx="40" cy="40" r="9"/><circle cx="60" cy="60" r="9"/><circle cx="80" cy="80" r="9"/></g>',
 );
 
 export const FEED_ITEMS: FeedItem[] = [
