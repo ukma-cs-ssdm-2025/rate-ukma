@@ -11,20 +11,18 @@ import { RatingSuggestions } from "./RatingSuggestions";
 
 interface RatingSuggestionPromptProps {
 	readonly excludeCourse?: string;
-	readonly limit?: number;
 	readonly className?: string;
 }
 
 export function RatingSuggestionPrompt({
 	excludeCourse,
-	limit = 1,
 	className,
 }: RatingSuggestionPromptProps) {
 	const titleId = useId();
 	const flowEnabled = useRatingFlowEnabled();
 	const { data } = useRatingSuggestions(excludeCourse);
 	const [selected, setSelected] = useState<RatingSuggestion | null>(null);
-	const items = data?.slice(0, limit) ?? [];
+	const items = data?.slice(0, 1) ?? [];
 
 	if (!flowEnabled) return null;
 
@@ -38,12 +36,7 @@ export function RatingSuggestionPrompt({
 					<h2 id={titleId} className="text-lg font-semibold">
 						Що оцінити далі
 					</h2>
-					<RatingSuggestions
-						items={items}
-						onSelect={setSelected}
-						highlight
-						className={limit > 1 ? "sm:grid-cols-3" : undefined}
-					/>
+					<RatingSuggestions items={items} onSelect={setSelected} highlight />
 				</section>
 			)}
 			{selected && (

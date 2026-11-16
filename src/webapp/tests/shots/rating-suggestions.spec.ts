@@ -23,6 +23,12 @@ async function score(page: Page) {
 		.click();
 }
 
+const rowRateButton = (page: Page, title: string) =>
+	page
+		.getByTestId(testIds.myRatings.card)
+		.filter({ hasText: title })
+		.getByRole("button", { name: "Оцінити", exact: true });
+
 const suggestions = (page: Page) =>
 	page.getByRole("region", { name: "Що оцінити далі" });
 const thanks = (page: Page) => page.getByTestId("rating-saved-modal");
@@ -35,12 +41,12 @@ for (const width of [1440, 390]) {
 		await mockBackend(page, { ratingSuggestions: "items" });
 
 		await page.goto("/my-ratings");
-		await expect(suggestions(page).getByRole("button")).toHaveCount(1);
+		// Every row already offers «Оцінити», so the page shows no suggestion card.
+		await expect(page.getByTestId(testIds.myRatings.list)).toBeVisible();
+		await expect(suggestions(page)).toHaveCount(0);
 		await shot(page, `my-ratings-${width}`);
 
-		await page
-			.getByRole("button", { name: "Оцінити «Бази даних»", exact: true })
-			.click();
+		await rowRateButton(page, "Бази даних").click();
 		await score(page);
 		await page.getByTestId(testIds.rating.anonymousCheckbox).click();
 		await page.getByTestId(testIds.rating.submitButton).click();
@@ -118,9 +124,7 @@ test("with nothing left, thanks closes with «Готово»", async ({ page }) 
 test("a failed save keeps the form and shows no thanks", async ({ page }) => {
 	await mockBackend(page, { ratingSuggestions: "items", saveRating: "error" });
 	await page.goto("/my-ratings");
-	await page
-		.getByRole("button", { name: "Оцінити «Бази даних»", exact: true })
-		.click();
+	await rowRateButton(page, "Бази даних").click();
 	await score(page);
 	await page.getByTestId(testIds.rating.submitButton).click();
 	await expect(
