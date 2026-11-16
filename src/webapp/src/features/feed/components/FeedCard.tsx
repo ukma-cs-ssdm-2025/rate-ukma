@@ -183,9 +183,10 @@ export function FeedCard({
 	);
 }
 
-// Decorative: the title next to it already names the channel. Uploads are
-// round photos and rounded-square logos alike, so a squircle mask suits both,
-// and `object-contain` never crops a logo that is not square.
+// Decorative: the title next to it already names the channel. Uploads come in
+// any shape: `object-cover` center-crops banners and tall posters instead of
+// shrinking them to slivers (square logos and round photos fit as they are),
+// and the white backdrop keeps dark transparent logos visible in dark mode.
 function FeedAvatar({ src, className }: { src: string; className: string }) {
 	return (
 		<img
@@ -193,7 +194,7 @@ function FeedAvatar({ src, className }: { src: string; className: string }) {
 			alt=""
 			loading="lazy"
 			className={cn(
-				"shrink-0 rounded-[28%] bg-background object-contain ring-1 ring-foreground/10",
+				"shrink-0 rounded-[28%] bg-white object-cover ring-1 ring-foreground/10",
 				className,
 			)}
 		/>
