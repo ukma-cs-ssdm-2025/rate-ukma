@@ -70,26 +70,34 @@ jobs:
         run: npx --yes @redocly/cli@2.57.0 lint docs/parser-service/openapi.json
 
   # Picks the image tag: normally the new version.
-  # A push that only changes this workflow gets no new version, so its image is tagged with the commit SHA instead.
+  # On a re-run, the version was already tagged on this commit the first time, so it is reused:
+  # the re-run finishes that version's image and release instead of leaving them missing.
+  # A push that only changes this workflow gets no version, so its image is tagged with the commit SHA instead.
   # Reusing the old version's tag would overwrite the image that version was released with.
   image:
     needs: version
     runs-on: ubuntu-24.04
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
     steps:
       - id: tag
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_TAG: ${{ needs.version.outputs.version_tag }}
           VERSION_TYPE: ${{ needs.version.outputs.version_type }}
         run: |
-          if [ "$VERSION_TYPE" = none ] || [ -z "$VERSION_TAG" ]; then
-            tag=$GITHUB_SHA
+          if [ "$VERSION_TYPE" != none ] && [ -n "$VERSION_TAG" ]; then
+            version=$VERSION_TAG
           else
-            tag=$VERSION_TAG
+            # version.yml creates lightweight tags, so a tag's object is the commit itself.
+            version=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/parser-v" \
+              --jq ".[] | select(.object.sha == \"$GITHUB_SHA\") | .ref | ltrimstr(\"refs/tags/\")" | sort -V | tail -n 1)
           fi
+          tag=${version:-$GITHUB_SHA}
           echo "Parser image tag: $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
   # Every run builds its own image, even when only the k8s manifests changed.
   build:
@@ -104,8 +112,34 @@ jobs:
       webapp_changed: false
       parser_changed: true
 
+  # Skips the deploy when main already has a newer parser commit, for example when someone re-runs an old run.
+  # Only parser commits count, so web-only pushes never block it. The newer commit's own run deploys instead.
+  # To put an older version on live on purpose, dispatch Deploy Parser.
+  newest:
+    needs: build
+    runs-on: ubuntu-24.04
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: check
+        run: |
+          newest=$(git log -1 --format=%H -- src/parser infra/deploy/parser/k8s/app .github/workflows/parser-pipeline.yml)
+          if [ "$newest" != "$GITHUB_SHA" ] && git merge-base --is-ancestor "$GITHUB_SHA" "$newest"; then
+            echo "::notice::Not deploying $GITHUB_SHA: main has a newer parser commit, $newest."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
-    needs: [build, image]
+    needs: [newest, image]
+    if: needs.newest.outputs.deploy == 'true'
     uses: ./.github/workflows/parser-deploy.yml
     permissions:
       contents: read
@@ -117,13 +151,13 @@ jobs:
   # Full release, not a pre-release - no staging step to wait for.
   # Not marked "Latest", label stays with the web app's release.
   release:
-    needs: [version, deploy]
-    if: needs.version.outputs.version_type != 'none' && needs.version.outputs.version_tag != ''
+    needs: [image, deploy]
+    if: needs.image.outputs.version != ''
     uses: ./.github/workflows/release.yml
     permissions:
       contents: write
     with:
-      version_tag: ${{ needs.version.outputs.version_tag }}
+      version_tag: ${{ needs.image.outputs.version }}
       tag_prefix: parser-v
       change_path: src/parser infra/deploy/parser/k8s/app
       make_latest: "false"

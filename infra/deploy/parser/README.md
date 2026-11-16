@@ -240,7 +240,7 @@ Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workfl
   4. deploys that tag with the `deploy` job below;
   5. creates a GitHub release for the new version, with the parser's commits since the previous one. It is a full release, since it is already live, but not marked latest: that label stays with the web app.
 
-  It runs one push at a time, in push order, and a newer push replaces a waiting run, so an older commit never deploys after a newer one.
+  It runs one push at a time, in push order, and a newer push replaces a waiting run, so an older commit never deploys after a newer one. A re-run of an old run skips the deploy when main already has a newer parser commit; dispatch Deploy Parser to put an older version on live on purpose. A re-run after a failure reuses the version the first attempt tagged.
 - **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA). It is also the way to roll back. The `deploy` job:
   1. picks the parser image with `scripts/ci/find-image-tags.sh`: the exact tag for a parser version or a SHA. Images from before the parser had its own versions are tagged with the web app's `vX.Y.Z`; for those it picks the newest image at or below the version;
   2. renders the overlay with that tag;
