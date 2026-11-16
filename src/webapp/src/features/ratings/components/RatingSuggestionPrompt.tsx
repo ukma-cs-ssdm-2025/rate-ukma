@@ -17,7 +17,7 @@ interface RatingSuggestionPromptProps {
 
 export function RatingSuggestionPrompt({
 	excludeCourse,
-	limit = 3,
+	limit = 1,
 	className,
 }: RatingSuggestionPromptProps) {
 	const titleId = useId();
@@ -41,6 +41,7 @@ export function RatingSuggestionPrompt({
 					<RatingSuggestions
 						items={items}
 						onSelect={setSelected}
+						highlight
 						className={limit > 1 ? "sm:grid-cols-3" : undefined}
 					/>
 				</section>

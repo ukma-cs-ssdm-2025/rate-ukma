@@ -164,7 +164,7 @@ function CourseDetailsRoute() {
 		) : null;
 	const nextSuggestion =
 		ratedOffering && arrival?.courseId === courseId && arrival.rated ? (
-			<RatingSuggestionPrompt limit={1} excludeCourse={courseId} />
+			<RatingSuggestionPrompt excludeCourse={courseId} />
 		) : null;
 	const about = (
 		<CourseAbout

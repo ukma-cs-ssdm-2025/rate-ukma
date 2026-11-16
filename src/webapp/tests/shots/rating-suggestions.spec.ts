@@ -35,7 +35,7 @@ for (const width of [1440, 390]) {
 		await mockBackend(page, { ratingSuggestions: "items" });
 
 		await page.goto("/my-ratings");
-		await expect(suggestions(page).getByRole("button")).toHaveCount(3);
+		await expect(suggestions(page).getByRole("button")).toHaveCount(1);
 		await shot(page, `my-ratings-${width}`);
 
 		await page
