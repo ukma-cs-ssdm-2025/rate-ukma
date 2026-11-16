@@ -148,7 +148,8 @@ for (const width of [1440, 390]) {
 		await mockUkmaData(page);
 
 		await page.goto("/data");
-		await expect(page.getByText(/Найстаріша (чекає|відкрита)/)).toBeVisible();
+		await expect(page.getByText("Відкриті справи: 2")).toBeVisible();
+		await expect(page.getByText(/Найстаріша чекає/)).toBeVisible();
 		await shot(page, `overview-${width}`);
 
 		await page.getByRole("link", { name: "Справи", exact: true }).click();

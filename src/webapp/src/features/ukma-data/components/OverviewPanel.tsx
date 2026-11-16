@@ -108,17 +108,17 @@ function OldestCase({ openedAt }: Readonly<{ openedAt: string }>) {
 		0,
 		Math.floor((Date.now() - Date.parse(openedAt)) / MS_PER_DAY),
 	);
-	const label =
-		days === 0
-			? "Найстаріша відкрита сьогодні"
-			: `Найстаріша чекає ${days} ${DAY_FORMS[UK_PLURAL.select(days)]}`;
+	const waited =
+		days === 0 ? "менше доби" : `${days} ${DAY_FORMS[UK_PLURAL.select(days)]}`;
 	return (
-		<span
-			className="inline-flex rounded-full bg-chart-5/20 px-3 py-1 text-xs"
-			title={`Відкрита з ${formatDateTime(openedAt)}`}
-		>
-			{label}
-		</span>
+		<div className="flex flex-wrap items-center gap-2 text-xs">
+			<span className="rounded-full bg-chart-5/20 px-3 py-1">
+				Найстаріша чекає {waited}
+			</span>
+			<span className="text-muted-foreground">
+				з {formatDateTime(openedAt)}
+			</span>
+		</div>
 	);
 }
 
@@ -136,9 +136,15 @@ function OpenCasesCard() {
 	return (
 		<Card>
 			<CardHeader className="flex flex-row items-baseline justify-between">
-				<CardTitle className="text-base">Відкриті справи</CardTitle>
+				<CardTitle className="text-base">
+					Відкриті справи
+					{complete ? <span className="sr-only">: {open.length}</span> : null}
+				</CardTitle>
 				{complete ? (
-					<span className="text-4xl font-bold leading-none text-primary tabular-nums">
+					<span
+						aria-hidden
+						className="text-4xl font-bold leading-none text-primary tabular-nums"
+					>
 						{open.length}
 					</span>
 				) : null}
