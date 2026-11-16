@@ -234,6 +234,7 @@ export class CourseStore extends Context.Service<
 						sql`
 							UPDATE offerings
 							SET course_id = ${into}, course_source = 'decision',
+								merged_from = coalesce(merged_from, course_id),
 								change_no = nextval('change_no_seq')
 							WHERE course_id = ${id}
 							RETURNING id, change_no, 'change' AS action
@@ -283,12 +284,26 @@ export class CourseStore extends Context.Service<
 								WHERE c.merged_into IS NOT NULL
 							)
 							UPDATE offerings o
-							SET course_id = k.id, course_source = 'decision',
+							SET course_id = k.id, course_source = 'decision', merged_from = NULL,
 								change_no = nextval('change_no_seq')
 							FROM courses k
 							WHERE k.id = ${id} AND o.course_id IN (SELECT id FROM chain)
-								AND (o.title, o.department_id, o.level)
-									IS NOT DISTINCT FROM (k.title, k.department_id, k.level)
+								AND (
+									o.merged_from = k.id
+									-- The rule merged by key, so its offerings are found by key,
+									-- less those a staff merge brought from another course of it.
+									OR (
+										k.merge_source = 'rule'
+										AND (o.title, o.department_id, o.level)
+											IS NOT DISTINCT FROM (k.title, k.department_id, k.level)
+										AND NOT EXISTS (
+											SELECT 1 FROM courses f
+											WHERE f.id = o.merged_from AND f.id <> k.id
+												AND (f.title, f.department_id, f.level)
+													IS NOT DISTINCT FROM (k.title, k.department_id, k.level)
+										)
+									)
+								)
 							RETURNING o.id, o.change_no, 'change' AS action
 						`,
 					);

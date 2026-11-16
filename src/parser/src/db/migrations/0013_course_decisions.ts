@@ -15,4 +15,8 @@ export default Effect.gen(function* () {
 
 	// The second id an action names: the course a merge moved into.
 	yield* sql`ALTER TABLE audit_log ADD COLUMN related_id text`;
+
+	// The course a staff merge moved the offering from, so an unmerge takes
+	// back exactly those offerings, renamed ones too.
+	yield* sql`ALTER TABLE offerings ADD COLUMN merged_from text REFERENCES courses (id)`;
 });

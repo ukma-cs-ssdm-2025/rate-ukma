@@ -265,6 +265,44 @@ describe("course decisions", () => {
 		);
 
 		it.effect(
+			"unmerge takes back what its merge moved, renamed or not, and no more",
+			() =>
+				Effect.gen(function* () {
+					const { keyId, first, second } = yield* setUp();
+
+					yield* mergeCourse(keyId, first, second);
+					yield* write([
+						offering("900062", {
+							academicYear: 2032,
+							title: "Вигадана перейменована назва",
+						}),
+						offering("900066", { academicYear: 2034 }),
+					]);
+					yield* groupCourses({});
+
+					const later =
+						(yield* groups).find(({ sazCode }) => sazCode === "900066")
+							?.courseId ?? "";
+
+					assert.notInclude([first, second], later);
+
+					yield* mergeCourse(keyId, later, second);
+					yield* unmergeCourse(keyId, first);
+
+					const courseOf = new Map(
+						(yield* groups).map((row) => [row.sazCode, row.courseId]),
+					);
+
+					assert.deepStrictEqual(
+						["900061", "900062", "900063", "900066"].map((code) =>
+							courseOf.get(code),
+						),
+						[first, first, second, second],
+					);
+				}),
+		);
+
+		it.effect(
 			"unmerges a department handoff, and the rule does not merge it again",
 			() =>
 				Effect.gen(function* () {

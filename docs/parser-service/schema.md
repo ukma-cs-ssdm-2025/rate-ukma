@@ -103,6 +103,7 @@ One САЗ card (glossary: Offering).
 | `snapshot_id` | bigint | the course page this row was last parsed from |
 | `course_id` | text | derived: the course group |
 | `course_source` | text | derived: `rule` or `decision` |
+| `merged_from` | text null | the course a staff merge moved the offering from; cleared by its unmerge |
 | `change_no`, `removed_at` | | |
 
 ### `offering_terms`
@@ -147,7 +148,7 @@ A department handoff is one course: when a title and level last appear under one
 
 Readers sync courses from `GET /v1/courses` (`catalog:read`), removed and merged ones included, and each offering names its course in `courseId`.
 
-Staff merge and unmerge courses through `POST /v1/courses/{id}/merge` (body `{"into": "crs_..."}`) and `POST /v1/courses/{id}/unmerge` (`review:decide`). A merge moves every offering of the course to `into` with `course_source` `decision`, brings `into` back if it was removed, and sets `merged_into` with `merge_source` `decision`; it is refused with 409 into the course itself, into a merged course, from a merged course, or across levels, and with 404 for an unknown id. An unmerge, of a staff or a rule merge, brings the course back and moves to it, held by the decision, the offerings of its title, department and level from the courses its merge leads to; a course that is not merged gets 409. Each writes its rows with change numbers and a `course_merged` or `course_unmerged` audit row in the same transaction. The course rule keeps both: it never moves an offering a decision holds, never undoes a `decision` merge, and never merges a course a decision holds an offering in.
+Staff merge and unmerge courses through `POST /v1/courses/{id}/merge` (body `{"into": "crs_..."}`) and `POST /v1/courses/{id}/unmerge` (`review:decide`). A merge moves every offering of the course to `into` with `course_source` `decision`, brings `into` back if it was removed, and sets `merged_into` with `merge_source` `decision`; it is refused with 409 into the course itself, into a merged course, from a merged course, or across levels, and with 404 for an unknown id. An unmerge, of a staff or a rule merge, brings the course back and moves to it, held by the decision, the offerings its merge moved (by `merged_from` for a staff merge; for a rule merge, the offerings of its title, department and level), from the courses its merge leads to; courses merged into it now point at its target; a course that is not merged gets 409. Each writes its rows with change numbers and a `course_merged` or `course_unmerged` audit row in the same transaction. The course rule keeps both: it never moves an offering a decision holds, never undoes a `decision` merge, and never merges a course a decision holds an offering in.
 
 ## Instructors
 
