@@ -1,3 +1,5 @@
+import { PenLine } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import { cn } from "@/lib/utils";
@@ -28,12 +30,12 @@ export function RatingSuggestions({
 						</p>
 					</div>
 					<Button
-						variant="outline"
 						size="sm"
 						className="mt-auto"
 						onClick={() => onSelect(item)}
 						aria-label={`Оцінити «${item.course_title}»`}
 					>
+						<PenLine aria-hidden />
 						Оцінити
 					</Button>
 				</article>
