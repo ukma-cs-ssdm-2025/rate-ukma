@@ -338,6 +338,56 @@ describe("course decisions", () => {
 		);
 
 		it.effect(
+			"unmerging a staff merge keeps a handoff into it with its offerings",
+			() =>
+				Effect.gen(function* () {
+					const { keyId, second } = yield* setUp({
+						...otherDepartment,
+						academicYear: 2033,
+					});
+
+					const handedOff =
+						(yield* courses).find(({ mergeSource }) => mergeSource === "rule")
+							?.id ?? "";
+
+					yield* write([offering("900068", otherTitle)]);
+					yield* groupCourses({});
+
+					const third =
+						(yield* groups).find(({ sazCode }) => sazCode === "900068")
+							?.courseId ?? "";
+
+					yield* mergeCourse(keyId, second, third);
+					yield* unmergeCourse(keyId, second);
+
+					const courseOf = Effect.map(
+						groups,
+						(rows) => new Map(rows.map((row) => [row.sazCode, row.courseId])),
+					);
+
+					assert.strictEqual(
+						(yield* courses).find(({ id }) => id === handedOff)?.mergedInto,
+						second,
+					);
+					const before = yield* courseOf;
+
+					assert.deepStrictEqual(
+						["900061", "900062", "900063"].map((code) => before.get(code)),
+						[second, second, second],
+					);
+
+					yield* unmergeCourse(keyId, handedOff);
+
+					const after = yield* courseOf;
+
+					assert.deepStrictEqual(
+						["900061", "900062"].map((code) => after.get(code)),
+						[handedOff, handedOff],
+					);
+				}),
+		);
+
+		it.effect(
 			"unmerges a department handoff, and the rule does not merge it again",
 			() =>
 				Effect.gen(function* () {

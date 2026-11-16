@@ -305,8 +305,10 @@ export class CourseStore extends Context.Service<
 							RETURNING o.id, o.change_no, 'change' AS action
 						`,
 					);
-					// A course merged into this one keeps its offerings where this
-					// one's merge took them, so its link skips this course.
+					// A course staff merged into this one keeps its offerings where
+					// this one's merge took them, so its link skips this course. A
+					// course the rule merged has none of its own origin: they came
+					// back with this one's, so its link stays.
 					yield* changes.track(
 						"courses",
 						decision,
@@ -315,6 +317,7 @@ export class CourseStore extends Context.Service<
 							SET merged_into = k.merged_into, change_no = nextval('change_no_seq')
 							FROM courses k
 							WHERE k.id = ${id} AND c.merged_into = ${id}
+								AND c.merge_source = 'decision'
 							RETURNING c.id, c.change_no, 'change' AS action
 						`,
 					);
