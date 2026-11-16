@@ -9,6 +9,7 @@ from .notification_viewset import NotificationViewSet
 from .promo_banner_viewset import PromoBannerViewSet
 from .rating_viewset import RatingViewSet
 from .student_viewset import StudentStatisticsViewSet
+from .ukma_data_viewset import UkmaDataViewSet
 from .vote_viewset import RatingVoteViewSet
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "FlagsViewSet",
     "PromoBannerViewSet",
     "FeedViewSet",
+    "UkmaDataViewSet",
 ]
