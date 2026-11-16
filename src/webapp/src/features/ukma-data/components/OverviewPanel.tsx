@@ -4,9 +4,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
+	type UkmaDataReviewCaseKindEnum,
 	type UkmaDataStatus,
 	useUkmaDataReviewCasesList,
 } from "@/lib/api/generated";
+import { cn } from "@/lib/utils";
 import {
 	CASE_KIND_LABELS,
 	caseKinds,
@@ -48,6 +50,78 @@ function KeyCard({ status }: Readonly<{ status: UkmaDataStatus }>) {
 	);
 }
 
+const KIND_COLORS: Record<
+	UkmaDataReviewCaseKindEnum,
+	{ dot: string; pill: string }
+> = {
+	course_match: { dot: "bg-chart-1", pill: "bg-chart-1/15" },
+	instructor_match: { dot: "bg-chart-2", pill: "bg-chart-2/15" },
+	student_match: { dot: "bg-chart-3", pill: "bg-chart-3/15" },
+	removals_held: { dot: "bg-destructive", pill: "bg-destructive/15" },
+};
+
+function CaseKindRow({
+	kind,
+	count,
+}: Readonly<{ kind: UkmaDataReviewCaseKindEnum; count: number | undefined }>) {
+	const active = count !== undefined && count > 0;
+	const colors = KIND_COLORS[kind];
+	return (
+		<Link
+			to="/data/cases"
+			search={{ kind, status: "open" }}
+			className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted"
+		>
+			<span
+				className={cn("size-2 rounded-full", active ? colors.dot : "bg-border")}
+			/>
+			<span className={active ? undefined : "text-muted-foreground"}>
+				{CASE_KIND_LABELS[kind]}
+			</span>
+			{count === undefined ? null : (
+				<span
+					className={cn(
+						"ml-auto min-w-7 rounded-full px-2 text-center font-semibold tabular-nums",
+						active ? colors.pill : "text-muted-foreground",
+					)}
+				>
+					{count}
+				</span>
+			)}
+		</Link>
+	);
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const UK_PLURAL = new Intl.PluralRules("uk");
+const DAY_FORMS: Record<Intl.LDMLPluralRule, string> = {
+	zero: "днів",
+	one: "день",
+	two: "дні",
+	few: "дні",
+	many: "днів",
+	other: "дня",
+};
+
+function OldestCase({ openedAt }: Readonly<{ openedAt: string }>) {
+	const days = Math.max(
+		0,
+		Math.floor((Date.now() - Date.parse(openedAt)) / MS_PER_DAY),
+	);
+	const label =
+		days === 0
+			? "Найстаріша відкрита сьогодні"
+			: `Найстаріша чекає ${days} ${DAY_FORMS[UK_PLURAL.select(days)]}`;
+	return (
+		<span
+			className="inline-flex rounded-full bg-chart-5/20 px-3 py-1 text-xs"
+			title={`Відкрита з ${formatDateTime(openedAt)}`}
+		>
+			{label}
+		</span>
+	);
+}
+
 function OpenCasesCard() {
 	const { data, error, isLoading, refetch, isRefetching } =
 		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
@@ -61,10 +135,13 @@ function OpenCasesCard() {
 	);
 	return (
 		<Card>
-			<CardHeader>
-				<CardTitle className="text-base">
-					Відкриті справи{complete ? `: ${open.length}` : ""}
-				</CardTitle>
+			<CardHeader className="flex flex-row items-baseline justify-between">
+				<CardTitle className="text-base">Відкриті справи</CardTitle>
+				{complete ? (
+					<span className="text-4xl font-bold leading-none text-primary tabular-nums">
+						{open.length}
+					</span>
+				) : null}
 			</CardHeader>
 			<CardContent className="space-y-1 text-sm">
 				{isLoading ? <Skeleton className="h-20" /> : null}
@@ -78,29 +155,29 @@ function OpenCasesCard() {
 				) : null}
 				{data && !error
 					? caseKinds.map((kind) => (
-							<Link
+							<CaseKindRow
 								key={kind}
-								to="/data/cases"
-								search={{ kind, status: "open" }}
-								className="flex justify-between gap-4 rounded-md py-1 hover:text-primary"
-							>
-								<span>{CASE_KIND_LABELS[kind]}</span>
-								{complete ? (
-									<span className="font-medium tabular-nums">
-										{open.filter((item) => item.kind === kind).length}
-									</span>
-								) : null}
-							</Link>
+								kind={kind}
+								count={
+									complete
+										? open.filter((item) => item.kind === kind).length
+										: undefined
+								}
+							/>
 						))
 					: null}
 				{data && !error ? (
-					<p className="pt-2 text-muted-foreground">
-						{!complete
-							? "Показано лише першу сторінку справ."
-							: oldest
-								? `Найстаріша відкрита з ${formatDateTime(oldest)}`
-								: "Відкритих справ немає"}
-					</p>
+					<div className="pt-3">
+						{!complete ? (
+							<p className="text-muted-foreground">
+								Показано лише першу сторінку справ.
+							</p>
+						) : oldest ? (
+							<OldestCase openedAt={oldest} />
+						) : (
+							<p className="text-muted-foreground">Відкритих справ немає</p>
+						)}
+					</div>
 				) : null}
 			</CardContent>
 		</Card>
