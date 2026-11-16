@@ -38,33 +38,28 @@ describe("FeedPromoItem", () => {
 		expect(cta).toHaveAttribute("rel", "noopener noreferrer");
 	});
 
-	it("renders the image in the banner variant", () => {
-		const item = { ...baseItem, imageUrl: "https://example.com/promo.png" };
+	it.each(["banner", "card"] as const)(
+		"shows the image as a decorative avatar in the %s variant",
+		(variant) => {
+			const item = { ...baseItem, imageUrl: "https://example.com/promo.png" };
 
-		render(<FeedPromoItem item={item} variant="banner" />);
+			const { container } = render(
+				<FeedPromoItem item={item} variant={variant} />,
+			);
 
-		expect(screen.getByRole("img", { name: item.title })).toHaveAttribute(
-			"src",
-			"https://example.com/promo.png",
-		);
-	});
-
-	it("omits the image in the card variant used by the homepage strip", () => {
-		render(
-			<FeedPromoItem
-				item={{ ...baseItem, imageUrl: "https://example.com/promo.png" }}
-			/>,
-		);
-
-		expect(screen.queryByRole("img")).not.toBeInTheDocument();
-	});
+			// The title beside it already names the channel, so no alt text.
+			const avatar = container.querySelector("img");
+			expect(avatar).toHaveAttribute("src", "https://example.com/promo.png");
+			expect(avatar).toHaveAttribute("alt", "");
+		},
+	);
 
 	it("renders no image when the promo has none", () => {
-		render(
+		const { container } = render(
 			<FeedPromoItem item={{ ...baseItem, imageUrl: null }} variant="banner" />,
 		);
 
-		expect(screen.queryByRole("img")).not.toBeInTheDocument();
+		expect(container.querySelector("img")).toBeNull();
 	});
 
 	it("falls back to the default label when none is provided", () => {

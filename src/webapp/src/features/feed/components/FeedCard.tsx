@@ -43,6 +43,8 @@ interface FeedCardProps {
 	/** Tints the whole card with the kind colour (plus a rail on banners); kept for announcements so they stand out from the review stream. */
 	readonly tinted?: boolean;
 	readonly title: ReactNode;
+	/** Channel logo or face; takes the kind icon's place beside the title. */
+	readonly avatarUrl?: string | null;
 	readonly children?: ReactNode;
 	readonly footer?: ReactNode;
 	readonly className?: string;
@@ -59,6 +61,7 @@ export function FeedCard({
 	pinned,
 	tinted,
 	title,
+	avatarUrl,
 	children,
 	footer,
 	className,
@@ -67,10 +70,37 @@ export function FeedCard({
 	const isBanner = variant === "banner";
 	const tone = TONE[kind.tone];
 	const Icon = kind.icon;
+	const pin = pinned && (
+		<span
+			role="img"
+			aria-label="Закріплено"
+			className="inline-flex shrink-0 text-muted-foreground"
+		>
+			<Pin className="size-3.5" aria-hidden />
+		</span>
+	);
 
 	// Strip tile: three single lines, so the strip stays a glance above the
 	// course search instead of competing with it.
 	if (!isBanner) {
+		const heading = (
+			<div className="flex min-w-0 items-center gap-2">
+				{!avatarUrl && (
+					<Icon className={cn("size-4 shrink-0", tone.text)} aria-hidden />
+				)}
+				<h3 className="min-w-0 flex-1 truncate text-sm font-medium">
+					<span className="sr-only">{kind.label}</span>
+					<span className="sr-only">: </span>
+					{title}
+				</h3>
+				{pin}
+			</div>
+		);
+		const text = (
+			<div className="min-w-0 truncate text-xs text-muted-foreground">
+				{children}
+			</div>
+		);
 		return (
 			<article
 				className={cn(
@@ -79,26 +109,20 @@ export function FeedCard({
 					className,
 				)}
 			>
-				<div className="flex min-w-0 items-center gap-2">
-					<Icon className={cn("size-4 shrink-0", tone.text)} aria-hidden />
-					<h3 className="min-w-0 flex-1 truncate text-sm font-medium">
-						<span className="sr-only">{kind.label}</span>
-						<span className="sr-only">: </span>
-						{title}
-					</h3>
-					{pinned && (
-						<span
-							role="img"
-							aria-label="Закріплено"
-							className="inline-flex shrink-0 text-muted-foreground"
-						>
-							<Pin className="size-3.5" aria-hidden />
-						</span>
-					)}
-				</div>
-				<div className="min-w-0 truncate text-xs text-muted-foreground">
-					{children}
-				</div>
+				{avatarUrl ? (
+					<div className="flex min-w-0 items-center gap-2.5">
+						<FeedAvatar src={avatarUrl} className="size-9" />
+						<div className="min-w-0 flex-1 space-y-1">
+							{heading}
+							{text}
+						</div>
+					</div>
+				) : (
+					<>
+						{heading}
+						{text}
+					</>
+				)}
 				{footer}
 			</article>
 		);
@@ -120,33 +144,54 @@ export function FeedCard({
 					aria-hidden
 				/>
 			)}
-			<div className="flex items-center justify-between gap-2">
-				<span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
-					<span
-						className={cn(
-							"flex size-6 items-center justify-center rounded-full",
-							tone.icon,
-						)}
-						aria-hidden
-					>
-						<Icon className="size-3.5" />
-					</span>
-					{kind.label}
-				</span>
-				{pinned && (
-					<span
-						role="img"
-						aria-label="Закріплено"
-						className="inline-flex shrink-0 text-muted-foreground"
-					>
-						<Pin className="size-3.5" aria-hidden />
-					</span>
-				)}
-			</div>
-			<h3 className="font-semibold leading-snug line-clamp-2">{title}</h3>
+			{avatarUrl ? (
+				// Reads like a channel header: who posted, then what kind of post.
+				<div className="flex items-center gap-3">
+					<FeedAvatar src={avatarUrl} className="size-11" />
+					<div className="min-w-0 flex-1">
+						<h3 className="font-semibold leading-snug line-clamp-2">{title}</h3>
+						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+							<Icon className={cn("size-3.5", tone.text)} aria-hidden />
+							{kind.label}
+						</span>
+					</div>
+					{pin && <span className="self-start">{pin}</span>}
+				</div>
+			) : (
+				<>
+					<div className="flex items-center justify-between gap-2">
+						<span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+							<span
+								className={cn(
+									"flex size-6 items-center justify-center rounded-full",
+									tone.icon,
+								)}
+								aria-hidden
+							>
+								<Icon className="size-3.5" />
+							</span>
+							{kind.label}
+						</span>
+						{pin}
+					</div>
+					<h3 className="font-semibold leading-snug line-clamp-2">{title}</h3>
+				</>
+			)}
 			{children}
 			{footer && <div className="mt-auto">{footer}</div>}
 		</article>
+	);
+}
+
+// Decorative: the title next to it already names the channel.
+function FeedAvatar({ src, className }: { src: string; className: string }) {
+	return (
+		<img
+			src={src}
+			alt=""
+			loading="lazy"
+			className={cn("shrink-0 rounded-full bg-muted object-cover", className)}
+		/>
 	);
 }
 
