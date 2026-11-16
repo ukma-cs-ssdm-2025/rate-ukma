@@ -558,6 +558,163 @@
 				},
 				"summary": "Review cases with their safe answers"
 			}
+		},
+		"/v1/courses/{id}/merge": {
+			"post": {
+				"tags": [
+					"review"
+				],
+				"operationId": "review.mergeCourse",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "<No Content>"
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "CourseNotFound",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CourseNotFoundEncoded"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "CourseDecisionRefused",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CourseDecisionRefusedEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Merge a course into another of its level; the course rule keeps the decision",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"into": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"into"
+								],
+								"additionalProperties": false
+							}
+						}
+					},
+					"required": true
+				}
+			}
+		},
+		"/v1/courses/{id}/unmerge": {
+			"post": {
+				"tags": [
+					"review"
+				],
+				"operationId": "review.unmergeCourse",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "<No Content>"
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "CourseNotFound",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CourseNotFoundEncoded"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "CourseDecisionRefused",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CourseDecisionRefusedEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Undo a course's merge; it takes back the offerings of its title, department and level"
+			}
 		}
 	},
 	"components": {
@@ -589,6 +746,51 @@
 				},
 				"required": [
 					"_tag"
+				],
+				"additionalProperties": false
+			},
+			"CourseDecisionRefusedEncoded": {
+				"type": "object",
+				"properties": {
+					"_tag": {
+						"type": "string",
+						"enum": [
+							"CourseDecisionRefused"
+						]
+					},
+					"reason": {
+						"type": "string",
+						"enum": [
+							"same_course",
+							"course_merged",
+							"target_merged",
+							"level_mismatch",
+							"not_merged"
+						]
+					}
+				},
+				"required": [
+					"_tag",
+					"reason"
+				],
+				"additionalProperties": false
+			},
+			"CourseNotFoundEncoded": {
+				"type": "object",
+				"properties": {
+					"_tag": {
+						"type": "string",
+						"enum": [
+							"CourseNotFound"
+						]
+					},
+					"courseId": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"_tag",
+					"courseId"
 				],
 				"additionalProperties": false
 			},
@@ -1528,7 +1730,7 @@
 		},
 		{
 			"name": "review",
-			"description": "Review cases: `review:decide`"
+			"description": "Review cases and course decisions: `review:decide`"
 		}
 	],
 	"servers": [

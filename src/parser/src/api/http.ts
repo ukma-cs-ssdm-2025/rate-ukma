@@ -4,6 +4,9 @@ import { Config, Effect, Layer } from "effect";
 import { HttpMiddleware, HttpRouter } from "effect/http";
 import { HttpApiBuilder } from "effect/http-api";
 import { Audit } from "../audit/Audit.ts";
+import { ChangeLog } from "../changes/ChangeLog.ts";
+import { CourseStore } from "../courses/CourseStore.ts";
+import { mergeCourse, unmergeCourse } from "../courses/decisions.ts";
 import { Keys } from "../keys/Keys.ts";
 import { ListReader } from "../lists/ListReader.ts";
 import type { PageOf } from "../lists/lists.ts";
@@ -65,9 +68,22 @@ export const ReviewApiHandlers = HttpApiBuilder.group(
 		Effect.gen(function* () {
 			const lists = yield* ListReader;
 
-			return handlers.handle("reviewCases", ({ query }) =>
-				served(lists.reviewCases(query)),
-			);
+			const decisions = yield* Effect.context<
+				CourseStore | ChangeLog | Audit
+			>();
+
+			return handlers
+				.handle("reviewCases", ({ query }) => served(lists.reviewCases(query)))
+				.handle("mergeCourse", ({ params, payload }) =>
+					Caller.use(({ keyId }) =>
+						mergeCourse(keyId, params.id, payload.into),
+					).pipe(Effect.provide(decisions)),
+				)
+				.handle("unmergeCourse", ({ params }) =>
+					Caller.use(({ keyId }) => unmergeCourse(keyId, params.id)).pipe(
+						Effect.provide(decisions),
+					),
+				);
 		}),
 );
 
@@ -84,8 +100,9 @@ export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 		CatalogApiHandlers,
 		ReviewApiHandlers,
 	]),
-	Layer.provide(ListReader.layer),
+	Layer.provide([ListReader.layer, CourseStore.layer]),
 	Layer.provide(AuthLive),
+	Layer.provide(ChangeLog.layer),
 );
 
 export const HttpServerLive = HttpRouter.serve(ApiRoutes).pipe(

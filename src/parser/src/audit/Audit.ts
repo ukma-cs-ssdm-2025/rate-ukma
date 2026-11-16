@@ -6,6 +6,8 @@ export const AuditAction = Schema.Literals([
 	"request_denied",
 	"key_created",
 	"key_revoked",
+	"course_merged",
+	"course_unmerged",
 ]);
 
 export type AuditAction = typeof AuditAction.Type;
@@ -29,6 +31,8 @@ export interface AuditEntry {
 	/** The endpoint's method and path template, such as `GET /v1/offerings`. */
 	readonly route?: string;
 	readonly targetId?: string;
+	/** The course a merge moved into. */
+	readonly relatedId?: string;
 	readonly rowCount?: number;
 	readonly reason?: DenialReason;
 }
@@ -47,9 +51,12 @@ export class Audit extends Context.Service<
 
 			const record = (entry: AuditEntry) =>
 				sql`
-					INSERT INTO audit_log (key_id, action, route, target_id, row_count, reason)
+					INSERT INTO audit_log (
+						key_id, action, route, target_id, related_id, row_count, reason
+					)
 					VALUES (${entry.keyId}, ${entry.action}, ${entry.route ?? null},
-						${entry.targetId ?? null}, ${entry.rowCount ?? null}, ${entry.reason ?? null})
+						${entry.targetId ?? null}, ${entry.relatedId ?? null},
+						${entry.rowCount ?? null}, ${entry.reason ?? null})
 				`.pipe(Effect.asVoid, Effect.orDie);
 
 			return Audit.of({ record });

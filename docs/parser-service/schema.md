@@ -103,6 +103,7 @@ One САЗ card (glossary: Offering).
 | `snapshot_id` | bigint | the course page this row was last parsed from |
 | `course_id` | text | derived: the course group |
 | `course_source` | text | derived: `rule` or `decision` |
+| `merged_from` | text null | the course a staff merge moved the offering from; cleared by its unmerge |
 | `change_no`, `removed_at` | | |
 
 ### `offering_terms`
@@ -146,6 +147,8 @@ Every offering parse ends by grouping (`src/courses/courses.ts`): each live offe
 A department handoff is one course: when a title and level last appear under one department in year N and first appear under another in year N+1, with no gap and no overlap, the earlier department's course is merged into the later one's (`merged_into`, `removed_at`), and its offerings join it. A chain (one department, then a second, then a third) ends in the course of the latest department, so a course's `department_id` is the latest one, and every rule merge of the chain points straight at it; when the chain grows or shrinks, the rule points its merges at the course the chain now ends in. A handoff counts only when it is the one way on from its department and the one way in to the next, so two departments taking a title over in the same year, or one that hands it to two, stay apart. The earlier course is created even on a first grouping, so every automatic merge shows as a course with `merge_source` `rule`. The rule rechecks its own merges (`merge_source` `rule`) on every grouping: when a handoff stops holding while the earlier key has live offerings, for example when the earlier department teaches it again in an overlapping year, the course is unmerged (`merged_into`, `merge_source` and `removed_at` cleared, a `restore` change) and its key's offerings join it again. A staff merge (`decision`) is never undone by the rule.
 
 Readers sync courses from `GET /v1/courses` (`catalog:read`), removed and merged ones included, and each offering names its course in `courseId`.
+
+Staff merge and unmerge courses through `POST /v1/courses/{id}/merge` (body `{"into": "crs_..."}`) and `POST /v1/courses/{id}/unmerge` (`review:decide`). A merge moves every offering of the course to `into` with `course_source` `decision`, brings `into` back if it was removed, and sets `merged_into` with `merge_source` `decision`; it is refused with 409 into the course itself, into a merged course, from a merged course, or across levels, and with 404 for an unknown id. An unmerge, of a staff or a rule merge, brings the course back and moves to it, held by the decision, the offerings its merge moved (by `merged_from` for a staff merge; for a rule merge, the offerings of its title, department and level, less those a staff merge brought from outside that chain), from the courses its merge leads to; courses staff merged into it now point at its target, and courses the rule merged into it keep pointing at it with their offerings; a course that is not merged gets 409. Each writes its rows with change numbers and a `course_merged` or `course_unmerged` audit row in the same transaction. The course rule keeps both: it never moves an offering a decision holds, never undoes a `decision` merge, and never merges a course a decision holds an offering in.
 
 ## Instructors
 
@@ -315,9 +318,10 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | `id` | text | `aud_...` |
 | `at` | timestamptz | |
 | `key_id` | text null | null for an action from the command line |
-| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`; a new action comes with the code that writes it |
+| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`, `course_merged`, `course_unmerged`; a new action comes with the code that writes it |
 | `route` | text null | the endpoint's method and path template, such as `GET /v1/offerings`; no ids or filter values |
-| `target_id` | text null | |
+| `target_id` | text null | the key, or the course a merge or unmerge decided |
+| `related_id` | text null | the course a merge moved into |
 | `row_count` | integer null | rows returned for a read; no data values |
 | `reason` | text null | on a `request_denied` row, why the request was refused: `wrong_secret`, `revoked`, `expired`, `missing_scope`, `no_required_scopes` |
 

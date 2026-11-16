@@ -9,6 +9,7 @@ import {
 	HttpApiSecurity,
 	OpenApi,
 } from "effect/http-api";
+import { CourseDecisionRefused, CourseNotFound } from "../courses/decisions.ts";
 import { Scope } from "../keys/scopes.ts";
 import {
 	Course,
@@ -126,8 +127,28 @@ export class ReviewApi extends HttpApiGroup.make("review")
 			query: PageQuery,
 			success: Page(ReviewCase, "ReviewCasePage"),
 		}).annotate(OpenApi.Summary, "Review cases with their safe answers"),
+		HttpApiEndpoint.post("mergeCourse", "/courses/:id/merge", {
+			params: { id: Schema.String },
+			payload: Schema.Struct({ into: Schema.String }),
+			success: HttpApiSchema.NoContent,
+			error: [CourseNotFound, CourseDecisionRefused],
+		}).annotate(
+			OpenApi.Summary,
+			"Merge a course into another of its level; the course rule keeps the decision",
+		),
+		HttpApiEndpoint.post("unmergeCourse", "/courses/:id/unmerge", {
+			params: { id: Schema.String },
+			success: HttpApiSchema.NoContent,
+			error: [CourseNotFound, CourseDecisionRefused],
+		}).annotate(
+			OpenApi.Summary,
+			"Undo a course's merge; it takes back the offerings of its title, department and level",
+		),
 	)
-	.annotate(OpenApi.Description, "Review cases: `review:decide`")
+	.annotate(
+		OpenApi.Description,
+		"Review cases and course decisions: `review:decide`",
+	)
 	.annotateEndpoints(RequiredScopes, ["review:decide"])
 	.middleware(ApiKeyAuth)
 	.prefix("/v1") {}
