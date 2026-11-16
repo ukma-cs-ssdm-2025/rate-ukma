@@ -51,6 +51,8 @@ on:
         required: false
       VITE_SENTRY_DSN_FRONTEND:
         required: false
+      UKMA_DATA_API_KEY:
+        required: false
       SSH_HOST:
         required: false
       SSH_USER:
@@ -169,6 +171,7 @@ jobs:
           CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
           SENTRY_DSN_BACKEND: ${{ secrets.SENTRY_DSN_BACKEND }}
           VITE_SENTRY_DSN_FRONTEND: ${{ secrets.VITE_SENTRY_DSN_FRONTEND }}
+          UKMA_DATA_API_KEY: ${{ secrets.UKMA_DATA_API_KEY }}
         run: bash scripts/ci/render-deploy-env.sh "$ENVIRONMENT"
 
       - name: Upload archive, env file, and deploy script to server
