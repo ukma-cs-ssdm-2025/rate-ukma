@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { setFeatureFlagOverride } from "../e2e/shared/feature-flags";
 import { mockBackend } from "./fixtures/mockBackend";
 
 const out = resolve(process.env.SHOT_DIR ?? "shots/ukma-data");
@@ -140,6 +141,18 @@ for (const width of [1440, 390]) {
 			page.getByRole("heading", { name: "Розділ лише для суперкористувачів" }),
 		).toBeVisible();
 		await shot(page, `no-access-${width}`);
+	});
+
+	test(`/data is unavailable with the flag off at ${width}px`, async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width, height: 900 });
+		await mockBackend(page, { session: "superuser" });
+		await setFeatureFlagOverride(page, "fe_ukma_data", false);
+		await page.goto("/data");
+		await expect(page.getByText("Розділ наразі недоступний.")).toBeVisible();
+		await expect(page.getByText("Щось пішло не так")).toHaveCount(0);
+		await shot(page, `flag-off-${width}`);
 	});
 
 	test(`a superuser reads UKMA Data at ${width}px`, async ({ page }) => {

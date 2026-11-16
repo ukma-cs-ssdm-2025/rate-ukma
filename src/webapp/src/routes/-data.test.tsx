@@ -1,17 +1,14 @@
 import type { ComponentType, ReactNode } from "react";
 
 import { render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { useAuth } from "@/lib/auth";
 import { FeatureFlagsContext } from "@/lib/feature-flags/FeatureFlagsContext";
 import { Route } from "./data";
 
-const NOT_FOUND = { isNotFound: true };
-
 vi.mock("@tanstack/react-router", () => ({
 	createFileRoute: () => (options: object) => options,
-	notFound: () => NOT_FOUND,
 	Outlet: () => <div data-testid="staff-outlet" />,
 }));
 
@@ -70,22 +67,21 @@ describe("/data gate", () => {
 	});
 
 	describe("fe_ukma_data flag", () => {
-		// React logs the thrown not-found to the console before the boundary
-		// catches it; the router's own boundary turns it into the 404 page.
-		beforeEach(() => {
-			vi.spyOn(console, "error").mockImplementation(() => undefined);
-		});
-		afterEach(() => {
-			vi.restoreAllMocks();
-		});
+		it("is unavailable for a superuser while the flag is off", () => {
+			renderAs(true, { flagOn: false });
 
-		it("is not found for a superuser while the flag is off", () => {
-			expect(() => renderAs(true, { flagOn: false })).toThrow();
+			expect(
+				screen.getByText("Розділ наразі недоступний."),
+			).toBeInTheDocument();
 			expect(screen.queryByTestId("staff-outlet")).not.toBeInTheDocument();
 		});
 
-		it("is not found, not superusers-only, for a non-superuser with the flag off", () => {
-			expect(() => renderAs(false, { flagOn: false })).toThrow();
+		it("is unavailable, not superusers-only, for a non-superuser with the flag off", () => {
+			renderAs(false, { flagOn: false });
+
+			expect(
+				screen.getByText("Розділ наразі недоступний."),
+			).toBeInTheDocument();
 			expect(
 				screen.queryByText("Розділ лише для суперкористувачів"),
 			).not.toBeInTheDocument();
