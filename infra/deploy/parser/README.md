@@ -237,7 +237,8 @@ Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workfl
   1. cuts a parser version, `parser-vX.Y.Z`, from the commits that changed the parser since the last one (`feat!` major, `feat` minor, any other type patch);
   2. runs the parser checks;
   3. builds and pushes the image, tagged with that version. When nothing in the parser changed since the last version (a push that only changes the pipeline), it is tagged with the commit SHA instead, so a released version's image is never replaced;
-  4. deploys that tag with the `deploy` job below.
+  4. deploys that tag with the `deploy` job below;
+  5. creates a GitHub release for the new version, with the parser's commits since the previous one. It is a full release, since it is already live, but not marked latest: that label stays with the web app.
 
   It runs one push at a time, in push order, and a newer push replaces a waiting run, so an older commit never deploys after a newer one.
 - **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA). It is also the way to roll back. The `deploy` job:

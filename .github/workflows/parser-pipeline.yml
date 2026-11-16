@@ -15,8 +15,9 @@ on:
 permissions:
   contents: read
 
-# One run at a time, in push order. A newer push replaces a waiting run instead of queueing behind it,
-# so an older commit can never deploy after a newer one. Never cancel a running one: it may be migrating.
+# One run at a time, in push order
+# A newer push replaces a waiting run instead of queueing behind it, an older commit can never deploy after a newer one
+# ! Never cancel a running one: it may be migrating
 concurrency:
   group: parser-pipeline
   cancel-in-progress: false
@@ -110,3 +111,17 @@ jobs:
     with:
       version_tag: ${{ needs.image.outputs.tag }}
     secrets: inherit
+
+  # A full release, since the deploy goes straight to live. Only for a new version: a pipeline-only run cuts none.
+  # Not marked latest, so the web app's live release keeps that label; Live Build ignores parser-v* tags.
+  release:
+    needs: [version, deploy]
+    if: needs.version.outputs.version_type != 'none' && needs.version.outputs.version_tag != ''
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+    with:
+      version_tag: ${{ needs.version.outputs.version_tag }}
+      tag_prefix: parser-v
+      change_path: src/parser infra/deploy/parser/k8s/app
+      make_latest: "false"
