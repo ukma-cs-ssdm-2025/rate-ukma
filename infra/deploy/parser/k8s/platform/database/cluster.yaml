@@ -16,6 +16,12 @@ spec:
   primaryUpdateMethod: switchover
   imageName: ghcr.io/cloudnative-pg/postgresql:18.6-minimal-trixie
 
+  # Crawl health as metrics (cnpg_parser_*), from queries.yaml. Alloy scrapes them on :9187.
+  monitoring:
+    customQueriesConfigMap:
+      - name: parser-db-monitoring
+        key: queries.yaml
+
   bootstrap:
     initdb:
       database: parser
@@ -26,7 +32,7 @@ spec:
     storageClass: local-path
     size: 5Gi
 
-  # Sized for the 4 GB staging node: two instances take 1 GiB.
+  # Sized for the 4 GB node: two instances take 1 GiB.
   resources:
     requests:
       cpu: 100m

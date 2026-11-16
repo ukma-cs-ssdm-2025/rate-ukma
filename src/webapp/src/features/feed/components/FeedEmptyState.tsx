@@ -26,7 +26,7 @@ export function FeedEmptyState() {
 			</EmptyHeader>
 			<EmptyContent>
 				<Button asChild>
-					<Link to="/">Перейти до курсів</Link>
+					<Link to="/">Перейти до дисциплін</Link>
 				</Button>
 			</EmptyContent>
 		</Empty>

@@ -65,6 +65,7 @@ class UkmaDataOfferingProgrammeSerializer(serializers.Serializer):
 
 class UkmaDataOfferingSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
+    course_id = serializers.CharField(read_only=True, allow_null=True)
     saz_code = serializers.CharField(read_only=True)
     academic_year = serializers.IntegerField(read_only=True)
     title = serializers.CharField(read_only=True)

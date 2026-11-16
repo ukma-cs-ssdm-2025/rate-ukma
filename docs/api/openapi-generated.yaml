@@ -5131,6 +5131,10 @@ components:
         id:
           type: string
           readOnly: true
+        course_id:
+          type: string
+          readOnly: true
+          nullable: true
         saz_code:
           type: string
           readOnly: true

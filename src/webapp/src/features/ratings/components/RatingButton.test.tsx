@@ -10,7 +10,7 @@ function renderButton(canRate: boolean, onClick = vi.fn()) {
 	render(
 		<TooltipProvider>
 			<RatingButton canRate={canRate} onClick={onClick}>
-				Оцінити цей курс
+				Оцінити цю дисципліну
 			</RatingButton>
 		</TooltipProvider>,
 	);
@@ -22,7 +22,7 @@ describe("RatingButton", () => {
 		const onClick = renderButton(true);
 
 		await userEvent.click(
-			screen.getByRole("button", { name: "Оцінити цей курс" }),
+			screen.getByRole("button", { name: "Оцінити цю дисципліну" }),
 		);
 
 		expect(onClick).toHaveBeenCalledOnce();
@@ -32,7 +32,7 @@ describe("RatingButton", () => {
 		const onClick = renderButton(false);
 
 		await userEvent.click(
-			screen.getByRole("button", { name: "Оцінити цей курс" }),
+			screen.getByRole("button", { name: "Оцінити цю дисципліну" }),
 		);
 
 		expect(await screen.findByRole("tooltip")).toHaveTextContent(

@@ -42,6 +42,7 @@ PROGRAMME = {
 }
 OFFERING = {
     "id": "o-1",
+    "courseId": "c-1",
     "sazCode": "TST-0001",
     "academicYear": 2030,
     "title": "Вступ до вигаданих наук",
@@ -303,8 +304,23 @@ def test_offerings_returns_400_when_page_param_invalid(
     response = superuser_client.get(offerings_url, {param: value})
 
     assert response.status_code == 400
-    assert [error["loc"] for error in response.json()] == [[param]]
+    body = response.json()
+    assert body["status"] == 400
+    assert list(body["fields"]) == [param]
     assert ukma_data.received == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_review_cases_returns_502_when_a_nested_number_is_not_finite(superuser_client, ukma_data):
+    page = _page({**REVIEW_CASE, "safeAnswer": {"score": "OVERFLOW"}})
+    body = json.dumps(page).replace('"OVERFLOW"', "1e400")
+    ukma_data.reply("/v1/review-cases", body.encode())
+
+    response = superuser_client.get(reverse("ukma-data-review-cases"))
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "UKMA Data sent an unexpected response."
 
 
 @pytest.mark.django_db

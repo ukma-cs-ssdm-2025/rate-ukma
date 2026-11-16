@@ -7,7 +7,6 @@ set -euo pipefail
 
 : "${PLATFORM_ROOT:?PLATFORM_ROOT is required}"
 : "${PLATFORM_DIRS:?PLATFORM_DIRS is required}"
-: "${ENVIRONMENT:?ENVIRONMENT is required}"
 : "${GITHUB_STEP_SUMMARY:?GITHUB_STEP_SUMMARY is required}"
 
 diff_file=$(mktemp)
@@ -35,6 +34,16 @@ else
   # kubectl diff exits 1 when there are changes, and >1 on errors.
   has_changes=false
   for dir in $PLATFORM_DIRS; do
+    # monitoring/ goes into a namespace that config/ creates, so before its first apply the server-side
+    # diff fails with NotFound. Show it rendered instead.
+    if [ "$dir" = monitoring ] && [ -z "$(kubectl get namespace monitoring --ignore-not-found -o name)" ]; then
+      {
+        echo "# monitoring: not installed yet. The apply creates:"
+        kubectl kustomize "$PLATFORM_ROOT/$dir"
+      } >> "$diff_file"
+      has_changes=true
+      continue
+    fi
     code=0
     kubectl diff --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/$dir" >> "$diff_file" || code=$?
     if [ "$code" -gt 1 ]; then exit "$code"; fi
@@ -44,7 +53,7 @@ fi
 
 cat "$diff_file"
 {
-  echo "### Platform diff ($ENVIRONMENT)"
+  echo "### Platform diff"
   if [ "$has_changes" = false ]; then
     echo "No changes."
   else

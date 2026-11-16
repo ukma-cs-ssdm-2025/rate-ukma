@@ -1,7 +1,8 @@
 import datetime
+import math
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
 from pydantic.alias_generators import to_camel, to_snake
 
 UKMA_DATA_MAX_PAGE_SIZE = 1000
@@ -94,6 +95,7 @@ class UkmaDataOfferingProgramme(UkmaDataModel):
 
 class UkmaDataOffering(UkmaDataModel):
     id: str
+    course_id: str | None
     saz_code: str
     academic_year: int
     title: str
@@ -130,6 +132,20 @@ class UkmaDataReviewCase(UkmaDataModel):
     decision_id: str | None
     opened_at: datetime.datetime
     change_no: int
+
+    @field_validator("candidates", "safe_answer")
+    @classmethod
+    def _reject_non_finite_numbers(cls, value: JsonValue) -> JsonValue:
+        pending: list[object] = [value]
+        while pending:
+            item = pending.pop()
+            if isinstance(item, float) and not math.isfinite(item):
+                raise ValueError("JSON numbers must be finite")
+            if isinstance(item, list):
+                pending.extend(item)
+            elif isinstance(item, dict):
+                pending.extend(item.values())
+        return value
 
 
 class UkmaDataPage[T](UkmaDataModel):

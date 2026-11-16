@@ -10,7 +10,7 @@
 terraform {
   backend "s3" {
     bucket = "rate-ukma-parser-tfstate"
-    key    = "staging/terraform.tfstate"
+    key    = "live/terraform.tfstate"
     region = "hel1"
 
     endpoints = {

@@ -12,7 +12,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: data.staging.rateukma.com
+        value: data.rateukma.com
       - op: replace
         path: /spec/tls/0/hosts/0
-        value: data.staging.rateukma.com
+        value: data.rateukma.com

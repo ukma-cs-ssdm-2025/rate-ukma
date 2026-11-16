@@ -72,7 +72,7 @@ sequenceDiagram
 - **Enrollment**: one student on one offering, with a status and a group.
 - **Source part**: one slice of a source that one run crawls, for example САЗ courses of 2026-27.
 - **Run**: one crawl of one source part.
-- **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response as it came. It keeps the page's tables and labels, so a later parser can read new fields from it.
+- **Page snapshot**: an HTML page without the parts that change on every request, such as the security token, or a JSON response with its keys sorted. It keeps the page's tables and labels, so a later parser can read new fields from it.
 - **Safe answer**: the choice that is easy to undo: a new course rather than a merge, no teacher link rather than a guess, removals held rather than applied.
 - **Review case**: a question the service could not decide itself, published with its safe answer and waiting for staff. See [Review cases](#review-cases).
 - **Decision**: a staff answer, stored as its own row. It changes course groups, teacher links, which student a programme record belongs to, or held removals, or keeps the safe answer. It answers a review case, or staff start it themselves, for example a split.
@@ -85,7 +85,7 @@ sequenceDiagram
 2. The worker stores a page snapshot when its hash changes, then parses the snapshot. Every snapshot keeps its page, so a parser fix re-parses stored pages without a request to the source.
 3. A run visits each course page once and fetches its card and enrollments together.
 4. Soft delete: no row is ever deleted, except an offering's term and programme rows, which every parse of its card replaces. A row that leaves its source gets `removedAt` and keeps its id. For example, САЗ drops the 2025-26 card of «Теорія умовних прикладів». The offering gets `removedAt: 2026-10-03`, readers hide it, and ratings on it stay valid. If the card comes back, `removedAt` is cleared.
-5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader keeps one saved number per list, asks each list for rows above its number, and saves the list's new number only after it has stored every page of it. Readers never sync by time: a slow write can appear after a later one and be skipped.
+5. Every change, removals included, gets the next number from one counter, and writes take turns, so the numbers appear in order. A reader keeps one saved number per list, asks each list for rows above its number, and saves the list's new number only after it has stored every page of it. Readers never sync by time: a slow write can appear after a later one and be skipped. After the database is restored from a backup or fails over to its standby, the newest numbers may be handed out again, so every reader starts again from 0.
 6. A run publishes new and changed rows at once. It removes rows only when it read the pages each list is read from without errors: a year's offerings, with their term and programme rows, when every catalog and course page of the run loaded and the catalog pages report the same total as the codes collected, and one offering's enrollments when its students page loaded and parsed. So a partial crawl removes nothing it did not read. When it would remove more of the year's offerings than the removal threshold allows (a setting, 5% to start), it holds the removals as a review case and publishes the rest. A page that fails to parse keeps its last good version and is reported (see [Observability](#observability)): the fix is parser code, not a staff decision.
 7. An offering can run in more than one term, for example in fall and in spring. The service stores every term of an offering and has no single "semester" field. Rate UKMA picks one term for its own semester field when it syncs, as its importer does today.
 8. The service keeps what it read from a page apart from what it works out from it: which course an offering belongs to and which teachers teach it. These links are computed from stored pages plus decisions. A better matching rule runs again on stored data and needs no new crawl.
@@ -121,8 +121,8 @@ JSON under `/v1`. The OpenAPI file is generated from the code and is the contrac
 | Runs | runs and data freshness | Read runs |
 | | an extra run of one source part | Start runs |
 | Review cases and decisions | open cases, their safe answers, all decisions | Decide review cases |
-| Snapshots | page content of a run, with student names | Read snapshots |
-| Audit log | key changes, extra runs, decisions, reads of student data | Read audit log |
+| Snapshots | page content of a run, with student names and smart.ukma teacher lists | Read snapshots |
+| Audit log | every keyed request, key changes, extra runs, decisions, reads of student data | Read audit log |
 | Keys | create and revoke keys | Manage keys |
 
 Every list takes the change number a reader saved and uses cursor pagination. Every response says when its data was last updated.
@@ -141,13 +141,15 @@ Every list takes the change number a reader saved and uses cursor pagination. Ev
 | Read students | students and enrollments | no |
 | Start runs | an extra run | no |
 | Decide review cases | review cases and decisions | no |
-| Read snapshots | page snapshots, which carry student names | no |
+| Read snapshots | page snapshots, which carry personal data: student names and the smart.ukma teacher lists | no |
 | Read audit log | the audit log | no |
 | Manage keys | create and revoke keys | no |
 
+- The service defines a scope only once an endpoint needs it: today Read catalog (`catalog:read`, the default) and Decide review cases (`review:decide`). The others in this table come with their endpoints.
 - Example keys: Rate UKMA has the defaults plus instructors, students, start runs and decide review cases. UKMA Schedule has the defaults plus students. The team's own key has every scope, and only it can manage keys.
 - In the staff section, Rate UKMA's backend checks that the user is a superuser, then calls the service with Rate UKMA's key. The browser never holds a key.
-- The audit log records key changes, extra runs, decisions and every read of student data. It stores no data values.
+- The audit log records every request made with a key (the key, the route and the row count), key changes, extra runs, decisions and every read of student data. It stores no data values.
+- A refused request whose key exists (wrong secret, revoked, expired, missing scope) is recorded for that key with the reason. A token whose key id is unknown or malformed is not recorded: there is no key to attach it to. Key ids are not secret, so anyone who knows one can add refused rows for it; there is no rate limit yet.
 - No real student data in fixtures, logs, screenshots or issues.
 
 ## Observability
