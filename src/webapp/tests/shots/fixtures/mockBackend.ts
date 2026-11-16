@@ -238,8 +238,10 @@ export async function mockBackend(
 		],
 		[
 			/^\/courses\/[^/]+\/ratings\/$/,
-			(path) => {
+			(path, url) => {
 				const courseId = path.split("/")[2];
+				// Fixtures are newest first; oldest first just reverses them.
+				const oldestFirst = url.searchParams.get("time_order") === "asc";
 				const suggestion =
 					ratingSuggestions === "items"
 						? suggestions.find((item) => item.course_id === courseId)
@@ -249,12 +251,12 @@ export async function mockBackend(
 					reviews === "empty"
 						? 0
 						: (suggestion?.ratings_count ?? COURSE_RATINGS.total);
+				const ratings = COURSE_RATINGS.items.ratings.slice(0, count);
 				return {
 					...COURSE_RATINGS,
 					total: count + (rating ? 1 : 0),
 					items: {
-						ratings:
-							count === 0 ? [] : COURSE_RATINGS.items.ratings.slice(0, count),
+						ratings: oldestFirst ? [...ratings].reverse() : ratings,
 						user_ratings: rating
 							? [
 									{

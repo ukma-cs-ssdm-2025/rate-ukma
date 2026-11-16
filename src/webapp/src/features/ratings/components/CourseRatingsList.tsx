@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { MessageSquare } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
@@ -22,6 +20,7 @@ import {
 	CANNOT_VOTE_WITHOUT_ATTENDING_TEXT,
 } from "../definitions/ratingDefinitions";
 import { useInfiniteScrollRatings } from "../hooks/useInfiniteScrollRatings";
+import { useRatingsSortOption } from "../hooks/useRatingsSortOption";
 
 const SKELETON_RATINGS_COUNT = 3;
 const SKELETON_KEYS = Array.from(
@@ -137,7 +136,7 @@ export function CourseRatingsList({
 	canRate,
 }: Readonly<CourseRatingsListProps>) {
 	const separateCurrentUser = !!userRatingProp;
-	const [sortOption, setSortOption] = useState<SortOption>("most-popular");
+	const [sortOption, setSortOption] = useRatingsSortOption();
 
 	let voteDisabledReason: string | undefined;
 	if (!hasAttended) voteDisabledReason = CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
