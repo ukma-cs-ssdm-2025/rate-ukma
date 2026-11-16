@@ -187,7 +187,7 @@ A following `diff` run should print no changes.
 ### Database (`parser-db`)
 
 - **Two instances**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`: a primary and a streaming standby.
-- **Backups** (`database/backup.yaml`): the barman-cloud plugin archives WAL continuously and takes a base backup daily at 02:00 UTC to the `rate-ukma-parser-backups` bucket. Retention is a 7-day recovery window: the database can be restored to any point in the last 7 days. The apply fails if WAL archiving doesn't start.
+- **Backups** (`database/backup.yaml`): the barman-cloud plugin archives WAL continuously and takes a base backup daily at 02:00 UTC to the `rate-ukma-parser-backups` bucket. Retention is a 7-day recovery window: the database can be restored to any point in the last 7 days. The apply fails if WAL archiving doesn't start or no base backup completes within 10 minutes.
 - **Failover:** when the primary pod fails, CNPG promotes the standby and moves the `parser-db-rw` Service to it, then recreates the old pod as the new standby. Both run on the one node, so a node failure still takes the database down. Replication is asynchronous, so a failover can lose the last commits not yet streamed.
 - **WAL cap:** while the standby is down, its replication slot keeps WAL on the primary, up to `max_slot_wal_keep_size` (2GB), so it can't fill the node's disk. A standby further behind than that loses its slot and has to be recreated.
 - **Credentials:** CNPG generates them and stores them in the `parser-db-app` Secret. Its `uri` key is the service's `DATABASE_URL`, so no DB password passes through GitHub or Terraform.
@@ -214,8 +214,8 @@ sudo k3s kubectl -n parser get cluster parser-db -w   # Failing over, then Clust
 
 **Before the first apply with backups:**
 
-1. In the parser's Hetzner project, open Object Storage and create the bucket `rate-ukma-parser-backups` in `hel1`. Keep it **private**. Leave versioning off: barman deletes expired backups itself, and versioning would keep them anyway.
-2. Create a separate S3 credential pair for it (Object Storage → S3 credentials), so the Terraform state keys stay off the cluster. Hetzner keys reach every bucket in the project, but the state is SSE-C encrypted and can't be read without its key.
+1. In a **separate Hetzner project** from the one that holds the Terraform state, open Object Storage and create the bucket `rate-ukma-parser-backups` in `hel1`. Keep it **private**. Leave versioning off: barman deletes expired backups itself, and versioning would keep them anyway.
+2. In that project, create an S3 credential pair (Object Storage → S3 credentials). Hetzner keys reach every bucket in their project, so a separate project is what keeps the keys from the state bucket: `parser-deployer` can create Jobs in `parser`, so it can mount the `parser-db-backup-s3` Secret, and SSE-C protects the state's contents but not from being deleted or replaced.
 3. Add the pair to `Parser` as `PARSER_BACKUP_S3_ACCESS_KEY` and `PARSER_BACKUP_S3_SECRET_KEY`. **Parser Platform** creates the `parser-db-backup-s3` Secret from them on apply.
 
 Adding the plugin to `parser-db` restarts both instances, the standby first, with a switchover (`primaryUpdateMethod: switchover`).
