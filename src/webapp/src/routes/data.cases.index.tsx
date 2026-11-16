@@ -19,7 +19,7 @@ function ReviewCases() {
 			<ReviewCaseFilters />
 			{isLoading ? (
 				<Skeleton className="h-64 rounded-xl" />
-			) : data ? (
+			) : data && !error ? (
 				<>
 					<ReviewCaseList
 						cases={filterCases(data.items ?? [], {

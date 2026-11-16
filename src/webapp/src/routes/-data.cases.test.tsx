@@ -136,6 +136,20 @@ describe("/data/cases", () => {
 		).toBeInTheDocument();
 	});
 
+	it("replaces the cached list with the error when a refresh fails", async () => {
+		mockAxios.onGet(URL).replyOnce(200, PAGE).onGet(URL).reply(502);
+
+		const { queryClient } = renderCases();
+		expect(await screen.findAllByRole("listitem")).toHaveLength(2);
+
+		await queryClient.refetchQueries();
+
+		expect(
+			await screen.findByText("UKMA Data зараз недоступний"),
+		).toBeInTheDocument();
+		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+	});
+
 	it("says UKMA Data is not configured on 503", async () => {
 		mockAxios.onGet(URL).reply(503, { detail: "x", status: 503 });
 
