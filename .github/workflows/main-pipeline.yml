@@ -11,10 +11,28 @@ on:
   push:
     branches:
       - main
+    # The web app only. The parser has its own pipeline (parser-pipeline.yml), and its infra deploys from its own workflows.
     paths:
-      - src/**
-      - infra/**
-      - .github/**
+      - src/backend/**
+      - src/webapp/**
+      - src/docker-compose.yml
+      - src/.env.sample
+      - docs/api/openapi-generated.yaml
+      - infra/nginx/**
+      # This pipeline and what it calls.
+      - .github/workflows/main-pipeline.yml
+      - .github/workflows/changes-filter.yml
+      - .github/workflows/version.yml
+      - .github/workflows/test.yml
+      - .github/workflows/openapi-validation.yml
+      - .github/workflows/audit.yml
+      - .github/workflows/build.yml
+      - .github/workflows/deploy.yml
+      - .github/workflows/e2e-test.yml
+      - .github/workflows/release.yml
+      - .github/actions/sentry-release/**
+      - .github/actions/setup-node-pnpm/**
+      - .github/actions/setup-python-uv/**
 
 jobs:
   changes-filter:
@@ -32,7 +50,6 @@ jobs:
         ${{ inputs.version-tag == '' &&
         (fromJSON(needs.changes-filter.outputs.backend_changed) ||
         fromJSON(needs.changes-filter.outputs.webapp_changed) ||
-        fromJSON(needs.changes-filter.outputs.parser_changed) ||
         fromJSON(needs.changes-filter.outputs.infra_changed)) }}
     uses: ./.github/workflows/version.yml
 
@@ -42,7 +59,8 @@ jobs:
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
-      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      # Tested, built and deployed by parser-pipeline.yml.
+      parser_changed: false
 
   openapi-validation:
     needs: changes-filter
@@ -72,7 +90,7 @@ jobs:
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
-      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      parser_changed: false
 
   release-needed:
     needs: [version]
@@ -109,26 +127,6 @@ jobs:
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       test_url: ${{ vars.STAGING_URL }}
       run_e2e_tests: true
-    secrets: inherit
-
-  # The parser deploys on its own path: only when it or its manifests changed, and independent of the web app,
-  # so a failure on one side doesn't hold back the other. There is one parser environment, live (ADR-0015).
-  # Pushes only: a dispatch rebuilds parser:<version-tag> from the current main, so it must not reach live.
-  # Deploy Parser's own dispatch is the manual path.
-  deploy-parser:
-    needs: [changes-filter, version, build]
-    if: >-
-      ${{ !failure() && !cancelled() &&
-      github.event_name == 'push' &&
-      github.ref_name == github.event.repository.default_branch &&
-      needs.build.result == 'success' &&
-      fromJSON(needs.changes-filter.outputs.parser_deploy_changed) }}
-    uses: ./.github/workflows/parser-deploy.yml
-    permissions:
-      contents: read
-      packages: read
-    with:
-      version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
     secrets: inherit
 
   release:

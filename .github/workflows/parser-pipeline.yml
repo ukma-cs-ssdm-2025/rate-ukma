@@ -1,0 +1,112 @@
+---
+name: Parser Pipeline
+
+# Deploys UKMA Data to live (its only environment, ADR-0015) on every push to main that changes the parser
+# or its app manifests. Separate from Staging Build, so the web app and the parser don't hold each other back.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/parser/**
+      - infra/deploy/parser/k8s/app/**
+      - .github/workflows/parser-pipeline.yml
+
+permissions:
+  contents: read
+
+# One run at a time, in push order. A newer push replaces a waiting run instead of queueing behind it,
+# so an older commit can never deploy after a newer one. Never cancel a running one: it may be migrating.
+concurrency:
+  group: parser-pipeline
+  cancel-in-progress: false
+
+jobs:
+  # Parser versions are their own: parser-vX.Y.Z tags, counted from commits that change the parser only.
+  version:
+    uses: ./.github/workflows/version.yml
+    permissions:
+      contents: write
+    with:
+      tag_prefix: parser-v
+      change_path: src/parser infra/deploy/parser/k8s/app
+      code_changed: true
+
+  # The parser part of test.yml, at this exact commit. test.yml checks out the branch head,
+  # and its backend job asks for write permissions this workflow doesn't grant.
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          working-directory: src/parser
+
+      - name: Run lint, format, typecheck and tests
+        working-directory: src/parser
+        run: pnpm check:all
+
+      - name: Lint the generated OpenAPI file
+        run: npx --yes @redocly/cli@2.57.0 lint docs/parser-service/openapi.json
+
+  # Every run builds and deploys its own image, manifests-only changes included.
+  # Tagged with the new version, or with the commit when nothing in the parser changed (a pipeline-only push):
+  # pushing an existing version tag again would replace the image that version was released with.
+  image:
+    needs: version
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        env:
+          VERSION_TAG: ${{ needs.version.outputs.version_tag }}
+          VERSION_TYPE: ${{ needs.version.outputs.version_type }}
+        run: |
+          if [ "$VERSION_TYPE" = none ] || [ -z "$VERSION_TAG" ]; then
+            tag=$GITHUB_SHA
+          else
+            tag=$VERSION_TAG
+          fi
+          echo "Parser image tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: [test, image]
+    uses: ./.github/workflows/build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      version_tag: ${{ needs.image.outputs.tag }}
+      backend_changed: false
+      webapp_changed: false
+      parser_changed: true
+
+  deploy:
+    needs: [build, image]
+    uses: ./.github/workflows/parser-deploy.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      version_tag: ${{ needs.image.outputs.tag }}
+    secrets: inherit
