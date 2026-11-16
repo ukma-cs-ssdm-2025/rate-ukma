@@ -19,20 +19,10 @@ on:
       - src/.env.sample
       - docs/api/openapi-generated.yaml
       - infra/nginx/**
-      # This pipeline and what it calls.
-      - .github/workflows/main-pipeline.yml
-      - .github/workflows/changes-filter.yml
-      - .github/workflows/version.yml
-      - .github/workflows/test.yml
-      - .github/workflows/openapi-validation.yml
-      - .github/workflows/audit.yml
-      - .github/workflows/build.yml
-      - .github/workflows/deploy.yml
-      - .github/workflows/e2e-test.yml
-      - .github/workflows/release.yml
-      - .github/actions/sentry-release/**
-      - .github/actions/setup-node-pnpm/**
-      - .github/actions/setup-python-uv/**
+      - infra/deploy/.env.*
+      - .github/**
+      - "!.github/workflows/parser-*.yml"
+      - "!.github/actions/k8s-tunnel/**"
 
 jobs:
   changes-filter:
