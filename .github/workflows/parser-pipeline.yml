@@ -1,8 +1,7 @@
 ---
 name: Parser Pipeline
 
-# Deploys UKMA Data to live (its only environment, ADR-0015) on every push to main that changes the parser
-# or its app manifests. Separate from Staging Build, so the web app and the parser don't hold each other back.
+# Tests, builds and deploys UKMA Data when a push to main changes the parser or its k8s manifests.
 on:
   push:
     branches:
@@ -15,15 +14,16 @@ on:
 permissions:
   contents: read
 
-# One run at a time, in push order
-# A newer push replaces a waiting run instead of queueing behind it, an older commit can never deploy after a newer one
-# ! Never cancel a running one: it may be migrating
+# Runs go one at a time, in the order they were pushed.
+# If several pushes are waiting, only the newest one runs, so an older commit never replaces a newer one on live.
+# ! A running deploy is never cancelled, because it may be in the middle of a database migration.
 concurrency:
   group: parser-pipeline
   cancel-in-progress: false
 
 jobs:
-  # Parser versions are their own: parser-vX.Y.Z tags, counted from commits that change the parser only.
+  # The parser has its own versions (parser-vX.Y.Z), separate from the web app's.
+  # Only commits that touch the parser count towards them.
   version:
     uses: ./.github/workflows/version.yml
     permissions:
@@ -33,8 +33,9 @@ jobs:
       change_path: src/parser infra/deploy/parser/k8s/app
       code_changed: true
 
-  # The parser part of test.yml, at this exact commit. test.yml checks out the branch head,
-  # and its backend job asks for write permissions this workflow doesn't grant.
+  # The same parser checks as test.yml, copied here for two reasons:
+  # test.yml tests the latest main rather than this commit,
+  # and its backend job needs write permissions this workflow doesn't have.
   test:
     runs-on: ubuntu-24.04
     services:
@@ -68,9 +69,9 @@ jobs:
       - name: Lint the generated OpenAPI file
         run: npx --yes @redocly/cli@2.57.0 lint docs/parser-service/openapi.json
 
-  # Every run builds and deploys its own image, manifests-only changes included.
-  # Tagged with the new version, or with the commit when nothing in the parser changed (a pipeline-only push):
-  # pushing an existing version tag again would replace the image that version was released with.
+  # Picks the image tag: normally the new version.
+  # A push that only changes this workflow gets no new version, so its image is tagged with the commit SHA instead.
+  # Reusing the old version's tag would overwrite the image that version was released with.
   image:
     needs: version
     runs-on: ubuntu-24.04
@@ -90,6 +91,7 @@ jobs:
           echo "Parser image tag: $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+  # Every run builds its own image, even when only the k8s manifests changed.
   build:
     needs: [test, image]
     uses: ./.github/workflows/build.yml
@@ -112,8 +114,8 @@ jobs:
       version_tag: ${{ needs.image.outputs.tag }}
     secrets: inherit
 
-  # A full release, since the deploy goes straight to live. Only for a new version: a pipeline-only run cuts none.
-  # Not marked latest, so the web app's live release keeps that label; Live Build ignores parser-v* tags.
+  # Full release, not a pre-release - no staging step to wait for.
+  # Not marked "Latest", label stays with the web app's release.
   release:
     needs: [version, deploy]
     if: needs.version.outputs.version_type != 'none' && needs.version.outputs.version_tag != ''
