@@ -14,6 +14,7 @@ import {
 	NO_RETRY,
 	PAGE,
 } from "../reviewCases";
+import { UkmaDataError } from "./UkmaDataError";
 
 function KeyCard({ status }: Readonly<{ status: UkmaDataStatus }>) {
 	return (
@@ -48,13 +49,11 @@ function KeyCard({ status }: Readonly<{ status: UkmaDataStatus }>) {
 }
 
 function OpenCasesCard() {
-	const { data, isError, isLoading } = useUkmaDataReviewCasesList(
-		PAGE,
-		NO_RETRY,
-	);
+	const { data, error, isLoading, refetch, isRefetching } =
+		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
 	const open = data?.items?.filter((item) => item.status === "open") ?? [];
 	// The API sends no totals, so a count is true only when the first page is everything.
-	const complete = data !== undefined && !data.has_more;
+	const complete = data !== undefined && !error && !data.has_more;
 	const oldest = open.reduce<string | undefined>(
 		(min, item) =>
 			item.opened_at && (!min || item.opened_at < min) ? item.opened_at : min,
@@ -69,10 +68,15 @@ function OpenCasesCard() {
 			</CardHeader>
 			<CardContent className="space-y-1 text-sm">
 				{isLoading ? <Skeleton className="h-20" /> : null}
-				{isError ? (
-					<p className="text-muted-foreground">Справи не завантажено.</p>
+				{error ? (
+					<UkmaDataError
+						error={error}
+						title="Не вдалося завантажити справи"
+						onRetry={refetch}
+						isRetrying={isRefetching}
+					/>
 				) : null}
-				{data
+				{data && !error
 					? caseKinds.map((kind) => (
 							<Link
 								key={kind}
@@ -89,7 +93,7 @@ function OpenCasesCard() {
 							</Link>
 						))
 					: null}
-				{data ? (
+				{data && !error ? (
 					<p className="pt-2 text-muted-foreground">
 						{!complete
 							? "Показано лише першу сторінку справ."

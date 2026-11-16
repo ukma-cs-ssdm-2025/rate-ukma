@@ -68,14 +68,14 @@ function renderCases(search = "?status=all") {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
 	});
-	render(
+	const { unmount } = render(
 		<QueryClientProvider client={queryClient}>
 			<NuqsTestingAdapter searchParams={search}>
 				<ReviewCases />
 			</NuqsTestingAdapter>
 		</QueryClientProvider>,
 	);
-	return { queryClient };
+	return { queryClient, unmount };
 }
 
 beforeEach(() => {
@@ -182,6 +182,34 @@ describe("/data/cases", () => {
 			).toEqual(session),
 		);
 		expect(notifySessionExpired).not.toHaveBeenCalled();
+	});
+
+	it("does not write a late session answer after the section unmounts", async () => {
+		const session: Session = {
+			is_authenticated: true,
+			user: null,
+			is_student: true,
+			is_superuser: false,
+			speciality: null,
+		};
+		let answer: () => void = () => {};
+		mockAxios.onGet(URL).reply(403, { detail: "x", status: 403 });
+		mockAxios.onGet(SESSION_URL).reply(
+			() =>
+				new Promise((resolve) => {
+					answer = () => resolve([200, session]);
+				}),
+		);
+
+		const { queryClient, unmount } = renderCases();
+		await waitFor(() => expect(mockAxios.history.get).toHaveLength(2));
+		unmount();
+		answer();
+		await new Promise((resolve) => setTimeout(resolve, 20));
+
+		expect(queryClient.getQueryData(getAuthSessionRetrieveQueryKey())).toBe(
+			undefined,
+		);
 	});
 
 	it("signs the user out on 403 when the session has ended", async () => {

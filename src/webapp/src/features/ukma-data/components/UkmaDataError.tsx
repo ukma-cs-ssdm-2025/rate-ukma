@@ -31,10 +31,14 @@ export function UkmaDataError({
 	// the section, and the remount would hit the 403 again.
 	useEffect(() => {
 		if (status !== 403) return;
+		let active = true;
 		authSessionRetrieve()
-			.then((session) =>
-				queryClient.setQueryData(getAuthSessionRetrieveQueryKey(), session),
-			)
+			.then((session) => {
+				// A late answer must not restore a session that logout has cleared.
+				if (active) {
+					queryClient.setQueryData(getAuthSessionRetrieveQueryKey(), session);
+				}
+			})
 			.catch((sessionError: unknown) => {
 				if (
 					axios.isAxiosError(sessionError) &&
@@ -43,6 +47,9 @@ export function UkmaDataError({
 					notifySessionExpired();
 				}
 			});
+		return () => {
+			active = false;
+		};
 	}, [status, queryClient]);
 
 	switch (status) {
