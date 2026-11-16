@@ -291,16 +291,14 @@ export class CourseStore extends Context.Service<
 								AND (
 									o.merged_from = k.id
 									-- The rule merged by key, so its offerings are found by key,
-									-- less those a staff merge brought from another course of it.
+									-- less those a staff merge brought from outside its chain.
 									OR (
 										k.merge_source = 'rule'
 										AND (o.title, o.department_id, o.level)
 											IS NOT DISTINCT FROM (k.title, k.department_id, k.level)
-										AND NOT EXISTS (
-											SELECT 1 FROM courses f
-											WHERE f.id = o.merged_from AND f.id <> k.id
-												AND (f.title, f.department_id, f.level)
-													IS NOT DISTINCT FROM (k.title, k.department_id, k.level)
+										AND (
+											o.merged_from IS NULL
+											OR o.merged_from IN (SELECT id FROM chain)
 										)
 									)
 								)

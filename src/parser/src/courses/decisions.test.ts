@@ -303,6 +303,41 @@ describe("course decisions", () => {
 		);
 
 		it.effect(
+			"unmerging a handoff leaves an offering another merge brought, even renamed to its key",
+			() =>
+				Effect.gen(function* () {
+					const { keyId, second } = yield* setUp({
+						...otherDepartment,
+						academicYear: 2033,
+					});
+
+					const handedOff =
+						(yield* courses).find(({ mergeSource }) => mergeSource === "rule")
+							?.id ?? "";
+
+					yield* write([offering("900067", otherTitle)]);
+					yield* groupCourses({});
+
+					const other =
+						(yield* groups).find(({ sazCode }) => sazCode === "900067")
+							?.courseId ?? "";
+
+					yield* mergeCourse(keyId, other, second);
+					yield* write([offering("900067")]);
+					yield* unmergeCourse(keyId, handedOff);
+
+					const courseOf = new Map(
+						(yield* groups).map((row) => [row.sazCode, row.courseId]),
+					);
+
+					assert.deepStrictEqual(
+						["900061", "900062", "900067"].map((code) => courseOf.get(code)),
+						[handedOff, handedOff, second],
+					);
+				}),
+		);
+
+		it.effect(
 			"unmerges a department handoff, and the rule does not merge it again",
 			() =>
 				Effect.gen(function* () {
