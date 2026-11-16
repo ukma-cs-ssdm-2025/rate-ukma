@@ -41,6 +41,7 @@ export function UkmaDataError({
 			})
 			.catch((sessionError: unknown) => {
 				if (
+					active &&
 					axios.isAxiosError(sessionError) &&
 					sessionError.response?.status === 401
 				) {
