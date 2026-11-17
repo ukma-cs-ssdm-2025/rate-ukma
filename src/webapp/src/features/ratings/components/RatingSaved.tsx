@@ -10,6 +10,11 @@ interface RatingSavedProps {
 	readonly isError: boolean;
 	readonly onSelect: (item: RatingSuggestion) => void;
 	readonly onClose: () => void;
+	/** Set when the rated course is not the page the user is on. */
+	readonly openCourse?: {
+		readonly name?: string;
+		readonly onOpen: () => void;
+	};
 }
 
 function description({ suggestions, isLoading, isError }: RatingSavedProps) {
@@ -36,13 +41,28 @@ export function RatingSaved(props: RatingSavedProps) {
 					/>
 				)
 			)}
-			<Button
-				variant={hasNext ? "ghost" : "default"}
-				className="w-full"
-				onClick={props.onClose}
-			>
-				{hasNext ? "Не зараз" : "Готово"}
-			</Button>
+			<div className="space-y-2">
+				{props.openCourse && (
+					<Button
+						variant={hasNext ? "outline" : "default"}
+						className="w-full"
+						onClick={props.openCourse.onOpen}
+					>
+						<span className="truncate">
+							{props.openCourse.name
+								? `Відкрити «${props.openCourse.name}»`
+								: "Відкрити дисципліну"}
+						</span>
+					</Button>
+				)}
+				<Button
+					variant={hasNext || props.openCourse ? "ghost" : "default"}
+					className="w-full"
+					onClick={props.onClose}
+				>
+					{hasNext ? "Не зараз" : "Готово"}
+				</Button>
+			</div>
 		</div>
 	);
 }

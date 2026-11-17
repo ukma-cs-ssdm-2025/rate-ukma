@@ -131,7 +131,11 @@ export function RatingModal({
 				onClose();
 			} else {
 				continuation?.complete(
-					{ courseId, isAnonymous: data.is_anonymous },
+					{
+						courseId,
+						courseName: courseName?.trim() || undefined,
+						isAnonymous: data.is_anonymous,
+					},
 					offerNext,
 				);
 				onClose();
