@@ -1,3 +1,5 @@
+import { ArrowRight } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { DialogDescription, DialogTitle } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -23,12 +25,34 @@ function description({ suggestions, isLoading, isError }: RatingSavedProps) {
 	return "Ви вже оцінили все доступне.";
 }
 
+function SavedCourse({
+	name,
+	onOpen,
+}: NonNullable<RatingSavedProps["openCourse"]>) {
+	const label = name ? `«${name}»` : "дисципліну";
+	return (
+		<p className="text-muted-foreground text-sm">
+			Оцінку {name ? `для ${label} ` : ""}збережено.{" "}
+			<button
+				type="button"
+				className="text-primary inline-flex items-center gap-0.5 font-medium hover:underline focus-visible:underline focus-visible:outline-none"
+				aria-label={`Відкрити ${label}`}
+				onClick={onOpen}
+			>
+				Відкрити
+				<ArrowRight className="size-3.5" aria-hidden />
+			</button>
+		</p>
+	);
+}
+
 export function RatingSaved(props: RatingSavedProps) {
 	const hasNext = props.isLoading || props.suggestions.length > 0;
 	return (
 		<div className="space-y-5">
 			<div className="space-y-2 pr-5">
 				<DialogTitle className="leading-snug">Дякуємо за оцінку!</DialogTitle>
+				{props.openCourse && <SavedCourse {...props.openCourse} />}
 				<DialogDescription>{description(props)}</DialogDescription>
 			</div>
 			{props.isLoading ? (
@@ -41,28 +65,13 @@ export function RatingSaved(props: RatingSavedProps) {
 					/>
 				)
 			)}
-			<div className="space-y-2">
-				{props.openCourse && (
-					<Button
-						variant={hasNext ? "outline" : "default"}
-						className="w-full"
-						onClick={props.openCourse.onOpen}
-					>
-						<span className="truncate">
-							{props.openCourse.name
-								? `Відкрити «${props.openCourse.name}»`
-								: "Відкрити дисципліну"}
-						</span>
-					</Button>
-				)}
-				<Button
-					variant={hasNext || props.openCourse ? "ghost" : "default"}
-					className="w-full"
-					onClick={props.onClose}
-				>
-					{hasNext ? "Не зараз" : "Готово"}
-				</Button>
-			</div>
+			<Button
+				variant={hasNext ? "ghost" : "default"}
+				className="w-full"
+				onClick={props.onClose}
+			>
+				{hasNext ? "Не зараз" : "Готово"}
+			</Button>
 		</div>
 	);
 }
