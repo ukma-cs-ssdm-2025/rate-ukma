@@ -232,10 +232,16 @@ const reviews: FeedItem[] = COURSES.slice(0, 6).map((course, index) => ({
 	course_avg_usefulness: course.avg_usefulness,
 })) satisfies FeedItem[];
 
-// Invented poster so the /feed banner image is exercised without a network fetch.
-const POSTER = `data:image/svg+xml,${encodeURIComponent(
-	'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200"><defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="#0b6fb3"/><stop offset="1" stop-color="#f2b53a"/></linearGradient></defs><rect width="500" height="200" fill="url(#g)"/><circle cx="400" cy="60" r="90" fill="#ffffff" fill-opacity=".18"/></svg>',
-)}`;
+// Invented images in the two shapes admins upload: a round photo on a white
+// square and a rounded-square logo with transparent corners.
+const svg = (body: string) =>
+	`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">${body}</svg>`)}`;
+const HACKATHON_LOGO = svg(
+	'<rect width="120" height="120" fill="#fff"/><circle cx="60" cy="60" r="50" fill="#0b6fb3"/><path d="M50 44 34 60l16 16M70 44l16 16-16 16" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>',
+);
+const BOARDGAMES_LOGO = svg(
+	'<rect width="120" height="120" rx="26" fill="#1f2937"/><g fill="#fff"><circle cx="40" cy="40" r="9"/><circle cx="60" cy="60" r="9"/><circle cx="80" cy="80" r="9"/></g>',
+);
 
 export const FEED_ITEMS: FeedItem[] = [
 	{
@@ -249,7 +255,7 @@ export const FEED_ITEMS: FeedItem[] = [
 		label: "Подія",
 		cta_label: "Зареєструватися",
 		cta_href: "https://example.invalid/hackathon",
-		image_url: POSTER,
+		image_url: HACKATHON_LOGO,
 	},
 	{
 		kind: "promo",
@@ -262,7 +268,7 @@ export const FEED_ITEMS: FeedItem[] = [
 		label: "Спільнота",
 		cta_label: "Долучитися",
 		cta_href: "https://example.invalid/boardgames",
-		image_url: null,
+		image_url: BOARDGAMES_LOGO,
 	},
 	reviews[0],
 	{

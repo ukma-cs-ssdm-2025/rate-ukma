@@ -66,6 +66,7 @@ export function FeedPromoItem({
 				kind={kind}
 				pinned={item.pinned}
 				title={item.title}
+				avatarUrl={item.imageUrl}
 				footer={
 					<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
 						<time>{formatRelativeTime(item.createdAt)}</time>
@@ -95,6 +96,7 @@ export function FeedPromoItem({
 			kind={kind}
 			pinned={item.pinned}
 			title={item.title}
+			avatarUrl={item.imageUrl}
 			footer={
 				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
 					<time className="text-xs text-muted-foreground">
@@ -104,17 +106,6 @@ export function FeedPromoItem({
 				</div>
 			}
 		>
-			{/* Banner only: the strip cards are too narrow to carry an image.
-			    Promo images are often square logos, so keep their own shape and
-			    never upscale them past their natural size. */}
-			{item.imageUrl && (
-				<img
-					src={item.imageUrl}
-					alt={item.title}
-					className="h-auto max-h-64 w-auto max-w-full self-start rounded-lg object-contain"
-					loading="lazy"
-				/>
-			)}
 			<p className="text-sm leading-relaxed text-foreground/90">{item.body}</p>
 		</FeedCard>
 	);
