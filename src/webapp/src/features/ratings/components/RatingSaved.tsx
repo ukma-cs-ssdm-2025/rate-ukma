@@ -52,18 +52,29 @@ export function RatingSaved(props: RatingSavedProps) {
 		<div className="space-y-5">
 			<div className="space-y-2 pr-5">
 				<DialogTitle className="leading-snug">Дякуємо за оцінку!</DialogTitle>
-				{props.openCourse && <SavedCourse {...props.openCourse} />}
-				<DialogDescription>{description(props)}</DialogDescription>
+				{props.openCourse ? (
+					<SavedCourse {...props.openCourse} />
+				) : (
+					<DialogDescription>{description(props)}</DialogDescription>
+				)}
 			</div>
-			{props.isLoading ? (
-				<Skeleton className="h-40 w-full rounded-xl" />
-			) : (
-				props.suggestions.length > 0 && (
-					<RatingSuggestions
-						items={props.suggestions}
-						onSelect={props.onSelect}
-					/>
-				)
+			{/* With the saved line above, the question opens its own block. */}
+			{(props.openCourse || hasNext) && (
+				<div className="space-y-3">
+					{props.openCourse && (
+						<DialogDescription>{description(props)}</DialogDescription>
+					)}
+					{props.isLoading ? (
+						<Skeleton className="h-40 w-full rounded-xl" />
+					) : (
+						props.suggestions.length > 0 && (
+							<RatingSuggestions
+								items={props.suggestions}
+								onSelect={props.onSelect}
+							/>
+						)
+					)}
+				</div>
 			)}
 			<Button
 				variant={hasNext ? "ghost" : "default"}
