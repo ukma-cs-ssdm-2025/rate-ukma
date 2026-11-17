@@ -23,6 +23,12 @@ async function score(page: Page) {
 		.click();
 }
 
+const rowRateButton = (page: Page, title: string) =>
+	page
+		.getByTestId(testIds.myRatings.card)
+		.filter({ hasText: title })
+		.getByRole("button", { name: "Оцінити", exact: true });
+
 const suggestions = (page: Page) =>
 	page.getByRole("region", { name: "Що оцінити далі" });
 const thanks = (page: Page) => page.getByTestId("rating-saved-modal");
@@ -35,12 +41,12 @@ for (const width of [1440, 390]) {
 		await mockBackend(page, { ratingSuggestions: "items" });
 
 		await page.goto("/my-ratings");
-		await expect(suggestions(page).getByRole("button")).toHaveCount(3);
+		// Every row already offers «Оцінити», so the page shows no suggestion card.
+		await expect(page.getByTestId(testIds.myRatings.list)).toBeVisible();
+		await expect(suggestions(page)).toHaveCount(0);
 		await shot(page, `my-ratings-${width}`);
 
-		await page
-			.getByRole("button", { name: "Оцінити «Бази даних»", exact: true })
-			.click();
+		await rowRateButton(page, "Бази даних").click();
 		await score(page);
 		await page.getByTestId(testIds.rating.anonymousCheckbox).click();
 		await page.getByTestId(testIds.rating.submitButton).click();
@@ -52,6 +58,9 @@ for (const width of [1440, 390]) {
 			thanks(page).getByRole("button", { name: /^Оцінити «/ }),
 		).toHaveCount(2);
 		await shot(page, `thanks-${width}`);
+		await expect(
+			thanks(page).getByRole("button", { name: "Не зараз", exact: true }),
+		).toBeVisible();
 
 		await thanks(page)
 			.getByRole("button", { name: "Оцінити «Машинне навчання»", exact: true })
@@ -90,12 +99,32 @@ test("an already rated course offers one more", async ({ page }) => {
 	await shot(page, "rated-course-1440");
 });
 
+test("with nothing left, thanks closes with «Готово»", async ({ page }) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await mockBackend(page, {
+		ratingSuggestions: "empty",
+		myCourses: "rateable",
+	});
+	await page.goto(`/courses/${COURSE.id}`);
+	await page
+		.getByRole("button", { name: "Оцінити дисципліну", exact: true })
+		.click();
+	await score(page);
+	await page.getByTestId(testIds.rating.submitButton).click();
+	await expect(
+		thanks(page).getByText("Ви вже оцінили все доступне."),
+	).toBeVisible();
+	await shot(page, "all-rated-1440");
+	await thanks(page)
+		.getByRole("button", { name: "Готово", exact: true })
+		.click();
+	await expect(thanks(page)).toHaveCount(0);
+});
+
 test("a failed save keeps the form and shows no thanks", async ({ page }) => {
 	await mockBackend(page, { ratingSuggestions: "items", saveRating: "error" });
 	await page.goto("/my-ratings");
-	await page
-		.getByRole("button", { name: "Оцінити «Бази даних»", exact: true })
-		.click();
+	await rowRateButton(page, "Бази даних").click();
 	await score(page);
 	await page.getByTestId(testIds.rating.submitButton).click();
 	await expect(

@@ -104,6 +104,7 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 						suggestions={(suggestions.data ?? []).slice(0, 2)}
 						isLoading={suggestions.isLoading}
 						isError={suggestions.isError}
+						onClose={close}
 						onSelect={(item) => {
 							const isAnonymous = completion?.isAnonymous ?? false;
 							close();
