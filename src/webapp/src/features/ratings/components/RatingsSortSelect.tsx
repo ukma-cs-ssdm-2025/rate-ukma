@@ -13,7 +13,7 @@ interface RatingsSortSelectProps {
 	onValueChange: (value: SortOption) => void;
 }
 
-const SORT_OPTIONS: Array<{
+export const SORT_OPTIONS: ReadonlyArray<{
 	value: SortOption;
 	label: string;
 	hint: string;
