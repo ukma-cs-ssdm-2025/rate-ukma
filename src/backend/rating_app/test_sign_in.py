@@ -26,7 +26,7 @@ def test_sign_in_records_one_row_when_user_signs_in(api_client, user_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_sign_in_records_a_row_per_sign_in(api_client, user_factory):
+def test_sign_in_records_two_rows_when_user_signs_in_twice(api_client, user_factory):
     user = user_factory()
 
     _sign_in(api_client, user)
@@ -57,6 +57,7 @@ def test_sign_in_succeeds_when_recording_fails(api_client, user_factory, monkeyp
 def test_sign_in_rows_go_when_user_is_deleted(api_client, user_factory):
     user = user_factory()
     _sign_in(api_client, user)
+    assert SignIn.objects.filter(user=user).exists()
 
     user.delete()
 
