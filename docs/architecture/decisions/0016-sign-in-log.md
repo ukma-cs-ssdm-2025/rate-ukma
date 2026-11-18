@@ -1,4 +1,4 @@
-# ADR-0015: Record Every Sign-in as a `SignIn` Row
+# ADR-0016: Record Every Sign-in as a `SignIn` Row
 
 ## Status
 
