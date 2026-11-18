@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { DialogDescription, DialogTitle } from "@/components/ui/Dialog";
@@ -31,18 +31,27 @@ function SavedCourse({
 }: NonNullable<RatingSavedProps["openCourse"]>) {
 	const label = name ? `«${name}»` : "дисципліну";
 	return (
-		<p className="text-muted-foreground text-sm">
-			Оцінку {name ? `для ${label} ` : ""}збережено.{" "}
-			<button
-				type="button"
-				className="text-primary inline-flex items-center gap-0.5 font-medium hover:underline focus-visible:underline focus-visible:outline-none"
-				aria-label={`Відкрити ${label}`}
+		<article className="flex min-w-0 items-center justify-between gap-3 rounded-xl border p-4">
+			<div className="min-w-0 space-y-0.5">
+				<h3 className="line-clamp-2 font-medium leading-snug">
+					{name ?? "Дисципліна"}
+				</h3>
+				<p className="flex items-center gap-1 text-sm text-muted-foreground">
+					<Check className="size-3.5" aria-hidden />
+					Оцінено
+				</p>
+			</div>
+			<Button
+				size="sm"
+				variant="outline"
+				className="min-h-10 shrink-0 px-4 sm:min-h-0"
 				onClick={onOpen}
+				aria-label={`Відкрити ${label}`}
 			>
 				Відкрити
 				<ArrowRight className="size-3.5" aria-hidden />
-			</button>
-		</p>
+			</Button>
+		</article>
 	);
 }
 
@@ -52,12 +61,11 @@ export function RatingSaved(props: RatingSavedProps) {
 		<div className="space-y-5">
 			<div className="space-y-2 pr-5">
 				<DialogTitle className="leading-snug">Дякуємо за оцінку!</DialogTitle>
-				{props.openCourse ? (
-					<SavedCourse {...props.openCourse} />
-				) : (
+				{!props.openCourse && (
 					<DialogDescription>{description(props)}</DialogDescription>
 				)}
 			</div>
+			{props.openCourse && <SavedCourse {...props.openCourse} />}
 			{/* With the saved line above, the question opens its own block. */}
 			{(props.openCourse || hasNext) && (
 				<div className="space-y-3">
