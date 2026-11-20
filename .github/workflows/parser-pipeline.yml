@@ -2,7 +2,11 @@
 name: Parser Pipeline
 
 # Tests, builds and deploys UKMA Data when a push to main changes the parser or its k8s manifests.
+# It can also be run by hand, from main only, to redeploy main as it is: a version is cut only if
+# parser commits came after the last one, otherwise the image is tagged with the commit and gets no release.
+# To put a specific older version on live, dispatch Deploy Parser instead.
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -26,6 +30,9 @@ jobs:
   # The parser has its own versions (parser-vX.Y.Z), separate from the web app's.
   # Only commits that touch the parser count towards them.
   version:
+    # A manual run from another branch would put that branch on live. Everything else depends on this job
+    # or on test, so they are skipped too.
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/version.yml
     permissions:
       contents: write
@@ -38,6 +45,7 @@ jobs:
   # test.yml tests the latest main rather than this commit,
   # and its backend job needs write permissions this workflow doesn't have.
   test:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     services:
       postgres:
