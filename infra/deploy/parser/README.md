@@ -229,6 +229,10 @@ sudo k3s kubectl -n parser get scheduledbackup,backup   # parser-db-daily, and a
 sudo k3s kubectl -n parser get objectstore parser-backups -o jsonpath='{.status.serverRecoveryWindow}'   # first and last recoverability point
 ```
 
+**If the bucket is unreachable**, Postgres keeps every WAL segment it could not archive in `pg_wal` on the primary and retries. The database keeps working, but the WAL grows until the bucket is back. `max_slot_wal_keep_size` does not limit this: it only caps what the standby's slot holds, and `local-path` enforces no size, so unarchived WAL can fill the node's disk, and Postgres stops when `pg_wal` has no room. Archiving shows as `ContinuousArchiving` = `False` on the Cluster (the check above), and the sidecar logs say why: `kubectl -n parser logs <primary> -c plugin-barman-cloud | grep -i wal`. Fix the bucket or the keys in `parser-db-backup-s3` before the disk fills.
+
+**Whether a restore point exists** is answered by the bucket, not by the `Backup` objects: they are Kubernetes records, and the docs for the barman-cloud plugin do not say what happens to them when retention deletes the files. Trust `serverRecoveryWindow` on the `ObjectStore` (the last command above), which is read from the bucket. The apply's check looks at the `Backup` objects, so it only shows that a base backup completed at some point.
+
 The backups hold the crawled САЗ data, student lists included. Keep the bucket private and the keys in the password manager.
 
 ### Upgrading an operator
