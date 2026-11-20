@@ -14,8 +14,9 @@ on:
 permissions:
   contents: read
 
-# Runs go one at a time, in the order they were pushed.
-# If several pushes are waiting, only the newest one runs, so an older commit never replaces a newer one on live.
+# Runs go one at a time. GitHub keeps one waiting run per group and cancels the others, and it does not
+# promise that the one it keeps is the newest. The `newest` job below covers both cases:
+# an older commit never replaces a newer one on live, and a newer run that was dropped is started again.
 # ! A running deploy is never cancelled, because it may be in the middle of a database migration.
 concurrency:
   group: parser-pipeline
@@ -114,10 +115,15 @@ jobs:
 
   # Skips the deploy when main already has a newer parser commit, for example when someone re-runs an old run.
   # Only parser commits count, so web-only pushes never block it. The newer commit's own run deploys instead.
+  # If that run was cancelled (GitHub dropped it from the queue behind this older one), it is started again here,
+  # otherwise the newer commit would never reach live.
   # To put an older version on live on purpose, dispatch Deploy Parser.
   newest:
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: write
     outputs:
       deploy: ${{ steps.check.outputs.deploy }}
     steps:
@@ -128,11 +134,21 @@ jobs:
           persist-credentials: false
 
       - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           newest=$(git log -1 --format=%H -- src/parser infra/deploy/parser/k8s/app .github/workflows/parser-pipeline.yml)
           if [ "$newest" != "$GITHUB_SHA" ] && git merge-base --is-ancestor "$GITHUB_SHA" "$newest"; then
             echo "::notice::Not deploying $GITHUB_SHA: main has a newer parser commit, $newest."
             echo "deploy=false" >> "$GITHUB_OUTPUT"
+
+            # The newest run's latest attempt: if it was cancelled, nothing will deploy that commit.
+            run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow parser-pipeline.yml --commit "$newest" \
+              --event push --limit 1 --json databaseId,conclusion --jq '.[] | select(.conclusion == "cancelled") | .databaseId')
+            if [ -n "$run" ]; then
+              echo "::notice::The run for $newest was cancelled, starting it again."
+              gh run rerun "$run" --repo "$GITHUB_REPOSITORY"
+            fi
           else
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           fi
@@ -150,9 +166,16 @@ jobs:
 
   # Full release, not a pre-release - no staging step to wait for.
   # Not marked "Latest", label stays with the web app's release.
+  # A version whose deploy was skipped because main moved on still gets its release, with its image built:
+  # the version exists and its changes are in the changelog. A failed or cancelled run releases nothing.
   release:
-    needs: [image, deploy]
-    if: needs.image.outputs.version != ''
+    needs: [image, build, newest, deploy]
+    if: >-
+      !cancelled()
+      && needs.image.outputs.version != ''
+      && needs.build.result == 'success'
+      && needs.newest.result == 'success'
+      && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
     uses: ./.github/workflows/release.yml
     permissions:
       contents: write
