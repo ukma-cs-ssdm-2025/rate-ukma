@@ -49,7 +49,8 @@ backup_current_version() {
   echo "Saving current image tags for potential rollback..."
   cd "$SOURCE_CODE"
   PREV_WEBAPP_TAG=$(sudo docker ps --format "{{.Image}}" | grep "webapp" | awk -F: '{print $2}' || echo "")
-  PREV_BACKEND_TAG=$(sudo docker ps --format "{{.Image}}" | grep "backend" | awk -F: '{print $2}' || echo "")
+  # The scheduler runs the backend image too, so read the backend service's own container.
+  PREV_BACKEND_TAG=$(sudo docker ps --filter "label=com.docker.compose.service=backend" --format "{{.Image}}" | head -n1 | awk -F: '{print $2}' || echo "")
 
   echo "Previous WEBAPP_IMAGE_TAG: $PREV_WEBAPP_TAG"
   echo "Previous BACKEND_IMAGE_TAG: $PREV_BACKEND_TAG"
@@ -109,18 +110,21 @@ deploy_new_version() {
   compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" up -d
 }
 
+# Services the web deploy does not wait for: a failing one is reported, never rolled back.
+NON_BLOCKING_SERVICES='["scheduler"]'
+
 health_check() {
   echo "Waiting for services to be up and running..."
   local attempt=1
 
-  EXPECTED_SERVICES=$(sudo docker compose --profile prod config --services | wc -l)
+  EXPECTED_SERVICES=$(sudo docker compose --profile prod config --services | jq -R . | jq -s --argjson skip "$NON_BLOCKING_SERVICES" '[.[] | select(. as $s | $skip | index($s) | not)] | length')
   echo "Expecting $EXPECTED_SERVICES services"
 
   while [[ "$attempt" -le "$MAX_ATTEMPTS" ]]; do
     echo "Health check attempt $attempt/$MAX_ATTEMPTS..."
 
     # services that are running or exited successfully (e.g. one-shot build containers)
-    ALL_SERVICES_JSON=$(sudo docker compose ps -a --format json | jq -s '.')
+    ALL_SERVICES_JSON=$(sudo docker compose ps -a --format json | jq -s --argjson skip "$NON_BLOCKING_SERVICES" '[.[] | select(.Service as $s | $skip | index($s) | not)]')
     HEALTHY_SERVICES=$(echo "$ALL_SERVICES_JSON" | jq '[.[] | select(.State == "running" or (.State == "exited" and .ExitCode == 0))] | length')
 
     if [[ "$HEALTHY_SERVICES" -eq "$EXPECTED_SERVICES" && -f "$STATIC_ROOT/index.html" ]]; then
@@ -197,8 +201,16 @@ flush_cache() {
   fi
 }
 
+report_non_blocking_services() {
+  cd "$SOURCE_CODE"
+  sudo docker compose ps -a --format json | jq -s -r --argjson skip "$NON_BLOCKING_SERVICES" \
+    '.[] | select(.Service as $s | $skip | index($s)) | "\(.Service): state=\(.State) exit_code=\(.ExitCode)" + (if .State == "running" then "" else " (WARNING: not running; the web deploy goes on)" end)' \
+    || echo "Warning: could not read the state of non-blocking services"
+}
+
 cleanup_on_success() {
   echo "Services are up and healthy"
+  report_non_blocking_services
   apply_nginx_config
   flush_cache
 

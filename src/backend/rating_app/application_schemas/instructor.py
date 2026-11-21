@@ -96,3 +96,5 @@ class CourseInstructorMentions:
     ratings_count: int
     offering_ratings_count: int
     students_count: int
+    recent_students_count: int = 0
+    planned: bool = False

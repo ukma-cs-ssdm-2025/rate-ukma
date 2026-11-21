@@ -3,6 +3,10 @@ import uuid
 from django.urls import reverse
 
 import pytest
+from waffle.models import Flag
+
+from rating_app.models.choices import SemesterTerm
+from rating_app.repositories.instructor_repository import current_academic_year_start
 
 
 @pytest.mark.django_db
@@ -331,3 +335,74 @@ def test_course_instructors_bad_uuid(token_client):
     response = token_client.get(reverse("course-instructors", args=["nope"]))
 
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_course_instructors_add_planned_teachers_only_with_the_flag(
+    token_client,
+    instructor_factory,
+    rating_factory,
+    course_offering_factory,
+    course_instructor_factory,
+    semester_factory,
+):
+    older = course_offering_factory(semester=semester_factory(year=2020))
+    latest = course_offering_factory(course=older.course, semester=semester_factory(year=2021))
+    named = instructor_factory(last_name="Названа", email="a@x.ua")
+    planned_named = instructor_factory(last_name="Планова", email="b@x.ua")
+    planned_only = instructor_factory(last_name="Нова", email="c@x.ua")
+    rating_factory(course_offering=older).instructors.add(named, planned_named)
+    course_instructor_factory(instructor=planned_named, course_offering=latest)
+    course_instructor_factory(instructor=planned_only, course_offering=latest)
+    course_instructor_factory(instructor=named, course_offering=older)
+    url = reverse("course-instructors", args=[older.course_id])
+
+    off = token_client.get(url).json()["items"]
+
+    assert [(i["instructor"]["last_name"], i["planned"]) for i in off] == [
+        ("Названа", False),
+        ("Планова", False),
+    ]
+
+    Flag.objects.create(name="fe_course_instructors", everyone=True)
+    on = token_client.get(url).json()["items"]
+
+    assert [(i["instructor"]["last_name"], i["planned"], i["ratings_count"]) for i in on] == [
+        ("Названа", False, 1),
+        ("Планова", True, 1),
+        ("Нова", True, 0),
+    ]
+
+    for_older = token_client.get(url, {"offering_id": str(older.id)}).json()["items"]
+
+    assert [(i["instructor"]["last_name"], i["planned"]) for i in for_older] == [
+        ("Названа", True),
+        ("Планова", False),
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_course_instructors_count_recent_students_from_the_last_two_academic_years(
+    token_client, instructor_factory, rating_factory, course_offering_factory, semester_factory
+):
+    start = current_academic_year_start()
+    recent = course_offering_factory(
+        semester=semester_factory(year=start - 1, term=SemesterTerm.FALL)
+    )
+    recent_spring = course_offering_factory(
+        course=recent.course, semester=semester_factory(year=start, term=SemesterTerm.SPRING)
+    )
+    old = course_offering_factory(
+        course=recent.course, semester=semester_factory(year=start - 1, term=SemesterTerm.SPRING)
+    )
+    teacher = instructor_factory(last_name="Вигадана", email="a@x.ua")
+    for offering in (recent, recent_spring, old):
+        rating_factory(course_offering=offering).instructors.add(teacher)
+
+    [item] = token_client.get(reverse("course-instructors", args=[recent.course_id])).json()[
+        "items"
+    ]
+
+    assert (item["students_count"], item["recent_students_count"]) == (3, 2)

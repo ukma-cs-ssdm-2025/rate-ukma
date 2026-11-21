@@ -3,6 +3,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from waffle import flag_is_active
 
 from rating_app.application_schemas.instructor import (
     CourseInstructorsPathParams,
@@ -59,8 +60,10 @@ class InstructorViewSet(viewsets.ViewSet):
         summary="List instructors named on a course",
         description=(
             "Instructors that ratings of this course name, with mention counts. "
-            "Never-named instructors are left out, so an empty list means no "
-            "signal. Pass `offering_id` to count and rank that offering first."
+            "Pass `offering_id` to count and rank that offering first. While "
+            "fe_course_instructors is on for the user, teachers UKMA Data plans "
+            "for the offering (or the course's latest) are marked `planned`, and "
+            "planned teachers nobody named yet follow with zero counts."
         ),
         parameters=[
             *to_openapi((CourseInstructorsPathParams, OpenApiParameter.PATH)),
@@ -77,7 +80,11 @@ class InstructorViewSet(viewsets.ViewSet):
         except ModelValidationError as e:
             raise ValidationError(detail=e.errors()) from e
 
-        items = self.instructor_service.list_course_instructors(path.course_id, params)
+        items = self.instructor_service.list_course_instructors(
+            path.course_id,
+            params,
+            with_planned=bool(flag_is_active(request, "fe_course_instructors")),
+        )
         payload = CourseInstructorListSerializer({"items": items})
         return Response(payload.data, status=status.HTTP_200_OK)
 

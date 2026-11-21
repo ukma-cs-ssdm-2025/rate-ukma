@@ -10,6 +10,7 @@ from rating_app.application_schemas.ukma_data import (
     UkmaDataFaculty,
     UkmaDataKey,
     UkmaDataOffering,
+    UkmaDataOfferingInstructors,
     UkmaDataPage,
     UkmaDataPageParams,
     UkmaDataProgramme,
@@ -18,6 +19,7 @@ from rating_app.application_schemas.ukma_data import (
     UkmaDataTerm,
 )
 from rating_app.exception.ukma_data_exceptions import (
+    UkmaDataForbiddenError,
     UkmaDataNotConfiguredError,
     UkmaDataUnavailableError,
 )
@@ -50,11 +52,20 @@ class UkmaDataService:
     def list_offerings(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataOffering]:
         return self._get_page("/v1/offerings", params, UkmaDataPage[UkmaDataOffering])
 
+    def list_offering_instructors(
+        self, params: UkmaDataPageParams
+    ) -> UkmaDataPage[UkmaDataOfferingInstructors]:
+        """Offerings with their linked teachers; needs `instructors:read`."""
+        return self._get_page("/v1/offerings", params, UkmaDataPage[UkmaDataOfferingInstructors])
+
+    def get_key(self) -> UkmaDataKey:
+        return self._get("/v1/key", {}, UkmaDataKey)
+
     def list_review_cases(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataReviewCase]:
         return self._get_page("/v1/review-cases", params, UkmaDataPage[UkmaDataReviewCase])
 
     def get_status(self) -> UkmaDataStatus:
-        key = self._get("/v1/key", {}, UkmaDataKey)
+        key = self.get_key()
         # Every list carries the same dataUpdatedAt (the latest successful run),
         # so the smallest page of the cheapest list is enough to read it.
         terms = self.list_terms(UkmaDataPageParams(limit=1))
@@ -92,6 +103,10 @@ class UkmaDataService:
         except requests.RequestException as exc:
             logger.warning("ukma_data_unreachable", path=path, err=str(exc))
             raise UkmaDataUnavailableError("UKMA Data is unreachable.") from exc
+
+        if response.status_code == 403:
+            logger.warning("ukma_data_forbidden", path=path)
+            raise UkmaDataForbiddenError()
 
         if not response.ok:
             logger.warning("ukma_data_error_status", path=path, status=response.status_code)
