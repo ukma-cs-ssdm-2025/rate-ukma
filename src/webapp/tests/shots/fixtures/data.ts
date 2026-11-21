@@ -459,6 +459,32 @@ export const COURSE_OFFERINGS = {
 	],
 } satisfies CourseOfferingListResponse;
 
+const SAVCHUK = {
+	id: "i-4",
+	first_name: "Ірина",
+	patronymic: "Василівна",
+	last_name: "Савчук",
+};
+const MELNYCHUK = {
+	id: "i-5",
+	first_name: "Тарас",
+	patronymic: "Ігорович",
+	last_name: "Мельничук",
+};
+
+// The sync fills the plan for the two latest years only.
+export const COURSE_OFFERINGS_PLANNED = {
+	course_offerings: COURSE_OFFERINGS.course_offerings.map((item) => ({
+		...item,
+		instructors:
+			item.semester_year === 2026
+				? [SAVCHUK, MELNYCHUK]
+				: item.semester_year === 2025
+					? [SAVCHUK]
+					: [],
+	})),
+} satisfies CourseOfferingListResponse;
+
 // One run lists every speciality on a single record, the next splits them
 // into a record each, so both shapes of a general course show up.
 export const COURSE_OFFERINGS_MANY = {

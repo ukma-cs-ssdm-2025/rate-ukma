@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/test-utils/render";
 import { CourseAbout, offeringExamType, offeringLoad } from "./CourseAbout";
 import { CourseCazRecords, recordLabels } from "./CourseCazRecords";
+import { yearTeachers } from "./yearTeachers";
 import type { CourseOffering } from "@/lib/api/generated";
 import {
 	createMockOffering,
@@ -255,5 +256,49 @@ describe("CourseCazRecords", () => {
 
 		expect(screen.getByText("Осінь, Весна")).toBeInTheDocument();
 		expect(screen.getAllByRole("link")).toHaveLength(1);
+	});
+});
+
+describe("per-year teachers", () => {
+	const teacher = (id: string, last_name: string) => ({
+		id,
+		first_name: "Олена",
+		patronymic: null,
+		last_name,
+	});
+	const records = [
+		offering({
+			id: "offering-a",
+			instructors: [teacher("t-1", "Вигадана"), teacher("t-2", "Зразкова")],
+		}),
+		offering({
+			id: "offering-b",
+			code: "900027",
+			instructors: [teacher("t-1", "Вигадана")],
+		}),
+	];
+
+	it("lists each teacher of a year once, in short form", () => {
+		expect(yearTeachers(records)).toEqual(["Вигадана О.", "Зразкова О."]);
+	});
+
+	it("shows the teachers under the year when the flag is on", () => {
+		render(<CourseCazRecords courseOfferings={records} />, {
+			flags: { fe_course_instructors: true },
+		});
+
+		expect(
+			screen.getByText(
+				(_, node) =>
+					node?.tagName === "LI" &&
+					node.textContent === "Викладачі: Вигадана О., Зразкова О.",
+			),
+		).toBeInTheDocument();
+	});
+
+	it("hides the teachers when the flag is off", () => {
+		render(<CourseCazRecords courseOfferings={records} />);
+
+		expect(screen.queryByText(/Викладачі:/)).not.toBeInTheDocument();
 	});
 });

@@ -90,6 +90,31 @@ for (const width of WIDTHS) {
 		});
 	});
 
+	test(`each year of the course history lists its planned teachers, at ${width} px`, async ({
+		page,
+	}) => {
+		await mockBackend(page, { courseInstructors: "planned" });
+		await open(page, true, width);
+
+		const history = page
+			.getByRole("heading", { name: "Історія дисципліни" })
+			.locator("..");
+		const teachers = history.getByRole("listitem").filter({
+			hasText: /^Викладачі:/,
+		});
+		await expect(teachers).toHaveText([
+			"Викладачі: Савчук І. В., Мельничук Т. І.",
+			"Викладачі: Савчук І. В.",
+		]);
+		await history.scrollIntoViewIfNeeded();
+
+		mkdirSync(out, { recursive: true });
+		await history.screenshot({
+			path: resolve(out, `history-planned-${width}.png`),
+			animations: "disabled",
+		});
+	});
+
 	test(`quick picks put the plan after students' picks, at ${width} px`, async ({
 		page,
 	}) => {

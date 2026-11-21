@@ -8,6 +8,7 @@ import {
 	COURSE_INSTRUCTORS_PLANNED,
 	COURSE_OFFERINGS,
 	COURSE_OFFERINGS_MANY,
+	COURSE_OFFERINGS_PLANNED,
 	COURSE_RATINGS,
 	COURSES,
 	EMPTY_COMMENT_LIST,
@@ -240,7 +241,12 @@ export async function mockBackend(
 		],
 		[
 			/^\/courses\/[^/]+\/offerings\/$/,
-			() => (many ? COURSE_OFFERINGS_MANY : COURSE_OFFERINGS),
+			() =>
+				many
+					? COURSE_OFFERINGS_MANY
+					: courseInstructors === "planned"
+						? COURSE_OFFERINGS_PLANNED
+						: COURSE_OFFERINGS,
 		],
 		[
 			/^\/courses\/[^/]+\/ratings\/$/,

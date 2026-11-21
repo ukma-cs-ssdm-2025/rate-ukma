@@ -3,7 +3,7 @@ import type { DummyRuleMap, OxlintOverride } from "oxlint";
 export const MAX_LINES = 400;
 
 export const FEATURE_DEPENDENCIES = {
-	"course-offerings": ["courses"],
+	"course-offerings": ["courses", "instructors"],
 	courses: ["feed", "instructors", "promo"],
 	feed: ["notifications"],
 	instructors: [],
