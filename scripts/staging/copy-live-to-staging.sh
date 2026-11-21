@@ -67,7 +67,7 @@ cleanup() {
   local status=$?
   trap - EXIT
   if [[ -n "$ANON_CONTAINER" ]]; then
-    ssh "$LIVE_HOST" "sudo docker rm -f '$ANON_CONTAINER' >/dev/null 2>&1" || true
+    ssh "$LIVE_HOST" "sudo docker rm -f -v '$ANON_CONTAINER' >/dev/null 2>&1" || true
   fi
   if [[ -n "$STAGING_TMP" ]]; then
     if [[ "$SWAP_STARTED" -eq 0 ]]; then
@@ -404,8 +404,10 @@ FROM pg_stat_activity
 WHERE datname IN ('$db', '$new_db', '$prev_db')
   AND pid <> pg_backend_pid();
 DROP DATABASE IF EXISTS "$prev_db";
+BEGIN;
 ALTER DATABASE "$db" RENAME TO "$prev_db";
 ALTER DATABASE "$new_db" RENAME TO "$db";
+COMMIT;
 SQL
 swapped=1
 
@@ -439,8 +441,10 @@ SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname IN ('$db', '$prev_db')
   AND pid <> pg_backend_pid();
+BEGIN;
 ALTER DATABASE "$db" RENAME TO "$new_db";
 ALTER DATABASE "$prev_db" RENAME TO "$db";
+COMMIT;
 SQL
 compose start backend scheduler
 exit 1

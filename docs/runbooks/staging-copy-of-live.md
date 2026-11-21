@@ -46,7 +46,7 @@ The script prints the plan and asks for `yes`. `--yes` skips the question for a 
 4. Runs `anonymise.sql` in `rateukma_anon`. It refuses to run unless the database is `rateukma_anon`.
 5. Prints the row counts of the anonymised copy.
 
-The container is removed on any exit, success or failure.
+The container and its anonymous data volume are removed on any exit, success or failure (`docker rm -f -v`).
 
 ### 2. On the staging host
 
@@ -97,7 +97,9 @@ sudo docker exec "$container" uv run python manage.py manage_cache --clear
 
 ## After the Run
 
-- Staging's superusers can sign in immediately; everyone else signs in again, and sessions start empty.
+- Staging's superusers can sign in immediately; everyone else signs in again: old sessions stay in Redis but Django rejects them, because every copied password is unusable.
+- The copy brings live's waffle flags and switches. Turn `catalog_sync_proposals` on after copying (`manage.py waffle_switch catalog_sync_proposals on --create`).
+- Staging's nightly teacher sync re-creates real teachers from UKMA Data and links them to offerings; that is expected with staging's read-only key.
 - `rateukma_prev` holds staging's old data. Drop it (`DROP DATABASE rateukma_prev`) once the copy is accepted; drop `rateukma_new` after a failed health check if you no longer need it.
 - The temporary directory on staging (`/tmp/rateukma-staging-copy-*`) and the files copied into the postgres container are removed by the script; remove them by hand if a run was killed with `kill -9`.
 - Check the row counts the script printed against live before the run if you expect a specific number of ratings or courses.

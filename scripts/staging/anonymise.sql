@@ -7,6 +7,10 @@
 -- Catalog rows, rating scores, votes, enrollments, plans and every count stay;
 -- only the person behind them and the text they wrote are replaced.
 
+-- The guard runs inside the transaction, so even a psql without ON_ERROR_STOP
+-- rolls every statement below back when it raises.
+BEGIN;
+
 DO $$
 BEGIN
     IF current_database() <> 'rateukma_anon'
@@ -17,8 +21,6 @@ BEGIN
     END IF;
 END
 $$;
-
-BEGIN;
 
 -- Users: keep the account and its permissions, replace who it belongs to.
 -- Usernames go through a value that cannot collide with a real one first.
@@ -36,6 +38,8 @@ DELETE FROM django_session;
 DELETE FROM authtoken_token;
 DELETE FROM socialaccount_socialtoken;
 DELETE FROM socialaccount_socialaccount;
+DELETE FROM socialaccount_socialapp_sites;
+DELETE FROM socialaccount_socialapp;
 DELETE FROM account_emailconfirmation;
 DELETE FROM account_emailaddress;
 DELETE FROM django_admin_log;

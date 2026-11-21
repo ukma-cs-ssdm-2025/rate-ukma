@@ -22,7 +22,7 @@ from rating_app.models import (
 
 ANONYMISE_SQL = Path(__file__).resolve().parents[3] / "scripts" / "staging" / "anonymise.sql"
 PLACEHOLDER = "Текст прихований на staging."
-SCRATCH_DB_SUFFIX = "_pr9"
+SCRATCH_DB = "rateukma_anonymise_test"
 
 User = get_user_model()
 
@@ -30,7 +30,7 @@ User = get_user_model()
 def _postgres_settings():
     return {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("POSTGRES_DB", default=""),
+        "NAME": SCRATCH_DB,
         "USER": config("POSTGRES_USER", default=""),
         "PASSWORD": config("POSTGRES_PASSWORD", default=""),
         "HOST": config("POSTGRES_HOST", default=""),
@@ -42,7 +42,7 @@ def _postgres_settings():
         "CONN_HEALTH_CHECKS": False,
         "TIME_ZONE": None,
         "TEST": {
-            "NAME": config("POSTGRES_DB", default=""),
+            "NAME": SCRATCH_DB,
             "MIRROR": None,
             "CHARSET": None,
             "COLLATION": None,
@@ -51,16 +51,10 @@ def _postgres_settings():
     }
 
 
-def _check_scratch_name(name):
-    if not name.endswith(SCRATCH_DB_SUFFIX) or name in {"rateukma", "postgres", "template1"}:
-        pytest.skip(f"POSTGRES_DB must be a scratch database ending in {SCRATCH_DB_SUFFIX}")
-
-
 @pytest.fixture(scope="module")
 def postgres_db(django_db_blocker):
     """A scratch PostgreSQL database that anonymise.sql needs but SQLite cannot run."""
     pg = _postgres_settings()
-    _check_scratch_name(pg["NAME"])
     try:
         admin = psycopg2.connect(
             dbname="postgres",
@@ -266,5 +260,7 @@ def test_anonymise_refuses_without_the_test_setting_outside_rateukma_anon(
 
     with pytest.raises(DatabaseError, match="refusing to anonymise"):
         _anonymise(allow_test=False)
+    with connection.cursor() as cursor:
+        cursor.execute("ROLLBACK")
 
     assert User.objects.filter(email="guard@ukma.edu.ua", first_name="Вартовий").exists()
