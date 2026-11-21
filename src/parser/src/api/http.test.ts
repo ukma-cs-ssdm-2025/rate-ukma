@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect, Layer, Redacted } from "effect";
+import { ConfigProvider, Effect, Layer, Redacted } from "effect";
 import { NodeHttpServer } from "@effect/platform-node";
 import {
 	HttpClient,
@@ -161,6 +161,12 @@ const TestLive = Layer.mergeAll(
 	Layer.provideMerge(Layer.effectDiscard(seed)),
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
+	// The stats test expects the default interval, whatever the shell sets.
+	Layer.provideMerge(
+		ConfigProvider.layer(
+			ConfigProvider.fromEnvRecord({ CRAWL_INTERVAL: "24 hours" }),
+		),
+	),
 );
 
 const clientAs = (scopes: ReadonlyArray<Scope>) =>
@@ -353,15 +359,16 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 									('student_match', 'stu_one', '[]', '{}', 'open', ${next}),
 									('course_match', 'crs_b', '[]', '{}', 'obsolete', ${next})
 							`;
+							yield* sql`
+								UPDATE offerings SET saz_teachers = ' ', change_no = ${next}
+								WHERE id = 'off_930003'
+							`;
 						}),
 					);
 					// A later smart.ukma run is not a САЗ crawl.
 					yield* sql`
 						INSERT INTO runs (source_part, status, finished_at)
 						VALUES ('smart-ukma:teachers', 'failed', ${new Date("2031-09-03T00:00:00Z")})
-					`;
-					yield* sql`
-						UPDATE offerings SET saz_teachers = ' ' WHERE id = 'off_930003'
 					`;
 
 					const { client } = yield* clientAs(["catalog:read"]);
@@ -400,9 +407,15 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					assert.isTrue(nextIn > day - 60_000 && nextIn <= day, `${nextIn}`);
 
 					// The later tests read the courses, review cases and runs.
-					yield* sql`DELETE FROM review_cases`;
-					yield* sql`DELETE FROM courses WHERE id = 'crs_rule'`;
-					yield* sql`DELETE FROM runs WHERE source_part LIKE 'smart-ukma:%'`;
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							yield* sql`DELETE FROM review_cases`;
+							yield* sql`DELETE FROM courses WHERE id = 'crs_rule'`;
+							yield* sql`
+								DELETE FROM runs WHERE source_part LIKE 'smart-ukma:%'
+							`;
+						}),
+					);
 				}),
 		);
 
