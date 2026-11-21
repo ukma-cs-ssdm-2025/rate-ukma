@@ -69,6 +69,26 @@ describe("serverSpanName", () => {
 	});
 });
 
+describe("redactingTracer", () => {
+	it.effect("strips the query from event attributes too", () => {
+		const { spans, tracer } = recorder();
+
+		return Effect.gen(function* () {
+			const span = yield* Effect.currentSpan;
+
+			span.event("redirect", 0n, {
+				"url.full": "https://smart.ukma.edu.ua/get-user?accessToken=a",
+				"url.query": "accessToken=a",
+			});
+
+			assert.deepStrictEqual(spans[0]?.events[0]?.[2], {
+				"url.full": "https://smart.ukma.edu.ua/get-user",
+			});
+			assert.deepStrictEqual(leaksIn(spans), []);
+		}).pipe(Effect.withSpan("event test"), Effect.withTracer(tracer));
+	});
+});
+
 describe("smart.ukma crawl step", () => {
 	it.effect("leaves no token, email or query in a span", () => {
 		const { spans, tracer } = recorder();

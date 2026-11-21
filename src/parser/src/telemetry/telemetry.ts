@@ -16,6 +16,23 @@ const withoutQuery = (value: string): string => {
 	return end === -1 ? value : value.slice(0, end);
 };
 
+/** Attribute entries without `url.query`, and `url.full` without its query. */
+const safeEntries = (
+	entries: ReadonlyArray<readonly [string, unknown]>,
+): ReadonlyArray<readonly [string, unknown]> =>
+	entries.flatMap(([key, value]) =>
+		key === "url.query"
+			? []
+			: [
+					[
+						key,
+						key === "url.full" && Predicate.isString(value)
+							? withoutQuery(value)
+							: value,
+					] as const,
+				],
+	);
+
 /** A span whose URL attributes never carry a query string. It delegates
  *  rather than inherits, so the exporter's span sees every write. */
 const redactingSpan = (span: Tracer.Span): Tracer.Span => ({
@@ -54,17 +71,18 @@ const redactingSpan = (span: Tracer.Span): Tracer.Span => ({
 	},
 	end: (endTime, exit) => span.end(endTime, exit),
 	attribute: (key, value) => {
-		if (key === "url.query") return;
-
-		span.attribute(
-			key,
-			key === "url.full" && Predicate.isString(value)
-				? withoutQuery(value)
-				: value,
-		);
+		for (const [safeKey, safeValue] of safeEntries([[key, value]])) {
+			span.attribute(safeKey, safeValue);
+		}
 	},
 	event: (name, startTime, attributes) =>
-		span.event(name, startTime, attributes),
+		span.event(
+			name,
+			startTime,
+			attributes === undefined
+				? undefined
+				: Object.fromEntries(safeEntries(Object.entries(attributes))),
+		),
 	addLinks: (links) => span.addLinks(links),
 });
 
