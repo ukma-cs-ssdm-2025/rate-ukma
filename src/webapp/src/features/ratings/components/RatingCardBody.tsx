@@ -7,10 +7,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import {
-	formatDate,
-	getSemesterDisplay,
-} from "@/features/courses/courseFormatting";
+import { formatDate } from "@/features/courses/courseFormatting";
+import { getSemesterDisplay } from "@/lib/semester-term";
 import { formatInstructorName } from "@/features/instructors/formatInstructorName";
 import type { InstructorNameParts } from "@/features/instructors/formatInstructorName";
 import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";

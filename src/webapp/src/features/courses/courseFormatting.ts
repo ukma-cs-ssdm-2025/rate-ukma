@@ -2,7 +2,6 @@ import type {
 	CourseTypeKindEnum,
 	EducationLevelEnum,
 	ExamTypeEnum,
-	SemesterTermEnum,
 } from "@/lib/api/generated";
 
 export const DIFFICULTY_RANGE: [number, number] = [1, 5];
@@ -23,38 +22,6 @@ export function formatDecimalValue(
 	return Number(value.toFixed(precision)).toString();
 }
 
-export function getDifficultyTone(value?: number | null): string {
-	if (!value) {
-		return "text-muted-foreground";
-	}
-
-	if (value >= 4) {
-		return "text-destructive";
-	}
-
-	if (value >= 3) {
-		return "text-chart-5";
-	}
-
-	return "text-primary";
-}
-
-export function getUsefulnessTone(value?: number | null): string {
-	if (!value) {
-		return "text-muted-foreground";
-	}
-
-	if (value >= 4) {
-		return "text-primary";
-	}
-
-	if (value >= 3) {
-		return "text-chart-2";
-	}
-
-	return "text-muted-foreground";
-}
-
 const EDUCATION_LEVEL_LABELS = {
 	BACHELOR: "Бакалавр",
 	MASTER: "Магістр",
@@ -70,16 +37,6 @@ const COURSE_TYPE_LABELS = {
 	PROF_ORIENTED: "Професійно-орієнтований",
 } satisfies Record<CourseTypeKindEnum, string>;
 
-const SEMESTER_TERM_LABELS = {
-	FALL: "Осінь",
-	SPRING: "Весна",
-	SUMMER: "Літо",
-} satisfies Record<SemesterTermEnum, string>;
-
-function isSemesterTerm(value: string): value is SemesterTermEnum {
-	return Object.hasOwn(SEMESTER_TERM_LABELS, value);
-}
-
 export function getCourseTypeDisplay(value: CourseTypeKindEnum): string {
 	return COURSE_TYPE_LABELS[value];
 }
@@ -91,29 +48,6 @@ const EXAM_TYPE_LABELS = {
 
 export function getExamTypeDisplay(value: ExamTypeEnum): string {
 	return EXAM_TYPE_LABELS[value];
-}
-
-export function parseSemesterTerm(
-	value: string | null | undefined,
-): SemesterTermEnum | null {
-	const upper = value?.toUpperCase();
-	return upper !== undefined && isSemesterTerm(upper) ? upper : null;
-}
-
-export function getSemesterTermDisplay(
-	term: string,
-	fallback?: string,
-): string {
-	const parsed = parseSemesterTerm(term);
-	return parsed === null ? (fallback ?? term) : SEMESTER_TERM_LABELS[parsed];
-}
-
-export function getSemesterDisplay(
-	year: number,
-	term: string,
-	fallback?: string,
-): string {
-	return `${getSemesterTermDisplay(term, fallback)} ${year}`;
 }
 
 export function formatDate(dateString: string): string {

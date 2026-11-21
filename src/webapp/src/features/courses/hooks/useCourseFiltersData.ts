@@ -8,9 +8,9 @@ import {
 	DIFFICULTY_RANGE,
 	formatDecimalValue,
 	getEducationLevelDisplay,
-	getSemesterTermDisplay,
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
+import { getSemesterTermDisplay } from "@/lib/semester-term";
 
 const SEMESTER_TERM_ORDER = ["FALL", "SPRING", "SUMMER"];
 export function areFiltersActive(params: CourseFiltersParamsState): boolean {

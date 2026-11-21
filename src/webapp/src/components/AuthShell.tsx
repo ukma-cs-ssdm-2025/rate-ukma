@@ -4,10 +4,7 @@ import type { ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Badge } from "@/components/ui/Badge";
-import {
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
