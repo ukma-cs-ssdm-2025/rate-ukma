@@ -102,7 +102,7 @@ describe("/data/cases", () => {
 	it("shows a student_match case with its own label", async () => {
 		mockAxios.onGet(URL).reply(200, {
 			...PAGE,
-			items: [{ ...PAGE.items?.[0], kind: "student_match" }],
+			items: [{ ...PAGE.items[0], kind: "student_match" }],
 		});
 
 		renderCases();

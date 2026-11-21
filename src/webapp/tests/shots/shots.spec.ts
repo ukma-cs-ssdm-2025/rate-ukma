@@ -29,8 +29,6 @@ const THEMES = ["light", "dark"] as const;
 
 const NOW = new Date("2026-09-16T09:00:00Z");
 
-const ERROR_TIMEOUT = 30_000;
-
 interface State {
 	readonly name: string;
 	readonly section: string;
@@ -167,9 +165,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await mockBackend(page, { feed: "error" });
 			await page.goto("/feed");
-			await page
-				.getByTestId("feed-error-state")
-				.waitFor({ timeout: ERROR_TIMEOUT });
+			await page.getByTestId("feed-error-state").waitFor();
 		},
 	},
 	{
@@ -189,9 +185,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page) => {
 			await mockBackend(page, { courses: "error" });
 			await page.goto("/");
-			await page
-				.getByTestId("courses-error-state")
-				.waitFor({ timeout: ERROR_TIMEOUT });
+			await page.getByTestId("courses-error-state").waitFor();
 		},
 	},
 	{

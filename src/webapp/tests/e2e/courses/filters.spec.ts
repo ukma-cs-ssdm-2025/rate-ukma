@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
+import type { FilterOptions, SemesterYearOption } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { CoursesPage } from "./courses.page";
-import { TEST_ACADEMIC_YEARS, TEST_QUERIES } from "./fixtures/courses";
+import { TEST_QUERIES } from "./fixtures/courses";
 import { getSearchParam } from "../shared/url-assertions";
 
 test.describe("Courses filters", () => {
@@ -75,6 +76,7 @@ test.describe("Courses filters", () => {
 		const panel = page.getByTestId(testIds.filters.panel);
 		await expect(panel).toBeVisible();
 
+		const year = await oldestAcademicYear(page);
 		const trigger = panel.getByTestId(testIds.filters.yearSelect);
 		await trigger.scrollIntoViewIfNeeded();
 
@@ -86,29 +88,12 @@ test.describe("Courses filters", () => {
 			testIds.filters.yearSelect,
 		);
 
-		const items = content.locator("[data-slot='select-item']");
-
-		let selectedYear: string | undefined;
-		for (const candidate of TEST_ACADEMIC_YEARS.oldYearCandidates) {
-			const options = items.filter({ hasText: candidate });
-			if ((await options.count()) === 0) {
-				continue;
-			}
-
-			selectedYear = candidate;
-			await options.first().click();
-			await expect.poll(() => getSearchParam(page, "year")).toBe(candidate);
-			break;
-		}
-
-		if (!selectedYear) {
-			const count = await items.count();
-			if (count === 0) {
-				throw new Error("Year select has no options");
-			}
-			await (count >= 2 ? items.nth(1) : items.first()).click();
-			await expect.poll(() => getSearchParam(page, "year")).not.toBe("");
-		}
+		const option = content
+			.locator("[data-slot='select-item']")
+			.filter({ hasText: year.label });
+		await expect(option.first()).toBeVisible();
+		await option.first().click();
+		await expect.poll(() => getSearchParam(page, "year")).toBe(year.value);
 
 		await expect(panel.getByTestId(testIds.filters.resetButton)).toBeVisible();
 	});
@@ -304,6 +289,21 @@ async function resetFilters({
 	await expect.poll(() => getSearchParam(page, "faculty")).toBe("");
 	await expect.poll(() => getSearchParam(page, "dept")).toBe("");
 	await expect.poll(() => getSearchParam(page, "spec")).toBe("");
+}
+
+async function oldestAcademicYear(page: Page): Promise<SemesterYearOption> {
+	const response = await page.request.get("/api/v1/courses/filter-options/");
+	if (!response.ok()) {
+		throw new Error(
+			`Filter options request failed with HTTP ${response.status()}`,
+		);
+	}
+	const { semester_years: years } = (await response.json()) as FilterOptions;
+	const year = years.at(-1);
+	if (!year) {
+		throw new Error("Filter options returned no academic years");
+	}
+	return year;
 }
 
 async function openRadixSelectContent(

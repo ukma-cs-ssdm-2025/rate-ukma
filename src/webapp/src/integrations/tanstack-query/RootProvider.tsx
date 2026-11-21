@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { env } from "@/env";
+
 const STALE_TIME = 5 * 60 * 1000;
 const MAX_RETRY_ATTEMPTS = 3;
 const MAX_RETRY_DELAY = 30_000;
@@ -39,7 +41,7 @@ export function getContext() {
 		defaultOptions: {
 			queries: {
 				staleTime: STALE_TIME,
-				retry: shouldRetryQuery,
+				retry: env.VITE_QUERY_RETRY === "off" ? false : shouldRetryQuery,
 				retryDelay: (failureCount) =>
 					Math.min(1000 * 2 ** failureCount, MAX_RETRY_DELAY),
 			},

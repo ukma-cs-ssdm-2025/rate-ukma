@@ -32,7 +32,7 @@ export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 			/>
 		);
 	}
-	const reviewCase = data.items?.find((item) => item.id === caseId);
+	const reviewCase = data.items.find((item) => item.id === caseId);
 	if (!reviewCase) {
 		return (
 			<ErrorState
@@ -64,7 +64,7 @@ export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 				<h2 className="text-xl font-semibold break-words">
 					Справа {reviewCase.id}
 				</h2>
-				{reviewCase.status === "open" && reviewCase.kind ? (
+				{reviewCase.status === "open" ? (
 					<p className="text-sm text-muted-foreground">
 						Поки справа відкрита, опубліковано безпечну відповідь:{" "}
 						{SAFE_ANSWER_LABELS[reviewCase.kind]}.

@@ -35,7 +35,7 @@ if [[ ! -f $base/dist/index.html ]]; then
 	(
 		cd "$base"
 		pnpm install --frozen-lockfile --prefer-offline --reporter=silent
-		VITE_API_BASE_URL=http://localhost:9 pnpm exec vite build --logLevel error
+		VITE_API_BASE_URL=http://localhost:9 VITE_QUERY_RETRY=off pnpm exec vite build --logLevel error
 	)
 fi
 

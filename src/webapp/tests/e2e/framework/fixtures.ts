@@ -1,6 +1,7 @@
 import { test as base, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
+import type { CourseList, CourseListResponse } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { CourseDetailsPage } from "../courses/course-details.page";
 import { MyRatingsPage } from "../ratings/my-ratings.page";
@@ -15,6 +16,7 @@ interface Fixtures {
 	myRatingsPage: MyRatingsPage;
 	ratingModal: RatingModal;
 	ratingCleanup: RatingCleanup;
+	courseWithoutRatings: CourseList;
 }
 
 export const test = base.extend<Fixtures>({
@@ -26,6 +28,30 @@ export const test = base.extend<Fixtures>({
 	},
 	ratingModal: async ({ page }, use) => {
 		await use(new RatingModal(page));
+	},
+	courseWithoutRatings: async ({ request }, use) => {
+		const coursesPage = async (page: number) => {
+			const response = await request.get("/api/v1/courses/", {
+				params: { last_review_order: "desc", page_size: 100, page },
+			});
+			if (!response.ok()) {
+				throw new Error(
+					`Course list request failed with HTTP ${response.status()}`,
+				);
+			}
+			return (await response.json()) as CourseListResponse;
+		};
+		const { total_pages } = await coursesPage(1);
+		const { items } = await coursesPage(Math.max(total_pages, 1));
+		const course = items.find((item) => item.ratings_count === 0);
+		if (!course) {
+			test.skip(
+				true,
+				"The API returned no course without ratings, so the no-ratings checks cannot run.",
+			);
+			return;
+		}
+		await use(course);
 	},
 	ratingCleanup: async ({ page, coursePage }, use) => {
 		let created = false;

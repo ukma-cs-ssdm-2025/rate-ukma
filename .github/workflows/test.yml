@@ -238,3 +238,13 @@ jobs:
         env:
           CI: true
         run: pnpm test
+
+      - name: Install Chromium for the layout checks
+        working-directory: ${{ env.WEBAPP_DIR }}
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Run layout checks in a real browser
+        working-directory: ${{ env.WEBAPP_DIR }}
+        env:
+          CI: true
+        run: pnpm exec playwright test --config playwright.shots.config.ts tests/shots/layout-behaviour.spec.ts
