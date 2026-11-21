@@ -5,6 +5,7 @@ from django.db import models
 
 class Faculty(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ukma_data_id = models.CharField(max_length=64, null=True, blank=True, unique=True)
     name = models.CharField(max_length=255)
     custom_abbreviation = models.CharField(
         max_length=255,

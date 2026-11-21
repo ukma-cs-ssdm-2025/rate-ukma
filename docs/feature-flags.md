@@ -120,6 +120,17 @@ if flag_is_active(request, "new_pipeline"):
 ```
 It is never exposed through the API.
 
+### Waffle switches
+
+A waffle **Switch** is a global on/off row, not a per-user `Flag`: check it with
+`waffle.switch_is_active(name)` and roll it out under Django admin ▸ Waffle ▸
+Switches. It never goes in `PUBLIC_FEATURE_FLAGS` and is never serialized by
+`/api/v1/flags/`; use one for a server job or a backend write path, not for UI.
+
+`catalog_sync_proposals` gates the nightly catalog proposal builder (#768). A data
+migration creates the switch with `active=False`, so it is off by default; turn it
+on per environment in Django admin when that environment should build lists.
+
 ## Toggle / target a flag
 
 Runtime, no deploy. Django admin (Waffle ▸ Flags) or CLI. A `Flag` supports:

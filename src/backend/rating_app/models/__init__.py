@@ -1,3 +1,10 @@
+from .catalog_sync import (
+    CatalogApproval,
+    CatalogMappingDecision,
+    CatalogProposal,
+    CatalogProposalList,
+    CatalogSyncCursor,
+)
 from .comment import Comment
 from .course import Course
 from .course_instructor import CourseInstructor
@@ -22,6 +29,11 @@ from .speciality import Speciality
 from .student import Student
 
 __all__ = [
+    "CatalogApproval",
+    "CatalogMappingDecision",
+    "CatalogProposal",
+    "CatalogProposalList",
+    "CatalogSyncCursor",
     "Course",
     "Faculty",
     "Department",

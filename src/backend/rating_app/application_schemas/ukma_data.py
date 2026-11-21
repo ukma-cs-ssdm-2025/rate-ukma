@@ -86,6 +86,20 @@ class UkmaDataProgramme(UkmaDataModel):
     removed_at: datetime.datetime | None
 
 
+CourseMergeSource = Literal["rule", "decision"]
+
+
+class UkmaDataCourse(UkmaDataModel):
+    id: str
+    title: str
+    department_id: str | None
+    level: Level
+    merged_into: str | None
+    merge_source: CourseMergeSource | None
+    change_no: int
+    removed_at: datetime.datetime | None
+
+
 class UkmaDataOfferingTerm(UkmaDataModel):
     term_id: str
     semesters: list[int]

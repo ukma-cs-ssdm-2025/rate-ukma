@@ -21,11 +21,13 @@ if TYPE_CHECKING:
 
 
 class CourseOffering(models.Model):
+    course_id: uuid.UUID
     enrollments: Manager[EnrollmentType]
     course_offering_specialities: RelatedManager[CourseOfferingSpeciality]
     terms: RelatedManager[CourseOfferingTerm]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ukma_data_id = models.CharField(max_length=64, null=True, blank=True, unique=True)
     code = models.CharField(
         max_length=6,
         unique=True,

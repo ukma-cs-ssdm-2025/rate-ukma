@@ -10,6 +10,11 @@ from factory.django import DjangoModelFactory
 from rating_app.ioc_container.repositories import rating_repository
 from rating_app.ioc_container.services import feed_update_service
 from rating_app.models import (
+    CatalogApproval,
+    CatalogMappingDecision,
+    CatalogProposal,
+    CatalogProposalList,
+    CatalogSyncCursor,
     Comment,
     Course,
     CourseInstructor,
@@ -28,6 +33,13 @@ from rating_app.models import (
     Semester,
     Speciality,
     Student,
+)
+from rating_app.models.catalog_sync import (
+    ApprovalOutcome,
+    ListStatus,
+    MappingAnswer,
+    ProposalGroup,
+    ProposalKind,
 )
 from rating_app.models.choices import (
     CourseStatus,
@@ -293,3 +305,55 @@ class PromoBannerFactory(DjangoModelFactory):
     cta_label = "Open"
     logo_alt = ""
     is_active = False
+
+
+class CatalogProposalListFactory(DjangoModelFactory):
+    class Meta:
+        model = CatalogProposalList
+
+    status = ListStatus.BUILDING
+
+
+class CatalogProposalFactory(DjangoModelFactory):
+    class Meta:
+        model = CatalogProposal
+
+    list = factory.SubFactory(CatalogProposalListFactory)
+    group = ProposalGroup.LINK
+    kind = ProposalKind.LINK_COURSE
+    ukma_data_id = factory.Sequence(lambda n: f"ud_course_{n}")
+    target_id = factory.Sequence(lambda n: f"ru_course_{n}")
+    ratings = 0
+
+
+class CatalogMappingDecisionFactory(DjangoModelFactory):
+    class Meta:
+        model = CatalogMappingDecision
+
+    kind = ProposalKind.MERGE_COURSES
+    ukma_course_id = factory.Sequence(lambda n: f"ud_course_{n}")
+    course = factory.SubFactory(CourseFactory)
+    offering = None
+    answer = MappingAnswer.KEEP_APART
+    premise = factory.LazyFunction(dict)
+    decided_by = factory.SubFactory(UserFactory)
+
+
+class CatalogApprovalFactory(DjangoModelFactory):
+    class Meta:
+        model = CatalogApproval
+
+    list = factory.SubFactory(CatalogProposalListFactory)
+    list_ref = factory.LazyAttribute(lambda approval: approval.list.pk)
+    group = ProposalGroup.LINK
+    user = None
+    outcome = ApprovalOutcome.STARTED
+    counts = factory.LazyFunction(dict)
+
+
+class CatalogSyncCursorFactory(DjangoModelFactory):
+    class Meta:
+        model = CatalogSyncCursor
+
+    list_name = factory.Sequence(lambda n: f"list_{n}")
+    change_no = 0
