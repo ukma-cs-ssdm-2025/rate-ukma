@@ -1,0 +1,289 @@
+import * as React from "react";
+
+import { Helmet } from "react-helmet-async";
+
+import Layout from "@/components/Layout";
+import { ErrorState } from "@/components/ui/ErrorState";
+import {
+	CourseAbout,
+	CourseAboutSkeleton,
+	offeringLoad,
+} from "@/features/course-offerings/components/CourseAbout";
+import {
+	getLatestOffering,
+	getLatestOfferingTerms,
+} from "@/features/course-offerings/components/CourseCazRecords";
+import {
+	CourseDetailsHeader,
+	CourseDetailsHeaderSkeleton,
+} from "@/features/courses/components/CourseDetailsHeader";
+import {
+	CourseStatsHero,
+	CourseStatsHeroSkeleton,
+} from "@/features/courses/components/CourseStatsCards";
+import { hasCourseScores } from "@/features/courses/courseFormatting";
+import {
+	CourseRatingsHeaderSkeleton,
+	CourseRatingsList,
+	CourseRatingsListSkeleton,
+} from "@/features/ratings/components/CourseRatingsList";
+import { CourseInstructors } from "@/features/instructors/components/CourseInstructors";
+import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
+import { RatingSuggestionPrompt } from "@/features/ratings/components/RatingSuggestionPrompt";
+import { RatingModal } from "@/features/ratings/components/RatingModal";
+import { RatingButton } from "@/features/ratings/components/RatingButton";
+import { RatingContinuationContext } from "@/features/ratings/RatingContinuationContext";
+import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
+import { useUserCourseRating } from "@/features/ratings/hooks/useUserCourseRating";
+import {
+	useCoursesOfferingsList,
+	useCoursesRetrieve,
+} from "@/lib/api/generated";
+import { buildCourseOgDescription, formatPageTitle } from "@/lib/app-metadata";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+
+export function CoursePage({ courseId }: Readonly<{ courseId: string }>) {
+	const continuation = React.useContext(RatingContinuationContext);
+	const followUp =
+		continuation?.followUp?.course_id === courseId
+			? continuation.followUp
+			: null;
+	const [arrival, setArrival] = React.useState<{
+		courseId: string;
+		rated: boolean;
+	} | null>(null);
+	const {
+		data: course,
+		isLoading: isCourseLoading,
+		isError: isCourseError,
+	} = useCoursesRetrieve(courseId);
+
+	const {
+		data: courseOfferings,
+		isLoading: isOfferingsLoading,
+		isError: isOfferingsError,
+	} = useCoursesOfferingsList(courseId);
+
+	const [isRatingModalOpen, setIsRatingModalOpen] = React.useState(false);
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+	const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+	const {
+		rating: userRating,
+		ratingId,
+		ratedOffering,
+		attendedOfferings,
+		hasAttendedCourse,
+		selectedOffering,
+		attendedCourseId,
+		isLoading: isUserRatingLoading,
+	} = useUserCourseRating(courseId);
+
+	React.useEffect(() => {
+		if (!isUserRatingLoading && arrival?.courseId !== courseId) {
+			setArrival({ courseId, rated: !!ratedOffering });
+		}
+	}, [arrival, courseId, isUserRatingLoading, ratedOffering]);
+
+	React.useEffect(() => {
+		if (
+			!followUp ||
+			followUp.status !== "requested" ||
+			isUserRatingLoading ||
+			isCourseLoading ||
+			isOfferingsLoading
+		) {
+			return;
+		}
+		const offering = attendedOfferings.find(
+			(item) => item.id === followUp.course_offering_id,
+		);
+		if (offering?.can_rate && !offering.rated) {
+			setIsRatingModalOpen(true);
+			continuation?.beginFollowUp();
+		} else {
+			continuation?.cancelFollowUp();
+		}
+	}, [
+		followUp,
+		attendedOfferings,
+		continuation,
+		isUserRatingLoading,
+		isCourseLoading,
+		isOfferingsLoading,
+	]);
+
+	if (isCourseLoading || isUserRatingLoading || isOfferingsLoading) {
+		return (
+			<Layout>
+				<CourseDetailsSkeleton />
+			</Layout>
+		);
+	}
+
+	if (isCourseError || isOfferingsError || !course || !courseOfferings) {
+		return (
+			<Layout>
+				<ErrorState
+					title="Не вдалося завантажити інформацію про дисципліну"
+					role="alert"
+				/>
+			</Layout>
+		);
+	}
+
+	const offerings = courseOfferings?.course_offerings ?? [];
+	const canRateNow = Boolean(selectedOffering?.can_rate);
+	const latestOffering = getLatestOffering(offerings);
+	const terms = getLatestOfferingTerms(offerings);
+	const load = offeringLoad(latestOffering);
+	const showStats = hasCourseScores(
+		course.avg_difficulty ?? null,
+		course.avg_usefulness ?? null,
+		course.ratings_count ?? null,
+	);
+	const rateAction =
+		!ratedOffering && hasAttendedCourse && selectedOffering ? (
+			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+				<div className="min-w-0 space-y-0.5">
+					<p className="font-medium">Ви слухали цю дисципліну</p>
+					<p className="text-sm text-muted-foreground">
+						{canRateNow
+							? "Ваша оцінка допоможе іншим обрати"
+							: CANNOT_RATE_TOOLTIP_TEXT}
+					</p>
+				</div>
+				<RatingButton
+					canRate={canRateNow}
+					onClick={() => setIsRatingModalOpen(true)}
+				>
+					Оцінити дисципліну
+				</RatingButton>
+			</div>
+		) : null;
+	const nextSuggestion =
+		ratedOffering && arrival?.courseId === courseId && arrival.rated ? (
+			<RatingSuggestionPrompt excludeCourse={courseId} />
+		) : null;
+	const about = (
+		<CourseAbout
+			description={course.description}
+			latestOffering={latestOffering}
+			courseOfferings={offerings}
+		/>
+	);
+	const canonicalUrl = `${window.location.origin + window.location.pathname}`;
+	const ogDescription = buildCourseOgDescription(course);
+
+	return (
+		<Layout>
+			{course.title && (
+				<Helmet>
+					<title>{formatPageTitle(course.title)}</title>
+					<meta property="og:title" content={formatPageTitle(course.title)} />
+					<meta property="og:description" content={ogDescription} />
+					<meta property="og:url" content={canonicalUrl} />
+					<meta property="og:type" content="website" />
+					<meta name="twitter:title" content={formatPageTitle(course.title)} />
+					<meta name="twitter:description" content={ogDescription} />
+				</Helmet>
+			)}
+			<div className="space-y-8 pb-16">
+				<div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+					<div className="min-w-0 space-y-8">
+						<CourseDetailsHeader
+							title={course.title ?? ""}
+							educationLevel={course.education_level}
+							specialities={course.specialities ?? []}
+							departmentName={course.department_name ?? ""}
+							facultyName={course.faculty_name ?? ""}
+							terms={terms}
+							credits={load.credits}
+							weeklyHours={load.weeklyHours}
+						>
+							<CourseInstructors courseId={courseId} />
+						</CourseDetailsHeader>
+
+						{showStats ? (
+							<CourseStatsHero
+								difficulty={course.avg_difficulty ?? null}
+								usefulness={course.avg_usefulness ?? null}
+								ratingsCount={course.ratings_count ?? null}
+							/>
+						) : null}
+
+						{isDesktop ? null : rateAction}
+						{isDesktop ? null : about}
+						{isDesktop ? null : nextSuggestion}
+
+						<CourseRatingsList
+							courseId={courseId}
+							userRating={userRating}
+							onEditUserRating={() => setIsRatingModalOpen(true)}
+							onDeleteUserRating={() => setIsDeleteDialogOpen(true)}
+							rateAction={isDesktop ? rateAction : null}
+							hasAttended={hasAttendedCourse}
+							canRate={canRateNow}
+						/>
+					</div>
+
+					{isDesktop ? (
+						<aside className="min-w-0">
+							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
+								<div className="space-y-6">
+									{about}
+									{nextSuggestion}
+								</div>
+							</div>
+						</aside>
+					) : null}
+				</div>
+			</div>
+
+			{selectedOffering?.id && attendedCourseId && (
+				<RatingModal
+					isOpen={isRatingModalOpen}
+					onClose={() => {
+						setIsRatingModalOpen(false);
+						if (followUp) {
+							continuation?.cancelFollowUp();
+						}
+					}}
+					courseId={attendedCourseId}
+					offeringId={followUp?.course_offering_id ?? selectedOffering.id}
+					courseName={course.title}
+					existingRating={followUp ? null : ratedOffering?.rated || null}
+					initialAnonymous={followUp?.isAnonymous}
+					offerNext={!followUp}
+				/>
+			)}
+
+			{ratingId && attendedCourseId && (
+				<DeleteRatingDialog
+					courseId={courseId}
+					ratingId={ratingId}
+					open={isDeleteDialogOpen}
+					onOpenChange={setIsDeleteDialogOpen}
+				/>
+			)}
+		</Layout>
+	);
+}
+
+function CourseDetailsSkeleton() {
+	return (
+		<div className="grid gap-x-10 gap-y-8 pb-16 lg:grid-cols-[minmax(0,1fr)_320px]">
+			<div className="min-w-0 space-y-8">
+				<CourseDetailsHeaderSkeleton />
+				<CourseStatsHeroSkeleton />
+				<div className="space-y-4">
+					<CourseRatingsHeaderSkeleton />
+					<CourseRatingsListSkeleton />
+				</div>
+			</div>
+			<aside className="hidden min-w-0 lg:block">
+				<CourseAboutSkeleton />
+			</aside>
+		</div>
+	);
+}
