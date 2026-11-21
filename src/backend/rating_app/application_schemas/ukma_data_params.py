@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from rating_app.application_schemas.ukma_data_base import UkmaDataModel
+
 UKMA_DATA_MAX_PAGE_SIZE = 1000
 
 ReviewCaseKind = Literal["course_match", "instructor_match", "student_match", "removals_held"]
@@ -34,6 +36,19 @@ class UkmaDataReviewCaseParams(UkmaDataPageParams):
     kind: ReviewCaseKind | None = Field(
         default=None, description="Only cases of this kind; omit for every kind"
     )
+
+
+class UkmaDataKey(UkmaDataModel):
+    """UKMA Data's ``GET /v1/key``, written by hand on purpose.
+
+    The generated model types ``scopes`` as an enum of the scopes UKMA Data
+    knows today; a scope it adds later would fail validation and stop every
+    sync. Scopes stay plain strings so Rate UKMA keeps reading the key.
+    """
+
+    id: str
+    scopes: list[str]
+    expires_at: str = Field(alias="expiresAt")
 
 
 class UkmaDataStatus(BaseModel):

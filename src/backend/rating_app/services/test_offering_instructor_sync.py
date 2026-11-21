@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from rating_app.application_schemas import ukma_data_api as ud
+from rating_app.application_schemas.ukma_data_params import UkmaDataKey
 from rating_app.models import CourseInstructor, Instructor
 from rating_app.models.choices import InstructorRole
 from rating_app.repositories.instructor_repository import current_academic_year_start
@@ -38,8 +39,8 @@ def offering(code: str, teachers, year: int = YEAR, removed: bool = False):
     )
 
 
-def key(*scopes: str) -> ud.V1KeyGetResponse:
-    return ud.V1KeyGetResponse.model_validate(
+def key(*scopes: str) -> UkmaDataKey:
+    return UkmaDataKey.model_validate(
         {"id": "key_1", "scopes": list(scopes), "expiresAt": "2031-01-01T00:00:00Z"}
     )
 
@@ -175,3 +176,10 @@ def test_a_teacher_another_writer_created_meanwhile_is_reused(course_offering_fa
     assert report.created == 0
     assert Instructor.objects.filter(email="race@example.edu").count() == 1
     assert CourseInstructor.objects.get().instructor_id == created_meanwhile.id
+
+
+def test_a_scope_ukma_data_adds_later_does_not_break_the_scope_check():
+    service = MagicMock()
+    service.get_key.return_value = key("instructors:read", "scope:added-later")
+
+    assert OfferingInstructorSync(service).has_scope()

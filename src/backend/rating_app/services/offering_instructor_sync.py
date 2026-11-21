@@ -53,7 +53,7 @@ class OfferingInstructorSync:
         self.ukma_data = ukma_data
 
     def has_scope(self) -> bool:
-        return any(scope.value == INSTRUCTORS_SCOPE for scope in self.ukma_data.get_key().scopes)
+        return INSTRUCTORS_SCOPE in self.ukma_data.get_key().scopes
 
     def run(self) -> SyncReport:
         current = current_academic_year_start()

@@ -404,21 +404,6 @@ class Term(UkmaDataModel):
     change_no: Annotated[int, Field(alias="changeNo")]
 
 
-class Scope(StrEnum):
-    catalog_read = "catalog:read"
-    review_decide = "review:decide"
-    instructors_read = "instructors:read"
-
-
-class V1KeyGetResponse(UkmaDataModel):
-    model_config = ConfigDict(
-        extra="ignore",
-    )
-    id: str
-    scopes: list[Scope]
-    expires_at: Annotated[str, Field(alias="expiresAt")]
-
-
 class StudentCase(UkmaDataModel):
     model_config = ConfigDict(
         extra="ignore",

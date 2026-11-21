@@ -7,6 +7,7 @@ from pydantic import BaseModel, ValidationError
 from rating_app.application_schemas import ukma_data_api as ud
 from rating_app.application_schemas.ukma_data_params import (
     UKMA_DATA_MAX_PAGE_SIZE,
+    UkmaDataKey,
     UkmaDataPageParams,
     UkmaDataReviewCaseParams,
     UkmaDataStatus,
@@ -57,8 +58,8 @@ class UkmaDataService:
             extra={"year": year},
         )
 
-    def get_key(self) -> ud.V1KeyGetResponse:
-        return self._get("/v1/key", {}, ud.V1KeyGetResponse)
+    def get_key(self) -> UkmaDataKey:
+        return self._get("/v1/key", {}, UkmaDataKey)
 
     def list_review_cases(self, params: UkmaDataReviewCaseParams) -> ud.ReviewCasePage:
         """Cases of one status and kind, or all, with how many match across pages."""
@@ -79,7 +80,7 @@ class UkmaDataService:
             return UkmaDataStatus.model_validate(
                 {
                     "key_id": key.id,
-                    "scopes": [scope.value for scope in key.scopes],
+                    "scopes": key.scopes,
                     "key_expires_at": key.expires_at,
                     "data_updated_at": terms.data_updated_at,
                 }
