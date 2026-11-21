@@ -19,7 +19,7 @@ We will not keep comments in `src/webapp/src`. Lint bans them (`rate-ukma/no-com
 ### API and network
 
 - **Array query params are repeated keys** (`a=1&a=2`, not `a[]=1`), because the backend parses them that way (`lib/api/apiClient.ts`).
-- **A 403 never signs the user out.** A signed-in non-superuser gets 403 from staff endpoints, and the staff section shows its own "superusers only" page (`lib/api/apiClient.ts`).
+- **A 403 from UKMA Data does not end the session.** Other 401 and 403 answers signal an expired session, but a signed-in non-superuser gets 403 from the staff-only UKMA Data endpoints, and that section shows its own "superusers only" page (`lib/api/apiClient.ts`).
 - **Sentry receives a plain `Error`, not the `AxiosError`**, so request bodies and response data never leave the browser (`lib/api/apiClient.ts`).
 - **Retries.** A query that fails without an HTTP response (timeout, abort, offline) is never retried: the client already sends the user to `/connection-error` on the first failure, and retries would only multiply slow requests. 401 and 403 are never retried; other errors back off exponentially (`integrations/tanstack-query/RootProvider.tsx`). A 502 or 503 from UKMA Data shows its error state with a Retry button at once (`features/ukma-data/reviewCases.ts`).
 - **Returning from `/connection-error`** happens automatically only after a real offline-to-online change (the browser's `online` event and a successful session probe). A server probe can succeed while the page that bounced still times out, which would bounce the user back and forth (`routes/connection-error.tsx`).
