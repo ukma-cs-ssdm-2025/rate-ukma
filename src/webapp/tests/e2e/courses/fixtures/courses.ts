@@ -5,10 +5,6 @@ export const TEST_QUERIES = {
 	nonExistent: "XYZ_TestCourse_DoesNotExist_99999_QWERTY",
 } as const;
 
-export const TEST_ACADEMIC_YEARS = {
-	oldYearCandidates: ["2018–2019", "2018-2019"],
-} as const;
-
 export const TEST_RANGES = {
 	lowDifficulty: [1, 1.5] as [number, number],
 	highDifficulty: [4, 5] as [number, number],
@@ -17,12 +13,4 @@ export const TEST_RANGES = {
 	highUsefulness: [4, 5] as [number, number],
 	veryHighUsefulness: [4.8, 5] as [number, number],
 	moderateUsefulness: [2.5, 4] as [number, number],
-} as const;
-
-export const TEST_COMBINATIONS = {
-	expectedEmpty: {
-		yearCandidates: TEST_ACADEMIC_YEARS.oldYearCandidates,
-		difficulty: TEST_RANGES.lowDifficulty,
-		usefulness: TEST_RANGES.veryHighUsefulness,
-	},
 } as const;
