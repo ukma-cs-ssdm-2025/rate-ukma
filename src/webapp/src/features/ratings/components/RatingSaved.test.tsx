@@ -6,6 +6,11 @@ import type { RatingSuggestion } from "@/lib/api/generated";
 import { render, screen } from "@/test-utils/render";
 import { RatingSaved } from "./RatingSaved";
 
+vi.mock("@tanstack/react-router", async () => ({
+	...(await vi.importActual("@tanstack/react-router")),
+	Link: (await import("@/test-utils/router")).MockLink,
+}));
+
 const SUGGESTION = {
 	course_id: "c-db",
 	course_offering_id: "offering-c-db",
@@ -14,7 +19,11 @@ const SUGGESTION = {
 	ratings_count: 0,
 } as RatingSuggestion;
 
-function renderSaved(suggestions: RatingSuggestion[], isError = false) {
+function renderSaved(
+	suggestions: RatingSuggestion[],
+	isError = false,
+	openCourse?: { courseId: string; name?: string; onOpen: () => void },
+) {
 	const onClose = vi.fn();
 	const onSelect = vi.fn();
 	render(
@@ -26,6 +35,7 @@ function renderSaved(suggestions: RatingSuggestion[], isError = false) {
 					isError={isError}
 					onSelect={onSelect}
 					onClose={onClose}
+					openCourse={openCourse}
 				/>
 			</DialogContent>
 		</Dialog>,
@@ -51,6 +61,31 @@ describe("RatingSaved", () => {
 			expect(screen.queryByRole("button", { name: /^Оцінити/ })).toBeNull();
 			await userEvent.click(screen.getByRole("button", { name: "Готово" }));
 			expect(onClose).toHaveBeenCalled();
+		},
+	);
+
+	it("offers the rated course only when asked to", async () => {
+		renderSaved([SUGGESTION]);
+		expect(screen.queryByRole("link", { name: /^Відкрити/ })).toBeNull();
+	});
+
+	it.each([
+		[[SUGGESTION], "Алгоритми", "Відкрити «Алгоритми»"],
+		[[], undefined, "Відкрити дисципліну"],
+	])(
+		"opens the rated course next to the way out (%#)",
+		async (suggestions, name, label) => {
+			const onOpen = vi.fn();
+			renderSaved(suggestions, false, { courseId: "c-asd", name, onOpen });
+			const link = screen.getByRole("link", { name: label });
+			expect(link.getAttribute("href")).toBe("/courses/$courseId");
+			await userEvent.click(link);
+			expect(onOpen).toHaveBeenCalled();
+			expect(
+				screen.getByRole("button", {
+					name: suggestions.length ? "Не зараз" : "Готово",
+				}),
+			).toBeTruthy();
 		},
 	);
 });

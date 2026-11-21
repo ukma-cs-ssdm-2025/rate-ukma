@@ -58,6 +58,10 @@ for (const width of [1440, 390]) {
 			thanks(page).getByRole("button", { name: /^Оцінити «/ }),
 		).toHaveCount(2);
 		await shot(page, `thanks-${width}`);
+		// The list already updates in place, so no way to another page here.
+		await expect(
+			thanks(page).getByRole("link", { name: /^Відкрити/ }),
+		).toHaveCount(0);
 		await expect(
 			thanks(page).getByRole("button", { name: "Не зараз", exact: true }),
 		).toBeVisible();
@@ -99,6 +103,36 @@ test("an already rated course offers one more", async ({ page }) => {
 	await shot(page, "rated-course-1440");
 });
 
+for (const width of [1440, 390]) {
+	test(`rating another course from a course page offers to open it at ${width}px`, async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width, height: 900 });
+		await mockBackend(page, { ratingSuggestions: "items", myCourses: "rated" });
+		await page.goto(`/courses/${COURSE.id}`);
+		await suggestions(page)
+			.filter({ visible: true })
+			.getByRole("button", { name: /^Оцінити «/ })
+			.click();
+		const rated = await page.getByTestId(testIds.rating.modalTitle).innerText();
+		await score(page);
+		await page.getByTestId(testIds.rating.submitButton).click();
+		const open = thanks(page).getByRole("link", {
+			name: `Відкрити «${rated}»`,
+			exact: true,
+		});
+		await expect(open).toBeVisible();
+		// No jump on its own: the user stays on the page they were reading.
+		await expect(page).toHaveURL(new RegExp(`/courses/${COURSE.id}$`));
+		await shot(page, `open-course-${width}`);
+		await open.click();
+		await expect(thanks(page)).toHaveCount(0);
+		await expect(page).not.toHaveURL(new RegExp(`/courses/${COURSE.id}$`));
+		await expect(page.getByRole("heading", { level: 1 })).toHaveText(rated);
+		await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
+	});
+}
+
 test("with nothing left, thanks closes with «Готово»", async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await mockBackend(page, {
@@ -115,6 +149,9 @@ test("with nothing left, thanks closes with «Готово»", async ({ page }) 
 		thanks(page).getByText("Ви вже оцінили все доступне."),
 	).toBeVisible();
 	await shot(page, "all-rated-1440");
+	await expect(
+		thanks(page).getByRole("link", { name: /^Відкрити/ }),
+	).toHaveCount(0);
 	await thanks(page)
 		.getByRole("button", { name: "Готово", exact: true })
 		.click();

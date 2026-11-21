@@ -62,6 +62,14 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 			setFollowUp(null);
 	}, [followUp, flowEnabled, pathname]);
 
+	// Rated another course from a course page (the «Що оцінити далі» block):
+	// offer a way there instead of moving the user off the page they read.
+	const ratedElsewhere =
+		completion?.pathname.startsWith("/courses/") &&
+		completion.pathname !== `/courses/${completion.courseId}`
+			? completion
+			: null;
+
 	const close = () => {
 		setVisible(false);
 		setCompletion(null);
@@ -105,6 +113,15 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 						isLoading={suggestions.isLoading}
 						isError={suggestions.isError}
 						onClose={close}
+						openCourse={
+							ratedElsewhere
+								? {
+										courseId: ratedElsewhere.courseId,
+										name: ratedElsewhere.courseName,
+										onOpen: close,
+									}
+								: undefined
+						}
 						onSelect={(item) => {
 							const isAnonymous = completion?.isAnonymous ?? false;
 							close();

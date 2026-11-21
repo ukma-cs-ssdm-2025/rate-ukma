@@ -19,6 +19,12 @@ minimumReleaseAgeExclude:
   - "@tanstack/react-router@1.170.23"
   - orval@8.24.0
   - react-hook-form@7.85.0
+auditConfig:
+  ignoreGhsas:
+    # picomatch ReDoS (<=4.0.7). No fixed release on npm yet (latest is 4.0.7);
+    # it only matches globs from our own build config (vite, tailwind), never user input.
+    # Drop this and raise the picomatch override to >=4.0.8 once that ships.
+    - GHSA-fc5q-39xc-vjpf
 overrides:
   "@modelcontextprotocol/sdk@<1.26.0": ">=1.26.0"
   minimatch@<10.2.3: ">=10.2.3"
