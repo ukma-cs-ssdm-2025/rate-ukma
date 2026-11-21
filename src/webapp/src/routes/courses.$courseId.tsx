@@ -8,8 +8,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import {
 	CourseAbout,
 	CourseAboutSkeleton,
+	offeringExamType,
 	offeringLoad,
 } from "@/features/course-offerings/components/CourseAbout";
+import type { PanelVariant } from "@/features/course-offerings/components/CourseAbout";
 import {
 	getLatestOffering,
 	getLatestOfferingTerms,
@@ -169,8 +171,16 @@ function CourseDetailsRoute() {
 		ratedOffering && arrival?.courseId === courseId && arrival.rated ? (
 			<RatingSuggestionPrompt excludeCourse={courseId} />
 		) : null;
+	// Prototype switch for the side panel redesign: ?panel=a|b|c.
+	const panelParam = new URLSearchParams(window.location.search).get("panel");
+	const variant: PanelVariant =
+		panelParam === "a" || panelParam === "b" || panelParam === "c"
+			? panelParam
+			: "before";
+	const redesigned = variant !== "before";
 	const about = (
 		<CourseAbout
+			variant={variant}
 			description={course.description}
 			latestOffering={latestOffering}
 			courseOfferings={offerings}
@@ -204,6 +214,7 @@ function CourseDetailsRoute() {
 							terms={terms}
 							credits={load.credits}
 							weeklyHours={load.weeklyHours}
+							examType={redesigned ? offeringExamType(latestOffering) : null}
 						>
 							<CourseInstructors courseId={courseId} />
 						</CourseDetailsHeader>
@@ -219,8 +230,9 @@ function CourseDetailsRoute() {
 						{/* Phones read one column: scores and the call to rate, then «Про дисципліну»,
 						    then reviews. Rendered once: the rate button's test id must stay unique. */}
 						{isDesktop ? null : rateAction}
+						{isDesktop || !redesigned ? null : nextSuggestion}
 						{isDesktop ? null : about}
-						{isDesktop ? null : nextSuggestion}
+						{isDesktop || redesigned ? null : nextSuggestion}
 
 						<CourseRatingsList
 							courseId={courseId}
@@ -238,9 +250,10 @@ function CourseDetailsRoute() {
 							{/* Capped to the viewport so a rail taller than the screen scrolls
 							    on its own instead of hiding its end until the page bottom. */}
 							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
-								<div className="space-y-6">
+								<div className={redesigned ? "space-y-8" : "space-y-6"}>
+									{redesigned ? nextSuggestion : null}
 									{about}
-									{nextSuggestion}
+									{redesigned ? null : nextSuggestion}
 								</div>
 							</div>
 						</aside>

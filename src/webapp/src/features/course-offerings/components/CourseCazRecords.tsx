@@ -17,7 +17,7 @@ import type {
 	SemesterTermEnum,
 } from "@/lib/api/generated";
 
-const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
+export const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
 const MAX_RECORDS_PER_YEAR = 3;
 
 const TERM_ORDER = {
@@ -42,7 +42,9 @@ function knownTerms(terms: readonly TermSummary[]): SemesterTermEnum[] {
 type TermSummary = Pick<CourseOfferingTerm, "semester_year" | "semester_term"> &
 	Partial<Pick<CourseOfferingTerm, "credits" | "weekly_hours">>;
 
-function sortOfferings(items: readonly CourseOffering[]): CourseOffering[] {
+export function sortOfferings(
+	items: readonly CourseOffering[],
+): CourseOffering[] {
 	return [...items].sort(
 		(a, b) =>
 			(b.semester_year ?? 0) - (a.semester_year ?? 0) ||
@@ -90,7 +92,7 @@ export function getLatestOfferingTerms(
 	return [...new Set(knownTerms(offeringTerms(latest)))];
 }
 
-function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
+export function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
 	const terms = new Set(
 		offerings.flatMap((offering) =>
 			offeringTerms(offering).map((term) =>
@@ -101,7 +103,7 @@ function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
 	return terms.size <= 1;
 }
 
-function loadSignature(offering: CourseOffering): string {
+export function loadSignature(offering: CourseOffering): string {
 	return formatLoad(offeringTerms(offering)[0]);
 }
 
@@ -113,7 +115,7 @@ function termsLabel(offering: CourseOffering): string {
 		.join(", ");
 }
 
-function specialitiesLabel(offering: CourseOffering): string {
+export function specialitiesLabel(offering: CourseOffering): string {
 	return offering.specialities
 		.map(
 			(speciality) =>
@@ -123,7 +125,7 @@ function specialitiesLabel(offering: CourseOffering): string {
 		.join(", ");
 }
 
-interface YearGroup {
+export interface YearGroup {
 	key: string;
 	year: string;
 	terms: string;
@@ -132,7 +134,7 @@ interface YearGroup {
 
 // САЗ lists a course once per stream, so one academic year can hold several
 // records (up to nine in prod), mostly split by speciality.
-function groupByYear(sorted: readonly CourseOffering[]): YearGroup[] {
+export function groupByYear(sorted: readonly CourseOffering[]): YearGroup[] {
 	const groups = new Map<string, YearGroup>();
 	for (const offering of sorted) {
 		const year = formatAcademicYearLabel(

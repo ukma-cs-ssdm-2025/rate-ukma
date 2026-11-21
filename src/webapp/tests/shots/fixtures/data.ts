@@ -430,6 +430,8 @@ export const COURSE_OFFERINGS_MANY = {
 			specialities: [speciality],
 		})),
 		{ ...offering(2024, "SPRING", "3.0", 2), specialities: MANY_SPECIALITIES },
+		{ ...offering(2023, "SPRING", "3.0", 2), specialities: MANY_SPECIALITIES },
+		{ ...offering(2022, "SPRING", "2.0", 2), specialities: MANY_SPECIALITIES },
 	],
 } satisfies CourseOfferingListResponse;
 

@@ -22,6 +22,8 @@ interface CourseDetailsHeaderProps {
 	terms?: readonly string[];
 	credits?: string | null;
 	weeklyHours?: string | null;
+	/** Prototype: the exam form joins the facts. */
+	examType?: string | null;
 	/** Rows under the badges, such as the course's teachers. */
 	children?: ReactNode;
 }
@@ -35,6 +37,7 @@ export function CourseDetailsHeader({
 	terms = [],
 	credits,
 	weeklyHours,
+	examType,
 	children,
 }: Readonly<CourseDetailsHeaderProps>) {
 	const meta = [
@@ -52,7 +55,11 @@ export function CourseDetailsHeader({
 	const specialityBadges = (
 		<CourseSpecialityBadges specialities={specialities} />
 	);
-	const hasFacts = terms.length > 0 || Boolean(credits) || Boolean(weeklyHours);
+	const hasFacts =
+		terms.length > 0 ||
+		Boolean(credits) ||
+		Boolean(weeklyHours) ||
+		Boolean(examType);
 	const facts = hasFacts ? (
 		<span className="inline-flex flex-wrap items-center gap-1.5">
 			{terms.map((term) => (
@@ -65,6 +72,11 @@ export function CourseDetailsHeader({
 				>
 					{[credits, weeklyHours].filter(Boolean).join(" / ")}
 					{weeklyHours ? <span className="sr-only"> на тиждень</span> : null}
+				</Badge>
+			) : null}
+			{examType ? (
+				<Badge variant="outline" className="border-transparent bg-muted">
+					{examType}
 				</Badge>
 			) : null}
 		</span>

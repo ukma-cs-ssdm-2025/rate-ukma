@@ -8,6 +8,13 @@ import {
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { CourseCazRecords } from "./CourseCazRecords";
+import {
+	CourseHistoryChips,
+	CourseHistoryDisclosure,
+	CourseHistoryRows,
+} from "./CourseHistoryCompact";
+
+export type PanelVariant = "before" | "a" | "b" | "c";
 
 function factText(value: string | null): string | null {
 	return value && value !== "—" ? value : null;
@@ -46,15 +53,50 @@ interface CourseAboutProps {
 	description?: string | null;
 	latestOffering?: CourseOffering;
 	courseOfferings: readonly CourseOffering[];
+	variant?: PanelVariant;
 }
 
 export function CourseAbout({
 	description,
 	latestOffering,
 	courseOfferings,
+	variant = "before",
 }: Readonly<CourseAboutProps>) {
 	const isPhone = !useMediaQuery("(min-width: 1024px)");
 	const exam = offeringExamType(latestOffering);
+
+	if (variant !== "before") {
+		return (
+			<div className="min-w-0 space-y-6">
+				{description ? (
+					<section aria-label="Про дисципліну" className="space-y-3">
+						<h2 className="text-lg font-semibold tracking-tight">
+							Про дисципліну
+						</h2>
+						<ExpandableText
+							lines={isPhone ? 3 : 4}
+							className="text-sm leading-relaxed text-muted-foreground sm:text-base"
+						>
+							{description}
+						</ExpandableText>
+					</section>
+				) : null}
+				{courseOfferings.length > 0 && variant === "b" ? (
+					<CourseHistoryDisclosure courseOfferings={courseOfferings} />
+				) : null}
+				{courseOfferings.length > 0 && variant !== "b" ? (
+					<section aria-label="Історія дисципліни" className="space-y-2">
+						<h3 className="text-sm font-semibold">Історія дисципліни</h3>
+						{variant === "a" ? (
+							<CourseHistoryRows courseOfferings={courseOfferings} />
+						) : (
+							<CourseHistoryChips courseOfferings={courseOfferings} />
+						)}
+					</section>
+				) : null}
+			</div>
+		);
+	}
 
 	return (
 		<section aria-label="Про дисципліну" className="min-w-0 space-y-5">
