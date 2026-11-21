@@ -75,7 +75,7 @@ async function openThroughRetries(
 	const first = failed();
 	await open();
 	await first;
-	for (const delay of [2_000, 4_000, 8_000]) {
+	for (const delay of [2000, 4000, 8000]) {
 		await page.clock.runFor(delay);
 		await failed();
 	}

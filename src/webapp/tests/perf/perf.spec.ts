@@ -96,7 +96,6 @@ async function waitForLayoutSettled(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve) => {
 				let quietTimer: number | undefined;
-				let capTimer: number | undefined;
 				const finish = () => {
 					observer.disconnect();
 					window.clearTimeout(quietTimer);
@@ -109,7 +108,7 @@ async function waitForLayoutSettled(page: Page): Promise<void> {
 				});
 				observer.observe({ type: "layout-shift", buffered: true });
 				quietTimer = window.setTimeout(finish, 500);
-				capTimer = window.setTimeout(finish, 5000);
+				const capTimer = window.setTimeout(finish, 5000);
 			}),
 	);
 }
