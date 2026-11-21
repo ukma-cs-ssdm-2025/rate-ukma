@@ -435,4 +435,4 @@ export const reparseOfferings = Effect.gen(function* () {
 	}
 
 	return report;
-});
+}).pipe(Effect.withSpan("reparseOfferings"));

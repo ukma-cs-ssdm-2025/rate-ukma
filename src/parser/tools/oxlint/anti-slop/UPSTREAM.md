@@ -9,7 +9,7 @@ Installed plugins, registered in `src/parser/.oxlintrc.json`:
 
 Dependencies: `oxlint` and `@oxlint/plugins` pinned to the same exact version, 1.87.0.
 
-Intentional deviations: none.
+Intentional deviations: one local rule, `effect/rules/require-named-effect-fn.ts` (registered in `effect/index.ts`), which is not upstream. An update keeps it.
 
 ## Updating
 

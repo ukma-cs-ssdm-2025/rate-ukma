@@ -67,7 +67,7 @@ export const requireNamedEffectFnRule = defineRule({
 			unnamedFn:
 				'Pass the span name first: `Effect.fn("name")(function* () { ... })`.',
 			genWrapper:
-				'This function only returns `Effect.gen`; write it as `Effect.fn("name")(function* (...) { ... })` so it gets a named span.',
+				'This function only returns `Effect.gen`; write it as `Effect.fn("name")(function* (...) { ... })` so it gets a named span, or `Effect.fnUntraced` in a store or test helper.',
 		},
 	},
 	createOnce(context) {

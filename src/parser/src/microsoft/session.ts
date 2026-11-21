@@ -194,8 +194,10 @@ const open = Effect.fnUntraced(function* (
 			),
 		);
 
-	const signIn = (start: string, stopAt: (next: URL) => boolean) =>
-		Effect.gen(function* () {
+	const signIn = Effect.fn("MicrosoftSession.signIn")(
+		function* (start: string, stopAt: (next: URL) => boolean) {
+			// The host only: the full URL may carry a return address or a code.
+			yield* Effect.annotateCurrentSpan("server.address", new URL(start).host);
 			yield* Ref.set(jar, new Map());
 
 			const first = yield* send(HttpClientRequest.get(start)).pipe(
@@ -266,10 +268,10 @@ const open = Effect.fnUntraced(function* (
 			}
 
 			return new URL(response.request.url);
-		}).pipe(
-			// The callback URLs carry an OAuth code; keep them off client spans.
-			Effect.provideService(HttpClient.TracerDisabledWhen, constTrue),
-		);
+		},
+		// The callback URLs carry an OAuth code; keep them off client spans.
+		Effect.provideService(HttpClient.TracerDisabledWhen, constTrue),
+	);
 
 	return { send, signIn } satisfies Session;
 });

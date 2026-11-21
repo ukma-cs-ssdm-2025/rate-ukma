@@ -13,14 +13,25 @@ import { crawlSmart } from "./smart/crawl.ts";
 import { SmartClient } from "./smart/SmartClient.ts";
 import { parseStudents } from "./students/students.ts";
 import { StudentStore } from "./students/StudentStore.ts";
+import { TelemetryLive } from "./telemetry/telemetry.ts";
 import { WorkerLive } from "./worker/Worker.ts";
 
 const api = Command.make("api", {}, () =>
-	Layer.launch(HttpServerLive.pipe(Layer.provide(PgLive))),
+	Layer.launch(
+		HttpServerLive.pipe(
+			Layer.provide(PgLive),
+			Layer.provide(TelemetryLive("parser-api")),
+		),
+	),
 ).pipe(Command.withDescription("Serve the HTTP API"));
 
 const worker = Command.make("worker", {}, () =>
-	Layer.launch(WorkerLive.pipe(Layer.provide(PgLive))),
+	Layer.launch(
+		WorkerLive.pipe(
+			Layer.provide(PgLive),
+			Layer.provide(TelemetryLive("parser-worker")),
+		),
+	),
 ).pipe(Command.withDescription("Run the background worker"));
 
 const migrate = Command.make("migrate", {}, () =>

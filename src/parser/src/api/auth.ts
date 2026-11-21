@@ -16,7 +16,13 @@ export const ApiKeyAuthLive = Layer.effect(
 				httpEffect,
 				{ credential, endpoint },
 			) {
-				const check = yield* keys.authenticate(credential);
+				const check = yield* keys.authenticate(credential).pipe(
+					Effect.tap((result) =>
+						Effect.annotateCurrentSpan("outcome", result._tag),
+					),
+					Effect.withSpan("ApiKeyAuth.check"),
+				);
+
 				const route = `${endpoint.method} ${endpoint.path}`;
 
 				if (KeyCheck.$is("Denied")(check)) {
