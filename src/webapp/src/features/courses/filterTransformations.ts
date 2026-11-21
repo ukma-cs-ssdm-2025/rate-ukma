@@ -65,22 +65,3 @@ export function transformFiltersToApiParams(
 
 	return params;
 }
-
-export function transformSortingToApiParams(
-	sortingId: string,
-	isDescending: boolean,
-): Record<string, "asc" | "desc"> {
-	if (sortingId === "avg_difficulty") {
-		return {
-			avg_difficulty_order: isDescending ? "desc" : "asc",
-		};
-	}
-
-	if (sortingId === "avg_usefulness") {
-		return {
-			avg_usefulness_order: isDescending ? "desc" : "asc",
-		};
-	}
-
-	return {};
-}

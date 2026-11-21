@@ -1,4 +1,9 @@
-import type { SemesterTermEnum } from "@/lib/api/generated";
+import type {
+	CourseTypeKindEnum,
+	EducationLevelEnum,
+	ExamTypeEnum,
+	SemesterTermEnum,
+} from "@/lib/api/generated";
 
 export const DIFFICULTY_RANGE: [number, number] = [1, 5];
 export const USEFULNESS_RANGE: [number, number] = [1, 5];
@@ -16,11 +21,6 @@ export function formatDecimalValue(
 	}
 
 	return Number(value.toFixed(precision)).toString();
-}
-
-export function getFacultyAbbreviation(facultyName: string): string {
-	const words = facultyName.trim().split(/\s+/);
-	return words.map((word) => word.charAt(0).toUpperCase()).join("");
 }
 
 export function getDifficultyTone(value?: number | null): string {
@@ -55,26 +55,20 @@ export function getUsefulnessTone(value?: number | null): string {
 	return "text-muted-foreground";
 }
 
-const EDUCATION_LEVEL_LABELS: Record<string, string> = {
+const EDUCATION_LEVEL_LABELS = {
 	BACHELOR: "Бакалавр",
 	MASTER: "Магістр",
-};
+} satisfies Record<EducationLevelEnum, string>;
 
-export function getEducationLevelDisplay(
-	level: string | null | undefined,
-	fallback?: string,
-): string {
-	if (!level) {
-		return fallback ?? "";
-	}
-	return EDUCATION_LEVEL_LABELS[level.toUpperCase()] ?? fallback ?? level;
+export function getEducationLevelDisplay(level: EducationLevelEnum): string {
+	return EDUCATION_LEVEL_LABELS[level];
 }
 
-const COURSE_TYPE_LABELS: Record<string, string> = {
+const COURSE_TYPE_LABELS = {
 	COMPULSORY: "Обов'язковий",
 	ELECTIVE: "Вибірковий",
 	PROF_ORIENTED: "Професійно-орієнтований",
-};
+} satisfies Record<CourseTypeKindEnum, string>;
 
 const SEMESTER_TERM_LABELS = {
 	FALL: "Осінь",
@@ -86,23 +80,17 @@ function isSemesterTerm(value: string): value is SemesterTermEnum {
 	return Object.hasOwn(SEMESTER_TERM_LABELS, value);
 }
 
-export function getCourseTypeDisplay(value: string, fallback?: string): string {
-	return COURSE_TYPE_LABELS[value] ?? fallback ?? value;
+export function getCourseTypeDisplay(value: CourseTypeKindEnum): string {
+	return COURSE_TYPE_LABELS[value];
 }
 
-const EXAM_TYPE_LABELS: Record<string, string> = {
+const EXAM_TYPE_LABELS = {
 	EXAM: "Іспит",
 	CREDIT: "Залік",
-};
+} satisfies Record<ExamTypeEnum, string>;
 
-export function getExamTypeDisplay(
-	value: string | null | undefined,
-	fallback?: string,
-): string {
-	if (!value) {
-		return fallback ?? "";
-	}
-	return EXAM_TYPE_LABELS[value.toUpperCase()] ?? fallback ?? value;
+export function getExamTypeDisplay(value: ExamTypeEnum): string {
+	return EXAM_TYPE_LABELS[value];
 }
 
 /**
@@ -130,39 +118,6 @@ export function getSemesterDisplay(
 	fallback?: string,
 ): string {
 	return `${getSemesterTermDisplay(term, fallback)} ${year}`;
-}
-
-export function getStatusLabel(status: string): string {
-	const STATUS_LABELS: Record<string, string> = {
-		PLANNED: "Заплановано",
-		ACTIVE: "Активний",
-		FINISHED: "Завершено",
-	};
-	return STATUS_LABELS[status] ?? status;
-}
-
-export type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
-
-export function getStatusVariant(status: string): BadgeVariant {
-	const STATUS_VARIANTS: Record<string, BadgeVariant> = {
-		PLANNED: "outline",
-		ACTIVE: "default",
-		FINISHED: "secondary",
-	};
-	return STATUS_VARIANTS[status] ?? "default";
-}
-
-export function getTypeKindLabel(typeKind: string): string {
-	return COURSE_TYPE_LABELS[typeKind] ?? typeKind;
-}
-
-export function getTypeKindVariant(typeKind: string): BadgeVariant {
-	const TYPE_KIND_VARIANTS: Record<string, BadgeVariant> = {
-		COMPULSORY: "default",
-		ELECTIVE: "secondary",
-		PROF_ORIENTED: "outline",
-	};
-	return TYPE_KIND_VARIANTS[typeKind] ?? "outline";
 }
 
 export function formatDate(dateString: string): string {

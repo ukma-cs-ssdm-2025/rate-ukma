@@ -6,10 +6,7 @@ import {
 	DIFFICULTY_RANGE,
 	USEFULNESS_RANGE,
 } from "./courseFormatting";
-import {
-	transformFiltersToApiParams,
-	transformSortingToApiParams,
-} from "./filterTransformations";
+import { transformFiltersToApiParams } from "./filterTransformations";
 
 const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	q: "",
@@ -411,103 +408,6 @@ describe("filterTransformations", () => {
 			// Assert
 			expect(result).toHaveProperty("name", "Test Course");
 			expect(result).not.toHaveProperty("q");
-		});
-	});
-
-	describe("transformSortingToApiParams", () => {
-		it("should transform avg_difficulty ascending sort", () => {
-			// Arrange
-			const sortingId = "avg_difficulty";
-			const isDescending = false;
-
-			// Act
-			const result = transformSortingToApiParams(sortingId, isDescending);
-
-			// Assert
-			expect(result).toEqual({
-				avg_difficulty_order: "asc",
-			});
-		});
-
-		it("should transform avg_difficulty descending sort", () => {
-			// Arrange
-			const sortingId = "avg_difficulty";
-			const isDescending = true;
-
-			// Act
-			const result = transformSortingToApiParams(sortingId, isDescending);
-
-			// Assert
-			expect(result).toEqual({
-				avg_difficulty_order: "desc",
-			});
-		});
-
-		it("should transform avg_usefulness ascending sort", () => {
-			// Arrange
-			const sortingId = "avg_usefulness";
-			const isDescending = false;
-
-			// Act
-			const result = transformSortingToApiParams(sortingId, isDescending);
-
-			// Assert
-			expect(result).toEqual({
-				avg_usefulness_order: "asc",
-			});
-		});
-
-		it("should transform avg_usefulness descending sort", () => {
-			// Arrange
-			const sortingId = "avg_usefulness";
-			const isDescending = true;
-
-			// Act
-			const result = transformSortingToApiParams(sortingId, isDescending);
-
-			// Assert
-			expect(result).toEqual({
-				avg_usefulness_order: "desc",
-			});
-		});
-
-		it("should return empty object for unknown sorting column", () => {
-			// Arrange
-			const unknownSortingId = "unknown_column";
-			const isDescending = false;
-
-			// Act
-			const result = transformSortingToApiParams(
-				unknownSortingId,
-				isDescending,
-			);
-
-			// Assert
-			expect(result).toEqual({});
-		});
-
-		it("should return empty object for title column (not sortable)", () => {
-			// Arrange
-			const titleColumn = "title";
-			const isDescending = false;
-
-			// Act
-			const result = transformSortingToApiParams(titleColumn, isDescending);
-
-			// Assert
-			expect(result).toEqual({});
-		});
-
-		it("should return empty object for ratings_count column (not sortable)", () => {
-			// Arrange
-			const ratingsColumn = "ratings_count";
-			const isDescending = false;
-
-			// Act
-			const result = transformSortingToApiParams(ratingsColumn, isDescending);
-
-			// Assert
-			expect(result).toEqual({});
 		});
 	});
 });

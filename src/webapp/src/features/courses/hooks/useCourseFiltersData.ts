@@ -1,13 +1,12 @@
 import * as React from "react";
 
 import { EducationLevelEnum } from "@/lib/api/generated";
-import type { FilterOptions } from "@/lib/api/generated";
+import type { CoursesListTypeKind, FilterOptions } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
 	formatDecimalValue,
-	getCourseTypeDisplay,
 	getEducationLevelDisplay,
 	getSemesterTermDisplay,
 	USEFULNESS_RANGE,
@@ -41,8 +40,16 @@ type SelectOption = {
 	label: string;
 };
 
+export type SelectFilterKey =
+	| "year"
+	| "faculty"
+	| "dept"
+	| "spec"
+	| "type"
+	| "instructor";
+
 export type SelectFilterConfig = {
-	key: string;
+	key: SelectFilterKey;
 	label: string;
 	placeholder: string;
 	value: string;
@@ -167,9 +174,7 @@ export function getActiveFilterChips(
 	if (params.type) {
 		chips.push({
 			key: "type",
-			label:
-				COURSE_TYPE_FILTER_LABELS[params.type] ??
-				getCourseTypeDisplay(params.type),
+			label: COURSE_TYPE_FILTER_LABELS[params.type],
 			clear: { type: null },
 		});
 	}
@@ -201,11 +206,11 @@ export function getActiveFilterChips(
 
 // Read as the answer to "which courses of my speciality": ELECTIVE covers
 // everything that is neither compulsory nor profession-oriented for it.
-export const COURSE_TYPE_FILTER_LABELS: Record<string, string> = {
+const COURSE_TYPE_FILTER_LABELS = {
 	COMPULSORY: "Обов'язкові",
 	PROF_ORIENTED: "Професійно-орієнтовані",
 	ELECTIVE: "Вільного вибору",
-};
+} satisfies Record<CoursesListTypeKind, string>;
 
 export type EducationLevelToggle = {
 	options: Array<{ value: string; label: string }>;
@@ -400,7 +405,7 @@ export function useCourseFiltersData({
 				value: filters.type ?? "",
 				options: courseTypes.map((type) => ({
 					value: type.value,
-					label: getCourseTypeDisplay(type.value, type.label),
+					label: COURSE_TYPE_FILTER_LABELS[type.value],
 				})),
 				disabled: !filters.spec,
 				disabledMessage: filters.spec

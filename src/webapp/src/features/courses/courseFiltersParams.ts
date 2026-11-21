@@ -11,6 +11,7 @@ import type {
 	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
 	EducationLevelEnum,
+	SortOrderEnum,
 } from "@/lib/api/generated";
 import {
 	CREDITS_RANGE,
@@ -18,25 +19,22 @@ import {
 	USEFULNESS_RANGE,
 } from "./courseFormatting";
 
-const VALID_SEMESTER_TERMS: readonly CoursesListSemesterTermsItem[] = [
+const VALID_SEMESTER_TERMS = [
 	"FALL",
 	"SPRING",
 	"SUMMER",
-];
-const VALID_TYPE_KINDS: readonly CoursesListTypeKind[] = [
+] satisfies CoursesListSemesterTermsItem[];
+const VALID_TYPE_KINDS = [
 	"COMPULSORY",
 	"ELECTIVE",
 	"PROF_ORIENTED",
-];
-
-const VALID_EDUCATION_LEVELS: readonly EducationLevelEnum[] = [
+] satisfies CoursesListTypeKind[];
+const VALID_EDUCATION_LEVELS = [
 	"BACHELOR",
 	"MASTER",
-];
-
-type SortOrder = "asc" | "desc";
-const VALID_SORT_ORDERS: readonly SortOrder[] = ["asc", "desc"];
-const VALID_REVIEW_SORTS: Array<"by-count" | "newest"> = ["by-count", "newest"];
+] satisfies EducationLevelEnum[];
+const VALID_SORT_ORDERS = ["asc", "desc"] satisfies SortOrderEnum[];
+const VALID_REVIEW_SORTS: ("by-count" | "newest")[] = ["by-count", "newest"];
 
 function createRangeParser(bounds: [number, number], step?: number) {
 	const [minBound, maxBound] = bounds;
@@ -99,30 +97,33 @@ export const courseFiltersParams = {
 	faculty: parseAsString.withDefault(""),
 	dept: parseAsString.withDefault(""),
 	instructor: parseAsString.withDefault(""),
-	term: parseAsArrayOf(
-		parseAsStringEnum<CoursesListSemesterTermsItem>(
-			VALID_SEMESTER_TERMS as unknown as CoursesListSemesterTermsItem[],
-		),
-	).withDefault([]),
+	term: parseAsArrayOf(parseAsStringEnum(VALID_SEMESTER_TERMS)).withDefault([]),
 	year: parseAsString.withDefault(""),
 	credits: createRangeParser(CREDITS_RANGE, 0.5),
-	type: parseAsStringEnum<CoursesListTypeKind>(
-		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
-	),
+	type: parseAsStringEnum(VALID_TYPE_KINDS),
 	spec: parseAsString.withDefault(""),
-	eduLevel: parseAsStringEnum<EducationLevelEnum>(
-		VALID_EDUCATION_LEVELS as unknown as EducationLevelEnum[],
-	),
+	eduLevel: parseAsStringEnum(VALID_EDUCATION_LEVELS),
 	page: parseAsInteger.withDefault(1),
 	size: parseAsInteger.withDefault(10),
-	diffOrder: parseAsStringEnum<SortOrder>(
-		VALID_SORT_ORDERS as unknown as SortOrder[],
-	),
-	useOrder: parseAsStringEnum<SortOrder>(
-		VALID_SORT_ORDERS as unknown as SortOrder[],
-	),
-	reviewSort: parseAsStringEnum<"by-count" | "newest">(VALID_REVIEW_SORTS),
+	diffOrder: parseAsStringEnum(VALID_SORT_ORDERS),
+	useOrder: parseAsStringEnum(VALID_SORT_ORDERS),
+	reviewSort: parseAsStringEnum(VALID_REVIEW_SORTS),
 };
+
+// UI controls hand back plain strings; these read them as URL-param values.
+export function parseTypeKind(value: string): CoursesListTypeKind | null {
+	return VALID_TYPE_KINDS.find((kind) => kind === value) ?? null;
+}
+
+export function parseEducationLevel(value: string): EducationLevelEnum | null {
+	return VALID_EDUCATION_LEVELS.find((level) => level === value) ?? null;
+}
+
+export function parseSemesterTerms(
+	values: readonly string[],
+): CoursesListSemesterTermsItem[] {
+	return VALID_SEMESTER_TERMS.filter((term) => values.includes(term));
+}
 
 export function useCourseFiltersParams() {
 	return useQueryStates(courseFiltersParams, {
@@ -160,10 +161,15 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	reviewSort: null,
 };
 
+/** URL search params for the courses page, with defaults left out. */
+export type CourseSearchParams = Partial<
+	Record<keyof CourseFiltersParamsState, string | number>
+>;
+
 export function courseFiltersStateToSearchParams(
 	state: CourseFiltersParamsState,
-): Record<string, string | number> {
-	const params: Record<string, string | number> = {};
+): CourseSearchParams {
+	const params: CourseSearchParams = {};
 
 	if (state.q) {
 		params.q = state.q;

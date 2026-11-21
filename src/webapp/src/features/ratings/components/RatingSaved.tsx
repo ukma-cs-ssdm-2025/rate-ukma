@@ -6,7 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { DialogDescription, DialogTitle } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
+import type { RatingSuggestion } from "@/lib/api/generated";
 import { RatingSuggestions } from "./RatingSuggestions";
 
 interface RatingSavedProps {

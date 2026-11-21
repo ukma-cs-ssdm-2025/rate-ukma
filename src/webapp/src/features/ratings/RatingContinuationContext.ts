@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { RatingSuggestion } from "./hooks/useRatingSuggestions";
+import type { RatingSuggestion } from "@/lib/api/generated";
 
 export interface SavedRating {
 	readonly courseId: string;

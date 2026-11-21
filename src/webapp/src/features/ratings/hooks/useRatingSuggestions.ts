@@ -1,9 +1,6 @@
 import { useStudentsMeRatingSuggestionsList } from "@/lib/api/generated";
-import type { RatingSuggestion } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { useRatingFlowEnabled } from "./useRatingFlowEnabled";
-
-export type { RatingSuggestion };
 
 export function useRatingSuggestions(excludeCourse?: string, enabled = true) {
 	const { isStudent } = useAuth();

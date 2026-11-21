@@ -9,5 +9,3 @@ export function useAuth() {
 	}
 	return context;
 }
-
-export type { AuthStatus, AuthUser } from "./AuthContext";

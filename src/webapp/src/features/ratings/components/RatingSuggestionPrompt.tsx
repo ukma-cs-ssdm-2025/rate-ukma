@@ -3,7 +3,7 @@ import { useId, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { useRatingSuggestions } from "../hooks/useRatingSuggestions";
-import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
+import type { RatingSuggestion } from "@/lib/api/generated";
 import { RatingModal } from "./RatingModal";
 import { RatingSuggestions } from "./RatingSuggestions";
 

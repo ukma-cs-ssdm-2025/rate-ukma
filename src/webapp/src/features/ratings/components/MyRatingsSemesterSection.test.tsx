@@ -63,7 +63,7 @@ function makeSemester(
 		totalCount: items.length,
 		unratedRateableCount: items.length - ratedCount,
 		year: 2025,
-		seasonRaw: "FALL",
+		season: "FALL",
 		...overrides,
 	};
 }
@@ -160,7 +160,7 @@ describe("MyRatingsSemesterSection", () => {
 				<MyRatingsSemesterSection
 					seasonGroup={makeSemester([makeCourse(1, { can_rate: false })], {
 						year: 2027,
-						seasonRaw: "SPRING",
+						season: "SPRING",
 						key: "SPRING",
 						unratedRateableCount: 0,
 					})}

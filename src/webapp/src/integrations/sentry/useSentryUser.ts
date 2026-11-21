@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import * as Sentry from "@sentry/react";
 
-import type { AuthUser } from "@/lib/auth/useAuth";
+import type { AuthUser } from "@/lib/auth";
 
 /**
  * Hook to sync authenticated user data with Sentry for better error tracking and filtering.

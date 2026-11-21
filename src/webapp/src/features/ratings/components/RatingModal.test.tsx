@@ -9,7 +9,7 @@ import { testIds } from "@/lib/test-ids";
 import { render, screen } from "@/test-utils/render";
 import { RatingContinuationContext } from "../RatingContinuationContext";
 import { RatingModal } from "./RatingModal";
-import type { RatingFormData } from "./RatingModal";
+import type { RatingFormData } from "./RatingForm";
 
 vi.mock("@/components/ui/Toaster", () => ({
 	toast: { success: vi.fn(), error: vi.fn() },
