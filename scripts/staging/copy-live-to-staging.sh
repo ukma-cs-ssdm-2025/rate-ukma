@@ -109,6 +109,17 @@ done
 [[ -n "$LIVE_HOST" ]] || die "--live-host is required (see --help)"
 [[ -n "$STAGING_HOST" ]] || die "--staging-host is required (see --help)"
 [[ -f "$ANON_SQL" ]] || die "missing $ANON_SQL"
+[[ "$LIVE_HOST" != "$STAGING_HOST" ]] || die "--live-host and --staging-host must differ"
+
+# The swap renames the target's database, so prove each host is what it claims
+# to be from its own rendered .env before anything else runs.
+host_environment() {
+  ssh "$1" "sudo grep -m1 '^VITE_ENVIRONMENT=' '$PROJECT_DIR/.env'" | cut -d= -f2
+}
+[[ "$(host_environment "$STAGING_HOST")" == "staging" ]] \
+  || die "$STAGING_HOST is not staging (VITE_ENVIRONMENT in $PROJECT_DIR/.env); refusing to swap its database"
+[[ "$(host_environment "$LIVE_HOST")" == "live" ]] \
+  || die "$LIVE_HOST is not live (VITE_ENVIRONMENT in $PROJECT_DIR/.env)"
 
 cat <<PLAN
 This will:
