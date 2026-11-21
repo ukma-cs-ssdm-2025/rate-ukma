@@ -81,12 +81,24 @@ test("a long rating comment is clamped and a short one is not", async ({
 	const longCard = cards.filter({ hasText: LONG_COMMENT.slice(0, 40) });
 	await expect(longCard).toBeVisible();
 
+	const text = longCard.getByText(LONG_COMMENT.slice(0, 40));
+	const overflow = () =>
+		text.evaluate((element) => element.scrollHeight - element.clientHeight);
+	const collapsedHeight = await text.evaluate(
+		(element) => element.clientHeight,
+	);
+	expect(await overflow()).toBeGreaterThan(1);
+
 	const showMore = longCard.getByRole("button", { name: "Читати далі" });
 	await expect(showMore).toHaveAttribute("aria-expanded", "false");
 	await showMore.click();
 	await expect(
 		longCard.getByRole("button", { name: "Згорнути" }),
 	).toHaveAttribute("aria-expanded", "true");
+	await expect.poll(overflow).toBeLessThanOrEqual(1);
+	expect(
+		await text.evaluate((element) => element.clientHeight),
+	).toBeGreaterThan(collapsedHeight);
 
 	const shortCard = cards.filter({ hasText: SHORT_COMMENT });
 	await expect(shortCard).toBeVisible();
