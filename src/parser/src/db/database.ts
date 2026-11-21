@@ -14,6 +14,7 @@ import Courses from "./migrations/0011_courses.ts";
 import CourseMergeSource from "./migrations/0012_course_merge_source.ts";
 import CourseDecisions from "./migrations/0013_course_decisions.ts";
 import StudentCaseDecisions from "./migrations/0014_student_case_decisions.ts";
+import SmartCatalog from "./migrations/0015_smart_catalog.ts";
 
 export const PgLive = PgClient.layerConfig({
 	url: Config.Redacted("DATABASE_URL"),
@@ -35,6 +36,7 @@ export const migrations = {
 	"0012_course_merge_source": CourseMergeSource,
 	"0013_course_decisions": CourseDecisions,
 	"0014_student_case_decisions": StudentCaseDecisions,
+	"0015_smart_catalog": SmartCatalog,
 };
 
 export const runMigrations = PgMigrator.run({

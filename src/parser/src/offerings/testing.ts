@@ -18,6 +18,7 @@ export const reset = Effect.gen(function* () {
 
 	yield* sql`
 		TRUNCATE changes, review_cases, enrollment_lists, enrollments,
+			smart_discipline_instructors, smart_disciplines, instructors,
 			student_programmes, students, offering_terms, offering_programmes,
 			offerings, courses, programmes, departments, faculties, terms, parse_failures,
 			parses, page_snapshots, run_pages, runs

@@ -10,7 +10,9 @@ import { KeysLive, keyCommands } from "./keys/commands.ts";
 import { reparseOfferings } from "./offerings/offerings.ts";
 import { OfferingStore } from "./offerings/OfferingStore.ts";
 import { crawlSmart } from "./smart/crawl.ts";
+import { parseSmart } from "./smart/parse.ts";
 import { SmartClient } from "./smart/SmartClient.ts";
+import { SmartStore } from "./smart/SmartStore.ts";
 import { parseStudents } from "./students/students.ts";
 import { StudentStore } from "./students/StudentStore.ts";
 import { WorkerLive } from "./worker/Worker.ts";
@@ -30,10 +32,12 @@ const migrate = Command.make("migrate", {}, () =>
 const reparse = Command.make("reparse", {}, () =>
 	reparseOfferings.pipe(
 		Effect.andThen(parseStudents("reparse")),
+		Effect.andThen(parseSmart()),
 		Effect.provide(
 			Layer.mergeAll(
 				CourseStore.layer,
 				OfferingStore.layer,
+				SmartStore.layer,
 				StudentStore.layer,
 			).pipe(Layer.provideMerge(ChangeLog.layer)),
 		),

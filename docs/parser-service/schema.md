@@ -156,11 +156,36 @@ Staff merge and unmerge courses through `POST /v1/courses/{id}/merge` (body `{"i
 
 | Column | Type | Notes |
 | --- | --- | --- |
+Parsed from the newest stored smart.ukma teacher list by the worker's daily smart.ukma step and by `reparse`.
+
+| Column | Type | Notes |
+| --- | --- | --- |
 | `id` | text | `ins_...` |
-| `smart_id` | text unique | smart.ukma's own id |
-| `full_name`, `email` | text | |
-| `department_id` | text null | |
-| `change_no`, `removed_at` | | |
+| `smart_id` | integer unique | smart.ukma's own id |
+| `last_name`, `first_name`, `middle_name` | text | middle name null when empty |
+| `email` | text null | lower case |
+| `smart_department_id`, `department_name` | null | smart.ukma's department, as text |
+| `row_hash`, `snapshot_id` | | the row takes a new number only when its hash changes |
+| `change_no`, `removed_at` | | gone from a non-empty list: `removed_at` set |
+
+### `smart_disciplines`
+
+One row per smart.ukma discipline: one course in one curriculum, so a course taught to several cohorts has several rows.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | text | `dis_...` |
+| `smart_id` | integer unique | |
+| `title`, `credits` | | `titleUa`, `ectsLoans` |
+| `smart_department_id`, `department_name` | null | |
+| `semester` | smallint | `semesterOfTeaching`, 1 to 12, three terms a study year |
+| `entrance_year`, `academic_year`, `season` | null | the curriculum's entrance year; academic year = entrance + (semester - 1) / 3; season FALL, SPRING or SUMMER by (semester - 1) % 3 |
+| `level` | text null | `bachelor` or `master` from the curriculum's programme |
+| `row_hash`, `snapshot_id`, `change_no`, `removed_at` | | |
+
+### `smart_discipline_instructors`
+
+A discipline's teachers, child rows of `smart_disciplines`: a change gives the discipline a new number. Keyed by discipline, smart.ukma teacher id and `role` (`LECTURER`, `PRACTICE_TEACHER`, `LECTURER_AND_PRACTICE_TEACHER`); the teacher id is no foreign key, since a link may name a teacher missing from the teacher list.
 
 ### `offering_instructors`
 

@@ -1,0 +1,193 @@
+import { assert, layer } from "@effect/vitest";
+import { Effect, Layer, Option, Result } from "effect";
+import { SqlClient } from "effect/sql";
+import { ChangeLog } from "../changes/ChangeLog.ts";
+import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
+import { smartRowsOf } from "./catalog.ts";
+import { link, smartLists } from "./catalog.fixture.ts";
+import { parseSmart } from "./parse.ts";
+import { SmartStore } from "./SmartStore.ts";
+
+const TestLive = SmartStore.layer.pipe(
+	Layer.provideMerge(ChangeLog.layer),
+	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
+);
+
+/** Stores the four lists as one smart.ukma run's snapshots. */
+const storeLists = Effect.fnUntraced(function* (
+	lists: ReturnType<typeof smartLists>,
+) {
+	const sql = yield* SqlClient.SqlClient;
+
+	const [run] = yield* sql<{ readonly id: bigint }>`
+		INSERT INTO runs (source_part, status, finished_at)
+		VALUES ('smart-ukma:2031-09-01', 'succeeded', now())
+		RETURNING id
+	`;
+
+	for (const [kind, content] of [
+		["smart_departments", lists.departments],
+		["smart_teachers", lists.teachers],
+		["smart_disciplines", lists.disciplines],
+		["smart_teacher_disciplines", lists.links],
+	] as const) {
+		yield* sql`
+			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
+			VALUES (${`/${kind}`}, ${kind}, ${content.length}, ${content}, ${run?.id ?? 0n})
+		`;
+	}
+});
+
+const numbersOf = Effect.fnUntraced(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	return yield* sql<{
+		readonly smartId: number;
+		readonly changeNo: string;
+		readonly removed: boolean;
+	}>`
+		SELECT smart_id AS "smartId", change_no::text AS "changeNo",
+			removed_at IS NOT NULL AS removed
+		FROM instructors
+		UNION ALL
+		SELECT smart_id, change_no::text, removed_at IS NOT NULL FROM smart_disciplines
+		ORDER BY 1
+	`;
+});
+
+const linksOf = Effect.fnUntraced(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	return yield* sql<{
+		readonly smartId: number;
+		readonly teacher: number;
+		readonly role: string;
+	}>`
+		SELECT d.smart_id AS "smartId", l.instructor_smart_id AS teacher, l.role
+		FROM smart_discipline_instructors l
+		JOIN smart_disciplines d ON d.id = l.discipline_id
+		ORDER BY 1, 2
+	`;
+});
+
+layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
+	"SmartStore",
+	(it) => {
+		it.effect("does nothing before every list is stored", () =>
+			Effect.gen(function* () {
+				const store = yield* SmartStore;
+
+				assert.isTrue(Option.isNone(yield* store.latest()));
+			}),
+		);
+
+		it.effect(
+			"numbers new and changed rows only, and removes rows gone from a list",
+			() =>
+				Effect.gen(function* () {
+					yield* storeLists(smartLists());
+					yield* parseSmart();
+
+					const first = yield* numbersOf();
+
+					assert.deepStrictEqual(
+						first.map(({ smartId }) => smartId),
+						[5001, 5002, 5003, 7001, 7002],
+					);
+					assert.deepStrictEqual(yield* linksOf(), [
+						{ smartId: 5001, teacher: 7001, role: "LECTURER" },
+						{ smartId: 5001, teacher: 7002, role: "PRACTICE_TEACHER" },
+						{
+							smartId: 5002,
+							teacher: 7999,
+							role: "LECTURER_AND_PRACTICE_TEACHER",
+						},
+					]);
+
+					yield* parseSmart();
+
+					assert.deepStrictEqual(yield* numbersOf(), first);
+
+					const lists = smartLists();
+					const disciplines = JSON.parse(lists.disciplines);
+
+					disciplines.items = disciplines.items.slice(0, 2);
+
+					yield* storeLists({
+						...lists,
+						disciplines: JSON.stringify(disciplines),
+						links: JSON.stringify({
+							items: [link(5002, 7001, "LECTURER")],
+							total: 1,
+						}),
+					});
+					yield* parseSmart();
+
+					const after = yield* numbersOf();
+
+					const changed = (smartId: number) =>
+						after.find((row) => row.smartId === smartId)?.changeNo !==
+						first.find((row) => row.smartId === smartId)?.changeNo;
+
+					assert.deepStrictEqual([5001, 5002, 5003, 7001, 7002].map(changed), [
+						true,
+						true,
+						true,
+						false,
+						false,
+					]);
+					assert.deepStrictEqual(
+						after
+							.filter(({ removed }) => removed)
+							.map(({ smartId }) => smartId),
+						[5003],
+					);
+					assert.deepStrictEqual(yield* linksOf(), [
+						{ smartId: 5002, teacher: 7001, role: "LECTURER" },
+					]);
+				}),
+		);
+
+		it.effect("reads a list larger than one query may carry", () =>
+			Effect.gen(function* () {
+				const store = yield* SmartStore;
+				const lists = smartLists();
+				const disciplines = JSON.parse(lists.disciplines);
+
+				// 2.5 million two-byte characters: two parts, split mid-text.
+				disciplines.items[0].descriptionUa = "ї".repeat(2_500_000);
+
+				const large = JSON.stringify(disciplines);
+
+				yield* storeLists({ ...lists, disciplines: large });
+
+				const stored = yield* store.latest();
+
+				assert.isTrue(Option.isSome(stored));
+				assert.strictEqual(
+					Option.isSome(stored) ? stored.value.lists.disciplines : "",
+					large,
+				);
+			}),
+		);
+
+		it.effect("keeps every row when a list comes back empty", () =>
+			Effect.gen(function* () {
+				const before = yield* numbersOf();
+
+				yield* storeLists(
+					smartLists({ teachers: JSON.stringify({ items: [], total: 0 }) }),
+				);
+				yield* parseSmart();
+
+				const after = yield* numbersOf();
+
+				assert.deepStrictEqual(
+					after.filter(({ smartId }) => smartId > 7000),
+					before.filter(({ smartId }) => smartId > 7000),
+				);
+				assert.isTrue(Result.isSuccess(smartRowsOf(smartLists())));
+			}),
+		);
+	},
+);
