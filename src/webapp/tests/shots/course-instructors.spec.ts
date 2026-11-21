@@ -36,13 +36,20 @@ for (const width of WIDTHS) {
 
 		const row = page.getByTestId(testIds.courseDetails.teachers);
 		await expect(row).toContainText("Демченко Олена Петрівна");
-		await expect(row).toContainText("обрали 5 студентів");
-		await expect(row).toContainText("обрали 2 студенти");
+		await expect(row).toContainText("Демчук Дмитро Олегович");
 		await expect(row).not.toContainText("Коваль");
+		await expect(row.getByText("обрали 5 студентів")).toHaveClass("sr-only");
 
 		mkdirSync(out, { recursive: true });
 		await page.screenshot({
 			path: resolve(out, `teachers-${width}.png`),
+			animations: "disabled",
+		});
+
+		await row.getByRole("button", { name: /Демченко/ }).hover();
+		await expect(page.getByRole("tooltip")).toHaveText("обрали 5 студентів");
+		await page.screenshot({
+			path: resolve(out, `teachers-hover-${width}.png`),
 			animations: "disabled",
 		});
 	});
