@@ -55,6 +55,7 @@ class InstructorService(IFilterable):
                 instructor=self.mapper.process(obj),
                 ratings_count=obj.ratings_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
                 offering_ratings_count=obj.offering_ratings_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
+                students_count=obj.students_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
             )
             for obj in qs
         ]

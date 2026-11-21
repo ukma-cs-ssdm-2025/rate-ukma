@@ -11,18 +11,19 @@ vi.mock("@/lib/api/generated", async (importOriginal) => ({
 
 const mockedRetrieve = vi.mocked(useCoursesInstructorsRetrieve);
 
-const respond = (ratingsCounts: ReadonlyArray<number>) =>
+const respond = (studentsCounts: ReadonlyArray<number>) =>
 	mockedRetrieve.mockReturnValue({
 		data: {
-			items: ratingsCounts.map((ratings_count, index) => ({
+			items: studentsCounts.map((students_count, index) => ({
 				instructor: {
 					id: `i-${index}`,
 					first_name: "Марта",
 					last_name: `Вигадана${index}`,
 					patronymic: "",
 				},
-				ratings_count,
+				ratings_count: students_count,
 				offering_ratings_count: 0,
+				students_count,
 			})),
 		},
 	} as unknown as ReturnType<typeof useCoursesInstructorsRetrieve>);

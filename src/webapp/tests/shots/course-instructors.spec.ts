@@ -16,6 +16,19 @@ async function open(page: Page, flag: boolean, width: number) {
 	await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 }
 
+/** Opens the course and waits until its teachers have arrived and rendered,
+ *  so an absent row means the empty result, not a request still in flight. */
+async function openWithTeachers(page: Page, width: number) {
+	const teachers = page.waitForResponse((response) =>
+		/\/courses\/[^/]+\/instructors\/$/.test(new URL(response.url()).pathname),
+	);
+	await open(page, true, width);
+	await teachers;
+	await expect(
+		page.getByTestId(testIds.courseDetails.reviewsSection),
+	).toBeVisible();
+}
+
 for (const width of WIDTHS) {
 	test(`the teachers row at ${width} px`, async ({ page }) => {
 		await mockBackend(page);
@@ -23,7 +36,7 @@ for (const width of WIDTHS) {
 
 		const row = page.getByTestId(testIds.courseDetails.teachers);
 		await expect(row).toContainText("Демченко Олена Петрівна");
-		await expect(row).toContainText("обрали 6 студентів");
+		await expect(row).toContainText("обрали 5 студентів");
 		await expect(row).toContainText("обрали 2 студенти");
 		await expect(row).not.toContainText("Коваль");
 
@@ -44,7 +57,7 @@ test("no row while the flag is off", async ({ page }) => {
 
 test("no row when nobody named a teacher twice", async ({ page }) => {
 	await mockBackend(page, { courseInstructors: "none" });
-	await open(page, true, 1280);
+	await openWithTeachers(page, 1280);
 
 	await expect(page.getByTestId(testIds.courseDetails.teachers)).toHaveCount(0);
 });

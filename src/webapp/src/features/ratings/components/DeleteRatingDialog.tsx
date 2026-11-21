@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/ui/Toaster";
 import {
+	getCoursesInstructorsRetrieveQueryKey,
 	getCoursesRatingsListQueryKey,
 	getCoursesRetrieveQueryKey,
 	getFeedListInfiniteQueryKey,
@@ -55,6 +56,10 @@ export function DeleteRatingDialog({
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getCoursesRetrieveQueryKey(courseId),
+			}),
+			// Prefix match also covers the offering-scoped variant.
+			queryClient.invalidateQueries({
+				queryKey: getCoursesInstructorsRetrieveQueryKey(courseId),
 			}),
 			queryClient.invalidateQueries({
 				queryKey: getFeedListInfiniteQueryKey(),

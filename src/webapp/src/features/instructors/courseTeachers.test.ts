@@ -6,11 +6,13 @@ import { chosenByNote, namedCourseTeachers } from "./courseTeachers";
 const mention = (
 	id: string,
 	lastName: string,
-	ratingsCount: number,
+	studentsCount: number,
+	ratingsCount = studentsCount,
 ): CourseInstructorMentions => ({
 	instructor: { id, first_name: "Ім'я", last_name: lastName, patronymic: "" },
 	ratings_count: ratingsCount,
 	offering_ratings_count: 0,
+	students_count: studentsCount,
 });
 
 describe("namedCourseTeachers", () => {
@@ -25,6 +27,12 @@ describe("namedCourseTeachers", () => {
 			{ id: "i-3", name: "Зразкова Ім'я", note: "обрали 7 студентів" },
 			{ id: "i-1", name: "Вигаданий Ім'я", note: "обрали 2 студенти" },
 		]);
+	});
+
+	it("counts students, not ratings", () => {
+		expect(namedCourseTeachers([mention("i-1", "Вигаданий", 1, 2)])).toEqual(
+			[],
+		);
 	});
 
 	it("gives nothing when nobody was named twice", () => {

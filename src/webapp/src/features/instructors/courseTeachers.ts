@@ -10,7 +10,7 @@ export interface CourseTeacher {
 }
 
 // One mention could be a typo; two students agreeing is a signal.
-const MIN_MENTIONS = 2;
+const MIN_STUDENTS = 2;
 
 const UK_PLURAL = new Intl.PluralRules("uk");
 const STUDENT_FORMS: Record<Intl.LDMLPluralRule, string> = {
@@ -29,21 +29,22 @@ export function chosenByNote(count: number): string {
 	return `${verb} ${count} ${STUDENT_FORMS[form]}`;
 }
 
-/** Teachers students named at least twice on the course, most named first. */
+/** Teachers at least two students named on the course, most named first.
+ *  Counts students, not ratings: one student may rate several offerings. */
 export function namedCourseTeachers(
 	items: ReadonlyArray<CourseInstructorMentions>,
 ): CourseTeacher[] {
 	return items
-		.filter((item) => item.ratings_count >= MIN_MENTIONS)
-		.sort((a, b) => b.ratings_count - a.ratings_count)
-		.flatMap(({ instructor, ratings_count }) =>
+		.filter((item) => item.students_count >= MIN_STUDENTS)
+		.sort((a, b) => b.students_count - a.students_count)
+		.flatMap(({ instructor, students_count }) =>
 			instructor.id === undefined
 				? []
 				: [
 						{
 							id: instructor.id,
 							name: formatInstructorName(instructor),
-							note: chosenByNote(ratings_count),
+							note: chosenByNote(students_count),
 						},
 					],
 		);

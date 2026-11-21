@@ -3651,10 +3651,15 @@ components:
         offering_ratings_count:
           type: integer
           description: Of those, ratings on the requested offering (0 without offering_id)
+        students_count:
+          type: integer
+          description: Distinct students behind ratings_count; one may rate several
+            offerings
       required:
       - instructor
       - offering_ratings_count
       - ratings_count
+      - students_count
     CourseList:
       type: object
       description: Serializer for course list responses
