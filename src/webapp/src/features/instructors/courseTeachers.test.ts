@@ -13,6 +13,8 @@ const mention = (
 	ratings_count: ratingsCount,
 	offering_ratings_count: 0,
 	students_count: studentsCount,
+	recent_students_count: studentsCount,
+	planned: false,
 });
 
 describe("namedCourseTeachers", () => {

@@ -132,6 +132,8 @@ export const COURSE_INSTRUCTORS = {
 			ratings_count: 6,
 			offering_ratings_count: 3,
 			students_count: 5,
+			recent_students_count: 5,
+			planned: false,
 		},
 		{
 			instructor: {
@@ -143,6 +145,8 @@ export const COURSE_INSTRUCTORS = {
 			ratings_count: 2,
 			offering_ratings_count: 0,
 			students_count: 2,
+			recent_students_count: 2,
+			planned: false,
 		},
 		{
 			instructor: {
@@ -154,6 +158,8 @@ export const COURSE_INSTRUCTORS = {
 			ratings_count: 1,
 			offering_ratings_count: 0,
 			students_count: 1,
+			recent_students_count: 1,
+			planned: false,
 		},
 	],
 } satisfies CourseInstructorList;
