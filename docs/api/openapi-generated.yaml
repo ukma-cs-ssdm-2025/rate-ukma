@@ -4586,7 +4586,12 @@ components:
         fe_ukma_data:
           type: boolean
           description: Whether `fe_ukma_data` is enabled for the current user.
+        fe_course_instructors:
+          type: boolean
+          description: Whether `fe_course_instructors` is enabled for the current
+            user.
       required:
+      - fe_course_instructors
       - fe_faculty_colors
       - fe_feed
       - fe_rate_flow

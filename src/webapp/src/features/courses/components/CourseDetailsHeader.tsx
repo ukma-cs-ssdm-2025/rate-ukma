@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { TermBadge } from "@/components/TermBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -24,6 +26,8 @@ interface CourseDetailsHeaderProps {
 	terms?: readonly string[];
 	credits?: string | null;
 	weeklyHours?: string | null;
+	/** Rows under the badges, such as the course's teachers. */
+	children?: ReactNode;
 }
 
 export function CourseDetailsHeader({
@@ -35,6 +39,7 @@ export function CourseDetailsHeader({
 	terms = [],
 	credits,
 	weeklyHours,
+	children,
 }: Readonly<CourseDetailsHeaderProps>) {
 	const meta = [
 		getEducationLevelDisplay(educationLevel),
@@ -99,6 +104,8 @@ export function CourseDetailsHeader({
 					)}
 				</div>
 			)}
+
+			{children}
 		</header>
 	);
 }
