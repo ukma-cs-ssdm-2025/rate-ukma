@@ -121,8 +121,12 @@ type YearAccumulator = {
 function toYearGroups(years: Map<string, YearAccumulator>): YearGroup[] {
 	return Array.from(years.values())
 		.sort((a, b) => {
-			if (a.key === "unknown") return 1;
-			if (b.key === "unknown") return -1;
+			if (a.key === "unknown") {
+				return 1;
+			}
+			if (b.key === "unknown") {
+				return -1;
+			}
 			return Number(b.key) - Number(a.key);
 		})
 		.map((year) => {
@@ -167,7 +171,9 @@ export function groupRatingsByYearAndSemester(
 		}
 
 		const yearEntry = years.get(yearInfo.key);
-		if (!yearEntry) continue;
+		if (!yearEntry) {
+			continue;
+		}
 
 		if (!yearEntry.seasons.has(seasonInfo.key)) {
 			yearEntry.seasons.set(seasonInfo.key, {
@@ -185,7 +191,9 @@ export function groupRatingsByYearAndSemester(
 		}
 
 		const seasonGroup = yearEntry.seasons.get(seasonInfo.key);
-		if (!seasonGroup) continue;
+		if (!seasonGroup) {
+			continue;
+		}
 
 		updateSeasonCounts(seasonGroup, course);
 	}

@@ -30,7 +30,7 @@ type LinearScale = (value: number) => number;
 export const LABEL_ZOOM_THRESHOLD = 2;
 // If there are few points or plenty of canvas space per point, show many labels.
 export const SPARSE_POINT_THRESHOLD = 40;
-export const SPARSE_AREA_PER_POINT = 12000;
+export const SPARSE_AREA_PER_POINT = 12_000;
 // Spacing for dense vs sparse to reduce overlap.
 export const MIN_LABEL_BASE_DISTANCE_DENSE = 12;
 export const MIN_LABEL_BASE_DISTANCE_SPARSE = 8;
@@ -53,7 +53,7 @@ function computeLabelDensityMeta(params: {
 	const isDenseDataset = dataLength >= DENSE_LABEL_SUPPRESSION_COUNT;
 	const areaPerPoint = (innerWidth * innerHeight) / Math.max(1, dataLength);
 	const sparseByCount = dataLength <= 20;
-	const sparseByArea = areaPerPoint > 20000;
+	const sparseByArea = areaPerPoint > 20_000;
 
 	return {
 		isDenseDataset,
@@ -177,7 +177,9 @@ export function computeLabelPoints(params: {
 	const placed: LabelPoint[] = [];
 
 	for (const point of sortedByImportance) {
-		if (placed.length >= AUTO_LABEL_LIMIT) break;
+		if (placed.length >= AUTO_LABEL_LIMIT) {
+			break;
+		}
 
 		const cx = xScale(point.x);
 		const cy = yScale(point.y);
@@ -193,7 +195,9 @@ export function computeLabelPoints(params: {
 			screenY,
 		});
 
-		if (!canPlaceLabel) continue;
+		if (!canPlaceLabel) {
+			continue;
+		}
 
 		placed.push({ point, cx, cy });
 	}

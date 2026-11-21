@@ -9,7 +9,8 @@ import {
 	EmptyTitle,
 } from "@/components/ui/Empty";
 import { Spinner } from "@/components/ui/Spinner";
-import { EventTypeEnum, type NotificationGroup } from "@/lib/api/generated";
+import { EventTypeEnum } from "@/lib/api/generated";
+import type { NotificationGroup } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "../notificationFormatting";
@@ -252,7 +253,9 @@ function NotificationItem({
 					params={{ courseId }}
 					className={itemClass}
 					onClick={() => {
-						if (notification.group_key) onClick?.(notification.group_key);
+						if (notification.group_key) {
+							onClick?.(notification.group_key);
+						}
 					}}
 				>
 					{content}

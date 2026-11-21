@@ -17,15 +17,22 @@ export function buildCourseOgDescription(course: {
 	avg_difficulty?: number | null;
 	avg_usefulness?: number | null;
 }): string {
-	if (course.description) return course.description;
+	if (course.description) {
+		return course.description;
+	}
 	const parts: string[] = [];
-	if (course.department_name) parts.push(course.department_name);
-	if (course.ratings_count != null)
+	if (course.department_name) {
+		parts.push(course.department_name);
+	}
+	if (course.ratings_count != null) {
 		parts.push(`${course.ratings_count} відгуків`);
-	if (course.avg_difficulty != null)
+	}
+	if (course.avg_difficulty != null) {
 		parts.push(`складність ${course.avg_difficulty.toFixed(1)}/10`);
-	if (course.avg_usefulness != null)
+	}
+	if (course.avg_usefulness != null) {
 		parts.push(`корисність ${course.avg_usefulness.toFixed(1)}/10`);
+	}
 	return parts.length > 0 ? parts.join(" · ") : DEFAULT_PAGE_DESCRIPTION;
 }
 

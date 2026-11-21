@@ -41,33 +41,51 @@ const VALID_REVIEW_SORTS: Array<"by-count" | "newest"> = ["by-count", "newest"];
 function createRangeParser(bounds: [number, number], step?: number) {
 	const [minBound, maxBound] = bounds;
 	const hasValidStep = (value: number) => {
-		if (!step) return true;
+		if (!step) {
+			return true;
+		}
 		const stepsFromMin = (value - minBound) / step;
 		return Math.abs(stepsFromMin - Math.round(stepsFromMin)) < 0.000001;
 	};
 
 	return createParser({
 		parse: (value: string): [number, number] | null => {
-			if (!value) return null;
+			if (!value) {
+				return null;
+			}
 
 			const [minRaw, maxRaw] = value.split("-");
-			if (!minRaw || !maxRaw) return null;
+			if (!minRaw || !maxRaw) {
+				return null;
+			}
 
 			const min = Number.parseFloat(minRaw);
 			const max = Number.parseFloat(maxRaw);
-			if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+			if (!Number.isFinite(min) || !Number.isFinite(max)) {
+				return null;
+			}
 
-			if (min < minBound || max > maxBound || min > max) return null;
-			if (!hasValidStep(min) || !hasValidStep(max)) return null;
+			if (min < minBound || max > maxBound || min > max) {
+				return null;
+			}
+			if (!hasValidStep(min) || !hasValidStep(max)) {
+				return null;
+			}
 
 			return [min, max];
 		},
 		serialize: (value: [number, number] | null): string => {
-			if (!value) return "";
+			if (!value) {
+				return "";
+			}
 
 			const [min, max] = value;
-			if (!Number.isFinite(min) || !Number.isFinite(max)) return "";
-			if (min === minBound && max === maxBound) return "";
+			if (!Number.isFinite(min) || !Number.isFinite(max)) {
+				return "";
+			}
+			if (min === minBound && max === maxBound) {
+				return "";
+			}
 
 			return `${min}-${max}`;
 		},
@@ -147,7 +165,9 @@ export function courseFiltersStateToSearchParams(
 ): Record<string, string | number> {
 	const params: Record<string, string | number> = {};
 
-	if (state.q) params.q = state.q;
+	if (state.q) {
+		params.q = state.q;
+	}
 	if (
 		state.diff[0] !== DIFFICULTY_RANGE[0] ||
 		state.diff[1] !== DIFFICULTY_RANGE[1]
@@ -160,11 +180,21 @@ export function courseFiltersStateToSearchParams(
 	) {
 		params.use = `${state.use[0]}-${state.use[1]}`;
 	}
-	if (state.faculty) params.faculty = state.faculty;
-	if (state.dept) params.dept = state.dept;
-	if (state.instructor) params.instructor = state.instructor;
-	if (state.term.length > 0) params.term = state.term.join(",");
-	if (state.year) params.year = state.year;
+	if (state.faculty) {
+		params.faculty = state.faculty;
+	}
+	if (state.dept) {
+		params.dept = state.dept;
+	}
+	if (state.instructor) {
+		params.instructor = state.instructor;
+	}
+	if (state.term.length > 0) {
+		params.term = state.term.join(",");
+	}
+	if (state.year) {
+		params.year = state.year;
+	}
 	if (
 		state.year &&
 		(state.credits[0] !== CREDITS_RANGE[0] ||
@@ -172,14 +202,30 @@ export function courseFiltersStateToSearchParams(
 	) {
 		params.credits = `${state.credits[0]}-${state.credits[1]}`;
 	}
-	if (state.type) params.type = state.type;
-	if (state.spec) params.spec = state.spec;
-	if (state.eduLevel) params.eduLevel = state.eduLevel;
-	if (state.page !== 1) params.page = state.page;
-	if (state.size !== 10) params.size = state.size;
-	if (state.diffOrder) params.diffOrder = state.diffOrder;
-	if (state.useOrder) params.useOrder = state.useOrder;
-	if (state.reviewSort) params.reviewSort = state.reviewSort;
+	if (state.type) {
+		params.type = state.type;
+	}
+	if (state.spec) {
+		params.spec = state.spec;
+	}
+	if (state.eduLevel) {
+		params.eduLevel = state.eduLevel;
+	}
+	if (state.page !== 1) {
+		params.page = state.page;
+	}
+	if (state.size !== 10) {
+		params.size = state.size;
+	}
+	if (state.diffOrder) {
+		params.diffOrder = state.diffOrder;
+	}
+	if (state.useOrder) {
+		params.useOrder = state.useOrder;
+	}
+	if (state.reviewSort) {
+		params.reviewSort = state.reviewSort;
+	}
 
 	return params;
 }

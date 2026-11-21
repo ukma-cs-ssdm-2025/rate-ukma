@@ -1,6 +1,7 @@
 import * as React from "react";
 
-import { EducationLevelEnum, type FilterOptions } from "@/lib/api/generated";
+import { EducationLevelEnum } from "@/lib/api/generated";
+import type { FilterOptions } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
@@ -436,36 +437,55 @@ export function useCourseFiltersData({
 		if (
 			filters.diff[0] !== DIFFICULTY_RANGE[0] ||
 			filters.diff[1] !== DIFFICULTY_RANGE[1]
-		)
+		) {
 			count++;
+		}
 		if (
 			filters.use[0] !== USEFULNESS_RANGE[0] ||
 			filters.use[1] !== USEFULNESS_RANGE[1]
-		)
+		) {
 			count++;
+		}
 		return count;
 	}, [filters.diff, filters.use]);
 
 	const semesterActiveCount = React.useMemo(() => {
 		let count = 0;
-		if (filters.year) count++;
-		if (filters.term.length > 0) count++;
+		if (filters.year) {
+			count++;
+		}
+		if (filters.term.length > 0) {
+			count++;
+		}
 		if (
 			filters.credits[0] !== CREDITS_RANGE[0] ||
 			filters.credits[1] !== CREDITS_RANGE[1]
-		)
+		) {
 			count++;
+		}
 		return count;
 	}, [filters.year, filters.term, filters.credits]);
 
 	const structureActiveCount = React.useMemo(() => {
 		let count = 0;
-		if (filters.faculty) count++;
-		if (filters.dept) count++;
-		if (filters.spec) count++;
-		if (filters.type) count++;
-		if (filters.eduLevel) count++;
-		if (filters.instructor) count++;
+		if (filters.faculty) {
+			count++;
+		}
+		if (filters.dept) {
+			count++;
+		}
+		if (filters.spec) {
+			count++;
+		}
+		if (filters.type) {
+			count++;
+		}
+		if (filters.eduLevel) {
+			count++;
+		}
+		if (filters.instructor) {
+			count++;
+		}
 		return count;
 	}, [
 		filters.faculty,

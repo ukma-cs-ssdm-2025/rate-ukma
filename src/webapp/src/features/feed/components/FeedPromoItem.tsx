@@ -7,7 +7,8 @@ import type {
 	AccentEnum,
 	FeedPromoItem as FeedPromoItemData,
 } from "@/lib/api/generated";
-import { FeedCard, type FeedTone } from "./FeedCard";
+import { FeedCard } from "./FeedCard";
+import type { FeedTone } from "./FeedCard";
 
 interface AccentStyle {
 	tone: FeedTone;

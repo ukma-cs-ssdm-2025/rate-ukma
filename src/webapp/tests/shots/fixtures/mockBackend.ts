@@ -13,7 +13,6 @@ import {
 	FEED_ITEMS,
 	FILTER_OPTIONS,
 	myCourses as myCoursesFor,
-	type MyCourseState,
 	MY_GRADES,
 	LONG_COURSE_TITLE,
 	MANY_SPECIALITIES,
@@ -22,6 +21,7 @@ import {
 	RATING_COMMENTS,
 	SESSION,
 } from "./data";
+import type { MyCourseState } from "./data";
 
 export interface MockOptions {
 	readonly feed?: "items" | "empty" | "error";
@@ -220,7 +220,9 @@ export async function mockBackend(
 			/^\/courses\/$/,
 			(_path, url) => {
 				const query = url.searchParams.get("name")?.toLowerCase();
-				if (!query) return visibleCourseList;
+				if (!query) {
+					return visibleCourseList;
+				}
 				const items = suggestedCourseItems.filter((course) =>
 					course.title?.toLowerCase().includes(query),
 				);
@@ -452,7 +454,9 @@ export async function mockBackend(
 			return;
 		}
 		// Left unanswered: the page stays in its loading state for the shot.
-		if (loading && !shell.some((pattern) => pattern.test(path))) return;
+		if (loading && !shell.some((pattern) => pattern.test(path))) {
+			return;
+		}
 		if (failing.some((pattern) => pattern.test(path))) {
 			await route.fulfill({
 				status: 500,

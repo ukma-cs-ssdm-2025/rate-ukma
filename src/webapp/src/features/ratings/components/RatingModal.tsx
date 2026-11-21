@@ -18,7 +18,8 @@ import {
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
-import { RatingForm, type RatingFormData } from "./RatingForm";
+import { RatingForm } from "./RatingForm";
+import type { RatingFormData } from "./RatingForm";
 import { RatingContinuationContext } from "../RatingContinuationContext";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { refreshRatingQueries } from "../refreshRatingQueries";
@@ -92,7 +93,7 @@ export function RatingModal({
 		try {
 			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
-					courseId: courseId,
+					courseId,
 					ratingId: existingRating.id,
 					data: {
 						difficulty: data.difficulty,
@@ -110,7 +111,7 @@ export function RatingModal({
 					return;
 				}
 				await createMutation.mutateAsync({
-					courseId: courseId,
+					courseId,
 					data: {
 						course_offering: offeringId,
 						difficulty: data.difficulty,

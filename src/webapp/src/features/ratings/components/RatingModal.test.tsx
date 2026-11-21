@@ -8,7 +8,8 @@ import { toast } from "@/components/ui/Toaster";
 import { testIds } from "@/lib/test-ids";
 import { render, screen } from "@/test-utils/render";
 import { RatingContinuationContext } from "../RatingContinuationContext";
-import { RatingModal, type RatingFormData } from "./RatingModal";
+import { RatingModal } from "./RatingModal";
+import type { RatingFormData } from "./RatingModal";
 
 vi.mock("@/components/ui/Toaster", () => ({
 	toast: { success: vi.fn(), error: vi.fn() },

@@ -28,16 +28,26 @@ function getDescription(
 	value: number | null,
 	type: "difficulty" | "usefulness",
 ): string {
-	if (value == null) return "Недостатньо оцінок";
+	if (value == null) {
+		return "Недостатньо оцінок";
+	}
 
 	if (type === "difficulty") {
-		if (value < 2.5) return "Легше багатьох дисциплін";
-		if (value < 3.5) return "Стандартне навантаження";
+		if (value < 2.5) {
+			return "Легше багатьох дисциплін";
+		}
+		if (value < 3.5) {
+			return "Стандартне навантаження";
+		}
 		return "Потребує більше часу";
 	}
 
-	if (value < 2.5) return "Можна покращити";
-	if (value < 3.5) return "Знання застосовні";
+	if (value < 2.5) {
+		return "Можна покращити";
+	}
+	if (value < 3.5) {
+		return "Знання застосовні";
+	}
 	return "Дуже корисна дисципліна";
 }
 
@@ -45,7 +55,9 @@ function getDetailedDescription(
 	value: number | null,
 	type: "difficulty" | "usefulness",
 ): string {
-	if (value == null) return "Недостатньо даних";
+	if (value == null) {
+		return "Недостатньо даних";
+	}
 	const roundedValue = Math.round(value);
 	const descriptions =
 		type === "difficulty" ? difficultyDescriptions : usefulnessDescriptions;
@@ -56,15 +68,25 @@ function getBarColor(
 	type: "difficulty" | "usefulness",
 	value: number | null,
 ): string {
-	if (value == null) return "bg-muted-foreground/20";
+	if (value == null) {
+		return "bg-muted-foreground/20";
+	}
 
 	if (type === "difficulty") {
-		if (value >= 4) return "bg-destructive";
-		if (value >= 3) return "bg-chart-5";
+		if (value >= 4) {
+			return "bg-destructive";
+		}
+		if (value >= 3) {
+			return "bg-chart-5";
+		}
 		return "bg-primary";
 	}
-	if (value >= 4) return "bg-primary";
-	if (value >= 3) return "bg-chart-2";
+	if (value >= 4) {
+		return "bg-primary";
+	}
+	if (value >= 3) {
+		return "bg-chart-2";
+	}
 	return "bg-muted-foreground";
 }
 
@@ -120,7 +142,9 @@ function useScoreReveal(value: number | null) {
 	useLayoutEffect(() => {
 		const root = ref.current;
 		const text = root?.querySelector("[data-score]")?.firstChild;
-		if (!root || !text || value == null) return;
+		if (!root || !text || value == null) {
+			return;
+		}
 		if (
 			!globalThis.matchMedia?.("(prefers-reduced-motion: no-preference)")
 				.matches
@@ -142,7 +166,9 @@ function useScoreReveal(value: number | null) {
 		const tick = (now: number) => {
 			const progress = Math.min(1, (now - start) / REVEAL_MS);
 			text.nodeValue = (value * (1 - (1 - progress) ** 3)).toFixed(1);
-			if (progress < 1) frame = requestAnimationFrame(tick);
+			if (progress < 1) {
+				frame = requestAnimationFrame(tick);
+			}
 		};
 		text.nodeValue = (0).toFixed(1);
 		frame = requestAnimationFrame(tick);

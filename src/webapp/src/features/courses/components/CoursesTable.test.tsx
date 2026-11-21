@@ -663,7 +663,7 @@ describe("Course Row Navigation", () => {
 			createMockCourse({
 				id: courseId,
 				title: courseTitle,
-				specialities: specialities,
+				specialities,
 			}),
 		];
 

@@ -64,7 +64,9 @@ export function getEducationLevelDisplay(
 	level: string | null | undefined,
 	fallback?: string,
 ): string {
-	if (!level) return fallback ?? "";
+	if (!level) {
+		return fallback ?? "";
+	}
 	return EDUCATION_LEVEL_LABELS[level.toUpperCase()] ?? fallback ?? level;
 }
 
@@ -97,7 +99,9 @@ export function getExamTypeDisplay(
 	value: string | null | undefined,
 	fallback?: string,
 ): string {
-	if (!value) return fallback ?? "";
+	if (!value) {
+		return fallback ?? "";
+	}
 	return EXAM_TYPE_LABELS[value.toUpperCase()] ?? fallback ?? value;
 }
 

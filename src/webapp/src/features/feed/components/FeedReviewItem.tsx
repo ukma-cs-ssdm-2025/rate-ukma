@@ -27,7 +27,9 @@ function ComparisonArrow({
 	readonly average: number;
 }) {
 	const delta = score - average;
-	if (Math.abs(delta) < TIE_EPSILON) return null;
+	if (Math.abs(delta) < TIE_EPSILON) {
+		return null;
+	}
 
 	const Icon = delta > 0 ? ArrowUp : ArrowDown;
 	const label = `${delta > 0 ? "вище" : "нижче"} за середнє (${average.toFixed(1)})`;

@@ -8,7 +8,7 @@ import { handleConnectionIssue } from "./networkError";
 export const authorizedHttpClient = axios.create({
 	withCredentials: true,
 	baseURL: env.VITE_API_BASE_URL,
-	timeout: 60000,
+	timeout: 60_000,
 	paramsSerializer: {
 		indexes: null, // serialize arrays as repeated keys: a=1&a=2 (not a[]=1&a[]=2)
 	},
@@ -60,20 +60,26 @@ authorizedHttpClient.interceptors.request.use((config) => {
 });
 
 const handleSessionExpiry = (error: unknown): boolean => {
-	if (!axios.isAxiosError(error)) return false;
+	if (!axios.isAxiosError(error)) {
+		return false;
+	}
 
 	const status = error.response?.status;
 	const requestUrl = error.config?.url;
 	const currentPath = globalThis.location.pathname ?? "";
 
-	if (status !== 401 && status !== 403) return false;
+	if (status !== 401 && status !== 403) {
+		return false;
+	}
 	if (
 		currentPath.startsWith(LOGIN_PATH_PREFIX) ||
 		currentPath.startsWith(AUTH_PATH_PREFIX)
 	) {
 		return false;
 	}
-	if (requestUrl?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) return false;
+	if (requestUrl?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) {
+		return false;
+	}
 	// A signed-in user who is not a superuser gets 403 here; the staff section
 	// shows its own "superusers only" page instead of signing them out.
 	if (status === 403 && requestUrl?.startsWith(UKMA_DATA_PATH_PREFIX)) {

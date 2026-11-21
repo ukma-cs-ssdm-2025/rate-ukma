@@ -1,4 +1,5 @@
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { useId, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 
 import {
 	infiniteQueryOptions,

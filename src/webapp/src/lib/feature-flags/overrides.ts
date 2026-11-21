@@ -23,7 +23,9 @@ export function readFeatureFlagOverrides(): Record<string, boolean> {
 	}
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
-		if (!raw) return {};
+		if (!raw) {
+			return {};
+		}
 		const parsed: unknown = JSON.parse(raw);
 		if (parsed && typeof parsed === "object") {
 			return Object.fromEntries(

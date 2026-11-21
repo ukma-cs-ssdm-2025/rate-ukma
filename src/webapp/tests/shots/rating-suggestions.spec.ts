@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { mockBackend } from "./fixtures/mockBackend";
@@ -205,8 +206,9 @@ for (const rateFlow of ["off", "pending"] as const) {
 	}) => {
 		const requests: string[] = [];
 		page.on("request", (request) => {
-			if (request.url().includes("/rating-suggestions/"))
+			if (request.url().includes("/rating-suggestions/")) {
 				requests.push(request.url());
+			}
 		});
 		await page.setViewportSize({ width: 1440, height: 900 });
 		await mockBackend(page, {
@@ -218,7 +220,9 @@ for (const rateFlow of ["off", "pending"] as const) {
 		await expect(
 			page.getByRole("heading", { name: "Мої оцінки", exact: true }),
 		).toBeVisible();
-		if (rateFlow === "off") await shot(page, "my-ratings-flag-off-1440");
+		if (rateFlow === "off") {
+			await shot(page, "my-ratings-flag-off-1440");
+		}
 		await expect(suggestions(page)).toHaveCount(0);
 
 		if (rateFlow === "off") {

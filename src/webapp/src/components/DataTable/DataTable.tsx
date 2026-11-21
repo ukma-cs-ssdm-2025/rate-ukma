@@ -5,11 +5,8 @@ import type {
 	ReactNode,
 } from "react";
 
-import {
-	type Column,
-	flexRender,
-	type Table as TanstackTable,
-} from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
+import type { Column, Table as TanstackTable } from "@tanstack/react-table";
 
 import { DataTablePagination } from "@/components/DataTable/DataTablePagination";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -180,10 +177,18 @@ export function DataTable<TData>({
 										data-clickable={onRowClick ? true : undefined}
 										className={cn(onRowClick && "group")}
 										onClick={(event) => {
-											if (!onRowClick) return;
-											if (isModifiedClick(event)) return;
-											if (hasActiveTextSelection()) return;
-											if (shouldIgnoreRowClickTarget(event.target)) return;
+											if (!onRowClick) {
+												return;
+											}
+											if (isModifiedClick(event)) {
+												return;
+											}
+											if (hasActiveTextSelection()) {
+												return;
+											}
+											if (shouldIgnoreRowClickTarget(event.target)) {
+												return;
+											}
 
 											onRowClick(row.original);
 										}}

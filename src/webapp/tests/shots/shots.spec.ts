@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import {
 	copyFileSync,
@@ -135,7 +136,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto("/");
 			await feedStrip(page).getByText("Студентський хакатон").waitFor();
 			const next = page.getByRole("button", { name: "Наступні" });
-			if (await next.isVisible()) await next.click({ timeout: 5_000 });
+			if (await next.isVisible()) {
+				await next.click({ timeout: 5_000 });
+			}
 		},
 	},
 	{
@@ -482,10 +485,14 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.goto(`/courses/${COURSE.id}`);
 			await page.getByText("Лекції насичені").first().waitFor();
 			const toggle = page.getByTestId("rating-comments-toggle-button").first();
-			if (await toggle.isVisible()) await toggle.click({ timeout: 5_000 });
+			if (await toggle.isVisible()) {
+				await toggle.click({ timeout: 5_000 });
+			}
 			await page.getByTestId("rating-comments-item").first().waitFor();
 			const replies = page.getByRole("button", { name: /відповідь/ }).first();
-			if (await replies.isVisible()) await replies.click({ timeout: 5_000 });
+			if (await replies.isVisible()) {
+				await replies.click({ timeout: 5_000 });
+			}
 			await page
 				.getByText("останні дві домашки обʼємні", { exact: false })
 				.waitFor();
@@ -501,7 +508,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.getByText(COURSE.title).first().waitFor();
 			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
 			if (await trigger.isVisible()) {
-				await trigger.click({ timeout: 5_000 });
+				await trigger.click({ timeout: 5000 });
 				await page.getByTestId(testIds.filters.drawer).waitFor();
 			} else {
 				await page.getByTestId(testIds.filters.panel).scrollIntoViewIfNeeded();
@@ -533,7 +540,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.getByText(COURSE.title).first().waitFor();
 			const trigger = page.getByTestId(testIds.filters.drawerTrigger);
 			if (await trigger.isVisible()) {
-				await trigger.click({ timeout: 5_000 });
+				await trigger.click({ timeout: 5000 });
 				await page.getByTestId(testIds.filters.drawer).waitFor();
 			}
 		},
@@ -571,8 +578,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.getByLabel("Діаграма розподілу дисциплін за корисністю та складністю")
 				.waitFor();
 			const zoomIn = page.getByRole("button", { name: /Збільшити|Наблизити/ });
-			if (await zoomIn.first().isVisible())
+			if (await zoomIn.first().isVisible()) {
 				await zoomIn.first().click({ timeout: 5_000 });
+			}
 		},
 	},
 	{
@@ -782,7 +790,9 @@ const ALL_STATES: ReadonlyArray<State> = [
 			const closed = page.locator(
 				`[data-testid="${testIds.myRatings.semesterTrigger}"][data-state="closed"]`,
 			);
-			while ((await closed.count()) > 0) await closed.first().click();
+			while ((await closed.count()) > 0) {
+				await closed.first().click();
+			}
 		},
 	},
 	{
@@ -869,7 +879,9 @@ const fileName = (state: string, width: string, theme: string) =>
 for (const width of WIDTHS) {
 	for (const theme of THEMES) {
 		for (const state of STATES) {
-			if (state.widths && !state.widths.includes(width.name)) continue;
+			if (state.widths && !state.widths.includes(width.name)) {
+				continue;
+			}
 			test(`${state.name} @ ${width.name} ${theme}`, async ({ page }) => {
 				await page.setViewportSize({
 					width: width.width,
@@ -897,10 +909,14 @@ for (const width of WIDTHS) {
 
 // One contact sheet, so a reviewer opens a single page.
 test.afterAll(() => {
-	if (!out) return;
+	if (!out) {
+		return;
+	}
 	mkdirSync(out, { recursive: true });
 	const pairedDir = join(out, "before");
-	if (beforeDir) mkdirSync(pairedDir, { recursive: true });
+	if (beforeDir) {
+		mkdirSync(pairedDir, { recursive: true });
+	}
 
 	const views = WIDTHS.flatMap((width) =>
 		THEMES.map((theme) => ({ id: `${width.name}-${theme}`, width, theme })),
@@ -913,11 +929,17 @@ test.afterAll(() => {
 
 	// Byte-identical screenshots mean nothing moved; the renderer is deterministic.
 	const status = (name: string): "same" | "changed" | "new" | "" => {
-		if (!beforeDir) return "";
+		if (!beforeDir) {
+			return "";
+		}
 		const before = join(beforeDir, name);
-		if (!existsSync(before)) return "new";
+		if (!existsSync(before)) {
+			return "new";
+		}
 		const copy = join(pairedDir, name);
-		if (resolve(before) !== resolve(copy)) copyFileSync(before, copy);
+		if (resolve(before) !== resolve(copy)) {
+			copyFileSync(before, copy);
+		}
 		return readFileSync(before).equals(readFileSync(join(out, name)))
 			? "same"
 			: "changed";

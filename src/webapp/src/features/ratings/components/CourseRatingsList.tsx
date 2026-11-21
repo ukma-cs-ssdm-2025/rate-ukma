@@ -13,7 +13,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { RatingCard } from "./RatingCard";
-import { RatingsSortSelect, type SortOption } from "./RatingsSortSelect";
+import { RatingsSortSelect } from "./RatingsSortSelect";
+import type { SortOption } from "./RatingsSortSelect";
 import { UserRatingCard } from "./UserRatingCard";
 import {
 	CANNOT_VOTE_BEFORE_MIDTERM_TEXT,
@@ -50,7 +51,9 @@ interface RatingsContentProps {
 }
 
 function emptyDescription(hasAttended: boolean, canRate: boolean): string {
-	if (!hasAttended) return "Їх залишають студенти, які слухали цю дисципліну.";
+	if (!hasAttended) {
+		return "Їх залишають студенти, які слухали цю дисципліну.";
+	}
 	if (!canRate) {
 		return "Перші відгуки з'являться, коли відкриється оцінювання.";
 	}
@@ -139,8 +142,11 @@ export function CourseRatingsList({
 	const [sortOption, setSortOption] = useRatingsSortOption();
 
 	let voteDisabledReason: string | undefined;
-	if (!hasAttended) voteDisabledReason = CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
-	else if (!canRate) voteDisabledReason = CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
+	if (!hasAttended) {
+		voteDisabledReason = CANNOT_VOTE_WITHOUT_ATTENDING_TEXT;
+	} else if (!canRate) {
+		voteDisabledReason = CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
+	}
 
 	const getSortParams = (option: SortOption) => {
 		switch (option) {

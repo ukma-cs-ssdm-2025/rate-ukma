@@ -11,10 +11,8 @@ import {
 	formatDate,
 	getSemesterDisplay,
 } from "@/features/courses/courseFormatting";
-import {
-	formatInstructorName,
-	type InstructorNameParts,
-} from "@/features/instructors/formatInstructorName";
+import { formatInstructorName } from "@/features/instructors/formatInstructorName";
+import type { InstructorNameParts } from "@/features/instructors/formatInstructorName";
 import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";

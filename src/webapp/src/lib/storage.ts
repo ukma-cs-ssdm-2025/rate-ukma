@@ -14,7 +14,9 @@ export class LocalStorageAdapter implements PersistentStorage {
 	getItem<T>(key: string): T | null {
 		try {
 			const rawValue = storage()?.getItem(key) ?? null;
-			if (rawValue === null) return null;
+			if (rawValue === null) {
+				return null;
+			}
 			return JSON.parse(rawValue) as T;
 		} catch {
 			return null;

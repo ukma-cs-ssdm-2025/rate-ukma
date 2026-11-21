@@ -131,7 +131,9 @@ export function getFacultyContrastTextColor(
 	hex: string,
 ): "#ffffff" | "#1a1a1a" {
 	const match = /^#([\dA-Fa-f]{6})$/.exec(hex.trim());
-	if (!match?.[1]) return "#ffffff";
+	if (!match?.[1]) {
+		return "#ffffff";
+	}
 
 	const channels = [0, 2, 4].map((offset) => {
 		const channel =
@@ -155,7 +157,9 @@ export interface FacultyAccent {
 export function getFacultyAccent(
 	facultyName: string | null | undefined,
 ): FacultyAccent | null {
-	if (!facultyName) return null;
+	if (!facultyName) {
+		return null;
+	}
 	const background = getFacultyHexColor(facultyName);
 	return { background, foreground: getFacultyContrastTextColor(background) };
 }

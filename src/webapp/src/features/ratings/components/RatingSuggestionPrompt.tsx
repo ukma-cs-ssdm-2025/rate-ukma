@@ -2,10 +2,8 @@ import { useId, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
-import {
-	useRatingSuggestions,
-	type RatingSuggestion,
-} from "../hooks/useRatingSuggestions";
+import { useRatingSuggestions } from "../hooks/useRatingSuggestions";
+import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
 import { RatingModal } from "./RatingModal";
 import { RatingSuggestions } from "./RatingSuggestions";
 
@@ -24,7 +22,9 @@ export function RatingSuggestionPrompt({
 	const [selected, setSelected] = useState<RatingSuggestion | null>(null);
 	const items = data?.slice(0, 1) ?? [];
 
-	if (!flowEnabled) return null;
+	if (!flowEnabled) {
+		return null;
+	}
 
 	return (
 		<>

@@ -1,19 +1,16 @@
-import {
-	type ComponentProps,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ComponentProps } from "react";
 
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-	type ColumnDef,
 	getCoreRowModel,
 	getPaginationRowModel,
-	type PaginationState,
-	type SortingState,
 	useReactTable,
+} from "@tanstack/react-table";
+import type {
+	ColumnDef,
+	PaginationState,
+	SortingState,
 } from "@tanstack/react-table";
 import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
 
@@ -50,15 +47,15 @@ import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
+import { CoursesReviewsSortMenu } from "./CoursesReviewsSortMenu";
+import type { CoursesReviewsSortOption } from "./CoursesReviewsSortMenu";
 import {
-	CoursesReviewsSortMenu,
-	type CoursesReviewsSortOption,
-} from "./CoursesReviewsSortMenu";
-import {
-	type CourseFiltersParamsSetter,
-	type CourseFiltersParamsState,
 	courseFiltersStateToSearchParams,
 	DEFAULT_COURSE_FILTERS_PARAMS,
+} from "../courseFiltersParams";
+import type {
+	CourseFiltersParamsSetter,
+	CourseFiltersParamsState,
 } from "../courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { transformFiltersToApiParams } from "../filterTransformations";
@@ -447,7 +444,9 @@ export function CoursesTable({
 	);
 
 	const reviewsSortValue = useMemo<CoursesReviewsSortOption | null>(() => {
-		if (params.diffOrder || params.useOrder) return null;
+		if (params.diffOrder || params.useOrder) {
+			return null;
+		}
 		return params.reviewSort ?? "by-count";
 	}, [params.diffOrder, params.useOrder, params.reviewSort]);
 
@@ -482,7 +481,9 @@ export function CoursesTable({
 	});
 
 	const attendedCourseIds = useMemo(() => {
-		if (!studentCourses) return new Set<string>();
+		if (!studentCourses) {
+			return new Set<string>();
+		}
 		return new Set(
 			studentCourses
 				.map((course) => course.id)
@@ -499,7 +500,9 @@ export function CoursesTable({
 
 	const handleRowClick = useCallback(
 		(course: CourseList) => {
-			if (!course.id) return;
+			if (!course.id) {
+				return;
+			}
 			navigate({
 				to: "/courses/$courseId",
 				params: { courseId: course.id },

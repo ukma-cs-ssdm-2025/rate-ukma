@@ -1,4 +1,5 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import { Logo } from "@/components/Logo";
 import { ModeToggle } from "@/components/ModeToggle";

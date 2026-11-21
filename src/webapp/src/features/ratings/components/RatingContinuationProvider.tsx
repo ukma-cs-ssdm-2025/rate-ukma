@@ -1,14 +1,12 @@
-import { useEffect, useState, type PropsWithChildren } from "react";
+import { useEffect, useState } from "react";
+import type { PropsWithChildren } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
-import {
-	RatingContinuationContext,
-	type SavedRating,
-	type FollowUpRating,
-} from "../RatingContinuationContext";
+import { RatingContinuationContext } from "../RatingContinuationContext";
+import type { SavedRating, FollowUpRating } from "../RatingContinuationContext";
 import { refreshRatingQueries } from "../refreshRatingQueries";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { useRatingSuggestions } from "../hooks/useRatingSuggestions";
@@ -30,7 +28,9 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 	const suggestions = useRatingSuggestions(completion?.courseId, !!completion);
 
 	useEffect(() => {
-		if (!completion) return;
+		if (!completion) {
+			return;
+		}
 		if (!flowEnabled || completion.pathname !== pathname) {
 			// The rating is saved either way; only the invitation is dropped.
 			void refreshRatingQueries(queryClient, completion.courseId);
@@ -41,11 +41,14 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 		let cancelled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		void refreshRatingQueries(queryClient, completion.courseId).then(() => {
-			if (cancelled) return;
+			if (cancelled) {
+				return;
+			}
 			timer = setTimeout(() => {
 				// Do not interrupt another action started during the pause.
-				if (!document.querySelector('[role="dialog"], [role="alertdialog"]'))
+				if (!document.querySelector('[role="dialog"], [role="alertdialog"]')) {
 					setVisible(true);
+				}
 			}, 500);
 		});
 		return () => {
@@ -58,8 +61,9 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 		if (
 			followUp &&
 			(!flowEnabled || pathname !== `/courses/${followUp.course_id}`)
-		)
+		) {
 			setFollowUp(null);
+		}
 	}, [followUp, flowEnabled, pathname]);
 
 	// Rated another course from a course page (the «Що оцінити далі» block):
@@ -101,7 +105,9 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 			<Dialog
 				open={flowEnabled && visible && completion?.pathname === pathname}
 				onOpenChange={(open) => {
-					if (!open) close();
+					if (!open) {
+						close();
+					}
 				}}
 			>
 				<DialogContent

@@ -82,8 +82,9 @@ function CourseDetailsRoute() {
 	} = useUserCourseRating(courseId);
 
 	React.useEffect(() => {
-		if (!isUserRatingLoading && arrival?.courseId !== courseId)
+		if (!isUserRatingLoading && arrival?.courseId !== courseId) {
 			setArrival({ courseId, rated: !!ratedOffering });
+		}
 	}, [arrival, courseId, isUserRatingLoading, ratedOffering]);
 
 	React.useEffect(() => {
@@ -93,8 +94,9 @@ function CourseDetailsRoute() {
 			isUserRatingLoading ||
 			isCourseLoading ||
 			isOfferingsLoading
-		)
+		) {
 			return;
+		}
 		const offering = attendedOfferings.find(
 			(item) => item.id === followUp.course_offering_id,
 		);
@@ -248,7 +250,9 @@ function CourseDetailsRoute() {
 					isOpen={isRatingModalOpen}
 					onClose={() => {
 						setIsRatingModalOpen(false);
-						if (followUp) continuation?.cancelFollowUp();
+						if (followUp) {
+							continuation?.cancelFollowUp();
+						}
 					}}
 					courseId={attendedCourseId}
 					offeringId={followUp?.course_offering_id ?? selectedOffering.id}

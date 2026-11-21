@@ -10,7 +10,8 @@ import { Text } from "@visx/text";
 import { TooltipWithBounds, useTooltip } from "@visx/tooltip";
 import { Minus, Plus } from "lucide-react";
 import { select } from "d3-selection";
-import { zoom as d3Zoom, type ZoomTransform, zoomIdentity } from "d3-zoom";
+import { zoom as d3Zoom, zoomIdentity } from "d3-zoom";
+import type { ZoomTransform } from "d3-zoom";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -25,12 +26,8 @@ import {
 	useCoursesFilterOptionsRetrieve,
 } from "@/lib/api/generated";
 import { getFacultyColors, getFacultyHexColor } from "@/lib/faculty-colors";
-import {
-	type CourseDataPoint,
-	computeLabelPoints,
-	type LabelPoint,
-	type Margin,
-} from "./scatterLabeling";
+import { computeLabelPoints } from "./scatterLabeling";
+import type { CourseDataPoint, LabelPoint, Margin } from "./scatterLabeling";
 import {
 	DIFFICULTY_RANGE,
 	getDifficultyTone,
@@ -294,7 +291,9 @@ function ScatterPlotContent({
 
 	// Setup zoom behavior
 	useEffect(() => {
-		if (!svgRef.current) return;
+		if (!svgRef.current) {
+			return;
+		}
 
 		const svg = select(svgRef.current);
 		const zoomBehavior = d3Zoom<SVGSVGElement, unknown>()
@@ -324,7 +323,9 @@ function ScatterPlotContent({
 	const handleMouseMove = useCallback(
 		(event: React.MouseEvent<SVGCircleElement>, point: CourseDataPoint) => {
 			const svg = svgRef.current;
-			if (!svg) return;
+			if (!svg) {
+				return;
+			}
 
 			const rect = svg.getBoundingClientRect();
 			const mouseX = event.clientX - rect.left;
@@ -368,7 +369,9 @@ function ScatterPlotContent({
 
 	const showLabels = labelPoints.length > 0;
 
-	if (width < 10 || height < 10) return null;
+	if (width < 10 || height < 10) {
+		return null;
+	}
 
 	return (
 		<>
@@ -609,7 +612,9 @@ function ScatterPlotContent({
 							size="icon-lg"
 							className="shadow-none"
 							onClick={() => {
-								if (!zoomRef.current || !svgRef.current) return;
+								if (!zoomRef.current || !svgRef.current) {
+									return;
+								}
 								zoomRef.current.scaleBy(select(svgRef.current), ZOOM_IN_FACTOR);
 							}}
 							aria-label="Збільшити"
@@ -621,7 +626,9 @@ function ScatterPlotContent({
 							size="icon-lg"
 							className="shadow-none"
 							onClick={() => {
-								if (!zoomRef.current || !svgRef.current) return;
+								if (!zoomRef.current || !svgRef.current) {
+									return;
+								}
 								zoomRef.current.scaleBy(
 									select(svgRef.current),
 									ZOOM_OUT_FACTOR,

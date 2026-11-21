@@ -32,12 +32,14 @@ import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
 import {
 	areFiltersActive,
 	COURSE_TYPE_FILTER_LABELS,
-	type CourseFiltersData,
-	type EducationLevelToggle,
-	type RangeFilterConfig,
-	type SelectFilterConfig,
-	type SemesterTermToggle,
 	useCourseFiltersData,
+} from "../hooks/useCourseFiltersData";
+import type {
+	CourseFiltersData,
+	EducationLevelToggle,
+	RangeFilterConfig,
+	SelectFilterConfig,
+	SemesterTermToggle,
 } from "../hooks/useCourseFiltersData";
 
 interface CourseFiltersBaseProps {
@@ -183,7 +185,9 @@ function SemesterTermToggleControl({
 	toggle: SemesterTermToggle;
 	onTermToggle: (values: string[]) => void;
 }>) {
-	if (toggle.options.length === 0) return null;
+	if (toggle.options.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="space-y-3">
@@ -236,7 +240,9 @@ function CourseTypeToggleControl({
 		(a, b) =>
 			COURSE_TYPE_ORDER.indexOf(a.value) - COURSE_TYPE_ORDER.indexOf(b.value),
 	);
-	if (options.length === 0) return null;
+	if (options.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="space-y-3">
@@ -276,7 +282,9 @@ function EducationLevelToggleControl({
 	toggle: EducationLevelToggle;
 	onToggle: (value: string) => void;
 }>) {
-	if (toggle.options.length === 0) return null;
+	if (toggle.options.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="space-y-3">

@@ -158,7 +158,9 @@ export function RatingVotes({
 
 	// Debounced sync effect
 	useEffect(() => {
-		if (userVote === serverVote) return;
+		if (userVote === serverVote) {
+			return;
+		}
 
 		let isMounted = true;
 

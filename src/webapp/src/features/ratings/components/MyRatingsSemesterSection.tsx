@@ -36,16 +36,23 @@ function semesterTiming(
 	now: Date,
 ): SemesterTiming {
 	const startMonth = TERM_START_MONTH[season?.toUpperCase() ?? ""];
-	if (year == null || startMonth == null) return "past";
-	if (now < new Date(year, startMonth, 1)) return "future";
+	if (year == null || startMonth == null) {
+		return "past";
+	}
+	if (now < new Date(year, startMonth, 1)) {
+		return "future";
+	}
 	return now < new Date(year, startMonth + 4, 1) ? "current" : "past";
 }
 
 function currentPeriod(now: Date): string {
 	const month = now.getMonth();
 	let term = "SPRING";
-	if (month >= TERM_START_MONTH.FALL) term = "FALL";
-	else if (month >= TERM_START_MONTH.SUMMER) term = "SUMMER";
+	if (month >= TERM_START_MONTH.FALL) {
+		term = "FALL";
+	} else if (month >= TERM_START_MONTH.SUMMER) {
+		term = "SUMMER";
+	}
 	return `${now.getFullYear()}-${term}`;
 }
 
@@ -106,7 +113,9 @@ function SemesterStatus({
 	}
 	const left = seasonGroup.unratedRateableCount;
 	if (left > 0) {
-		if (open) return null;
+		if (open) {
+			return null;
+		}
 		return (
 			<span className="font-medium text-primary">
 				Оцініть ще {left} {COURSE_FORMS[UK_PLURAL.select(left)]}
@@ -164,7 +173,9 @@ export function MyRatingsSemesterSection({
 		return [...seasonGroup.items].sort((a, b) => {
 			const ratedA = a.rated ? 1 : 0;
 			const ratedB = b.rated ? 1 : 0;
-			if (ratedA !== ratedB) return ratedA - ratedB;
+			if (ratedA !== ratedB) {
+				return ratedA - ratedB;
+			}
 			return (a.course_title ?? "").localeCompare(b.course_title ?? "");
 		});
 	}, [seasonGroup.items]);

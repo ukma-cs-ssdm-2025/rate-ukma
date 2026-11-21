@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/Button";
 import { env } from "@/env";
 import { authSessionRetrieve } from "@/lib/api/generated";
 import {
-	type ConnectionIssueReason,
 	BOUNCES_PARAM,
 	isOffline,
 	parseBounceCount,
 	resetRedirectFlag,
 } from "@/lib/api/networkError";
+import type { ConnectionIssueReason } from "@/lib/api/networkError";
 
 export type ConnectionErrorSearch = {
 	reason?: ConnectionIssueReason;
