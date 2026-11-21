@@ -6,28 +6,13 @@ import {
 	CANNOT_VOTE_OWN_RATING_TEXT,
 	DEFAULT_STUDENT_NAME,
 } from "@/features/ratings/definitions/ratingDefinitions";
-import type {
-	CommentAuthor,
-	InlineRating,
-	RatingInstructor,
-	RatingRead,
-	RatingVoteStrType,
-} from "@/lib/api/generated";
+import type { InlineRating, RatingRead } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { RatingCardBody } from "./RatingCardBody";
 
-interface ExtendedRating extends InlineRating {
-	upvotes?: number;
-	downvotes?: number;
-	viewer_vote?: RatingVoteStrType | null;
-	comments_count?: number;
-	comment_authors?: CommentAuthor[];
-	instructors?: RatingInstructor[];
-}
-
 interface UserRatingCardProps {
-	readonly rating: RatingRead | ExtendedRating;
+	readonly rating: RatingRead | InlineRating;
 	readonly courseId?: string;
 	readonly onEdit: () => void;
 	readonly onDelete: () => void;
@@ -54,10 +39,9 @@ export function UserRatingCard({
 		return DEFAULT_STUDENT_NAME;
 	};
 	const displayName = getUserDisplayName();
-	const offering =
-		"course_offering_year" in rating
-			? { year: rating.course_offering_year, term: rating.course_offering_term }
-			: undefined;
+	// The course page passes the full read model; right after saving, only the
+	// inline rating from the student's courses is known.
+	const read = "course_offering_year" in rating ? rating : null;
 
 	return (
 		<article
@@ -94,24 +78,24 @@ export function UserRatingCard({
 
 			<RatingCardBody
 				displayName={displayName}
-				isAnonymous={rating.is_anonymous ?? false}
+				isAnonymous={rating.is_anonymous}
 				avatarUrl={!rating.is_anonymous ? user?.avatarUrl : undefined}
 				createdAt={rating.created_at}
-				offeringYear={offering?.year}
-				offeringTerm={offering?.term}
+				offeringYear={read?.course_offering_year}
+				offeringTerm={read?.course_offering_term}
 				difficulty={rating.difficulty}
 				usefulness={rating.usefulness}
 				comment={rating.comment}
 				instructor={rating.instructor}
-				instructors={rating.instructors ?? []}
+				instructors={rating.instructors}
 				commentEmptyMessage="Ви не залишили коментар."
 				ratingId={rating.id}
 				courseId={courseId}
-				upvotes={rating.upvotes ?? 0}
-				downvotes={rating.downvotes ?? 0}
-				viewerVote={rating.viewer_vote ?? null}
-				commentsCount={rating.comments_count ?? 0}
-				commentAuthors={rating.comment_authors ?? []}
+				upvotes={read?.upvotes ?? 0}
+				downvotes={read?.downvotes ?? 0}
+				viewerVote={read?.viewer_vote ?? null}
+				commentsCount={read?.comments_count ?? 0}
+				commentAuthors={read?.comment_authors ?? []}
 				voteDisabledReason={CANNOT_VOTE_OWN_RATING_TEXT}
 			/>
 		</article>

@@ -16,13 +16,7 @@ function factText(value: string | null): string | null {
 function firstTerm(
 	offering: CourseOffering | undefined,
 ): CourseOfferingTerm | undefined {
-	if (!offering) return undefined;
-	return (
-		offering.terms?.[0] ??
-		(offering.semester_term
-			? { semester_term: offering.semester_term }
-			: undefined)
-	);
+	return offering?.terms[0];
 }
 
 // The load a student weighs first when enrolling, from the latest offering.
@@ -41,7 +35,7 @@ export function offeringExamType(
 	offering: CourseOffering | undefined,
 ): string | null {
 	const examType = firstTerm(offering)?.exam_type ?? offering?.exam_type;
-	return getExamTypeDisplay(examType ?? null, "") || null;
+	return examType ? getExamTypeDisplay(examType) : null;
 }
 
 interface CourseAboutProps {

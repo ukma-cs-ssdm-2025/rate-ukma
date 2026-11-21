@@ -8,14 +8,20 @@ import type {
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import type {
 	CourseList,
+	CourseOffering,
+	CourseOfferingSpeciality,
+	CourseOfferingSpecialityInline,
+	CourseOfferingTerm,
 	CourseTypeOption,
 	DepartmentOption,
 	FacultyOption,
 	FilterOptions,
+	InlineRatingDetailed,
 	InstructorOption,
 	SemesterTermOption,
 	SemesterYearOption,
 	SpecialityOption,
+	StudentRatingsDetailed,
 } from "@/lib/api/generated";
 
 /**
@@ -34,12 +40,18 @@ export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 	return {
 		id: faker.string.uuid(),
 		title: faker.lorem.words(3),
+		description: null,
 		status: faker.helpers.arrayElement([
 			"PLANNED",
 			"ACTIVE",
 			"FINISHED",
 		] as const),
+		education_level: null,
+		department: faker.string.uuid(),
+		department_name: faker.lorem.words(3),
+		faculty: faker.string.uuid(),
 		faculty_name: faker.helpers.arrayElement(facultyNames),
+		faculty_custom_abbreviation: null,
 		avg_difficulty: faker.number.float({ min: 1, max: 5, fractionDigits: 2 }),
 		avg_usefulness: faker.number.float({
 			min: 1,
@@ -141,7 +153,7 @@ export function createMockCourseType(
 	const courseTypes = [
 		{ value: "COMPULSORY", label: "Обов'язковий" },
 		{ value: "ELECTIVE", label: "Вибірковий" },
-		{ value: "FREE_CHOICE", label: "Вільного вибору" },
+		{ value: "PROF_ORIENTED", label: "Професійно-орієнтований" },
 	] as const;
 	const courseType = faker.helpers.arrayElement(courseTypes);
 	return {
@@ -307,6 +319,110 @@ export function createMockFeedState(
 		isRefetching: false,
 		refetch: () => {},
 		loaderRef: { current: null },
+		...overrides,
+	};
+}
+
+export function createMockSpecialityInline(
+	overrides?: Partial<CourseOfferingSpecialityInline>,
+): CourseOfferingSpecialityInline {
+	return {
+		speciality_id: faker.string.uuid(),
+		speciality_title: faker.lorem.words(2),
+		speciality_alias: "",
+		faculty_id: faker.string.uuid(),
+		faculty_name: faker.lorem.words(3),
+		type_kind: "COMPULSORY",
+		...overrides,
+	};
+}
+
+export function createMockOfferingTerm(
+	overrides?: Partial<CourseOfferingTerm>,
+): CourseOfferingTerm {
+	return {
+		id: faker.string.uuid(),
+		offering_id: faker.string.uuid(),
+		semester_id: faker.string.uuid(),
+		semester_year: 2026,
+		semester_term: "SPRING",
+		exam_type: "EXAM",
+		practice_type: null,
+		credits: "5.0",
+		weekly_hours: 4,
+		total_hours: null,
+		lecture_count: null,
+		practice_count: null,
+		...overrides,
+	};
+}
+
+export function createMockOffering(
+	overrides?: Partial<CourseOffering>,
+): CourseOffering {
+	return {
+		id: faker.string.uuid(),
+		course_id: faker.string.uuid(),
+		course_title: null,
+		semester_id: faker.string.uuid(),
+		semester_year: 2026,
+		semester_term: "Spring",
+		code: faker.string.numeric(6),
+		exam_type: "EXAM",
+		study_year: null,
+		max_students: null,
+		max_groups: null,
+		group_size_min: null,
+		group_size_max: null,
+		instructors: [],
+		specialities: [],
+		terms: [],
+		...overrides,
+	};
+}
+
+export function createMockInlineRatingDetailed(
+	overrides?: Partial<InlineRatingDetailed>,
+): InlineRatingDetailed {
+	return {
+		id: faker.string.uuid(),
+		difficulty: faker.number.int({ min: 1, max: 5 }),
+		usefulness: faker.number.int({ min: 1, max: 5 }),
+		comment: "",
+		instructor: null,
+		instructors: [],
+		created_at: faker.date.recent().toISOString(),
+		is_anonymous: false,
+		...overrides,
+	};
+}
+
+export function createMockStudentRating(
+	overrides?: Partial<StudentRatingsDetailed>,
+): StudentRatingsDetailed {
+	return {
+		course_id: faker.string.uuid(),
+		course_title: faker.lorem.words(3),
+		course_code: null,
+		course_offering_id: faker.string.uuid(),
+		faculty_name: null,
+		semester: { year: 2025, season: "FALL" },
+		rated: null,
+		can_rate: true,
+		...overrides,
+	};
+}
+
+export function createMockOfferingSpeciality(
+	overrides?: Partial<CourseOfferingSpeciality>,
+): CourseOfferingSpeciality {
+	return {
+		speciality_id: faker.string.uuid(),
+		speciality_title: faker.lorem.words(2),
+		speciality_alias: null,
+		faculty_id: faker.string.uuid(),
+		faculty_name: faker.lorem.words(3),
+		type_kind: "COMPULSORY",
 		...overrides,
 	};
 }

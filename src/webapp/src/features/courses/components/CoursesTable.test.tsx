@@ -7,6 +7,7 @@ import { testIds } from "@/lib/test-ids";
 import {
 	createMockCourse,
 	createMockFilterOptions,
+	createMockSpecialityInline,
 } from "@/test-utils/factories";
 import { renderWithProviders } from "@/test-utils/render";
 import { CoursesTable } from "./CoursesTable";
@@ -503,11 +504,10 @@ describe("Course Display", () => {
 			createMockCourse({
 				title: "Test Course",
 				specialities: [
-					{
+					createMockSpecialityInline({
 						speciality_id: "spec-1",
 						speciality_title: "Інженерія програмного забезпечення",
-						type_kind: "COMPULSORY" as const,
-					},
+					}),
 				],
 			}),
 		];
@@ -651,12 +651,13 @@ describe("Course Row Navigation", () => {
 		const courseId = "course-2";
 		const courseTitle = "Badges Course";
 
-		const specialities = Array.from({ length: 7 }, (_, i) => ({
-			speciality_id: `spec-${i + 1}`,
-			speciality_title: `Speciality ${i + 1}`,
-			faculty_name: "Факультет інформатики",
-			type_kind: "COMPULSORY" as const,
-		}));
+		const specialities = Array.from({ length: 7 }, (_, i) =>
+			createMockSpecialityInline({
+				speciality_id: `spec-${i + 1}`,
+				speciality_title: `Speciality ${i + 1}`,
+				faculty_name: "Факультет інформатики",
+			}),
+		);
 
 		const courses = [
 			createMockCourse({

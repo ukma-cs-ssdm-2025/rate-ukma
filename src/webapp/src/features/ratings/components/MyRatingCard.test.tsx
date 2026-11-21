@@ -7,6 +7,10 @@ import { testIds } from "@/lib/test-ids";
 import { renderWithProviders } from "@/test-utils/render";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "../definitions/ratingDefinitions";
 import { MyRatingCard } from "./MyRatingCard";
+import {
+	createMockInlineRatingDetailed,
+	createMockStudentRating,
+} from "@/test-utils/factories";
 
 vi.mock("@tanstack/react-router", async () => {
 	const actual = await vi.importActual("@tanstack/react-router");
@@ -21,15 +25,13 @@ vi.mock("@tanstack/react-router", async () => {
 function makeCourse(
 	overrides?: Partial<StudentRatingsDetailed>,
 ): StudentRatingsDetailed {
-	return {
+	return createMockStudentRating({
 		course_id: "course-1",
 		course_title: "Тестовий курс",
 		course_code: "C101",
 		course_offering_id: "offering-1",
-		can_rate: true,
-		rated: null,
 		...overrides,
-	};
+	});
 }
 
 describe("MyRatingCard", () => {
@@ -37,7 +39,11 @@ describe("MyRatingCard", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+					rated: createMockInlineRatingDetailed({
+						id: "rating-1",
+						difficulty: 4,
+						usefulness: 5,
+					}),
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
@@ -56,12 +62,12 @@ describe("MyRatingCard", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					rated: {
+					rated: createMockInlineRatingDetailed({
 						id: "rating-1",
 						difficulty: 4,
 						usefulness: 5,
 						comment: "Багато практики, але саме вона вчить думати",
-					},
+					}),
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
@@ -76,7 +82,11 @@ describe("MyRatingCard", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+					rated: createMockInlineRatingDetailed({
+						id: "rating-1",
+						difficulty: 4,
+						usefulness: 5,
+					}),
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
@@ -93,12 +103,12 @@ describe("MyRatingCard", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					rated: {
+					rated: createMockInlineRatingDetailed({
 						id: "rating-1",
 						difficulty: 4,
 						usefulness: 5,
 						comment: "Корисно",
-					},
+					}),
 				})}
 				onRatingChanged={vi.fn()}
 			/>,
@@ -113,7 +123,11 @@ describe("MyRatingCard", () => {
 		renderWithProviders(
 			<MyRatingCard
 				course={makeCourse({
-					rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+					rated: createMockInlineRatingDetailed({
+						id: "rating-1",
+						difficulty: 4,
+						usefulness: 5,
+					}),
 				})}
 				onRatingChanged={vi.fn()}
 			/>,

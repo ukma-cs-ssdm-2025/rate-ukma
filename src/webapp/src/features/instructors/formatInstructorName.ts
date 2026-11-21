@@ -1,4 +1,4 @@
-interface InstructorNameParts {
+export interface InstructorNameParts {
 	readonly last_name?: string;
 	readonly first_name?: string;
 	readonly patronymic?: string;

@@ -8,22 +8,39 @@ import {
 	formatCredits,
 	formatWeeklyHours,
 	getSemesterTermDisplay,
+	parseSemesterTerm,
 } from "@/features/courses/courseFormatting";
 import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
-import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
+import type {
+	CourseOffering,
+	CourseOfferingTerm,
+	SemesterTermEnum,
+} from "@/lib/api/generated";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
 const MAX_RECORDS_PER_YEAR = 3;
 
-const TERM_ORDER: Record<string, number> = {
+const TERM_ORDER = {
 	FALL: 0,
 	SPRING: 1,
 	SUMMER: 2,
-};
+} satisfies Record<SemesterTermEnum, number>;
 
-function termRank(term?: string | null): number {
-	return TERM_ORDER[(term ?? "").toUpperCase()] ?? 99;
+function termRank(label: string | null): number {
+	const term = parseSemesterTerm(label);
+	return term === null ? 99 : TERM_ORDER[term];
 }
+
+function knownTerms(terms: readonly TermSummary[]): SemesterTermEnum[] {
+	return terms.flatMap((term) => {
+		const parsed = parseSemesterTerm(term.semester_term);
+		return parsed === null ? [] : [parsed];
+	});
+}
+
+// Older offerings carry no term rows; the offering's own term stands in.
+type TermSummary = Pick<CourseOfferingTerm, "semester_year" | "semester_term"> &
+	Partial<Pick<CourseOfferingTerm, "credits" | "weekly_hours">>;
 
 function sortOfferings(items: readonly CourseOffering[]): CourseOffering[] {
 	return [...items].sort(
@@ -33,9 +50,16 @@ function sortOfferings(items: readonly CourseOffering[]): CourseOffering[] {
 	);
 }
 
-function offeringTerms(offering: CourseOffering): CourseOfferingTerm[] {
-	const terms = offering.terms ?? [];
-	if (terms.length === 0) return [{ semester_term: offering.semester_term }];
+function offeringTerms(offering: CourseOffering): TermSummary[] {
+	const terms = offering.terms;
+	if (terms.length === 0) {
+		return [
+			{
+				semester_year: offering.semester_year,
+				semester_term: offering.semester_term,
+			},
+		];
+	}
 	return [...terms].sort(
 		(a, b) =>
 			(a.semester_year ?? 0) - (b.semester_year ?? 0) ||
@@ -43,7 +67,7 @@ function offeringTerms(offering: CourseOffering): CourseOfferingTerm[] {
 	);
 }
 
-function formatLoad(term: CourseOfferingTerm | undefined): string {
+function formatLoad(term: TermSummary | undefined): string {
 	return [formatCredits(term?.credits), formatWeeklyHours(term?.weekly_hours)]
 		.filter(Boolean)
 		.join(", ");
@@ -58,18 +82,17 @@ export function getLatestOffering(
 // The header names the terms only; credits and hours live in the rail.
 export function getLatestOfferingTerms(
 	offerings: readonly CourseOffering[],
-): string[] {
+): SemesterTermEnum[] {
 	const latest = sortOfferings(offerings)[0];
 	if (!latest) return [];
-	const terms = offeringTerms(latest).map((term) => term.semester_term);
-	return [...new Set(terms)].filter((term): term is string => Boolean(term));
+	return [...new Set(knownTerms(offeringTerms(latest)))];
 }
 
 function runsInOneTerm(offerings: readonly CourseOffering[]): boolean {
 	const terms = new Set(
 		offerings.flatMap((offering) =>
 			offeringTerms(offering).map((term) =>
-				(term.semester_term ?? "").toUpperCase(),
+				parseSemesterTerm(term.semester_term),
 			),
 		),
 	);
@@ -82,17 +105,14 @@ function loadSignature(offering: CourseOffering): string {
 
 // One САЗ page can span several terms (e.g. fall and spring on one code).
 function termsLabel(offering: CourseOffering): string {
-	const seasons = new Set(
-		offeringTerms(offering).map((term) => term.semester_term ?? ""),
-	);
+	const seasons = new Set(knownTerms(offeringTerms(offering)));
 	return [...seasons]
-		.filter(Boolean)
 		.map((season) => getSemesterTermDisplay(season))
 		.join(", ");
 }
 
 function specialitiesLabel(offering: CourseOffering): string {
-	return (offering.specialities ?? [])
+	return offering.specialities
 		.map(
 			(speciality) =>
 				speciality.speciality_alias || speciality.speciality_title,

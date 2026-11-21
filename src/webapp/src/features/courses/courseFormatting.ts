@@ -1,3 +1,5 @@
+import type { SemesterTermEnum } from "@/lib/api/generated";
+
 export const DIFFICULTY_RANGE: [number, number] = [1, 5];
 export const USEFULNESS_RANGE: [number, number] = [1, 5];
 export const CREDITS_RANGE: [number, number] = [0.5, 20];
@@ -72,11 +74,15 @@ const COURSE_TYPE_LABELS: Record<string, string> = {
 	PROF_ORIENTED: "Професійно-орієнтований",
 };
 
-const SEMESTER_TERM_LABELS: Record<string, string> = {
+const SEMESTER_TERM_LABELS = {
 	FALL: "Осінь",
 	SPRING: "Весна",
 	SUMMER: "Літо",
-};
+} satisfies Record<SemesterTermEnum, string>;
+
+function isSemesterTerm(value: string): value is SemesterTermEnum {
+	return Object.hasOwn(SEMESTER_TERM_LABELS, value);
+}
 
 export function getCourseTypeDisplay(value: string, fallback?: string): string {
 	return COURSE_TYPE_LABELS[value] ?? fallback ?? value;
@@ -95,11 +101,23 @@ export function getExamTypeDisplay(
 	return EXAM_TYPE_LABELS[value.toUpperCase()] ?? fallback ?? value;
 }
 
+/**
+ * Course offerings send the term's label ("Spring") while every other
+ * endpoint sends the value ("SPRING"); read both as the enum.
+ */
+export function parseSemesterTerm(
+	value: string | null | undefined,
+): SemesterTermEnum | null {
+	const upper = value?.toUpperCase();
+	return upper !== undefined && isSemesterTerm(upper) ? upper : null;
+}
+
 export function getSemesterTermDisplay(
 	term: string,
 	fallback?: string,
 ): string {
-	return SEMESTER_TERM_LABELS[term.toUpperCase()] ?? fallback ?? term;
+	const parsed = parseSemesterTerm(term);
+	return parsed === null ? (fallback ?? term) : SEMESTER_TERM_LABELS[parsed];
 }
 
 export function getSemesterDisplay(
