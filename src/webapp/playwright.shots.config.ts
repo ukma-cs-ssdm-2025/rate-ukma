@@ -21,7 +21,10 @@ export default defineConfig({
 		: {
 				command: `vite build && vite preview --port ${port} --strictPort --host 127.0.0.1`,
 				url: `http://127.0.0.1:${port}`,
-				env: { VITE_API_BASE_URL: "http://localhost:9" },
+				env: {
+					VITE_API_BASE_URL: "http://localhost:9",
+					VITE_QUERY_RETRY: "off",
+				},
 				reuseExistingServer: false,
 				timeout: 120_000,
 			},

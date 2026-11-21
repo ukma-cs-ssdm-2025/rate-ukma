@@ -62,32 +62,6 @@ async function scrollToFooterLink(page: Page) {
 	await expectUncovered(page.getByTestId(testIds.footer.repoLink));
 }
 
-async function openThroughRetries(
-	page: Page,
-	pathname: string,
-	open: () => Promise<unknown>,
-): Promise<void> {
-	let failures = 0;
-	page.on("response", (response) => {
-		const url = new URL(response.url());
-		if (url.pathname === pathname && response.status() === 500) {
-			failures += 1;
-		}
-	});
-	await open();
-	await expect.poll(() => failures).toBeGreaterThanOrEqual(1);
-	for (let retry = 0; retry < 3; retry++) {
-		const target = failures + 1;
-		for (let step = 0; step < 30 && failures < target; step++) {
-			await page.waitForTimeout(20);
-			await page.clock.runFor(1000);
-		}
-		if (failures < target) {
-			throw new Error(`No retry reached ${pathname}`);
-		}
-	}
-}
-
 async function expectUncovered(target: Locator) {
 	const uncovered = await target.evaluate((el) => {
 		const r = el.getBoundingClientRect();
@@ -189,9 +163,8 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Стрічка",
 		note: "/feed when the feed endpoint answers 500",
 		run: async (page) => {
-			await page.clock.install({ time: NOW });
 			await mockBackend(page, { feed: "error" });
-			await openThroughRetries(page, "/api/v1/feed/", () => page.goto("/feed"));
+			await page.goto("/feed");
 			await page.getByTestId("feed-error-state").waitFor();
 		},
 	},
@@ -210,9 +183,8 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Вхід і помилки",
 		note: "Courses page when the course list answers 500",
 		run: async (page) => {
-			await page.clock.install({ time: NOW });
 			await mockBackend(page, { courses: "error" });
-			await openThroughRetries(page, "/api/v1/courses/", () => page.goto("/"));
+			await page.goto("/");
 			await page.getByTestId("courses-error-state").waitFor();
 		},
 	},

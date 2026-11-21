@@ -12,6 +12,7 @@ const rawEnv = createEnv({
 		VITE_ENVIRONMENT: z
 			.enum(["development", "staging", "live"])
 			.default("development"),
+		VITE_QUERY_RETRY: z.enum(["on", "off"]).default("on"),
 	},
 
 	runtimeEnv: import.meta.env,
