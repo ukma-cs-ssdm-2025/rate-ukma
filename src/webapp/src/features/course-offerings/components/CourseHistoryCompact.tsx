@@ -1,8 +1,9 @@
-import { Fragment, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 import { ChevronDown, ExternalLink } from "lucide-react";
 
 import type { CourseOffering } from "@/lib/api/generated";
+import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
 import {
 	BASE_CAZ_URL,
@@ -32,33 +33,129 @@ function yearNote(group: YearGroup, current: YearGroup | undefined): string {
 		.join(", ");
 }
 
-// A stream is named by what tells it apart within its year.
-function streamLabels(records: readonly CourseOffering[]): string[] {
-	const differ = (pick: (record: CourseOffering) => unknown) =>
-		new Set(records.map(pick)).size > 1;
-	const bySpeciality = differ(specialitiesLabel);
-	const byStudyYear = differ((record) => record.study_year);
-	return records.map((record) => {
-		const label = [
-			bySpeciality ? specialitiesLabel(record) : null,
-			byStudyYear && record.study_year ? `${record.study_year} курс` : null,
-		]
-			.filter(Boolean)
-			.join(", ");
-		return label || (record.code ? `код ${record.code}` : "Запис у САЗ");
-	});
-}
-
-function streamsWord(count: number): string {
+function plural(count: number, one: string, few: string, many: string) {
 	const mod10 = count % 10;
 	const mod100 = count % 100;
 	if (mod10 === 1 && mod100 !== 11) {
-		return "потік";
+		return one;
 	}
 	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-		return "потоки";
+		return few;
 	}
-	return "потоків";
+	return many;
+}
+
+// САЗ keeps one record per group of students; within a year they usually
+// differ by speciality, sometimes by study year.
+interface Split {
+	bySpeciality: boolean;
+	byStudyYear: boolean;
+	summary: string;
+}
+
+function splitOf(records: readonly CourseOffering[]): Split {
+	const differ = (
+		pick: (record: CourseOffering) => string | number | null | undefined,
+	) => new Set(records.map(pick)).size > 1;
+	const bySpeciality = differ(specialitiesLabel);
+	const byStudyYear = differ((record) => record.study_year);
+	if (bySpeciality) {
+		const count = new Set(
+			records.flatMap((record) =>
+				record.specialities.map((speciality) => speciality.speciality_id),
+			),
+		).size;
+		return {
+			bySpeciality,
+			byStudyYear,
+			summary: `${count} ${plural(count, "спеціальність", "спеціальності", "спеціальностей")}`,
+		};
+	}
+	if (byStudyYear) {
+		const years = [
+			...new Set(records.flatMap((record) => record.study_year ?? [])),
+		].sort((a, b) => a - b);
+		return {
+			bySpeciality,
+			byStudyYear,
+			summary: `${years.slice(0, -1).join(", ")} і ${years.at(-1)} курс`,
+		};
+	}
+	return {
+		bySpeciality,
+		byStudyYear,
+		summary: `${records.length} ${plural(records.length, "запис", "записи", "записів")}`,
+	};
+}
+
+// Same-faculty specialities sit together, so the colours read as groups.
+function facultyKey(record: CourseOffering): string {
+	return `${record.specialities[0]?.faculty_name ?? ""}|${specialitiesLabel(record)}`;
+}
+
+function byFaculty(records: readonly CourseOffering[]): CourseOffering[] {
+	return [...records].sort((a, b) =>
+		facultyKey(a).localeCompare(facultyKey(b), "uk"),
+	);
+}
+
+const pill =
+	"inline-flex max-w-full items-baseline gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-[box-shadow,color] hover:ring-1 hover:ring-current/30";
+
+function RecordPills({
+	records,
+	split,
+}: Readonly<{ records: readonly CourseOffering[]; split: Split }>) {
+	return (
+		<div className="flex flex-wrap gap-1.5">
+			{byFaculty(records).flatMap((record) => {
+				const href = record.code ? cazUrl(record.code) : undefined;
+				const year =
+					split.byStudyYear && record.study_year
+						? `${record.study_year} курс`
+						: null;
+				const icon = href ? (
+					<ExternalLink
+						className="size-3 shrink-0 self-center opacity-60"
+						aria-hidden="true"
+					/>
+				) : null;
+				if (!split.bySpeciality) {
+					return [
+						<a
+							key={record.id ?? record.code}
+							href={href}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={cn(pill, "bg-muted text-foreground/80")}
+						>
+							{year ?? `код ${record.code}`}
+							{icon}
+						</a>,
+					];
+				}
+				return record.specialities.map((speciality) => {
+					const colors = getFacultyColors(speciality.faculty_name || "");
+					return (
+						<a
+							key={`${record.id}-${speciality.speciality_id}`}
+							href={href}
+							target="_blank"
+							rel="noopener noreferrer"
+							title={speciality.faculty_name ?? undefined}
+							className={cn(pill, colors.bg, colors.text)}
+						>
+							<span>
+								{speciality.speciality_title}
+								{year ? `, ${year}` : null}
+							</span>
+							{icon}
+						</a>
+					);
+				});
+			})}
+		</div>
+	);
 }
 
 function YearLine({
@@ -68,25 +165,17 @@ function YearLine({
 	const [open, setOpen] = useState(false);
 	const listId = useId();
 	const single = group.records.length === 1 ? group.records[0] : null;
-	const labels = single ? [] : streamLabels(group.records);
+	const split = single ? null : splitOf(group.records);
 
 	return (
 		<li className="py-2">
 			<div className="flex items-baseline justify-between gap-3">
-				<div className="min-w-0">
+				{/* The note drops under the year as a whole rather than splitting. */}
+				<div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
 					<span className="font-medium tabular-nums">{group.year}</span>
 					{note ? (
-						<span className="ml-2 text-muted-foreground">
-							{/* Break only between facts, so «4 ECTS» never splits. */}
-							{note.split(", ").map((fact, index, facts) => (
-								<Fragment key={fact}>
-									{index > 0 ? " " : null}
-									<span className="whitespace-nowrap">
-										{fact}
-										{index < facts.length - 1 ? "," : null}
-									</span>
-								</Fragment>
-							))}
+						<span className="whitespace-nowrap text-muted-foreground">
+							{note}
 						</span>
 					) : null}
 				</div>
@@ -109,7 +198,7 @@ function YearLine({
 						onClick={() => setOpen((value) => !value)}
 						className="inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
 					>
-						{group.records.length} {streamsWord(group.records.length)}
+						{split?.summary}
 						<ChevronDown
 							className={cn(
 								"size-3.5 transition-transform",
@@ -120,25 +209,10 @@ function YearLine({
 					</button>
 				)}
 			</div>
-			{open && !single ? (
-				<ul id={listId} className="mt-2 space-y-1.5 border-l pl-3">
-					{group.records.map((record, index) => (
-						<li key={record.id ?? record.code}>
-							<a
-								href={record.code ? cazUrl(record.code) : undefined}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-primary"
-							>
-								{labels[index]}
-								<ExternalLink
-									className="ml-1 inline size-3 align-baseline"
-									aria-hidden="true"
-								/>
-							</a>
-						</li>
-					))}
-				</ul>
+			{open && split ? (
+				<div id={listId} className="mt-2.5 mb-1">
+					<RecordPills records={group.records} split={split} />
+				</div>
 			) : null}
 		</li>
 	);

@@ -26,12 +26,12 @@ const STATES: State[] = [
 	{
 		name: "7-streams-open",
 		history: "streams",
-		open: [/3 потоки/, /2 потоки/],
+		open: [/3 спеціальності/, /2 і 3 курс/],
 	},
 	{
 		name: "8-many-streams-open",
 		history: "mixed",
-		open: ["ще 3", /20 потоків/],
+		open: ["ще 3", /20 спеціальностей/],
 	},
 ];
 

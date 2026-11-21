@@ -58,7 +58,7 @@ test("a expanded 1440", async ({ page }) => {
 	await page.goto(`/courses/${COURSE.id}?panel=a`);
 	await expect(page.getByText("Що оцінити далі")).toBeVisible();
 	await page.getByRole("button", { name: "ще 2" }).click();
-	await page.getByRole("button", { name: /20 потоків/ }).click();
+	await page.getByRole("button", { name: /20 спеціальностей/ }).click();
 	await page.waitForTimeout(300);
 	mkdirSync(out, { recursive: true });
 	await page.screenshot({ path: resolve(out, "a-desktop-light-expanded.png") });
