@@ -12,6 +12,11 @@ import {
 import { CourseDecisionRefused, CourseNotFound } from "../courses/decisions.ts";
 import { Scope } from "../keys/scopes.ts";
 import {
+	ReviewCaseNotFound,
+	ReviewCaseRefused,
+	StudentCase,
+} from "../students/cases.ts";
+import {
 	Course,
 	Department,
 	Faculty,
@@ -132,6 +137,28 @@ export class ReviewApi extends HttpApiGroup.make("review")
 			query: PageQuery,
 			success: Page(ReviewCase, "ReviewCasePage"),
 		}).annotate(OpenApi.Summary, "Review cases with their safe answers"),
+		HttpApiEndpoint.get("studentCase", "/review-cases/:id", {
+			params: { id: Schema.String },
+			success: StudentCase,
+			error: [ReviewCaseNotFound, ReviewCaseRefused],
+		}).annotate(
+			OpenApi.Summary,
+			"A `student_match` case with each person's name, programme, study year and status",
+		),
+		HttpApiEndpoint.post("decideCase", "/review-cases/:id/decide", {
+			params: { id: Schema.String },
+			payload: Schema.Struct({
+				decision: Schema.Literal("same_person").annotate({
+					description:
+						"The record is the student it joined; the only decision for now",
+				}),
+			}),
+			success: HttpApiSchema.NoContent,
+			error: [ReviewCaseNotFound, ReviewCaseRefused],
+		}).annotate(
+			OpenApi.Summary,
+			"Close an open `student_match` case: the record is the student it joined",
+		),
 		HttpApiEndpoint.post("mergeCourse", "/courses/:id/merge", {
 			params: { id: Schema.String },
 			payload: Schema.Struct({ into: Schema.String }),

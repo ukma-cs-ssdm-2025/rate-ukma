@@ -9,6 +9,8 @@ import { CourseStore } from "../courses/CourseStore.ts";
 import { mergeCourse, unmergeCourse } from "../courses/decisions.ts";
 import { Keys } from "../keys/Keys.ts";
 import { ListReader } from "../lists/ListReader.ts";
+import { decideSamePerson, studentCase } from "../students/cases.ts";
+import { StudentCaseStore } from "../students/StudentCaseStore.ts";
 import type { PageOf } from "../lists/lists.ts";
 import { StatsReader } from "../stats/StatsReader.ts";
 import { Api, Caller } from "./Api.ts";
@@ -72,11 +74,24 @@ export const ReviewApiHandlers = HttpApiBuilder.group(
 			const lists = yield* ListReader;
 
 			const decisions = yield* Effect.context<
-				CourseStore | ChangeLog | Audit
+				CourseStore | StudentCaseStore | ChangeLog | Audit
 			>();
 
 			return handlers
 				.handle("reviewCases", ({ query }) => served(lists.reviewCases(query)))
+				.handle("studentCase", ({ params }) =>
+					studentCase(params.id).pipe(
+						Effect.tap(({ candidates }) =>
+							Caller.use((caller) => caller.countRows(candidates.length + 1)),
+						),
+						Effect.provide(decisions),
+					),
+				)
+				.handle("decideCase", ({ params }) =>
+					Caller.use(({ keyId }) => decideSamePerson(keyId, params.id)).pipe(
+						Effect.provide(decisions),
+					),
+				)
 				.handle("mergeCourse", ({ params, payload }) =>
 					Caller.use(({ keyId }) =>
 						mergeCourse(keyId, params.id, payload.into),
@@ -103,7 +118,12 @@ export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 		CatalogApiHandlers,
 		ReviewApiHandlers,
 	]),
-	Layer.provide([ListReader.layer, CourseStore.layer, StatsReader.layer]),
+	Layer.provide([
+		ListReader.layer,
+		CourseStore.layer,
+		StudentCaseStore.layer,
+		StatsReader.layer,
+	]),
 	Layer.provide(AuthLive),
 	Layer.provide(ChangeLog.layer),
 );

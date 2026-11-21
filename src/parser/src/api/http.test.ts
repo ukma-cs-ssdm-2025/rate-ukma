@@ -15,6 +15,8 @@ import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
 import { ListReader } from "../lists/ListReader.ts";
+import { studentEntry, studentsPage } from "../saz/studentsPage.fixture.ts";
+import { StudentCaseStore } from "../students/StudentCaseStore.ts";
 import { StatsReader } from "../stats/StatsReader.ts";
 import { Api, ApiKeyAuth } from "./Api.ts";
 import {
@@ -153,6 +155,7 @@ const TestLive = Layer.mergeAll(
 		Layer.mergeAll(
 			ListReader.layer,
 			CourseStore.layer,
+			StudentCaseStore.layer,
 			StatsReader.layer,
 			AuthLive,
 		),
@@ -587,6 +590,173 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 
 				assert.deepStrictEqual(statuses, [400, 400, 400, 400, 400, 400]);
 			}),
+		);
+
+		it.effect(
+			"reads a student_match case with both people and closes it as the same person",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
+					const next = sql`nextval('change_no_seq')`;
+
+					// One student: an older record, then a newer one with another
+					// surname that joined by email and first name.
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							const pages = [
+								[
+									"older",
+									studentsPage(
+										studentEntry({
+											cdoc: 600201,
+											name: "Вигадана Олена Петрівна",
+											grade: 2,
+										}),
+									),
+								],
+								[
+									"newer",
+									studentsPage(
+										studentEntry({
+											cdoc: 600202,
+											name: "Зразкова Олена Петрівна",
+											grade: 1,
+											isStudentActive: false,
+										}),
+									),
+								],
+							] as const;
+
+							for (const [label, content] of pages) {
+								yield* sql`
+									INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
+									SELECT ${`/students/${label}`}, 'students', ${label}, ${content}, id
+									FROM runs LIMIT 1
+								`;
+							}
+
+							yield* sql`
+								INSERT INTO students (id, full_name, snapshot_id, change_no)
+								SELECT 'stu_case', 'Зразкова Олена Петрівна', id, ${next}
+								FROM page_snapshots WHERE path = '/students/newer'
+							`;
+							yield* sql`
+								INSERT INTO student_programmes (
+									id, saz_cdoc, student_id, spec_name, programme_id,
+									snapshot_id, change_no
+								)
+								SELECT 'spr_older', '600201', 'stu_case', 'Вигадана інженерія',
+									'prg_one', id, ${next}
+								FROM page_snapshots WHERE path = '/students/older'
+							`;
+							yield* sql`
+								INSERT INTO student_programmes (
+									id, saz_cdoc, student_id, spec_name, snapshot_id, change_no
+								)
+								SELECT 'spr_newer', '600202', 'stu_case', 'Вигадана інженерія',
+									id, ${next}
+								FROM page_snapshots WHERE path = '/students/newer'
+							`;
+							yield* sql`
+								INSERT INTO review_cases (
+									id, kind, subject_id, candidates, safe_answer, change_no
+								)
+								VALUES ('rev_case', 'student_match', 'spr_newer',
+									'{"studentIds": ["stu_case"]}', '{"studentId": "stu_case"}',
+									${next})
+							`;
+						}),
+					);
+
+					const catalog = yield* clientAs(["catalog:read"]);
+
+					const denied = yield* Effect.flip(
+						catalog.client.review.studentCase({ params: { id: "rev_case" } }),
+					);
+
+					assert.strictEqual(denied._tag, "Forbidden");
+
+					const { client, keyId, token } = yield* clientAs(["review:decide"]);
+
+					const details = yield* client.review.studentCase({
+						params: { id: "rev_case" },
+					});
+
+					assert.deepInclude(details, {
+						status: "open",
+						joinedStudentId: "stu_case",
+					});
+					assert.deepStrictEqual(details.record, {
+						studentId: "stu_case",
+						recordId: "spr_newer",
+						firstName: "Олена",
+						lastName: "Зразкова",
+						programme: "Вигадана інженерія",
+						studyYear: 1,
+						status: "inactive",
+					});
+					assert.deepStrictEqual(details.candidates, [
+						{
+							studentId: "stu_case",
+							recordId: "spr_older",
+							firstName: "Олена",
+							lastName: "Вигадана",
+							programme: "Уявна інженерія",
+							studyYear: 2,
+							status: "active",
+						},
+					]);
+
+					const http = yield* HttpClient.HttpClient;
+
+					const split = yield* http.execute(
+						HttpClientRequest.post("/v1/review-cases/rev_case/decide").pipe(
+							HttpClientRequest.bearerToken(Redacted.value(token)),
+							HttpClientRequest.bodyJsonUnsafe({ decision: "split" }),
+						),
+					);
+
+					assert.strictEqual(split.status, 400);
+
+					yield* client.review.decideCase({
+						params: { id: "rev_case" },
+						payload: { decision: "same_person" },
+					});
+
+					const again = yield* Effect.flip(
+						client.review.decideCase({
+							params: { id: "rev_case" },
+							payload: { decision: "same_person" },
+						}),
+					);
+
+					const missing = yield* Effect.flip(
+						client.review.studentCase({ params: { id: "rev_missing" } }),
+					);
+
+					assert.deepInclude(again, { reason: "not_open" });
+					assert.strictEqual(missing._tag, "ReviewCaseNotFound");
+
+					const closed = yield* client.review.studentCase({
+						params: { id: "rev_case" },
+					});
+
+					assert.strictEqual(closed.status, "decided");
+
+					const audit = yield* sql<{
+						readonly targetId: string;
+						readonly relatedId: string;
+					}>`
+						SELECT target_id AS "targetId", related_id AS "relatedId"
+						FROM audit_log
+						WHERE key_id = ${keyId} AND action = 'student_case_decided'
+					`;
+
+					assert.deepStrictEqual(audit, [
+						{ targetId: "rev_case", relatedId: "stu_case" },
+					]);
+				}),
 		);
 	},
 );

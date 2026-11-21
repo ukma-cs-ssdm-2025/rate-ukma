@@ -8,6 +8,7 @@ export const AuditAction = Schema.Literals([
 	"key_revoked",
 	"course_merged",
 	"course_unmerged",
+	"student_case_decided",
 ]);
 
 export type AuditAction = typeof AuditAction.Type;
@@ -31,7 +32,7 @@ export interface AuditEntry {
 	/** The endpoint's method and path template, such as `GET /v1/offerings`. */
 	readonly route?: string;
 	readonly targetId?: string;
-	/** The course a merge moved into. */
+	/** The course a merge moved into, or the student a case kept. */
 	readonly relatedId?: string;
 	readonly rowCount?: number;
 	readonly reason?: DenialReason;
