@@ -6,10 +6,7 @@ import { PenLine, Pencil, Trash2 } from "lucide-react";
 import { DisabledButtonWithTooltip } from "@/components/DisabledButtonWithTooltip";
 import { Button } from "@/components/ui/Button";
 import { ExpandableText } from "@/components/ui/ExpandableText";
-import {
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
 import { CANNOT_RATE_TOOLTIP_TEXT } from "@/features/ratings/definitions/ratingDefinitions";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";

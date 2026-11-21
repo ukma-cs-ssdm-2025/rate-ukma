@@ -8,12 +8,8 @@ import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
 } from "../../ratings/definitions/ratingDefinitions";
-import {
-	DIFFICULTY_RANGE,
-	USEFULNESS_RANGE,
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "../courseFormatting";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
 
 const SCALE_STEPS = 5;
 const SCALE_KEYS = Array.from({ length: SCALE_STEPS }, (_, i) => `s-${i}`);

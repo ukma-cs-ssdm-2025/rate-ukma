@@ -7,9 +7,8 @@ import {
 	formatAcademicYearLabel,
 	formatCredits,
 	formatWeeklyHours,
-	getSemesterTermDisplay,
-	parseSemesterTerm,
 } from "@/features/courses/courseFormatting";
+import { getSemesterTermDisplay, parseSemesterTerm } from "@/lib/semester-term";
 import { CourseSpecialityBadges } from "@/features/courses/components/CourseSpecialityBadges";
 import type {
 	CourseOffering,

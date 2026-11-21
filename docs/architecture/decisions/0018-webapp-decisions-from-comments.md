@@ -24,7 +24,7 @@ We will not keep comments in `src/webapp/src`. Lint bans them (`rate-ukma/no-com
 - **Retries.** A query that fails without an HTTP response (timeout, abort, offline) is never retried: the client already sends the user to `/connection-error` on the first failure, and retries would only multiply slow requests. 401 and 403 are never retried; other errors back off exponentially (`integrations/tanstack-query/RootProvider.tsx`). A 502 or 503 from UKMA Data shows its error state with a Retry button at once (`features/ukma-data/reviewCases.ts`).
 - **Returning from `/connection-error`** happens automatically only after a real offline-to-online change (the browser's `online` event and a successful session probe). A server probe can succeed while the page that bounced still times out, which would bounce the user back and forth (`features/connection-error/components/ConnectionErrorPage.tsx`).
 - **Outage bounce counter.** The start of an outage lives in `sessionStorage` (per tab), not the URL, and bounces count as one outage only while failures arrive back to back, so an old `?bounces=N` ages out instead of disabling auto-return next time (`lib/api/networkError.ts`).
-- **Term values.** The course offerings endpoints send the term as a label (`Spring`), every other endpoint as the enum (`SPRING`); the client reads both as the enum (`features/courses/courseFormatting.ts`).
+- **Term values.** The course offerings endpoints send the term as a label (`Spring`), every other endpoint as the enum (`SPRING`); the client reads both as the enum (`lib/semester-term.ts`).
 - **The feed cursor is opaque.** The client sends back what the server issued and stops when none comes; the first page has no cursor (`features/feed/hooks/useFeed.ts`).
 
 ### Auth and feature flags
