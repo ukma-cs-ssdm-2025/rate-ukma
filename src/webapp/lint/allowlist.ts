@@ -20,8 +20,6 @@ export const LINT_ALLOWLIST = {
 		"src/routes/data.cases.$caseId.tsx",
 		"src/routes/data.cases.index.tsx",
 		"src/routes/data.index.tsx",
-		"src/routes/explore.tsx",
-		"src/routes/my-ratings.tsx",
 	],
 	"rate-ukma/no-comments": [
 		"src/components/AuthShell.test.tsx",
