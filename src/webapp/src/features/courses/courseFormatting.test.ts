@@ -112,7 +112,7 @@ describe("courseFormatting", () => {
 			["FALL", "Осінь"],
 			["SPRING", "Весна"],
 			["SUMMER", "Літо"],
-			["fall", "Осінь"], // lowercase handling
+			["fall", "Осінь"],
 		])("should return Ukrainian label for %s term", (term, expected) => {
 			expect(getSemesterTermDisplay(term)).toBe(expected);
 		});

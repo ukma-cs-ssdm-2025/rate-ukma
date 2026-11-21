@@ -10,8 +10,6 @@ const { usePromoBannerListMock } = vi.hoisted(() => ({
 	usePromoBannerListMock: vi.fn(),
 }));
 
-// Only the promo query is stubbed; the rest of the generated client stays real
-// so co-rendered providers (auth, flags) keep working.
 vi.mock("@/lib/api/generated", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@/lib/api/generated")>()),
 	usePromoBannerList: usePromoBannerListMock,

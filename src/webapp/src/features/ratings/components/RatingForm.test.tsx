@@ -44,7 +44,6 @@ function mockCourseInstructors(
 	} as unknown as CourseInstructorsQuery);
 }
 
-/** What the picker's directory search returns. */
 function mockDirectory(items: ReadonlyArray<typeof DEMCHENKO>) {
 	vi.mocked(useInstructorsListInfinite).mockReturnValue({
 		data: { pages: [{ items, total: items.length, next_page: null }] },
@@ -122,7 +121,6 @@ describe("RatingForm", () => {
 			renderWithCourse();
 
 			const picks = screen.getByTestId(testIds.rating.instructorQuickPicks);
-			// One old mention on the course is not enough to offer a teacher.
 			expect(picks).not.toHaveTextContent("Разовий");
 			await user.click(
 				screen.getByRole("button", { name: "Додати: Демченко Олена Петрівна" }),
@@ -154,7 +152,6 @@ describe("RatingForm", () => {
 			});
 			expect(preview).toHaveTextContent("Викладач:Демченко Олена Петрівна");
 
-			// The name itself is part of the remove target, not only the ×.
 			await user.click(
 				within(
 					screen.getByTestId(testIds.rating.instructorMultiSelect),
@@ -183,7 +180,6 @@ describe("RatingForm", () => {
 				).getByText("Демченко Олена Петрівна"),
 			);
 			await user.keyboard("{Escape}");
-			// A new search no longer lists the teacher; the preview still names them.
 			mockDirectory([]);
 			await user.click(
 				screen.getByRole("button", { name: "Як побачать інші" }),

@@ -162,8 +162,6 @@ test.describe("Courses filters", () => {
 			.not.toBe(initialFaculty);
 
 		await expect.poll(() => getSearchParam(page, "dept")).toBe("");
-		// Speciality stands on its own now: free-choice courses of one
-		// speciality can be narrowed to another faculty.
 		expect(getSearchParam(page, "spec")).toBe(chosenSpeciality);
 	});
 
