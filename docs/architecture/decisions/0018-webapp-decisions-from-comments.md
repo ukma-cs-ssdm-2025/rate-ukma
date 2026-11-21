@@ -56,7 +56,7 @@ We will not keep comments in `src/webapp/src`. Lint bans them (`rate-ukma/no-com
 ### UI and accessibility
 
 - **Disabled buttons that explain themselves** use `aria-disabled`, not `disabled`, so keyboard users can reach the reason tooltip; a tap opens it for touch users (`components/DisabledButtonWithTooltip.tsx`).
-- **No button inside a button.** A popover trigger that holds a clear or chip-remove control is a `div` with button or combobox semantics; scatter-plot points are SVG elements with button semantics (`features/instructors/components/`, `features/courses/components/CoursesScatterPlot.tsx`).
+- **No button inside a button.** A popover trigger that holds a clear or chip-remove control is a `div` with button or combobox semantics; scatter-plot points are SVG elements with button semantics (`features/instructors/components/`, `features/courses/components/ScatterPlotContent.tsx`).
 - **The drawer is portalled to `body`**, because an ancestor stacking context (the view-transition name on `/explore`) would trap it under the sticky header (`components/ui/Drawer.tsx`).
 - **Collapsible content** animates from Radix's measured height, so padding goes on an inner wrapper, not the animated element (`components/ui/Collapsible.tsx`). `ButtonGroup` styles corners by `data-slot="button"`, which custom buttons must forward (`components/ui/ButtonGroup.tsx`).
 - **Tailwind classes are written out in full** (faculty colours), so they are not purged; a custom line clamp uses inline CSS because Tailwind only ships static `line-clamp-*` (`lib/faculty-colors.ts`, `components/ui/ExpandableText.tsx`).

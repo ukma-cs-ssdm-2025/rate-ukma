@@ -115,4 +115,6 @@ if (problems.length > 0) {
 const sizes = Object.entries(LINT_ALLOWLIST).map(
 	([rule, files]) => `${rule} ${files.length}`,
 );
-console.log(`Lint allowlist is current: ${sizes.join(", ")}.`);
+console.log(
+	`Lint allowlist is current: ${sizes.length > 0 ? sizes.join(", ") : "empty"}.`,
+);
