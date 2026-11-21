@@ -12,6 +12,10 @@ on:
         description: "Flag if source code changed"
         type: boolean
         default: false
+      change_path:
+        description: "Only commits that change these space-separated paths count towards the version (all when empty)"
+        type: string
+        default: ""
     outputs:
       version_tag:
         description: "Generated semantic version tag"
@@ -59,6 +63,7 @@ jobs:
         uses: paulhatch/semantic-version@v5.4.0
         with:
           tag_prefix: ${{ inputs.tag_prefix }}
+          change_path: ${{ inputs.change_path }}
           major_pattern: ${{ env.SEMANTIC_VERSION_MAJOR_PATTERN }}
           minor_pattern: ${{ env.SEMANTIC_VERSION_MINOR_PATTERN }}
           bump_each_commit_patch_pattern: ${{ env.SEMANTIC_VERSION_PATCH_PATTERN }}

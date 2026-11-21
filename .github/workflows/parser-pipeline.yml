@@ -1,0 +1,194 @@
+---
+name: Parser Pipeline
+
+# Tests, builds and deploys UKMA Data when a push to main changes the parser or its k8s manifests.
+# It can also be run by hand, from main only, to redeploy main as it is: a version is cut only if
+# parser commits came after the last one, otherwise the image is tagged with the commit and gets no release.
+# To put a specific older version on live, dispatch Deploy Parser instead.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - src/parser/**
+      - infra/deploy/parser/k8s/app/**
+      - .github/workflows/parser-pipeline.yml
+
+permissions:
+  contents: read
+
+# Runs go one at a time. GitHub keeps one waiting run per group and cancels the others, and it does not
+# promise that the one it keeps is the newest. The `newest` job below covers both cases:
+# an older commit never replaces a newer one on live, and a newer run that was dropped is started again.
+# ! A running deploy is never cancelled, because it may be in the middle of a database migration.
+concurrency:
+  group: parser-pipeline
+  cancel-in-progress: false
+
+jobs:
+  # The parser has its own versions (parser-vX.Y.Z), separate from the web app's.
+  # Only commits that touch the parser count towards them.
+  version:
+    # A manual run from another branch would put that branch on live. Everything else depends on this job
+    # or on test, so they are skipped too.
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/version.yml
+    permissions:
+      contents: write
+    with:
+      tag_prefix: parser-v
+      change_path: src/parser infra/deploy/parser/k8s/app
+      code_changed: true
+
+  # The same parser checks as test.yml, copied here for two reasons:
+  # test.yml tests the latest main rather than this commit,
+  # and its backend job needs write permissions this workflow doesn't have.
+  test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js & pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          working-directory: src/parser
+
+      - name: Run lint, format, typecheck and tests
+        working-directory: src/parser
+        run: pnpm check:all
+
+      - name: Lint the generated OpenAPI file
+        run: npx --yes @redocly/cli@2.57.0 lint docs/parser-service/openapi.json
+
+  # Picks the image tag: normally the new version.
+  # On a re-run, the version was already tagged on this commit the first time, so it is reused:
+  # the re-run finishes that version's image and release instead of leaving them missing.
+  # A push that only changes this workflow gets no version, so its image is tagged with the commit SHA instead.
+  # Reusing the old version's tag would overwrite the image that version was released with.
+  image:
+    needs: version
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - id: tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_TAG: ${{ needs.version.outputs.version_tag }}
+          VERSION_TYPE: ${{ needs.version.outputs.version_type }}
+        run: |
+          if [ "$VERSION_TYPE" != none ] && [ -n "$VERSION_TAG" ]; then
+            version=$VERSION_TAG
+          else
+            # version.yml creates lightweight tags, so a tag's object is the commit itself.
+            version=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/parser-v" \
+              --jq ".[] | select(.object.sha == \"$GITHUB_SHA\") | .ref | ltrimstr(\"refs/tags/\")" | sort -V | tail -n 1)
+          fi
+          tag=${version:-$GITHUB_SHA}
+          echo "Parser image tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  # Every run builds its own image, even when only the k8s manifests changed.
+  build:
+    needs: [test, image]
+    uses: ./.github/workflows/build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      version_tag: ${{ needs.image.outputs.tag }}
+      backend_changed: false
+      webapp_changed: false
+      parser_changed: true
+
+  # Skips the deploy when main already has a newer parser commit, for example when someone re-runs an old run.
+  # Only parser commits count, so web-only pushes never block it. The newer commit's own run deploys instead.
+  # If that run was cancelled (GitHub dropped it from the queue behind this older one), it is started again here,
+  # otherwise the newer commit would never reach live.
+  # To put an older version on live on purpose, dispatch Deploy Parser.
+  newest:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: write
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          newest=$(git log -1 --format=%H -- src/parser infra/deploy/parser/k8s/app .github/workflows/parser-pipeline.yml)
+          if [ "$newest" != "$GITHUB_SHA" ] && git merge-base --is-ancestor "$GITHUB_SHA" "$newest"; then
+            echo "::notice::Not deploying $GITHUB_SHA: main has a newer parser commit, $newest."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+
+            # The newest run's latest attempt: if it was cancelled, nothing will deploy that commit.
+            run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow parser-pipeline.yml --commit "$newest" \
+              --event push --limit 1 --json databaseId,conclusion --jq '.[] | select(.conclusion == "cancelled") | .databaseId')
+            if [ -n "$run" ]; then
+              echo "::notice::The run for $newest was cancelled, starting it again."
+              gh run rerun "$run" --repo "$GITHUB_REPOSITORY"
+            fi
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: [newest, image]
+    if: needs.newest.outputs.deploy == 'true'
+    uses: ./.github/workflows/parser-deploy.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      version_tag: ${{ needs.image.outputs.tag }}
+    secrets: inherit
+
+  # Full release, not a pre-release - no staging step to wait for.
+  # Not marked "Latest", label stays with the web app's release.
+  # A version whose deploy was skipped because main moved on still gets its release, with its image built:
+  # the version exists and its changes are in the changelog. A failed or cancelled run releases nothing.
+  release:
+    needs: [image, build, newest, deploy]
+    if: >-
+      !cancelled()
+      && needs.image.outputs.version != ''
+      && needs.build.result == 'success'
+      && needs.newest.result == 'success'
+      && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+    with:
+      version_tag: ${{ needs.image.outputs.version }}
+      tag_prefix: parser-v
+      change_path: src/parser infra/deploy/parser/k8s/app
+      make_latest: "false"
