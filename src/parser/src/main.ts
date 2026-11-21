@@ -49,6 +49,7 @@ const reparse = Command.make("reparse", {}, () =>
 			).pipe(Layer.provideMerge(ChangeLog.layer)),
 		),
 		Effect.provide(PgLive),
+		Effect.provide(TelemetryLive("parser-cli")),
 	),
 ).pipe(
 	Command.withDescription(
@@ -60,6 +61,7 @@ const crawlSmartCommand = Command.make("crawl-smart", {}, () =>
 	crawlSmart().pipe(
 		Effect.provide([CrawlStore.layer, SmartClient.layer]),
 		Effect.provide(PgLive),
+		Effect.provide(TelemetryLive("parser-cli")),
 	),
 ).pipe(Command.withDescription("Store the smart.ukma lists once"));
 
@@ -70,7 +72,9 @@ Command.make("ukma-data").pipe(
 		migrate,
 		reparse,
 		crawlSmartCommand,
-		...keyCommands(KeysLive),
+		...keyCommands(
+			KeysLive.pipe(Layer.provideMerge(TelemetryLive("parser-cli"))),
+		),
 	]),
 	Command.run({ version: "0.0.0" }),
 	Effect.provide(NodeServices.layer),

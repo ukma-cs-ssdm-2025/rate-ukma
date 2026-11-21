@@ -256,7 +256,7 @@ export const ExportHttpClient = Layer.effect(HttpClient.HttpClient)(
 /** The OTLP tracer for one process, exporting to `url` through the
  *  `HttpClient` it is given. */
 export const otlpTracer = (
-	serviceName: "parser-api" | "parser-worker",
+	serviceName: "parser-api" | "parser-worker" | "parser-cli",
 	url: string,
 ) =>
 	OtlpTracer.make({ url, resource: { serviceName } }).pipe(
@@ -269,7 +269,9 @@ export const otlpTracer = (
 /** Exports spans over OTLP/HTTP JSON when `OTEL_EXPORTER_OTLP_ENDPOINT` is
  *  set; without it, local runs and tests, nothing leaves the process. Only
  *  traces: the collector turns them into metrics. */
-export const TelemetryLive = (serviceName: "parser-api" | "parser-worker") =>
+export const TelemetryLive = (
+	serviceName: "parser-api" | "parser-worker" | "parser-cli",
+) =>
 	Layer.unwrap(
 		Effect.gen(function* () {
 			const endpoint = yield* Config.option(
