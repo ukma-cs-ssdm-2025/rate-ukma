@@ -5,10 +5,7 @@ export const LINT_ALLOWLIST = {
 		"src/features/ratings/components/RatingComments.tsx",
 		"src/features/ratings/components/RatingForm.tsx",
 	],
-	"no-restricted-imports": [
-		"src/features/courses/components/CourseStatsCards.tsx",
-		"src/routes/courses.$courseId.tsx",
-	],
+	"no-restricted-imports": ["src/routes/courses.$courseId.tsx"],
 } satisfies Record<string, string[]>;
 
 export const INDEX_FILE_ALLOWLIST = [
