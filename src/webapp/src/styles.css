@@ -87,6 +87,23 @@ code {
 	--faculty-yellow: oklch(0.5 0.12 85);
 	--faculty-teal: oklch(0.48 0.11 195);
 	--faculty-gray: oklch(0.47 0.015 285);
+	--avatar-blue: oklch(93.2% 0.032 255.585);
+	--avatar-blue-foreground: oklch(48.8% 0.243 264.376);
+	--avatar-emerald: oklch(95% 0.052 163.051);
+	--avatar-emerald-foreground: oklch(50.8% 0.118 165.612);
+	--avatar-amber: oklch(96.2% 0.059 95.617);
+	--avatar-amber-foreground: oklch(55.5% 0.163 48.998);
+	--avatar-rose: oklch(94.1% 0.03 12.58);
+	--avatar-rose-foreground: oklch(51.4% 0.222 16.935);
+	--avatar-violet: oklch(94.3% 0.029 294.588);
+	--avatar-violet-foreground: oklch(49.1% 0.27 292.581);
+	--avatar-cyan: oklch(95.6% 0.045 203.388);
+	--avatar-cyan-foreground: oklch(52% 0.105 223.128);
+	--avatar-orange: oklch(95.4% 0.038 75.164);
+	--avatar-orange-foreground: oklch(55.3% 0.195 38.402);
+	--avatar-indigo: oklch(93% 0.034 272.788);
+	--avatar-indigo-foreground: oklch(45.7% 0.24 277.023);
+	--plot-point-fallback: #6b7280;
 	--destructive-foreground: oklch(0.985 0 0);
 	--border: oklch(0.92 0.004 286.32);
 	--input: oklch(0.92 0.004 286.32);
@@ -141,6 +158,23 @@ code {
 		--faculty-yellow: oklch(0.84 0.12 85);
 		--faculty-teal: oklch(0.82 0.11 195);
 		--faculty-gray: oklch(0.78 0.015 285);
+		--avatar-blue: oklch(28.2% 0.091 267.935);
+		--avatar-blue-foreground: oklch(80.9% 0.105 251.813);
+		--avatar-emerald: oklch(26.2% 0.051 172.552);
+		--avatar-emerald-foreground: oklch(84.5% 0.143 164.978);
+		--avatar-amber: oklch(27.9% 0.077 45.635);
+		--avatar-amber-foreground: oklch(87.9% 0.169 91.605);
+		--avatar-rose: oklch(27.1% 0.105 12.094);
+		--avatar-rose-foreground: oklch(81% 0.117 11.638);
+		--avatar-violet: oklch(28.3% 0.141 291.089);
+		--avatar-violet-foreground: oklch(81.1% 0.111 293.571);
+		--avatar-cyan: oklch(30.2% 0.056 229.695);
+		--avatar-cyan-foreground: oklch(86.5% 0.127 207.078);
+		--avatar-orange: oklch(26.6% 0.079 36.259);
+		--avatar-orange-foreground: oklch(83.7% 0.128 66.29);
+		--avatar-indigo: oklch(25.7% 0.09 281.288);
+		--avatar-indigo-foreground: oklch(78.5% 0.115 274.713);
+		--plot-point-fallback: #6b7280;
 		--destructive-foreground: oklch(0.985 0 0);
 		--border: oklch(0.32 0.008 286.033);
 		--input: oklch(0.3 0.007 286.033);
@@ -195,6 +229,22 @@ code {
 	--color-faculty-yellow: var(--faculty-yellow);
 	--color-faculty-teal: var(--faculty-teal);
 	--color-faculty-gray: var(--faculty-gray);
+	--color-avatar-blue: var(--avatar-blue);
+	--color-avatar-blue-foreground: var(--avatar-blue-foreground);
+	--color-avatar-emerald: var(--avatar-emerald);
+	--color-avatar-emerald-foreground: var(--avatar-emerald-foreground);
+	--color-avatar-amber: var(--avatar-amber);
+	--color-avatar-amber-foreground: var(--avatar-amber-foreground);
+	--color-avatar-rose: var(--avatar-rose);
+	--color-avatar-rose-foreground: var(--avatar-rose-foreground);
+	--color-avatar-violet: var(--avatar-violet);
+	--color-avatar-violet-foreground: var(--avatar-violet-foreground);
+	--color-avatar-cyan: var(--avatar-cyan);
+	--color-avatar-cyan-foreground: var(--avatar-cyan-foreground);
+	--color-avatar-orange: var(--avatar-orange);
+	--color-avatar-orange-foreground: var(--avatar-orange-foreground);
+	--color-avatar-indigo: var(--avatar-indigo);
+	--color-avatar-indigo-foreground: var(--avatar-indigo-foreground);
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
@@ -241,4 +291,9 @@ code {
 	dialog::backdrop {
 		display: none;
 	}
+}
+
+/* Plot host on a card: axis bars and point halos in CoursesScatterPlot match the card. */
+@utility plot-surface-card {
+	--plot-surface: var(--card);
 }

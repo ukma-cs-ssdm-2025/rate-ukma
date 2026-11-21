@@ -8,8 +8,4 @@ export {
 	setFeatureFlagOverride,
 } from "./overrides";
 export type { FeatureFlagName } from "./useFeatureFlag";
-export {
-	useFeatureFlag,
-	useFeatureFlags,
-	useFeatureFlagState,
-} from "./useFeatureFlag";
+export { useFeatureFlag, useFeatureFlagState } from "./useFeatureFlag";
