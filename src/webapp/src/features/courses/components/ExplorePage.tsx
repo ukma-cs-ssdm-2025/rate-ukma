@@ -139,7 +139,6 @@ export function ExplorePage() {
 					side={isPhone ? "bottom" : "right"}
 					onOpenChange={setIsFiltersOpen}
 					ariaLabel="Фільтри дисциплін"
-					closeButtonLabel="Закрити фільтри"
 				>
 					<CourseFiltersDrawer
 						params={params}
