@@ -69,7 +69,6 @@ export function MyRatingCard({
 						{comment}
 					</ExpandableText>
 				) : null}
-				{/* Without an excerpt a scores-only rating reads the same as a written one. */}
 				{rating && !comment && canModify ? (
 					<button
 						type="button"
@@ -81,9 +80,6 @@ export function MyRatingCard({
 				) : null}
 			</div>
 
-			{/* A rated card has lines under the title, and a review can expand to many:
-			    pinned to the title line, scores and actions do not slide to the card's
-			    middle. -my-1 centres the 32px buttons on the 24px title line. */}
 			<div
 				className={cn(
 					"ml-auto flex shrink-0 items-center gap-4",

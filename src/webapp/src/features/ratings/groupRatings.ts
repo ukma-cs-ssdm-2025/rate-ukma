@@ -32,7 +32,6 @@ const TERM_ORDER = {
 	SUMMER: 3,
 } satisfies Record<SemesterTermEnum, number>;
 
-// An academic year starts in the fall: spring 2026 belongs to 2025–2026.
 function academicYearStart(year: number, season: SemesterTermEnum): number {
 	return season === "FALL" ? year : year - 1;
 }

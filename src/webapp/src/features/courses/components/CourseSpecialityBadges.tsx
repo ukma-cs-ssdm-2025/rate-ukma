@@ -15,7 +15,6 @@ import { getCourseTypeDisplay } from "../courseFormatting";
 interface CourseSpecialityBadgesProps {
 	specialities?: readonly CourseOfferingSpeciality[];
 	size?: "default" | "sm";
-	/** САЗ records keep elective streams; the course header hides them. */
 	includeElective?: boolean;
 }
 

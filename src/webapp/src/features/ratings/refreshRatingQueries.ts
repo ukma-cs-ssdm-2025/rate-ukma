@@ -18,7 +18,6 @@ export function refreshRatingQueries(
 	const pageKeys = [
 		getCoursesRatingsListQueryKey(courseId),
 		getCoursesRetrieveQueryKey(courseId),
-		// Prefix match also covers the offering-scoped variant.
 		getCoursesInstructorsRetrieveQueryKey(courseId),
 		getStudentsMeCoursesRetrieveQueryKey(),
 		getStudentsMeGradesRetrieveQueryKey(),

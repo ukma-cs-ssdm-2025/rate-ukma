@@ -19,7 +19,6 @@ function firstTerm(
 	return offering?.terms[0];
 }
 
-// The load a student weighs first when enrolling, from the latest offering.
 interface OfferingLoad {
 	credits: string | null;
 	weeklyHours: string | null;

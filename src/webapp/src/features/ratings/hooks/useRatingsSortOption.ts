@@ -11,10 +11,6 @@ function isSortOption(value: unknown): value is SortOption {
 	return SORT_OPTIONS.some((option) => option.value === value);
 }
 
-/**
- * The reviews sort on the course page, remembered across courses and visits.
- * A stored value that is no longer a valid option falls back to the default.
- */
 export function useRatingsSortOption() {
 	const [sortOption, setSortOptionState] = useState<SortOption>(() => {
 		const stored = localStorageAdapter.getItem<unknown>(

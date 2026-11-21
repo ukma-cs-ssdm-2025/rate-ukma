@@ -40,7 +40,6 @@ export interface AuthState {
 	sessionExpired: boolean;
 	isStudent: boolean;
 	isSuperuser: boolean;
-	/** The signed-in student's own speciality; null for guests and staff. */
 	speciality: AuthSpeciality | null;
 }
 
@@ -60,14 +59,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const [sessionExpired, setSessionExpired] = useState(false);
 
-	// Lazy auth query - only run when explicitly requested
 	const sessionQuery = useAuthSessionRetrieve({
 		query: {
 			enabled: hasCheckedAuth && !isLoggingOut,
 			refetchOnWindowFocus: false,
 			refetchInterval: false,
 			refetchOnReconnect: false,
-			// Don't retry on 401 errors - they're intentional
 			retry: (failureCount, error) => {
 				const errorStatus =
 					(error as { response?: { status?: number }; status?: number })
@@ -187,7 +184,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	);
 
 	const logout = useCallback(async () => {
-		// Prevent any further auth checks during logout
 		setIsLoggingOut(true);
 		queryClient.removeQueries({ queryKey: sessionQuery.queryKey });
 
@@ -209,11 +205,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		}
 	}, [hasCheckedAuth, isLoggingOut]);
 
-	// Listen for session expiration events from apiClient
 	useEffect(() => {
 		const handleSessionExpired = () => {
 			setSessionExpired(true);
-			// Invalidate the session query to trigger re-evaluation of auth state
 			queryClient.setQueryData(sessionQuery.queryKey, undefined);
 			void queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
 		};

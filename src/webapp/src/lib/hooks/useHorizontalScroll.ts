@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-/** Edge state and viewport paging for a horizontal scroll container. */
 export function useHorizontalScroll(contentLength = 0) {
-	// A state setter as the ref: the scroller can mount after the first render
-	// (e.g. behind a feature flag), and the setup effect must still run.
 	const [el, setEl] = useState<HTMLDivElement | null>(null);
 	const [canScrollPrev, setCanScrollPrev] = useState(false);
 	const [canScrollNext, setCanScrollNext] = useState(false);

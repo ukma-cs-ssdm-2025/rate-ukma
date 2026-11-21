@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 interface ExpandableTextProps {
 	readonly children: string;
 	readonly className?: string;
-	/** Line clamp while collapsed. */
 	readonly lines?: number;
 }
 
@@ -27,14 +26,10 @@ export function ExpandableText({
 		}
 	}, []);
 
-	// When content changes, collapse so the clamped layout is applied before measuring.
-	// children is a prop that signals new content
 	useLayoutEffect(() => {
 		setIsExpanded(false);
 	}, [children]);
 
-	// Remeasure clamping after every transition back to the collapsed state.
-	// children is a prop that signals new content
 	useLayoutEffect(() => {
 		if (isExpanded) {
 			return;
@@ -45,8 +40,6 @@ export function ExpandableText({
 		}
 	}, [isExpanded, children, lines]);
 
-	// Clamping snaps the text instantly, so the height glides between the two
-	// measured states instead.
 	useLayoutEffect(() => {
 		const el = elRef.current;
 		const from = heightBeforeToggle.current;
@@ -70,8 +63,6 @@ export function ExpandableText({
 		);
 	}, [isExpanded]);
 
-	// Tailwind only generates static line-clamp utilities, so a custom count
-	// uses the equivalent inline properties; the default keeps line-clamp-4.
 	const collapsedStyle =
 		!isExpanded && lines !== 4
 			? ({

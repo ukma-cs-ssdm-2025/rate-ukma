@@ -14,7 +14,6 @@ const SORT_ICONS: Record<SortState, typeof ArrowUpDown> = {
 	none: ArrowUpDown,
 };
 
-// Clicks cycle initial direction → the other direction → unsorted.
 const SORT_HINTS: Record<"asc" | "desc", Record<SortState, string>> = {
 	asc: {
 		none: "Сортувати за зростанням",

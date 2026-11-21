@@ -336,7 +336,6 @@ UKMA_DATA_TIMEOUT_SECONDS = config("UKMA_DATA_TIMEOUT_SECONDS", default=10, cast
 # naming convention for client-facing flags, not the security boundary.
 PUBLIC_FEATURE_FLAGS = [
     "fe_feed",
-    "fe_faculty_colors",
     "fe_rate_flow",
     "fe_ukma_data",
     "fe_course_instructors",

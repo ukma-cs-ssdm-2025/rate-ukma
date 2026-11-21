@@ -18,7 +18,6 @@ interface AccentStyle {
 
 const ACCENT: Record<AccentEnum, AccentStyle> = {
 	BRAND: { tone: "primary", button: "default" },
-	// The secondary fill is too pale to read as a button on the tinted card.
 	INFO: {
 		tone: "muted",
 		button: "secondary",
@@ -29,7 +28,6 @@ const ACCENT: Record<AccentEnum, AccentStyle> = {
 
 interface FeedPromoItemProps {
 	readonly item: FeedPromoItemData;
-	/** `banner` is wider for top-of-page placement and may carry an image. */
 	readonly variant?: "card" | "banner";
 }
 
@@ -37,7 +35,6 @@ export function FeedPromoItem({
 	item,
 	variant = "card",
 }: Readonly<FeedPromoItemProps>) {
-	// A bundle older than the server can meet an accent it doesn't know yet.
 	const known: AccentStyle | undefined = ACCENT[item.accent];
 	const accent = known ?? ACCENT.BRAND;
 	const kind = {
@@ -46,7 +43,6 @@ export function FeedPromoItem({
 		tone: accent.tone,
 	};
 	const isBanner = variant === "banner";
-	// A label without an href goes nowhere, so the CTA needs both halves.
 	const cta = item.cta_label && item.cta_href && (
 		<Button
 			asChild

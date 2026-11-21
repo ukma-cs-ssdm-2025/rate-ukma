@@ -61,7 +61,6 @@ function getDetailedDescription(
 	const descriptions = Object.values(
 		type === "difficulty" ? difficultyDescriptions : usefulnessDescriptions,
 	);
-	// Scores run 1–5, so the rounded score picks the matching description.
 	return descriptions[Math.round(value) - 1] ?? "";
 }
 
@@ -91,10 +90,6 @@ function getBarColor(
 	return "bg-muted-foreground";
 }
 
-/**
- * Fractional scale bar: for 3.4/5, segments 1-3 are fully filled,
- * segment 4 is 40% filled, segment 5 is empty.
- */
 function ScaleBar({
 	value,
 	accent,
@@ -136,8 +131,6 @@ function ScaleBar({
 
 const REVEAL_MS = 700;
 
-// On arrival the score counts up from zero while the bar fills left to right.
-// It runs before paint, so the final value never flashes first.
 function useScoreReveal(value: number | null) {
 	const ref = useRef<HTMLDivElement>(null);
 	useLayoutEffect(() => {
@@ -232,7 +225,6 @@ export function CourseStatsHero({
 	usefulness,
 	ratingsCount,
 }: Readonly<CourseStatsHeroProps>) {
-	// Only scores in the valid range are meaningful; treat the rest as missing
 	const diff =
 		difficulty != null &&
 		difficulty >= DIFFICULTY_RANGE[0] &&

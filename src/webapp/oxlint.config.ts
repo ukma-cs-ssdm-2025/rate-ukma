@@ -8,6 +8,10 @@ const allowlistOff = process.env.LINT_ALLOWLIST === "off";
 
 export default defineConfig({
 	...cloudflare,
+	jsPlugins: [
+		...(cloudflare.jsPlugins ?? []),
+		{ name: "rate-ukma", specifier: "./lint/plugins/no-comments.ts" },
+	],
 	ignorePatterns: [
 		...(cloudflare.ignorePatterns ?? []),
 		"src/routeTree.gen.ts",
@@ -60,6 +64,7 @@ export default defineConfig({
 				"tests/**",
 			],
 			rules: {
+				"max-lines": "off",
 				// Tests stub hooks with vi.fn() and cast the stub to the hook's type.
 				// Replacing those seams is its own change; app code stays strict.
 				"typescript/no-unsafe-type-assertion": "off",
@@ -92,6 +97,10 @@ export default defineConfig({
 			// Playwright fixtures call `use()`, which is not React's hook.
 			files: ["tests/**"],
 			rules: { "react-hooks/rules-of-hooks": "off" },
+		},
+		{
+			files: ["src/**"],
+			rules: { "rate-ukma/no-comments": "error" },
 		},
 		...LAYER_OVERRIDES,
 		...(allowlistOff

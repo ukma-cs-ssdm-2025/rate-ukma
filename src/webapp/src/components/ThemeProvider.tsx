@@ -50,8 +50,6 @@ export function ThemeProvider({
 		return isTheme(stored) ? stored : defaultTheme;
 	});
 
-	// CSS resolves "system" via prefers-color-scheme (see styles.css), so only
-	// an explicit pick is written to <html>; OS changes need no JS.
 	useEffect(() => {
 		const root = globalThis.document.documentElement;
 		if (theme === "system") {
@@ -63,12 +61,12 @@ export function ThemeProvider({
 
 	const persistTheme = useCallback(
 		(newTheme: Theme) => {
+			setTheme(newTheme);
 			try {
 				localStorage.setItem(storageKey, newTheme);
 			} catch {
-				// Storage blocked: the pick still applies for this session.
+				return;
 			}
-			setTheme(newTheme);
 		},
 		[storageKey],
 	);

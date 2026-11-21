@@ -136,6 +136,17 @@ jobs:
       - name: Lint the generated OpenAPI file
         run: npx --yes @redocly/cli@2.57.0 lint docs/parser-service/openapi.json
 
+  check-flags:
+    if: (inputs.backend_changed == true || inputs.webapp_changed == true) && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Every public flag has a consumer
+        run: bash .github/scripts/check-flags.sh
+
   test-backend:
     if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04

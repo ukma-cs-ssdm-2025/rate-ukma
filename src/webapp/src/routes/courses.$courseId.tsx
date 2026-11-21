@@ -145,7 +145,6 @@ function CourseDetailsRoute() {
 		course.avg_usefulness ?? null,
 		course.ratings_count ?? null,
 	);
-	// Attendees who have not rated yet see where they stand: rateable now or after midterm.
 	const rateAction =
 		!ratedOffering && hasAttendedCourse && selectedOffering ? (
 			<div className="flex flex-col gap-3 rounded-xl bg-card-user p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
@@ -216,8 +215,6 @@ function CourseDetailsRoute() {
 							/>
 						) : null}
 
-						{/* Phones read one column: scores and the call to rate, then «Про дисципліну»,
-						    then reviews. Rendered once: the rate button's test id must stay unique. */}
 						{isDesktop ? null : rateAction}
 						{isDesktop ? null : about}
 						{isDesktop ? null : nextSuggestion}
@@ -235,8 +232,6 @@ function CourseDetailsRoute() {
 
 					{isDesktop ? (
 						<aside className="min-w-0">
-							{/* Capped to the viewport so a rail taller than the screen scrolls
-							    on its own instead of hiding its end until the page bottom. */}
 							<div className="lg:sticky lg:top-24 lg:-mr-3 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-3 lg:[scrollbar-gutter:stable] lg:[scrollbar-width:thin]">
 								<div className="space-y-6">
 									{about}

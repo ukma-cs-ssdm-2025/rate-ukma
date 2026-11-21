@@ -7,7 +7,6 @@ function Spinner({
 	...props
 }: Readonly<React.ComponentProps<"div">>) {
 	return (
-		// Loading spinner is a status indicator, not a calculation result
 		<div
 			role="status"
 			aria-label="Loading"

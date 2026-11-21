@@ -26,9 +26,6 @@ export function UkmaDataError({
 	const queryClient = useQueryClient();
 	const status = axios.isAxiosError(error) ? error.response?.status : undefined;
 
-	// DRF answers 403 both to a non-superuser and to an ended session. Ask the
-	// session which one it is without refetching its query: a refetch unmounts
-	// the section, and the remount would hit the 403 again.
 	useEffect(() => {
 		if (status !== 403) {
 			return;
@@ -36,7 +33,6 @@ export function UkmaDataError({
 		let active = true;
 		authSessionRetrieve()
 			.then((session) => {
-				// A late answer must not restore a session that logout has cleared.
 				if (active) {
 					queryClient.setQueryData(getAuthSessionRetrieveQueryKey(), session);
 				}

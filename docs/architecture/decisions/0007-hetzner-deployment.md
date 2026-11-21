@@ -24,9 +24,9 @@ ADR-0002 selected AWS EC2 as the hosting provider for a single-instance deployme
    - We do not want to add managed-service complexity (RDS, ALB, ECS) — the simple "Docker on a VM" model from ADR-0002 has worked.
 
 3. **Same non-functional requirements still apply**
-   - [NFR-R-002](../requirements.md#nfr-r-002): 99.5% monthly uptime.
-   - [NFR-R-004](../requirements.md#nfr-r-004): daily backups with 7-day retention.
-   - [NFR-PE-001](../requirements.md#nfr-pe-001): page load < 1.5 seconds.
+   - [NFR-R-002](../../requirements/requirements.md#nfr-r-002): 99.5% monthly uptime.
+   - [NFR-R-004](../../requirements/requirements.md#nfr-r-004): daily backups with 7-day retention.
+   - [NFR-PE-001](../../requirements/requirements.md#nfr-pe-001): page load < 1.5 seconds.
 
 4. **Service knowledge accumulated since ADR-0002**
    - AWS SSM/Secrets Manager was specified in ADR-0002 §3 but never actually adopted; secrets have lived in GitHub Actions and a server-side `.env` from day one.
@@ -62,7 +62,7 @@ We will migrate both environments to **Hetzner Cloud** VMs in the `nbg1` (Nuremb
 
 5. **Backups**
    - **Backups are explicitly deferred** (regression vs. ADR-0002 §3). The separate backup EC2 from ADR-0002 was never wired up; the migration is not the right moment to design the backup pipeline.
-   - A dedicated follow-up will pick between Hetzner Storage Box, an S3-compatible bucket (Hetzner Object Storage / Backblaze B2), or a second small VM with `rsync`. Until then, [NFR-R-004](../requirements.md#nfr-r-004) is **not met**.
+   - A dedicated follow-up will pick between Hetzner Storage Box, an S3-compatible bucket (Hetzner Object Storage / Backblaze B2), or a second small VM with `rsync`. Until then, [NFR-R-004](../../requirements/requirements.md#nfr-r-004) is **not met**.
 
 6. **DNS**
    - `rateukma.com` and `staging.rateukma.com` remain on Route 53. Only the A records are updated to point at the new Hetzner IPs; NS/SOA are unchanged.

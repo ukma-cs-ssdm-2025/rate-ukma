@@ -36,7 +36,7 @@ do not need it.
   (`src/backend/rateukma/settings/_base.py`). The endpoint is `AllowAny` and
   intentionally uncached.
 - The frontend consumes it through `src/webapp/src/lib/feature-flags/`:
-  `useFeatureFlag(name)` returns a boolean; `useFeatureFlags()` also gives
+  `useFeatureFlag(name)` returns a boolean; `useFeatureFlagState(name)` also gives
   `isReady`.
 
 ### Two kinds of flags
