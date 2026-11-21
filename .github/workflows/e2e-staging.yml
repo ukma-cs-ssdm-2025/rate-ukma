@@ -1,0 +1,26 @@
+name: E2E on Staging
+
+# Runs the staging E2E suite by hand, for example after copying live's data to
+# staging (docs/runbooks/staging-copy-of-live.md). Rerunning the e2e job inside
+# a Staging Build would rerun the jobs after it and start the live pipeline;
+# this workflow only tests staging.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One manual run at a time; it signs in with the same account as the deploy's E2E.
+concurrency:
+  group: e2e-staging-manual
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    uses: ./.github/workflows/e2e-test.yml
+    with:
+      test_url: ${{ vars.STAGING_URL }}
+    secrets:
+      CORPORATE_EMAIL: ${{ secrets.CORPORATE_EMAIL }}
+      CORPORATE_PASSWORD: ${{ secrets.CORPORATE_PASSWORD }}
