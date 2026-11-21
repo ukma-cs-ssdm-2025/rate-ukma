@@ -12,8 +12,9 @@ import { SazClient } from "../saz/SazClient.ts";
 import { parseStudents } from "../students/students.ts";
 import { StudentStore } from "../students/StudentStore.ts";
 import { crawlSmart, untilNextSmartCrawl } from "../smart/crawl.ts";
-import { parseSmart } from "../smart/parse.ts";
+import { parseSmart, relinkTeachers } from "../smart/parse.ts";
 import { SmartClient } from "../smart/SmartClient.ts";
+import { OfferingTeacherStore } from "../smart/OfferingTeacherStore.ts";
 import { SmartStore } from "../smart/SmartStore.ts";
 import { crawlLoop } from "./crawlLoop.ts";
 
@@ -73,6 +74,13 @@ export const WorkerLive = Layer.effectDiscard(
 			Effect.andThen(removeOfferings(threshold)),
 			Effect.catchCause((cause) =>
 				Effect.logError("Removing offerings failed", cause),
+			),
+			Effect.andThen(relinkTeachers()),
+			// The reason only: a cause can quote a row with a teacher's name.
+			Effect.catchCause(() =>
+				Effect.logError("Relinking teachers failed", {
+					reason: "write failed",
+				}),
 			),
 			Effect.asVoid,
 		);
@@ -147,6 +155,7 @@ export const WorkerLive = Layer.effectDiscard(
 		OfferingStore.layer,
 		RemovalStore.layer,
 		SazClient.layer,
+		OfferingTeacherStore.layer,
 		SmartClient.layer,
 		SmartStore.layer,
 		StudentStore.layer,
