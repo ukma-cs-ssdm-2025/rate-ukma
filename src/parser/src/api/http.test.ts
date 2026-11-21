@@ -622,6 +622,64 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 		);
 
 		it.effect(
+			"filters review cases by status and kind and counts every match",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
+
+					const [{ after }] = yield* sql<{ readonly after: number }>`
+						SELECT coalesce(max(change_no), 0)::int AS after FROM review_cases
+					`;
+
+					yield* changes.withTurn(sql`
+						INSERT INTO review_cases (
+							kind, subject_id, candidates, safe_answer, status, change_no
+						)
+						SELECT kind, 'sub_' || n, '[]', '{}', status,
+							nextval('change_no_seq')
+						FROM (VALUES
+							(1, 'student_match', 'open'),
+							(2, 'student_match', 'open'),
+							(3, 'student_match', 'open'),
+							(4, 'course_match', 'open'),
+							(5, 'student_match', 'decided')
+						) AS c (n, kind, status)
+					`);
+
+					const reviewer = yield* clientAs(["review:decide"]);
+
+					const openStudents = yield* reviewer.client.review.reviewCases({
+						query: { after, limit: 2, status: "open", kind: "student_match" },
+					});
+
+					assert.deepStrictEqual(
+						openStudents.items.map(({ subjectId }) => subjectId),
+						["sub_1", "sub_2"],
+					);
+					assert.isTrue(openStudents.hasMore);
+					assert.strictEqual(openStudents.total, 3);
+
+					const open = yield* reviewer.client.review.reviewCases({
+						query: { after, limit: 500, status: "open" },
+					});
+
+					assert.deepStrictEqual(
+						open.items.map(({ kind }) => kind),
+						["student_match", "student_match", "student_match", "course_match"],
+					);
+					assert.strictEqual(open.total, 4);
+
+					const all = yield* reviewer.client.review.reviewCases({
+						query: { after, limit: 500 },
+					});
+
+					assert.strictEqual(all.total, 5);
+					assert.strictEqual(all.items.length, 5);
+				}),
+		);
+
+		it.effect(
 			"needs review:decide to merge or unmerge a course and answers 404 or 409",
 			() =>
 				Effect.gen(function* () {

@@ -41,7 +41,7 @@ export const KeyApiHandlers = HttpApiBuilder.group(Api, "key", (handlers) =>
 );
 
 /** Counts the page's rows for the request's audit row. */
-const served = <A>(page: Effect.Effect<PageOf<A>>) =>
+const served = <P extends PageOf<unknown>>(page: Effect.Effect<P>) =>
 	page.pipe(
 		Effect.tap(({ items }) =>
 			Caller.use((caller) => caller.countRows(items.length)),

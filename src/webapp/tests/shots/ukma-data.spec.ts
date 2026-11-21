@@ -24,6 +24,7 @@ const page = <T>(items: T[]) => ({
 	cursor: items.length,
 	has_more: false,
 	data_updated_at: updated,
+	total: items.length,
 });
 const named = (prefix: string, names: string[]) =>
 	names.map((name, index) => ({
@@ -81,40 +82,51 @@ const UKMA_DATA: Record<string, unknown> = {
 			removed_at: index === 5 ? updated : null,
 		})),
 	),
-	"review-cases/": page([
-		reviewCase(
-			"case-test-1",
-			"course_match",
-			"open",
-			"off-test-1",
-			["off-test-2"],
-			{ course: "new" },
-		),
-		reviewCase(
-			"case-test-2",
-			"instructor_match",
-			"open",
-			"off-test-3",
-			["inst-test-1", "inst-test-2"],
-			{ instructor: null },
-		),
-		reviewCase(
-			"case-test-3",
-			"removals_held",
-			"decided",
-			"run-test-2",
-			{ offerings: ["off-test-4", "off-test-5"], threshold: 0.1 },
-			{ removed: [] },
-		),
-	]),
 };
+
+const REVIEW_CASES = [
+	reviewCase(
+		"case-test-1",
+		"course_match",
+		"open",
+		"off-test-1",
+		["off-test-2"],
+		{ course: "new" },
+	),
+	reviewCase(
+		"case-test-2",
+		"instructor_match",
+		"open",
+		"off-test-3",
+		["inst-test-1", "inst-test-2"],
+		{ instructor: null },
+	),
+	reviewCase(
+		"case-test-3",
+		"removals_held",
+		"decided",
+		"run-test-2",
+		{ offerings: ["off-test-4", "off-test-5"], threshold: 0.1 },
+		{ removed: [] },
+	),
+];
+
+function reviewCasePage(url: URL) {
+	const kind = url.searchParams.get("kind");
+	const status = url.searchParams.get("status");
+	return page(
+		REVIEW_CASES.filter(
+			(item) =>
+				(kind === null || item.kind === kind) &&
+				(status === null || item.status === status),
+		),
+	);
+}
 
 async function mockUkmaData(page: Page, failure?: 502 | 503) {
 	await page.route("**/api/v1/ukma-data/**", async (route) => {
-		const path = new URL(route.request().url()).pathname.replace(
-			/^\/api\/v1\/ukma-data\//,
-			"",
-		);
+		const url = new URL(route.request().url());
+		const path = url.pathname.replace(/^\/api\/v1\/ukma-data\//, "");
 		if (failure) {
 			await route.fulfill({
 				status: failure,
@@ -122,7 +134,8 @@ async function mockUkmaData(page: Page, failure?: 502 | 503) {
 			});
 			return;
 		}
-		const body = UKMA_DATA[path];
+		const body =
+			path === "review-cases/" ? reviewCasePage(url) : UKMA_DATA[path];
 		await (body
 			? route.fulfill({ json: body })
 			: route.abort("connectionrefused"));

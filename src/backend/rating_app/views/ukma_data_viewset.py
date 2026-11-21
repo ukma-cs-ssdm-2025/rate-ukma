@@ -6,9 +6,13 @@ from rest_framework.response import Response
 
 import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from pydantic import BaseModel
 from pydantic import ValidationError as ModelValidationError
 
-from rating_app.application_schemas.ukma_data import UkmaDataPageParams
+from rating_app.application_schemas.ukma_data import (
+    UkmaDataPageParams,
+    UkmaDataReviewCaseParams,
+)
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.serializers.ukma_data import (
     UkmaDataDepartmentPageSerializer,
@@ -34,6 +38,7 @@ logger = structlog.get_logger(__name__)
 to_openapi = pydantic_to_openapi_request_mapper().map
 
 PAGE_PARAMETERS = to_openapi((UkmaDataPageParams, OpenApiParameter.QUERY))
+REVIEW_CASE_PARAMETERS = to_openapi((UkmaDataReviewCaseParams, OpenApiParameter.QUERY))
 PAGE_DESCRIPTION = (
     "One page of UKMA Data's list in change-number order, removed rows included. "
     "Pass the response's `cursor` as `after` while `has_more` is true. Superusers only."
@@ -133,20 +138,26 @@ class UkmaDataViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="List UKMA Data review cases",
-        description=PAGE_DESCRIPTION,
-        parameters=PAGE_PARAMETERS,
+        description=PAGE_DESCRIPTION
+        + " `status` and `kind` narrow the list; `total` counts every matching case.",
+        parameters=REVIEW_CASE_PARAMETERS,
         responses=R_UKMA_DATA_REVIEW_CASES,
         operation_id="ukma_data_review_cases_list",
     )
     def review_cases(self, request: Request) -> Response:
         assert self.ukma_data_service is not None
 
-        page = self.ukma_data_service.list_review_cases(self._page_params(request))
+        page = self.ukma_data_service.list_review_cases(
+            self._query(request, UkmaDataReviewCaseParams)
+        )
         return Response(UkmaDataReviewCasePageSerializer(page).data, status=status.HTTP_200_OK)
 
     def _page_params(self, request: Request) -> UkmaDataPageParams:
+        return self._query(request, UkmaDataPageParams)
+
+    def _query[M: BaseModel](self, request: Request, model: type[M]) -> M:
         try:
-            return UkmaDataPageParams.model_validate(request.query_params.dict())
+            return model.model_validate(request.query_params.dict())
         except ModelValidationError as e:
             errors = e.errors(include_input=False, include_url=False)
             logger.error("validation_error", errors=errors)

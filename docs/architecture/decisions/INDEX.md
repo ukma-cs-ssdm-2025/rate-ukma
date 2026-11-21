@@ -27,3 +27,4 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0018](0018-webapp-decisions-from-comments.md) - Webapp Decisions Recorded Here Instead of in Code Comments
 * [ADR-0019](0019-webapp-test-decisions.md) - Webapp Test Decisions Recorded Here Instead of in Test Comments
 * [ADR-0020](0020-planned-teachers-and-in-app-scheduler.md) - Planned Teachers Come from UKMA Data, Mirrored Daily by an In-App Scheduler
+* [ADR-0021](0021-review-case-filters-and-totals.md) - Review Cases Are Filtered and Counted in UKMA Data

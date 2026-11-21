@@ -25,7 +25,8 @@ import {
 	Page,
 	PageQuery,
 	Programme,
-	ReviewCase,
+	ReviewCasePage,
+	ReviewCaseQuery,
 	Term,
 	YearPageQuery,
 } from "../lists/lists.ts";
@@ -154,9 +155,12 @@ export class InstructorApi extends HttpApiGroup.make("instructors")
 export class ReviewApi extends HttpApiGroup.make("review")
 	.add(
 		HttpApiEndpoint.get("reviewCases", "/review-cases", {
-			query: PageQuery,
-			success: Page(ReviewCase, "ReviewCasePage"),
-		}).annotate(OpenApi.Summary, "Review cases with their safe answers"),
+			query: ReviewCaseQuery,
+			success: ReviewCasePage,
+		}).annotate(
+			OpenApi.Summary,
+			"Review cases with their safe answers, optionally of one status and kind, with how many match",
+		),
 		HttpApiEndpoint.get("studentCase", "/review-cases/:id", {
 			params: { id: Schema.String },
 			success: StudentCase,

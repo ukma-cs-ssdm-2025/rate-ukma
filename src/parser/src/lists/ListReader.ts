@@ -10,6 +10,8 @@ import {
 	type PageRequest,
 	Programme,
 	ReviewCase,
+	type ReviewCasePageOf,
+	type ReviewCaseRequest,
 	Term,
 	toPage,
 	type YearPageRequest,
@@ -46,7 +48,10 @@ export class ListReader extends Context.Service<
 		offeringTeachers: (
 			request: YearPageRequest,
 		) => Effect.Effect<PageOf<typeof OfferingTeachers.Type>>;
-		reviewCases: Read<typeof ReviewCase>;
+		/** Cases of one status and kind, or all, with how many match. */
+		reviewCases: (
+			request: ReviewCaseRequest,
+		) => Effect.Effect<ReviewCasePageOf>;
 	}
 >()("ukma-data/lists/ListReader") {
 	static readonly layer = Layer.effect(
@@ -62,6 +67,15 @@ export class ListReader extends Context.Service<
 					WHERE status = 'succeeded' AND source_part LIKE 'saz-courses:%'
 				`,
 			});
+
+			const countCases = (matching: Statement.Fragment) =>
+				SqlSchema.findOne({
+					Request: Schema.Void,
+					Result: Schema.Struct({ total: Schema.Int }),
+					execute: () => sql`
+						SELECT count(*)::int AS total FROM review_cases WHERE ${matching}
+					`,
+				})();
 
 			const reader = <A extends { readonly changeNo: number }>(
 				item: Schema.Decoder<A>,
@@ -191,17 +205,30 @@ export class ListReader extends Context.Service<
 							ORDER BY o.change_no LIMIT ${rows}
 						`,
 					)(request),
-				reviewCases: reader(
-					ReviewCase.pipe(numbered),
-					(after, rows) => sql`
-						SELECT id, kind, subject_id AS "subjectId", candidates,
-							safe_answer AS "safeAnswer", status,
-							'run_' || run_id AS "runId", decision_id AS "decisionId",
-							opened_at AS "openedAt", change_no AS "changeNo"
-						FROM review_cases
-						WHERE change_no > ${after} ORDER BY change_no LIMIT ${rows}
-					`,
-				),
+				reviewCases: ({ status, kind, ...request }) => {
+					const matching = sql.and([
+						sql`change_no > ${request.after}`,
+						...(status === undefined ? [] : [sql`status = ${status}`]),
+						...(kind === undefined ? [] : [sql`kind = ${kind}`]),
+					]);
+
+					const page = reader(
+						ReviewCase.pipe(numbered),
+						(_after, rows) => sql`
+							SELECT id, kind, subject_id AS "subjectId", candidates,
+								safe_answer AS "safeAnswer", status,
+								'run_' || run_id AS "runId", decision_id AS "decisionId",
+								opened_at AS "openedAt", change_no AS "changeNo"
+							FROM review_cases
+							WHERE ${matching} ORDER BY change_no LIMIT ${rows}
+						`,
+					)(request);
+
+					return Effect.all([page, countCases(matching)]).pipe(
+						Effect.map(([rows, { total }]) => ({ ...rows, total })),
+						Effect.orDie,
+					);
+				},
 			});
 		}),
 	);

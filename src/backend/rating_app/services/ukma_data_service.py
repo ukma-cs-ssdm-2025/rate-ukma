@@ -14,7 +14,8 @@ from rating_app.application_schemas.ukma_data import (
     UkmaDataPage,
     UkmaDataPageParams,
     UkmaDataProgramme,
-    UkmaDataReviewCase,
+    UkmaDataReviewCasePage,
+    UkmaDataReviewCaseParams,
     UkmaDataStatus,
     UkmaDataTerm,
 )
@@ -67,8 +68,15 @@ class UkmaDataService:
     def get_key(self) -> UkmaDataKey:
         return self._get("/v1/key", {}, UkmaDataKey)
 
-    def list_review_cases(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataReviewCase]:
-        return self._get_page("/v1/review-cases", params, UkmaDataPage[UkmaDataReviewCase])
+    def list_review_cases(self, params: UkmaDataReviewCaseParams) -> UkmaDataReviewCasePage:
+        """Cases of one status and kind, or all, with how many match across pages."""
+        filters = {"status": params.status, "kind": params.kind}
+        return self._get_page(
+            "/v1/review-cases",
+            params,
+            UkmaDataReviewCasePage,
+            extra={name: value for name, value in filters.items() if value is not None},
+        )
 
     def get_status(self) -> UkmaDataStatus:
         key = self.get_key()
@@ -87,16 +95,16 @@ class UkmaDataService:
         path: str,
         params: UkmaDataPageParams,
         page: type[P],
-        extra: dict[str, int] | None = None,
+        extra: dict[str, int | str] | None = None,
     ) -> P:
-        query: dict[str, int] = dict(extra or {})
+        query: dict[str, int | str] = dict(extra or {})
         if params.after is not None:
             query["after"] = params.after
         if params.limit is not None:
             query["limit"] = min(params.limit, UKMA_DATA_MAX_PAGE_SIZE)
         return self._get(path, query, page)
 
-    def _get[M: BaseModel](self, path: str, query: dict[str, int], model: type[M]) -> M:
+    def _get[M: BaseModel](self, path: str, query: dict[str, int | str], model: type[M]) -> M:
         base_url = settings.UKMA_DATA_URL
         api_key = settings.UKMA_DATA_API_KEY
         if not base_url or not api_key:
