@@ -406,3 +406,29 @@ def test_course_instructors_count_recent_students_from_the_last_two_academic_yea
     ]
 
     assert (item["students_count"], item["recent_students_count"]) == (3, 2)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_planned_teachers_of_the_latest_offering_follow_fall_over_spring_of_one_year(
+    token_client,
+    instructor_factory,
+    course_offering_factory,
+    course_instructor_factory,
+    semester_factory,
+):
+    spring = course_offering_factory(semester=semester_factory(year=2021, term=SemesterTerm.SPRING))
+    fall = course_offering_factory(
+        course=spring.course, semester=semester_factory(year=2021, term=SemesterTerm.FALL)
+    )
+    course_instructor_factory(
+        instructor=instructor_factory(last_name="Осінна", email="a@x.ua"), course_offering=fall
+    )
+    course_instructor_factory(
+        instructor=instructor_factory(last_name="Весняна", email="b@x.ua"), course_offering=spring
+    )
+    Flag.objects.create(name="fe_course_instructors", everyone=True)
+
+    items = token_client.get(reverse("course-instructors", args=[spring.course_id])).json()["items"]
+
+    assert [i["instructor"]["last_name"] for i in items] == ["Осінна"]

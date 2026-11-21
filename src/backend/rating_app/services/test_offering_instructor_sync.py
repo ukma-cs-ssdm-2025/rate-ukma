@@ -139,3 +139,19 @@ def test_has_scope_reads_the_key():
     service.get_key.return_value = key("catalog:read", "instructors:read")
 
     assert OfferingInstructorSync(service).has_scope() is True
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_an_offering_without_the_instructors_key_keeps_its_links(
+    course_offering_factory, course_instructor_factory
+):
+    kept = course_instructor_factory(course_offering=course_offering_factory(code="990001"))
+    absent = UkmaDataOfferingInstructors.model_validate(
+        {"sazCode": "990001", "academicYear": YEAR, "changeNo": 1, "removedAt": None}
+    )
+
+    report = OfferingInstructorSync(service_with([absent])).run()
+
+    assert (report.matched, report.skipped, report.removed) == (0, 1, 0)
+    assert CourseInstructor.objects.filter(id=kept.id).exists()

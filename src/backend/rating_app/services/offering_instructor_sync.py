@@ -79,6 +79,10 @@ class OfferingInstructorSync:
             if offering is None:
                 report.skipped += 1
                 continue
+            if row.instructors is None and row.removed_at is None:
+                # No `instructors` key at all: not an empty list, so delete nothing.
+                report.skipped += 1
+                continue
             report.matched += 1
             listed = [] if row.removed_at is not None else (row.instructors or [])
             wanted = self._wanted_links(listed, report)

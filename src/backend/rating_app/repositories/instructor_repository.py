@@ -211,7 +211,16 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     def latest_offering_id(self, course_id: uuid.UUID) -> uuid.UUID | None:
         offering = (
             CourseOfferingModel.objects.filter(course_id=course_id)
-            .order_by("-semester__year", "-semester__term")
+            .annotate(
+                # Within a calendar year spring comes first, then summer, then fall.
+                term_rank=Case(
+                    When(semester__term=SemesterTerm.FALL, then=Value(2)),
+                    When(semester__term=SemesterTerm.SUMMER, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("-semester__year", "-term_rank")
             .values_list("id", flat=True)
             .first()
         )
