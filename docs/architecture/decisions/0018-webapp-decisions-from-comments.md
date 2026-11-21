@@ -63,7 +63,7 @@ We will not keep comments in `src/webapp/src`. Lint bans them (`rate-ukma/no-com
 - **The "system" theme is resolved in CSS** by `prefers-color-scheme`; only an explicit pick is written to `<html>`, so OS changes need no JS (`components/ThemeProvider.tsx`).
 - **Callback refs** for elements that can mount late (behind a flag), so setup still runs (`lib/hooks/useHorizontalScroll.ts`).
 - **Feed strip.** The scroller is positioned because tiles' screen-reader labels are absolutely positioned and would otherwise widen the page. The loading tile renders only when there are items, or it becomes the scroll-snap target. Channel images centre-crop banners and posters and sit on a white backdrop so dark transparent logos show in dark mode (`features/feed/components/`).
-- **The course page renders its mobile column once**, not per breakpoint, so the rate button's test id stays unique (`routes/courses.$courseId.tsx`).
+- **The course page renders its mobile column once**, not per breakpoint, so the rate button's test id stays unique (`features/course-page/components/CoursePage.tsx`).
 - **Test ids** are kebab-case `feature-component-element-type` with an element suffix (`-button`, `-input`, `-modal`), stable, with no dynamic values, made with `createTestIds`/`getTestId` (`lib/test-ids.ts`).
 - **The sign-in backdrop** scatters invented demo courses placed like the course map, in percentages so it fits any screen; the tooltip carousel keeps its dots clear of the form and runs only on wide, tall screens without reduced motion (`components/AuthShell.tsx`, `components/authShellDots.ts`).
 

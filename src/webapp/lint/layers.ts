@@ -5,6 +5,7 @@ export const MAX_LINES = 400;
 export const FEATURE_DEPENDENCIES = {
 	"connection-error": [],
 	"course-offerings": ["courses", "instructors"],
+	"course-page": ["course-offerings", "courses", "instructors", "ratings"],
 	courses: ["feed", "instructors", "promo"],
 	feed: ["notifications"],
 	instructors: [],

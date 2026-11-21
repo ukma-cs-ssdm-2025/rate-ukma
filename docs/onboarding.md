@@ -120,9 +120,11 @@ Also worth knowing:
 
 ## 5. Frontend: follow one page
 
-The course page, [`courses.$courseId.tsx`](../src/webapp/src/routes/courses.$courseId.tsx):
+The course page, route [`courses.$courseId.tsx`](../src/webapp/src/routes/courses.$courseId.tsx):
 
-1. **Route** reads data straight from hooks, no route loaders: generated
+1. **Route** stays thin (ADR-0017): it reads `courseId`, applies the auth guard
+   and renders [`CoursePage`](../src/webapp/src/features/course-page/components/CoursePage.tsx).
+   The page reads data straight from hooks, no route loaders: generated
    `useCoursesRetrieve` and `useCoursesOfferingsList`, plus feature hooks such
    as [`useUserCourseRating`](../src/webapp/src/features/ratings/hooks/useUserCourseRating.ts).
 2. **Feature slices** ([`courses/`](../src/webapp/src/features/courses/),
