@@ -346,7 +346,6 @@ describe("CourseFiltersPanel", () => {
 		});
 
 		it("keeps the chosen speciality when the faculty changes", async () => {
-			Element.prototype.scrollIntoView = vi.fn();
 			const user = userEvent.setup();
 			const setParams = vi.fn();
 			render(

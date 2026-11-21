@@ -47,7 +47,6 @@ function mockInstructors(items: Instructor[]) {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockInstructors([]);
-	Element.prototype.scrollIntoView = vi.fn();
 });
 
 describe("InstructorMultiSelect", () => {
