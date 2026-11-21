@@ -94,7 +94,7 @@ class InstructorService(IFilterable):
         return items
 
     def get_filter_options(self) -> list[dict[str, Any]]:
-        instructors = self.instructor_repository.get_all(ordered=True)
+        instructors = self.instructor_repository.get_named()
         return [
             {
                 "id": instructor.id,

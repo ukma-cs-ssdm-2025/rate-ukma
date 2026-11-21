@@ -36,6 +36,10 @@ start_services() {
   local web non_blocking
   mapfile -t web < <(compose_cmd "$1" "$2" config --services \
     | jq -R . | jq -s -r --argjson skip "$NON_BLOCKING_SERVICES" '.[] | select(. as $s | $skip | index($s) | not)')
+  if [[ "${#web[@]}" -eq 0 ]]; then
+    echo "Error: could not list the web services"
+    return 1
+  fi
   compose_cmd "$1" "$2" up -d "${web[@]}"
 
   for non_blocking in $(echo "$NON_BLOCKING_SERVICES" | jq -r '.[]'); do
