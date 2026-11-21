@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
 
 import { Button } from "@/components/ui/Button";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { testIds } from "@/lib/test-ids";
 
 type MicrosoftLoginButtonProps = {

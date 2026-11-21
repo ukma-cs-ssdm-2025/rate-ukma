@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { CoursePage } from "@/features/course-page/components/CoursePage";
-import { withAuth } from "@/lib/auth";
+import { withAuth } from "@/lib/auth/withAuth";
 
 function CourseDetailsRoute() {
 	const { courseId } = Route.useParams();

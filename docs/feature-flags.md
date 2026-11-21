@@ -90,7 +90,7 @@ it ships with a deploy. **Toggling** an already-exposed flag is runtime-only
 
 3. **Gate the UI** in the frontend:
    ```tsx
-   import { useFeatureFlag } from "@/lib/feature-flags";
+   import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 
    const isOn = useFeatureFlag("fe_my_new_flag");
    return isOn ? <NewThing /> : <OldThing />;
@@ -99,7 +99,7 @@ it ships with a deploy. **Toggling** an already-exposed flag is runtime-only
    `useFeatureFlagState` — it returns the value *and* whether flags have
    resolved, so an unresolved flag is not silently treated as OFF:
    ```tsx
-   import { useFeatureFlagState } from "@/lib/feature-flags";
+   import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 
    const { enabled, isReady } = useFeatureFlagState("fe_my_new_flag");
    if (!isReady) return null; // or a skeleton

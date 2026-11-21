@@ -8,7 +8,7 @@ import { FeedItem } from "./FeedItem";
 import { FeedSkeleton } from "./FeedCard";
 import type { UseFeedReturn } from "../hooks/useFeed";
 import { useFeed } from "../hooks/useFeed";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { testIds } from "@/lib/test-ids";
 
 export function FeedPage() {

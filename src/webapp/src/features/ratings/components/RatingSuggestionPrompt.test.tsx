@@ -9,8 +9,8 @@ vi.mock("@/lib/api/generated", async (importOriginal) => {
 	return { ...actual, useStudentsMeRatingSuggestionsList: vi.fn() };
 });
 
-vi.mock("@/lib/auth", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@/lib/auth")>();
+vi.mock("@/lib/auth/useAuth", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/lib/auth/useAuth")>();
 	return {
 		...actual,
 		useAuth: () => ({ ...actual.useAuth(), isStudent: true }),

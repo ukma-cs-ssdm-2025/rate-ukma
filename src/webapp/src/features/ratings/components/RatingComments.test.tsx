@@ -19,7 +19,7 @@ const apiMocks = vi.hoisted(() => ({
 	toastError: vi.fn(),
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/lib/auth/useAuth", () => ({
 	useAuth: () => ({
 		user: { id: 7 },
 	}),

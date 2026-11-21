@@ -62,8 +62,8 @@ Specs in `tests/e2e` follow standard Playwright patterns:
 
 ## Feature flags
 
-Gate UI with `useFeatureFlag("fe_<name>")` from `@/lib/feature-flags` (mirrors
-`@/lib/auth`). For non-trivial content, and for anything that writes, use
+Gate UI with `useFeatureFlag("fe_<name>")` from `@/lib/feature-flags/useFeatureFlag`.
+For non-trivial content, and for anything that writes, use
 `useFeatureFlagState("fe_<name>")` instead — it returns `{ enabled, isReady }`,
 so an unresolved flag cannot be mistaken for OFF. See `docs/feature-flags.md`
 for the endpoint, the backend allowlist and the add / toggle / test / remove flow.
