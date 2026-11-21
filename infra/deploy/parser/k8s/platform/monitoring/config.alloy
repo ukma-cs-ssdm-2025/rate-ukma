@@ -239,6 +239,10 @@ otelcol.connector.spanmetrics "parser" {
 		name = "outcome"
 	}
 
+	// A guard under the ~10k series free tier: about 12 series per combination, so a
+	// runaway attribute costs a few thousand series at most.
+	aggregation_cardinality_limit = 2000
+
 	histogram {
 		explicit {
 			buckets = ["10ms", "50ms", "250ms", "1s", "5s", "30s", "2m", "10m"]
