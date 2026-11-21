@@ -46,7 +46,7 @@ export interface MatchReport {
 }
 
 /** Titles match after case, spaces, quotes, dashes and punctuation, with the
- *  conjunctions та, й, і and и read as one word (matching.md). */
+ *  conjunctions та, й, і and и read as one word. */
 export const normalisedTitle = (title: string): string =>
 	title
 		.toLowerCase()
@@ -109,7 +109,7 @@ const wordsOf = (text: string): ReadonlySet<string> =>
 			.filter((word) => word !== ""),
 	);
 
-/** The automatic part of matching.md's rule. An offering takes smart.ukma
+/** The automatic part of the matching rule. An offering takes smart.ukma
  *  teachers when its disciplines agree on title, credits, mapped department
  *  and level, and either name one teacher set or САЗ's teacher text settles a
  *  tie. САЗ "names" a teacher when the text holds their last name. A tie САЗ
