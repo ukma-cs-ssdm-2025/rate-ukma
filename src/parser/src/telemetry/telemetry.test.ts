@@ -229,7 +229,14 @@ layer(ApiLive, { timeout: 30_000, excludeTestServices: true })(
 				);
 
 				yield* http.execute(
-					authorized(HttpClientRequest.get("/v1/offerings?after=0&limit=5")),
+					authorized(
+						HttpClientRequest.get("/v1/offerings?after=0&limit=5"),
+					).pipe(
+						HttpClientRequest.setHeader(
+							"user-agent",
+							"CatalogBot/1.0 (contact: operator@example.edu)",
+						),
+					),
 				);
 				yield* http.execute(
 					authorized(HttpClientRequest.post("/v1/courses/crs_missing/unmerge")),

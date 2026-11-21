@@ -43,9 +43,16 @@ const originOf = (value: string): string => {
 
 /** Attributes a span never exports: the URL query and path, and what the
  *  server's request log adds to its span as an event, the raw `http.url` and
- *  the pretty-printed cause, which can quote it (`RouteNotFound (GET /…)`).
+ *  the pretty-printed cause, which can quote it (`RouteNotFound (GET /…)`), and
+ *  the raw User-Agent, which can carry a contact email.
  *  The log line itself still has both. */
-const DROPPED = new Set(["url.query", "url.path", "http.url", "effect.cause"]);
+const DROPPED = new Set([
+	"url.query",
+	"url.path",
+	"http.url",
+	"effect.cause",
+	"user_agent.original",
+]);
 
 /** Attribute entries without the dropped keys, and `url.full` cut to its
  *  origin. */
