@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 
 import { useTheme } from "@/components/ThemeProvider";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useAuth } from "@/lib/auth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";
+import { useHeaderNotifications } from "./HeaderNotificationsProvider";
 import { MobileMenu } from "./MobileMenu";
 import { navigationItems } from "./navigationData";
 import { UserMenu } from "./UserMenu";
@@ -19,6 +19,7 @@ export default function Header() {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const { status, user, logout } = useAuth();
 	const { theme, setTheme } = useTheme();
+	const notifications = useHeaderNotifications();
 	const isAuthenticated = status === "authenticated";
 
 	useEffect(() => {
@@ -71,9 +72,9 @@ export default function Header() {
 							<ModeToggle />
 						</div>
 
-						{isAuthenticated && (
+						{isAuthenticated && notifications && (
 							<div className="hidden md:block">
-								<NotificationBell />
+								<notifications.Bell />
 							</div>
 						)}
 

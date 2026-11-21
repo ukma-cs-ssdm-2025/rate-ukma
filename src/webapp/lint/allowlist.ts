@@ -9,8 +9,6 @@ export const LINT_ALLOWLIST = {
 		"src/features/ratings/components/RatingForm.tsx",
 	],
 	"no-restricted-imports": [
-		"src/components/Header/Header.tsx",
-		"src/components/Header/MobileMenu.tsx",
 		"src/features/courses/components/CourseStatsCards.tsx",
 		"src/routes/courses.$courseId.tsx",
 	],
