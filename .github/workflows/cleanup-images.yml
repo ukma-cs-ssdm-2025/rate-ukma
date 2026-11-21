@@ -18,6 +18,8 @@ jobs:
     permissions:
       packages: write
     strategy:
+      # One package failing must not cancel the cleanup of the others.
+      fail-fast: false
       matrix:
         package: [rate-ukma/backend, rate-ukma/webapp, rate-ukma/parser]
     env:
@@ -33,6 +35,9 @@ jobs:
           delete-untagged: true
           dry-run: ${{ env.DRY_RUN }}
 
+      # Deletes commit-SHA tags older than 14 days, but keeps the newest 10 of those, so the image running
+      # in an environment and its recent rollback targets survive a quiet fortnight. Version tags are never pruned.
+      # use-regex: without it, delete-tags is a wildcard pattern and the regex matches no tag.
       - name: Prune old commit-SHA tagged images
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
@@ -40,7 +45,9 @@ jobs:
           owner: ukma-cs-ssdm-2025
           repository: rate-ukma
           packages: "${{ matrix.package }}"
-          delete-tags: "[0-9a-f]{40}"
-          exclude-tags: latest
+          use-regex: true
+          delete-tags: "^[0-9a-f]{40}$"
+          exclude-tags: "^latest$"
           older-than: 14 days
+          keep-n-tagged: 10
           dry-run: ${{ env.DRY_RUN }}
