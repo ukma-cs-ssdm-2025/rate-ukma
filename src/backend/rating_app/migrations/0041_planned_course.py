@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                         default=uuid.uuid4, editable=False, primary_key=True, serialize=False
                     ),
                 ),
-                ("study_year", models.PositiveSmallIntegerField()),
+                ("academic_year_start", models.PositiveSmallIntegerField()),
                 (
                     "term",
                     models.CharField(
@@ -58,10 +58,6 @@ class Migration(migrations.Migration):
                     models.UniqueConstraint(
                         fields=("student", "offering"),
                         name="planned_course_student_offering_unique",
-                    ),
-                    models.CheckConstraint(
-                        condition=models.Q(("study_year__gte", 1)),
-                        name="planned_course_study_year_gte_1",
                     ),
                 ],
             },

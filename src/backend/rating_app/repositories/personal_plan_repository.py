@@ -101,13 +101,17 @@ class PersonalPlanRepository:
         return self._course_mapper.process(course, getattr(course, "plan_offerings", []))
 
     def place(
-        self, student_id: uuid.UUID, params: PlanCoursePutParams, offering_id: uuid.UUID
+        self,
+        student_id: uuid.UUID,
+        params: PlanCoursePutParams,
+        offering_id: uuid.UUID,
+        academic_year_start: int,
     ) -> None:
         PlannedCourse.objects.update_or_create(
             student_id=student_id,
             offering_id=offering_id,
             defaults={
-                "study_year": params.study_year,
+                "academic_year_start": academic_year_start,
                 "term": params.semester_term,
                 "slot": params.slot,
             },
@@ -130,7 +134,7 @@ class PersonalPlanRepository:
         return PlannedCourseEntry(
             course=self._course_mapper.process(row.offering.course, []),
             offering=self._offering_mapper.process(row.offering),
-            study_year=row.study_year,
+            academic_year_start=row.academic_year_start,
             term=SemesterTerm(row.term),
             slot=PlanSlot(row.slot),
         )

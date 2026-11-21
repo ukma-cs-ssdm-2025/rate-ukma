@@ -71,12 +71,16 @@ def _make_course(*offerings: PlanOffering) -> PlanCourseSource:
 
 def _make_pick(
     course: PlanCourseSource,
-    study_year: int = 3,
+    academic_year_start: int = 2025,
     term: SemesterTerm = SemesterTerm.FALL,
     slot: PlanSlot = PlanSlot.MAIN,
 ) -> PlannedCourseEntry:
     return PlannedCourseEntry(
-        course=course, offering=course.offerings[0], study_year=study_year, term=term, slot=slot
+        course=course,
+        offering=course.offerings[0],
+        academic_year_start=academic_year_start,
+        term=term,
+        slot=slot,
     )
 
 
@@ -157,8 +161,8 @@ def test_get_plan_merges_current_year_without_duplicating_taken_courses(get_plan
     other = _make_course(_make_offering(2023, SemesterTerm.FALL))
     plan_repo.get_taken_courses.return_value = [TakenCourse(course=course, offering=offering)]
     plan_repo.get_planned_courses.return_value = [
-        _make_pick(course, study_year=1, slot=PlanSlot.BACKUP),
-        _make_pick(other, study_year=1),
+        _make_pick(course, academic_year_start=2024, slot=PlanSlot.BACKUP),
+        _make_pick(other, academic_year_start=2024),
     ]
 
     plan = get_plan(_make_student())
@@ -174,7 +178,7 @@ def test_get_plan_merges_current_year_without_duplicating_taken_courses(get_plan
 @freeze_time(TODAY)
 def test_get_plan_shows_only_taken_courses_in_past_years(get_plan, plan_repo):
     stale = _make_course(_make_offering(2023, SemesterTerm.FALL))
-    plan_repo.get_planned_courses.return_value = [_make_pick(stale, study_year=1)]
+    plan_repo.get_planned_courses.return_value = [_make_pick(stale, academic_year_start=2023)]
 
     plan = get_plan(_make_student(program_start=2023))
 
@@ -186,7 +190,7 @@ def test_get_plan_hides_pick_taken_in_another_semester(get_plan, plan_repo):
     offering = _make_offering(2024, SemesterTerm.FALL)
     course = _make_course(offering)
     plan_repo.get_taken_courses.return_value = [TakenCourse(course=course, offering=offering)]
-    plan_repo.get_planned_courses.return_value = [_make_pick(course, study_year=3)]
+    plan_repo.get_planned_courses.return_value = [_make_pick(course, academic_year_start=2026)]
 
     plan = get_plan(_make_student())
 
@@ -394,6 +398,32 @@ def _place(service, plan_repo, course: PlanCourseSource) -> uuid.UUID:
     service.place_course(_make_student(program_start=2023), params)
 
     return plan_repo.place.call_args.args[2]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
+def test_place_course_stores_the_academic_year_of_the_study_year(service, plan_repo):
+    _place(service, plan_repo, _make_course(_make_offering(2024, SemesterTerm.FALL)))
+
+    # The student started in 2023, so their third year is 2025–2026.
+    assert plan_repo.place.call_args.args[3] == 2025
+
+
+@freeze_time(TODAY)
+def test_get_plan_keeps_pick_in_its_academic_year_when_older_history_arrives(get_plan, plan_repo):
+    pick = _make_course(_make_offering(2024, SemesterTerm.FALL))
+    plan_repo.get_planned_courses.return_value = [_make_pick(pick, academic_year_start=2025)]
+    older = _make_offering(2022, SemesterTerm.FALL)
+    plan_repo.get_taken_courses.return_value = [
+        TakenCourse(course=_make_course(older), offering=older)
+    ]
+
+    # The programme says 2023, but САЗ history starts in 2022: 2025–2026 is now year 4.
+    plan = get_plan(_make_student(program_start=2023))
+
+    assert _semester(plan, 3, SemesterTerm.FALL).main == []
+    assert [c.course_id for c in _semester(plan, 4, SemesterTerm.FALL).main] == [pick.course_id]
 
 
 @pytest.mark.django_db

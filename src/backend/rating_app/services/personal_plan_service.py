@@ -79,7 +79,7 @@ class PersonalPlanService:
         picks = [entry for entry in planned if entry.course.course_id not in fixed_ids]
 
         fixed_by_key = self._group_fixed(student, timeline, taken, mandatory)
-        planned_by_key = self._group_planned(student, picks)
+        planned_by_key = self._group_planned(student, timeline, picks)
 
         return PersonalPlan(
             enrollment_year_start=timeline.enrollment_year_start,
@@ -94,8 +94,11 @@ class PersonalPlanService:
         course = self.personal_plan_repository.get_course_source(params.course_id)
         if course is None:
             raise CourseNotFoundError()
+        taken = self.personal_plan_repository.get_taken_courses(student.id)
+        timeline = self._build_timeline(student, taken)
+
         planned = self.personal_plan_repository.get_planned_course(student.id, params.course_id)
-        if planned is not None and not self._moves_course(planned, params):
+        if planned is not None and not self._moves_course(timeline, planned, params):
             # Only a move picks again: a slot change must not alter credits or type.
             offering = planned.offering
         else:
@@ -103,8 +106,6 @@ class PersonalPlanService:
         if offering is None:
             raise CourseNotOfferedError()
 
-        taken = self.personal_plan_repository.get_taken_courses(student.id)
-        timeline = self._build_timeline(student, taken)
         self._ensure_not_fixed(student, timeline, taken, params.course_id)
 
         semesters = self._course_semesters(offering, params.study_year, params.semester_term)
@@ -117,7 +118,12 @@ class PersonalPlanService:
             self.personal_plan_repository.remove_other_offerings(
                 student.id, params.course_id, offering.id
             )
-            self.personal_plan_repository.place(student.id, params, offering.id)
+            self.personal_plan_repository.place(
+                student.id,
+                params,
+                offering.id,
+                self._academic_year_start(timeline, params.study_year),
+            )
 
         self.cache_manager.bump_version(student_plan_namespace(str(student.id)))
         logger.info(
@@ -172,7 +178,7 @@ class PersonalPlanService:
         taken_ids = {item.course.course_id for item in taken}
         by_course: dict[uuid.UUID, MandatoryCourse] = {}
         for (study_year, _), items in by_semester.items():
-            cohort_start = timeline.enrollment_year_start + study_year - 1
+            cohort_start = self._academic_year_start(timeline, study_year)
             starts = {self._offering_year_start(item.offering) for item in items}
             year_start = max((s for s in starts if s <= cohort_start), default=min(starts))
             for item in items:
@@ -214,8 +220,14 @@ class PersonalPlanService:
 
     def _year_status(self, timeline: PlanTimeline, study_year: int) -> PlanYearStatus:
         return self.semester_service.get_academic_year_status(
-            timeline.enrollment_year_start + study_year - 1
+            self._academic_year_start(timeline, study_year)
         )
+
+    def _academic_year_start(self, timeline: PlanTimeline, study_year: int) -> int:
+        return timeline.enrollment_year_start + study_year - 1
+
+    def _study_year(self, timeline: PlanTimeline, academic_year_start: int) -> int:
+        return academic_year_start - timeline.enrollment_year_start + 1
 
     def _is_graduation_summer(
         self, timeline: PlanTimeline, study_year: int, term: SemesterTerm
@@ -254,13 +266,14 @@ class PersonalPlanService:
         return by_key
 
     def _group_planned(
-        self, student: Student, planned: list[PlannedCourseEntry]
+        self, student: Student, timeline: PlanTimeline, planned: list[PlannedCourseEntry]
     ) -> dict[SemesterKey, SemesterCourses]:
         by_key: dict[SemesterKey, SemesterCourses] = defaultdict(
             lambda: SemesterCourses(main=[], backup=[])
         )
         for entry in planned:
-            semesters = self._course_semesters(entry.offering, entry.study_year, entry.term)
+            study_year = self._study_year(timeline, entry.academic_year_start)
+            semesters = self._course_semesters(entry.offering, study_year, entry.term)
             for key, load in semesters:
                 course = self._build_course(
                     student, entry.course, entry.offering, load, is_mandatory=False
@@ -269,10 +282,13 @@ class PersonalPlanService:
                 (semester.main if entry.slot == PlanSlot.MAIN else semester.backup).append(course)
         return by_key
 
-    def _moves_course(self, planned: PlannedCourseEntry, params: PlanCoursePutParams) -> bool:
+    def _moves_course(
+        self, timeline: PlanTimeline, planned: PlannedCourseEntry, params: PlanCoursePutParams
+    ) -> bool:
         # By semesters, not `term`: a multi-semester course ignores the term sent.
         offering = planned.offering
-        current = self._course_semesters(offering, planned.study_year, planned.term)
+        study_year = self._study_year(timeline, planned.academic_year_start)
+        current = self._course_semesters(offering, study_year, planned.term)
         requested = self._course_semesters(offering, params.study_year, params.semester_term)
         return [key for key, _ in current] != [key for key, _ in requested]
 
@@ -317,7 +333,7 @@ class PersonalPlanService:
             )
         return PlanYear(
             study_year=study_year,
-            academic_year_start=timeline.enrollment_year_start + study_year - 1,
+            academic_year_start=self._academic_year_start(timeline, study_year),
             year_status=status,
             semesters=semesters,
         )

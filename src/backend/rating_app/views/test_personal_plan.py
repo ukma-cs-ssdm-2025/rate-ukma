@@ -85,7 +85,7 @@ def test_get_plan_returns_taken_and_planned_courses(
     planned_course_factory(
         student=me,
         offering=make_offering(picked, 2025, SemesterTerm.SPRING, credits="3.0", hours=2),
-        study_year=3,
+        academic_year_start=2025,
         term=SemesterTerm.SPRING,
         slot=PlanSlot.MAIN,
     )
@@ -132,7 +132,7 @@ def test_get_plan_hides_other_students_picks(
     planned_course_factory(
         student=other,
         offering=offered_course.offerings.first(),
-        study_year=3,
+        academic_year_start=2025,
         term=SemesterTerm.FALL,
         slot=PlanSlot.MAIN,
     )
@@ -194,7 +194,7 @@ def test_place_moves_course_when_already_planned(
     planned_course_factory(
         student=me,
         offering=course.offerings.first(),
-        study_year=3,
+        academic_year_start=2025,
         term=SemesterTerm.FALL,
         slot=PlanSlot.BACKUP,
     )
@@ -342,7 +342,7 @@ def test_remove_drops_planned_course(token_client, me, offered_course, planned_c
     planned_course_factory(
         student=me,
         offering=course.offerings.first(),
-        study_year=3,
+        academic_year_start=2025,
         term=SemesterTerm.FALL,
         slot=PlanSlot.MAIN,
     )
@@ -362,7 +362,7 @@ def test_remove_returns_404_when_course_is_not_in_own_plan(
     planned_course_factory(
         student=student_factory(),
         offering=course.offerings.first(),
-        study_year=3,
+        academic_year_start=2025,
         term=SemesterTerm.FALL,
         slot=PlanSlot.MAIN,
     )
@@ -762,7 +762,11 @@ def test_place_keeps_stored_offering_when_course_does_not_move(
     stored = make_offering(course, 2023, SemesterTerm.FALL, credits="2.0")
     make_offering(course, 2024, SemesterTerm.FALL, credits="5.0")
     planned_course_factory(
-        student=me, offering=stored, study_year=3, term=SemesterTerm.FALL, slot=PlanSlot.BACKUP
+        student=me,
+        offering=stored,
+        academic_year_start=2025,
+        term=SemesterTerm.FALL,
+        slot=PlanSlot.BACKUP,
     )
 
     response = token_client.put(
@@ -791,7 +795,11 @@ def test_place_keeps_stored_offering_when_promoting_multi_semester_course_from_a
     stored = two_semester_course.offerings.first()
     make_offering(two_semester_course, 2025, SemesterTerm.FALL, credits="6.0")
     planned_course_factory(
-        student=me, offering=stored, study_year=3, term=SemesterTerm.FALL, slot=PlanSlot.BACKUP
+        student=me,
+        offering=stored,
+        academic_year_start=2025,
+        term=SemesterTerm.FALL,
+        slot=PlanSlot.BACKUP,
     )
 
     response = token_client.put(
@@ -814,7 +822,9 @@ def test_place_picks_offering_again_when_course_moves_to_another_year(
     course = course_factory()
     stored = make_offering(course, 2023, SemesterTerm.FALL, credits="2.0")
     newest = make_offering(course, 2024, SemesterTerm.FALL, credits="5.0")
-    planned_course_factory(student=me, offering=stored, study_year=3, term=SemesterTerm.FALL)
+    planned_course_factory(
+        student=me, offering=stored, academic_year_start=2025, term=SemesterTerm.FALL
+    )
 
     response = token_client.put(
         course_url(course.id),

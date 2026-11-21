@@ -51,7 +51,7 @@ class MandatoryCourse:
 class PlannedCourseEntry:
     course: PlanCourseSource
     offering: PlanOffering
-    study_year: int
+    academic_year_start: int
     term: SemesterTerm
     slot: PlanSlot
 

@@ -216,7 +216,7 @@ class PlannedCourseFactory(DjangoModelFactory):
 
     student = factory.SubFactory(StudentFactory)
     offering = factory.SubFactory(CourseOfferingFactory)
-    study_year = 3
+    academic_year_start = 2025
     term = SemesterTerm.FALL
     slot = PlanSlot.MAIN
 
