@@ -23,7 +23,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { RatingForm } from "./RatingForm";
-import type { RatingFormData } from "./RatingForm";
+import type { RatingFormData } from "../ratingFormSchema";
 import { RatingContinuationContext } from "../RatingContinuationContext";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { refreshRatingQueries } from "../refreshRatingQueries";
