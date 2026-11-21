@@ -29,8 +29,6 @@ const THEMES = ["light", "dark"] as const;
 
 const NOW = new Date("2026-09-16T09:00:00Z");
 
-const ERROR_TIMEOUT = 30_000;
-
 interface State {
 	readonly name: string;
 	readonly section: string;
@@ -62,6 +60,25 @@ async function scrollToFooterLink(page: Page) {
 		window.scrollTo(0, document.documentElement.scrollHeight),
 	);
 	await expectUncovered(page.getByTestId(testIds.footer.repoLink));
+}
+
+async function openThroughRetries(
+	page: Page,
+	pathname: string,
+	open: () => Promise<unknown>,
+): Promise<void> {
+	const failed = () =>
+		page.waitForResponse((response) => {
+			const url = new URL(response.url());
+			return url.pathname === pathname && response.status() === 500;
+		});
+	const first = failed();
+	await open();
+	await first;
+	for (const delay of [2_000, 4_000, 8_000]) {
+		await page.clock.runFor(delay);
+		await failed();
+	}
 }
 
 async function expectUncovered(target: Locator) {
@@ -165,11 +182,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Стрічка",
 		note: "/feed when the feed endpoint answers 500",
 		run: async (page) => {
+			await page.clock.install({ time: NOW });
 			await mockBackend(page, { feed: "error" });
-			await page.goto("/feed");
-			await page
-				.getByTestId("feed-error-state")
-				.waitFor({ timeout: ERROR_TIMEOUT });
+			await openThroughRetries(page, "/api/v1/feed/", () => page.goto("/feed"));
+			await page.getByTestId("feed-error-state").waitFor();
 		},
 	},
 	{
@@ -187,11 +203,10 @@ const ALL_STATES: ReadonlyArray<State> = [
 		section: "Вхід і помилки",
 		note: "Courses page when the course list answers 500",
 		run: async (page) => {
+			await page.clock.install({ time: NOW });
 			await mockBackend(page, { courses: "error" });
-			await page.goto("/");
-			await page
-				.getByTestId("courses-error-state")
-				.waitFor({ timeout: ERROR_TIMEOUT });
+			await openThroughRetries(page, "/api/v1/courses/", () => page.goto("/"));
+			await page.getByTestId("courses-error-state").waitFor();
 		},
 	},
 	{
