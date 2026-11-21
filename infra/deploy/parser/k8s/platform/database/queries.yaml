@@ -1,6 +1,7 @@
 # Custom CNPG metrics for crawl health, in CNPG's monitoring-queries format.
 # CNPG prefixes each metric with cnpg_<query name>_, as in cnpg_parser_runs_total.
-# They run as cnpg_metrics_exporter (a pg_monitor member), which may read runs and run_pages only
+# They run as cnpg_metrics_exporter (a pg_monitor member), which may read runs, run_pages,
+# audit_log and the id and name of api_keys only.
 # page_snapshots holds student lists and stays out of reach.
 # kustomization.yaml turns this file into the parser-db-monitoring ConfigMap that cluster.yaml names.
 
@@ -51,3 +52,35 @@ parser_active_run:
         }
     - running_for:
         { usage: GAUGE, description: "Seconds since the earliest running run started" }
+
+parser_run_pages:
+  # Pages fetched and failed per run, for the latest 20 runs: older runs add series and say little.
+  query: |
+    SELECT r.id::text AS run_id, r.source_part, rp.kind, rp.status, count(*) AS pages
+    FROM run_pages rp
+    JOIN (SELECT id, source_part FROM runs ORDER BY id DESC LIMIT 20) r ON r.id = rp.run_id
+    GROUP BY r.id, r.source_part, rp.kind, rp.status
+  target_databases: [parser]
+  primary: true
+  metrics:
+    - run_id: { usage: LABEL, description: "Run id" }
+    - source_part: { usage: LABEL, description: "Source part (year)" }
+    - kind: { usage: LABEL, description: "Page kind" }
+    - status: { usage: LABEL, description: "Page status" }
+    - pages: { usage: GAUGE, description: "Pages of this run with this kind and status" }
+
+parser_api_requests:
+  # Requests per key and route since the key was made; route is the method and route template.
+  query: |
+    SELECT k.name AS key_name, a.action, coalesce(a.route, '') AS route, count(*) AS total
+    FROM audit_log a
+    JOIN api_keys k ON k.id = a.key_id
+    WHERE a.action IN ('request', 'request_denied')
+    GROUP BY k.name, a.action, a.route
+  target_databases: [parser]
+  primary: true
+  metrics:
+    - key_name: { usage: LABEL, description: "API key name" }
+    - action: { usage: LABEL, description: "request or request_denied" }
+    - route: { usage: LABEL, description: "Method and route template" }
+    - total: { usage: COUNTER, description: "Requests by this key to this route" }

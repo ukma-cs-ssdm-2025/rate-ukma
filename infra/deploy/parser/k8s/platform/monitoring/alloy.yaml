@@ -38,6 +38,8 @@ spec:
           name: alloy
           ports:
             - containerPort: 12345
+            - containerPort: 4318
+              name: otlp-http
           readinessProbe:
             httpGet:
               path: /-/ready
@@ -85,3 +87,17 @@ spec:
         - hostPath:
             path: /
           name: root
+---
+# OTLP/HTTP from the parser api and worker (OTEL_EXPORTER_OTLP_ENDPOINT).
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy
+  namespace: monitoring
+spec:
+  selector:
+    app: alloy
+  ports:
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
