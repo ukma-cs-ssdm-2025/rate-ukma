@@ -30,18 +30,20 @@ export const test = base.extend<Fixtures>({
 		await use(new RatingModal(page));
 	},
 	courseWithoutRatings: async ({ request }, use) => {
-		const response = await request.get("/api/v1/courses/", {
-			params: { last_review_order: "desc", page_size: 100 },
-		});
-		if (!response.ok()) {
-			throw new Error(
-				`Course list request failed with HTTP ${response.status()}`,
-			);
-		}
-		const { items } = (await response.json()) as CourseListResponse;
-		const course = [...items]
-			.reverse()
-			.find((item) => item.ratings_count === 0);
+		const coursesPage = async (page: number) => {
+			const response = await request.get("/api/v1/courses/", {
+				params: { last_review_order: "desc", page_size: 100, page },
+			});
+			if (!response.ok()) {
+				throw new Error(
+					`Course list request failed with HTTP ${response.status()}`,
+				);
+			}
+			return (await response.json()) as CourseListResponse;
+		};
+		const { total_pages } = await coursesPage(1);
+		const { items } = await coursesPage(Math.max(total_pages, 1));
+		const course = items.find((item) => item.ratings_count === 0);
 		if (!course) {
 			test.skip(
 				true,
