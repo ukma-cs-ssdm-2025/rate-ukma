@@ -7,6 +7,7 @@ import {
 	COURSE_INSTRUCTORS,
 	COURSE_OFFERINGS,
 	COURSE_OFFERINGS_MANY,
+	COURSE_HISTORIES,
 	COURSE_RATINGS,
 	COURSES,
 	EMPTY_COMMENT_LIST,
@@ -38,6 +39,8 @@ export interface MockOptions {
 	readonly title?: "short" | "long";
 	/** `none` is a course nobody has named a teacher on yet. */
 	readonly courseInstructors?: "named" | "none";
+	/** Course history shape for the side panel prototype; overrides `specialities` for offerings. */
+	readonly history?: keyof typeof COURSE_HISTORIES;
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 	readonly ratingSuggestions?: "items" | "empty" | "error";
@@ -76,6 +79,7 @@ export async function mockBackend(
 		specialities = "one",
 		title = "short",
 		courseInstructors = "named",
+		history,
 		loading = false,
 		ratingSuggestions = "empty",
 		saveRating = "success",
@@ -236,7 +240,12 @@ export async function mockBackend(
 		],
 		[
 			/^\/courses\/[^/]+\/offerings\/$/,
-			() => (many ? COURSE_OFFERINGS_MANY : COURSE_OFFERINGS),
+			() =>
+				history
+					? { course_offerings: COURSE_HISTORIES[history] }
+					: many
+						? COURSE_OFFERINGS_MANY
+						: COURSE_OFFERINGS,
 		],
 		[
 			/^\/courses\/[^/]+\/ratings\/$/,

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { Fragment, useId, useMemo, useState } from "react";
 
 import { ChevronDown, ExternalLink } from "lucide-react";
 
@@ -8,7 +8,6 @@ import {
 	BASE_CAZ_URL,
 	groupByYear,
 	loadSignature,
-	runsInOneTerm,
 	sortOfferings,
 	specialitiesLabel,
 } from "./CourseCazRecords";
@@ -20,19 +19,34 @@ function cazUrl(code: string): string {
 	return `${BASE_CAZ_URL}${encodeURIComponent(code)}`;
 }
 
-// What a past year adds on top of the header: only the facts that differ.
-function yearNote(
-	group: YearGroup,
-	currentLoad: string,
-	showTerm: boolean,
-): string {
+// What a past year adds on top of the header: only the facts that differ
+// from the current run, so a steady course shows bare years.
+function yearNote(group: YearGroup, current: YearGroup | undefined): string {
 	const load = loadSignature(group.records[0]);
+	const currentLoad = current ? loadSignature(current.records[0]) : "";
 	return [
-		showTerm ? group.terms : null,
+		group.terms && group.terms !== current?.terms ? group.terms : null,
 		load && load !== currentLoad ? load : null,
 	]
 		.filter(Boolean)
 		.join(", ");
+}
+
+// A stream is named by what tells it apart within its year.
+function streamLabels(records: readonly CourseOffering[]): string[] {
+	const differ = (pick: (record: CourseOffering) => unknown) =>
+		new Set(records.map(pick)).size > 1;
+	const bySpeciality = differ(specialitiesLabel);
+	const byStudyYear = differ((record) => record.study_year);
+	return records.map((record) => {
+		const label = [
+			bySpeciality ? specialitiesLabel(record) : null,
+			byStudyYear && record.study_year ? `${record.study_year} курс` : null,
+		]
+			.filter(Boolean)
+			.join(", ");
+		return label || (record.code ? `код ${record.code}` : "Запис у САЗ");
+	});
 }
 
 function streamsWord(count: number): string {
@@ -54,6 +68,7 @@ function YearLine({
 	const [open, setOpen] = useState(false);
 	const listId = useId();
 	const single = group.records.length === 1 ? group.records[0] : null;
+	const labels = single ? [] : streamLabels(group.records);
 
 	return (
 		<li className="py-2">
@@ -61,7 +76,18 @@ function YearLine({
 				<div className="min-w-0">
 					<span className="font-medium tabular-nums">{group.year}</span>
 					{note ? (
-						<span className="ml-2 text-muted-foreground">{note}</span>
+						<span className="ml-2 text-muted-foreground">
+							{/* Break only between facts, so «4 ECTS» never splits. */}
+							{note.split(", ").map((fact, index, facts) => (
+								<Fragment key={fact}>
+									{index > 0 ? " " : null}
+									<span className="whitespace-nowrap">
+										{fact}
+										{index < facts.length - 1 ? "," : null}
+									</span>
+								</Fragment>
+							))}
+						</span>
 					) : null}
 				</div>
 				{single?.code ? (
@@ -75,7 +101,7 @@ function YearLine({
 						САЗ
 						<ExternalLink className="size-3" aria-hidden="true" />
 					</a>
-				) : (
+				) : single ? null : (
 					<button
 						type="button"
 						aria-expanded={open}
@@ -96,7 +122,7 @@ function YearLine({
 			</div>
 			{open && !single ? (
 				<ul id={listId} className="mt-2 space-y-1.5 border-l pl-3">
-					{group.records.map((record) => (
+					{group.records.map((record, index) => (
 						<li key={record.id ?? record.code}>
 							<a
 								href={record.code ? cazUrl(record.code) : undefined}
@@ -104,7 +130,7 @@ function YearLine({
 								rel="noopener noreferrer"
 								className="text-muted-foreground transition-colors hover:text-primary"
 							>
-								{specialitiesLabel(record) || `код ${record.code}`}
+								{labels[index]}
 								<ExternalLink
 									className="ml-1 inline size-3 align-baseline"
 									aria-hidden="true"
@@ -121,9 +147,7 @@ function YearLine({
 function useHistory(courseOfferings: readonly CourseOffering[]) {
 	return useMemo(() => {
 		const groups = groupByYear(sortOfferings(courseOfferings));
-		const currentLoad = groups[0] ? loadSignature(groups[0].records[0]) : "";
-		const showTerm = !runsInOneTerm(courseOfferings);
-		return { groups, currentLoad, showTerm };
+		return { groups, current: groups[0] };
 	}, [courseOfferings]);
 }
 
@@ -131,7 +155,7 @@ function useHistory(courseOfferings: readonly CourseOffering[]) {
 export function CourseHistoryRows({
 	courseOfferings,
 }: Readonly<{ courseOfferings: readonly CourseOffering[] }>) {
-	const { groups, currentLoad, showTerm } = useHistory(courseOfferings);
+	const { groups, current } = useHistory(courseOfferings);
 	const [all, setAll] = useState(false);
 	if (groups.length === 0) {
 		return null;
@@ -146,7 +170,7 @@ export function CourseHistoryRows({
 					<YearLine
 						key={group.key}
 						group={group}
-						note={yearNote(group, currentLoad, showTerm)}
+						note={yearNote(group, current)}
 					/>
 				))}
 			</ul>
@@ -230,7 +254,7 @@ export function CourseHistoryDisclosure({
 export function CourseHistoryChips({
 	courseOfferings,
 }: Readonly<{ courseOfferings: readonly CourseOffering[] }>) {
-	const { groups, currentLoad, showTerm } = useHistory(courseOfferings);
+	const { groups, current } = useHistory(courseOfferings);
 	const [openKey, setOpenKey] = useState<string | null>(null);
 	if (groups.length === 0) {
 		return null;
@@ -243,7 +267,7 @@ export function CourseHistoryChips({
 		<div className="space-y-2 text-sm">
 			<div className="flex flex-wrap gap-1.5">
 				{groups.map((group) => {
-					const note = yearNote(group, currentLoad, showTerm);
+					const note = yearNote(group, current);
 					const label = `${group.year}${note ? `, ${note}` : ""}`;
 					const single = group.records.length === 1 ? group.records[0] : null;
 					return single?.code ? (
