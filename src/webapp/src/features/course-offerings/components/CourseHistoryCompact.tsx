@@ -2,9 +2,9 @@ import { useId, useMemo, useState } from "react";
 
 import { ChevronDown, ExternalLink } from "lucide-react";
 
+import { TermBadge } from "@/components/TermBadge";
 import {
-	formatAcademicYearLabel,
-	getSemesterTermDisplay,
+	getAcademicStartYear,
 	parseSemesterTerm,
 } from "@/features/courses/courseFormatting";
 import { getSpecialityAlias } from "@/features/courses/components/CourseSpecialityBadges";
@@ -15,7 +15,7 @@ import type {
 } from "@/lib/api/generated";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
-import { BASE_CAZ_URL, loadSignature, sortOfferings } from "./CourseCazRecords";
+import { BASE_CAZ_URL, sortOfferings } from "./CourseCazRecords";
 
 const VISIBLE_YEARS = 3;
 const TERM_ORDER: readonly SemesterTermEnum[] = ["FALL", "SPRING", "SUMMER"];
@@ -24,124 +24,99 @@ function cazUrl(code: string): string {
 	return `${BASE_CAZ_URL}${encodeURIComponent(code)}`;
 }
 
-function plural(count: number, one: string, few: string, many: string) {
+// Every row, year or record, has the same four columns, so the eye reads
+// down them instead of parsing a sentence per row.
+const COLUMNS =
+	"grid grid-cols-[4.25rem_minmax(0,1fr)_3rem_2.25rem] items-center gap-x-2";
+
+function seasons(records: readonly CourseOffering[]): SemesterTermEnum[] {
+	const found = new Set(
+		records.flatMap((record) =>
+			(record.terms.length > 0
+				? record.terms.map((term) => term.semester_term)
+				: [record.semester_term]
+			).map((term) => parseSemesterTerm(term)),
+		),
+	);
+	return TERM_ORDER.filter((term) => found.has(term));
+}
+
+function formatNumber(value: number): string {
+	return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+}
+
+function recordsWord(count: number): string {
 	const mod10 = count % 10;
 	const mod100 = count % 100;
 	if (mod10 === 1 && mod100 !== 11) {
-		return one;
+		return "запис";
 	}
 	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-		return few;
+		return "записи";
 	}
-	return many;
+	return "записів";
 }
 
-// The facts a САЗ record can differ in, in reading order.
-const FACTS = ["terms", "course", "load"] as const;
-type Fact = (typeof FACTS)[number];
-
-interface Run {
-	record: CourseOffering;
-	specialities: CourseOfferingSpeciality[];
-	facts: Record<Fact, string>;
-	specialityKey: string;
-}
-
-function termsLabel(record: CourseOffering): string {
-	const raw =
-		record.terms.length > 0
-			? record.terms.map((term) => term.semester_term)
-			: [record.semester_term];
-	const seasons = new Set(raw.map((term) => parseSemesterTerm(term)));
-	return TERM_ORDER.flatMap((term) =>
-		seasons.has(term) ? [getSemesterTermDisplay(term)] : [],
-	).join(", ");
+function credits(records: readonly CourseOffering[]): string {
+	const values = [
+		...new Set(
+			records.flatMap((record) =>
+				record.terms.flatMap((term) =>
+					term.credits ? [Number.parseFloat(term.credits)] : [],
+				),
+			),
+		),
+	].sort((a, b) => a - b);
+	if (values.length === 0) {
+		return "";
+	}
+	const low = values[0];
+	const high = values.at(-1) ?? low;
+	return low === high
+		? formatNumber(low)
+		: `${formatNumber(low)}–${formatNumber(high)}`;
 }
 
 function facultyOrder(speciality: CourseOfferingSpeciality | undefined) {
 	return `${speciality?.faculty_name ?? ""}|${speciality?.speciality_title ?? ""}`;
 }
 
-function toRun(record: CourseOffering): Run {
-	const specialities = [...record.specialities].sort((a, b) =>
+function sortedSpecialities(record: CourseOffering) {
+	return [...record.specialities].sort((a, b) =>
 		facultyOrder(a).localeCompare(facultyOrder(b), "uk"),
 	);
-	return {
-		record,
-		specialities,
-		facts: {
-			terms: termsLabel(record),
-			course: record.study_year ? `${record.study_year} курс` : "",
-			load: loadSignature(record),
-		},
-		specialityKey: specialities
-			.map((speciality) => speciality.speciality_id)
-			.join(","),
-	};
 }
 
 interface Year {
 	label: string;
-	runs: Run[];
+	records: CourseOffering[];
 }
 
 // One row per academic year, however many САЗ records it holds.
 function groupYears(offerings: readonly CourseOffering[]): Year[] {
-	const years = new Map<string, Run[]>();
+	const years = new Map<string, CourseOffering[]>();
 	for (const record of sortOfferings(offerings)) {
-		const label = formatAcademicYearLabel(
+		const start = getAcademicStartYear(
 			record.semester_year,
 			record.semester_term,
 		);
-		years.set(label, [...(years.get(label) ?? []), toRun(record)]);
+		const label =
+			start === null ? "—" : `${start}–${String(start + 1).slice(-2)}`;
+		years.set(label, [...(years.get(label) ?? []), record]);
 	}
-	return [...years].map(([label, runs]) => ({
+	return [...years].map(([label, records]) => ({
 		label,
-		runs: runs.sort((a, b) =>
-			facultyOrder(a.specialities[0]).localeCompare(
-				facultyOrder(b.specialities[0]),
+		records: records.sort((a, b) =>
+			facultyOrder(sortedSpecialities(a)[0]).localeCompare(
+				facultyOrder(sortedSpecialities(b)[0]),
 				"uk",
 			),
 		),
 	}));
 }
 
-/** The value every record of the year shares, or null when they differ. */
-function shared(year: Year, fact: Fact): string | null {
-	const values = new Set(year.runs.map((run) => run.facts[fact]));
-	return values.size === 1 ? [...values][0] : null;
-}
-
-// What a past year says on its collapsed row: only what it shares across its
-// records and what differs from the current run in the header.
-function yearNote(year: Year, current: Year): string[] {
-	if (year === current) {
-		return [];
-	}
-	return FACTS.flatMap((fact) => {
-		const value = shared(year, fact);
-		return value && value !== shared(current, fact) ? [value] : [];
-	});
-}
-
-function splitSummary(year: Year): string {
-	const { runs } = year;
-	const bySpeciality = new Set(runs.map((run) => run.specialityKey)).size > 1;
-	const oneEach = runs.every((run) => run.specialities.length === 1);
-	if (bySpeciality && oneEach) {
-		return `${runs.length} ${plural(runs.length, "спеціальність", "спеціальності", "спеціальностей")}`;
-	}
-	// Same students' programme in different years of study: the курс says it.
-	if (!bySpeciality && shared(year, "course") === null) {
-		const courses = runs.map((run) => run.record.study_year ?? 0);
-		const unique = [...new Set(courses)].sort((a, b) => a - b);
-		return `${unique.slice(0, -1).join(", ")} і ${unique.at(-1)} курс`;
-	}
-	return `${runs.length} ${plural(runs.length, "запис", "записи", "записів")}`;
-}
-
 const pill =
-	"inline-flex max-w-full items-center rounded-md px-2 py-0.5 text-xs font-medium";
+	"inline-flex max-w-full items-center rounded-md px-1.5 py-px text-xs font-medium";
 const MAX_ALIASES = 4;
 const LONG_TITLE = 32;
 
@@ -162,15 +137,13 @@ function SpecialityPills({
 	const shown = full ? specialities : specialities.slice(0, MAX_ALIASES);
 	const hidden = specialities.length - shown.length;
 	return (
-		<>
+		<span className="flex min-w-0 flex-wrap items-center gap-1">
 			{shown.map((speciality) => {
 				const colors = getFacultyColors(speciality.faculty_name || "");
 				return (
 					<span
 						key={speciality.speciality_id}
-						title={
-							full ? undefined : (speciality.speciality_title ?? undefined)
-						}
+						title={speciality.speciality_title ?? undefined}
 						className={cn(pill, colors.bg, colors.text)}
 					>
 						{full
@@ -193,23 +166,23 @@ function SpecialityPills({
 					+{hidden}
 				</span>
 			) : null}
-		</>
+		</span>
 	);
 }
 
-function CazLink({
-	code,
-	label,
-	children,
-	className,
-}: Readonly<{
-	code?: string;
-	label: string;
-	children?: React.ReactNode;
-	className?: string;
-}>) {
+function Terms({ records }: Readonly<{ records: readonly CourseOffering[] }>) {
+	return (
+		<span className="flex gap-1">
+			{seasons(records).map((term) => (
+				<TermBadge key={term} term={term} className="px-1.5 py-px" />
+			))}
+		</span>
+	);
+}
+
+function CazLink({ code, label }: Readonly<{ code?: string; label: string }>) {
 	if (!code) {
-		return null;
+		return <span />;
 	}
 	return (
 		<a
@@ -217,49 +190,39 @@ function CazLink({
 			target="_blank"
 			rel="noopener noreferrer"
 			aria-label={`${label}, відкрити запис у САЗ`}
-			className={cn(
-				"inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-primary",
-				className,
-			)}
+			title="Запис у САЗ"
+			className="-my-1 inline-flex justify-self-end rounded-sm p-1 text-muted-foreground transition-colors hover:text-primary"
 		>
-			{children}
-			<ExternalLink className="size-3" aria-hidden="true" />
+			<ExternalLink className="size-3.5" aria-hidden="true" />
 		</a>
 	);
 }
 
-function YearRow({ year, current }: Readonly<{ year: Year; current: Year }>) {
+function YearRow({ year }: Readonly<{ year: Year }>) {
 	const [open, setOpen] = useState(false);
 	const listId = useId();
-	const single = year.runs.length === 1 ? year.runs[0] : null;
-	const note = yearNote(year, current);
-	const varying = FACTS.filter((fact) => shared(year, fact) === null);
+	const single = year.records.length === 1 ? year.records[0] : null;
 
 	return (
 		<li className="py-2">
-			<div className="flex items-baseline justify-between gap-3">
-				{/* The note drops under the year as a whole rather than splitting. */}
-				<div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-					<span className="font-medium tabular-nums">{year.label}</span>
-					{note.length > 0 ? (
-						<span className="whitespace-nowrap text-muted-foreground">
-							{note.join(", ")}
-						</span>
-					) : null}
-				</div>
+			<div className={COLUMNS}>
+				<span className="font-medium tabular-nums">{year.label}</span>
+				<Terms records={year.records} />
+				<span className="text-right tabular-nums text-muted-foreground">
+					{credits(year.records)}
+				</span>
 				{single ? (
-					<CazLink code={single.record.code} label={year.label}>
-						САЗ
-					</CazLink>
+					<CazLink code={single.code} label={year.label} />
 				) : (
 					<button
 						type="button"
 						aria-expanded={open}
 						aria-controls={listId}
+						aria-label={`${year.label}: ${year.records.length} ${recordsWord(year.records.length)} у САЗ`}
 						onClick={() => setOpen((value) => !value)}
-						className="inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+						className="-my-1 inline-flex items-center justify-self-end gap-0.5 rounded-sm p-1 text-xs tabular-nums text-muted-foreground transition-colors hover:text-foreground"
 					>
-						{splitSummary(year)}
+						{year.records.length}
 						<ChevronDown
 							className={cn(
 								"size-3.5 transition-transform",
@@ -271,45 +234,41 @@ function YearRow({ year, current }: Readonly<{ year: Year; current: Year }>) {
 				)}
 			</div>
 			{open && !single ? (
-				<ul id={listId} className="mt-2 space-y-2">
-					{year.runs.map((run) => {
-						const facts = varying.flatMap((fact) =>
-							run.facts[fact] ? [run.facts[fact]] : [],
-						);
-						return (
-							<li key={run.record.id ?? run.record.code}>
-								<div className="flex items-start justify-between gap-3">
-									<div className="flex min-w-0 flex-wrap items-center gap-1.5">
-										<SpecialityPills specialities={run.specialities} />
-									</div>
-									<CazLink
-										code={run.record.code}
-										label={[year.label, ...facts].join(", ")}
-										className="mt-1"
-									/>
-								</div>
-								{facts.length > 0 ? (
-									<p className="mt-0.5 text-xs text-muted-foreground">
-										{facts.join(", ")}
-									</p>
-								) : null}
-							</li>
-						);
-					})}
+				<ul
+					id={listId}
+					className="-mx-2 mt-2 space-y-2.5 rounded-lg bg-muted/50 px-2 py-2.5"
+				>
+					{year.records.map((record) => (
+						<li key={record.id ?? record.code} className="space-y-1">
+							<SpecialityPills specialities={sortedSpecialities(record)} />
+							<div className={cn(COLUMNS, "text-xs")}>
+								<span className="text-muted-foreground">
+									{record.study_year ? `${record.study_year} курс` : ""}
+								</span>
+								<Terms records={[record]} />
+								<span className="text-right tabular-nums text-muted-foreground">
+									{credits([record])}
+								</span>
+								<CazLink
+									code={record.code}
+									label={`${year.label}, ${record.study_year ?? ""} курс`}
+								/>
+							</div>
+						</li>
+					))}
 				</ul>
 			) : null}
 		</li>
 	);
 }
 
-/** One line per year: the year, what changed since, and the САЗ record. */
+/** One line per year: the year, its terms, its credits and the САЗ record. */
 export function CourseHistoryRows({
 	courseOfferings,
 }: Readonly<{ courseOfferings: readonly CourseOffering[] }>) {
 	const years = useMemo(() => groupYears(courseOfferings), [courseOfferings]);
 	const [all, setAll] = useState(false);
-	const current = years[0];
-	if (!current) {
+	if (years.length === 0) {
 		return null;
 	}
 	const shown = all ? years : years.slice(0, VISIBLE_YEARS);
@@ -317,9 +276,18 @@ export function CourseHistoryRows({
 
 	return (
 		<div className="text-sm">
+			<div
+				className={cn(COLUMNS, "pb-1 text-xs text-muted-foreground")}
+				aria-hidden="true"
+			>
+				<span>Рік</span>
+				<span>Семестр</span>
+				<span className="text-right">ECTS</span>
+				<span />
+			</div>
 			<ul className="divide-y divide-border/60">
 				{shown.map((year) => (
-					<YearRow key={year.label} year={year} current={current} />
+					<YearRow key={year.label} year={year} />
 				))}
 			</ul>
 			{rest > 0 || all ? (

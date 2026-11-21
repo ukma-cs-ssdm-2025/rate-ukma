@@ -34,7 +34,7 @@ const STATES: State[] = [
 	},
 	{ name: "12-many", history: "culture" },
 	{ name: "13-many-open", history: "culture", open: [/курс|запис|спеціальн/] },
-	{ name: "14-many-open-2", history: "culture", open: [/^5 записів/] },
+	{ name: "14-many-open-2", history: "culture", open: [/: 5 записів/] },
 ];
 
 async function open(page: Page, state: State, width: number, theme: string) {
