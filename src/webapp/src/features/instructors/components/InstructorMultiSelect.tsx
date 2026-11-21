@@ -198,6 +198,7 @@ function InstructorMultiSelect({
 								className="group/chip bg-secondary text-secondary-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-ring/50 inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-0.5 text-left text-xs transition-colors outline-none focus-visible:ring-[3px] motion-reduce:transition-none"
 								onClick={(e) => removeValue(e, instr.id)}
 								onKeyDown={(e) => e.stopPropagation()}
+								data-testid={testId ? `${testId}-chip` : undefined}
 							>
 								<span className="break-words">
 									{formatInstructorName(instr)}
