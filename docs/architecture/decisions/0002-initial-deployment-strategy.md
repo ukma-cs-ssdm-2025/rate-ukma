@@ -25,9 +25,9 @@ The Rate UKMA system needs a deployment strategy that aligns with our [ADR-0001:
    - Need for simple, maintainable deployment process (will be updated during development and launch)
 
 3. **Technical Requirements**
-   - [NFR-R-002](../requirements.md#nfr-r-002) requires 99.5% monthly uptime
-   - [NFR-R-004](../requirements.md#nfr-r-004) requires daily backups with 7-day retention
-   - [NFR-PE-001](../requirements.md#nfr-pe-001) requires page load within 1.5 seconds
+   - [NFR-R-002](../../requirements/requirements.md#nfr-r-002) requires 99.5% monthly uptime
+   - [NFR-R-004](../../requirements/requirements.md#nfr-r-004) requires daily backups with 7-day retention
+   - [NFR-PE-001](../../requirements/requirements.md#nfr-pe-001) requires page load within 1.5 seconds
 
 4. **Future Growth**
    - System should be designed for future scaling
