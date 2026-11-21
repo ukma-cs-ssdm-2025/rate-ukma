@@ -188,7 +188,6 @@ export async function mockBackend(
 			() => ({
 				flags: {
 					fe_feed: true,
-					fe_faculty_colors: true,
 					fe_ukma_data: true,
 					fe_rate_flow: rateFlow === "on",
 				},
