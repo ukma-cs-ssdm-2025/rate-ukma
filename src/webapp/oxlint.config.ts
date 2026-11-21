@@ -1,6 +1,11 @@
 import cloudflare from "@cloudflare/oxlint-config";
 import { defineConfig } from "oxlint";
 
+import { LINT_ALLOWLIST } from "./lint/allowlist.ts";
+import { LAYER_OVERRIDES, MAX_LINES } from "./lint/layers.ts";
+
+const allowlistOff = process.env.LINT_ALLOWLIST === "off";
+
 export default defineConfig({
 	...cloudflare,
 	ignorePatterns: [
@@ -13,6 +18,8 @@ export default defineConfig({
 	],
 	rules: {
 		...cloudflare.rules,
+		"import/no-cycle": "error",
+		"max-lines": ["error", { max: MAX_LINES }],
 		// Style only: the codebase writes `T[]`; switching buys no safety.
 		"typescript/array-type": "off",
 		// `import * as React` is the shadcn/ui convention our components follow.
@@ -86,5 +93,14 @@ export default defineConfig({
 			files: ["tests/**"],
 			rules: { "react-hooks/rules-of-hooks": "off" },
 		},
+		...LAYER_OVERRIDES,
+		...(allowlistOff
+			? []
+			: Object.entries(LINT_ALLOWLIST)
+					.filter(([, files]) => files.length > 0)
+					.map(([rule, files]) => ({
+						files,
+						rules: { [rule]: "off" as const },
+					}))),
 	],
 });

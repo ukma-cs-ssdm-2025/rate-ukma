@@ -1,0 +1,40 @@
+export const LINT_ALLOWLIST = {
+	"max-lines": [
+		"src/components/AuthShell.tsx",
+		"src/features/courses/components/CourseFiltersPanel.test.tsx",
+		"src/features/courses/components/CourseFiltersPanel.tsx",
+		"src/features/courses/components/CoursesScatterPlot.tsx",
+		"src/features/courses/components/CoursesTable.test.tsx",
+		"src/features/courses/components/CoursesTable.tsx",
+		"src/features/courses/filterTransformations.test.ts",
+		"src/features/courses/hooks/useCourseFiltersData.test.ts",
+		"src/features/courses/hooks/useCourseFiltersData.ts",
+		"src/features/ratings/components/RatingComments.test.tsx",
+		"src/features/ratings/components/RatingComments.tsx",
+		"src/features/ratings/components/RatingForm.tsx",
+		"src/test-utils/factories.ts",
+		"tests/e2e/courses/filters.spec.ts",
+		"tests/shots/fixtures/data.ts",
+		"tests/shots/fixtures/mockBackend.ts",
+		"tests/shots/shots.spec.ts",
+	],
+	"no-restricted-imports": [
+		"src/components/AuthShell.tsx",
+		"src/components/Header/Header.tsx",
+		"src/components/Header/MobileMenu.tsx",
+		"src/components/TermBadge.tsx",
+		"src/features/feed/components/FeedReviewItem.tsx",
+		"src/routes/connection-error.tsx",
+		"src/routes/courses.$courseId.tsx",
+		"src/routes/data.cases.$caseId.tsx",
+		"src/routes/data.cases.index.tsx",
+		"src/routes/data.index.tsx",
+		"src/routes/explore.tsx",
+		"src/routes/my-ratings.tsx",
+	],
+} satisfies Record<string, string[]>;
+
+export const INDEX_FILE_ALLOWLIST = [
+	"src/lib/auth/index.ts",
+	"src/lib/feature-flags/index.ts",
+];
