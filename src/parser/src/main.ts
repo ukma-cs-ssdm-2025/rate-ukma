@@ -12,6 +12,7 @@ import { OfferingStore } from "./offerings/OfferingStore.ts";
 import { crawlSmart } from "./smart/crawl.ts";
 import { parseSmart } from "./smart/parse.ts";
 import { SmartClient } from "./smart/SmartClient.ts";
+import { OfferingTeacherStore } from "./smart/OfferingTeacherStore.ts";
 import { SmartStore } from "./smart/SmartStore.ts";
 import { parseStudents } from "./students/students.ts";
 import { StudentStore } from "./students/StudentStore.ts";
@@ -48,6 +49,7 @@ const reparse = Command.make("reparse", {}, () =>
 			Layer.mergeAll(
 				CourseStore.layer,
 				OfferingStore.layer,
+				OfferingTeacherStore.layer,
 				SmartStore.layer,
 				StudentStore.layer,
 			).pipe(Layer.provideMerge(ChangeLog.layer)),

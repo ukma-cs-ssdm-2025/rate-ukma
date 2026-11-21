@@ -3,6 +3,7 @@ import type { DummyRuleMap, OxlintOverride } from "oxlint";
 export const MAX_LINES = 400;
 
 export const FEATURE_DEPENDENCIES = {
+	"connection-error": [],
 	"course-offerings": ["courses"],
 	courses: ["feed", "instructors", "promo"],
 	feed: ["notifications"],

@@ -12,3 +12,10 @@ class UkmaDataUnavailableError(APIException):
     status_code = status.HTTP_502_BAD_GATEWAY
     default_detail = "UKMA Data is unavailable."
     default_code = "ukma_data_unavailable"
+
+
+class UkmaDataForbiddenError(UkmaDataUnavailableError):
+    """UKMA Data refused the server's key: it lacks a scope the endpoint needs."""
+
+    default_detail = "UKMA Data refused the key."
+    default_code = "ukma_data_forbidden"

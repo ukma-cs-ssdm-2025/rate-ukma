@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
@@ -125,13 +125,11 @@ export function RatingVotes({
 	const createVote = useRatingsVotesUpdate();
 	const deleteVote = useRatingsVotesDestroy();
 
-	const createVoteRef = useRef(createVote.mutateAsync);
-	const deleteVoteRef = useRef(deleteVote.mutateAsync);
-
-	useEffect(() => {
-		createVoteRef.current = createVote.mutateAsync;
-		deleteVoteRef.current = deleteVote.mutateAsync;
-	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
+	const pushVote = useEffectEvent((vote: RatingVoteStrType | null) =>
+		vote === null
+			? deleteVote.mutateAsync({ ratingId })
+			: createVote.mutateAsync({ ratingId, data: { vote_type: vote } }),
+	);
 
 	const upvotes =
 		initialUpvotes +
@@ -156,14 +154,7 @@ export function RatingVotes({
 
 		const sync = async () => {
 			try {
-				if (userVote === null) {
-					await deleteVoteRef.current({ ratingId });
-				} else {
-					await createVoteRef.current({
-						ratingId,
-						data: { vote_type: userVote },
-					});
-				}
+				await pushVote(userVote);
 				if (isMounted) {
 					setServerVote(userVote);
 					if (courseId) {

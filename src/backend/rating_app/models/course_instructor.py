@@ -6,7 +6,7 @@ from .choices import InstructorRole
 
 
 class CourseInstructor(models.Model):
-    # NOTE: prod-empty — scraper never populates this table (#664, removal: #687).
+    # Planned teachers mirrored daily from UKMA Data by sync_offering_instructors (ADR 0020).
     instructor_id: uuid.UUID
     course_offering_id: uuid.UUID
 

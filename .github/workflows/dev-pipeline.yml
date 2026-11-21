@@ -1,11 +1,9 @@
 ---
 name: Dev Pipeline
+# No paths filter: `ci-ok` must report on every PR, since the main ruleset
+# requires it. Jobs still skip by area through changes-filter.
 on:
   pull_request:
-    paths:
-      - src/**
-      - .github/**
-      - docs/parser-service/openapi.json
 
 jobs:
   changes-filter:
@@ -46,3 +44,12 @@ jobs:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) }}
       parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) }}
+
+  ci-ok:
+    if: always()
+    needs: [changes-filter, test, openapi-validation, audit, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail when a job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

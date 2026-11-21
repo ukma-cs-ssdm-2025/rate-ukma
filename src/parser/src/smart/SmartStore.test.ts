@@ -5,11 +5,16 @@ import { ChangeLog } from "../changes/ChangeLog.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { smartRowsOf } from "./catalog.ts";
 import { link, smartLists } from "./catalog.fixture.ts";
-import { parseSmart } from "./parse.ts";
+import { parseSmart, relinkTeachers } from "./parse.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
+import { OfferingTeacherStore } from "./OfferingTeacherStore.ts";
 import { SmartStore } from "./SmartStore.ts";
 
-const TestLive = Layer.mergeAll(SmartStore.layer, OfferingStore.layer).pipe(
+const TestLive = Layer.mergeAll(
+	SmartStore.layer,
+	OfferingStore.layer,
+	OfferingTeacherStore.layer,
+).pipe(
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
@@ -182,6 +187,120 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 
 				assert.strictEqual(last?.parsed, 4);
 			}),
+		);
+
+		it.effect(
+			"links matched teachers to an offering and renumbers it only on a change",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
+
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							const [snapshot] = yield* sql<{ readonly id: bigint }>`
+								SELECT id FROM page_snapshots LIMIT 1
+							`;
+
+							yield* sql`
+								INSERT INTO departments (id, name, change_no)
+								VALUES ('dep_x', 'Кафедра вигаданих систем', nextval('change_no_seq'))
+							`;
+							yield* sql`
+								INSERT INTO offerings (
+									id, saz_code, academic_year, title, department_id, level,
+									format, credits, hours, study_year, status, is_practical,
+									group_size_min, group_size_max, snapshot_id, change_no
+								)
+								VALUES (
+									'off_x', '990001', 2031, 'Уявні алгоритми', 'dep_x',
+									'bachelor', '2015', 4, 120, 1, 'held', false, 10, 20,
+									${snapshot?.id ?? 0n}, nextval('change_no_seq')
+								)
+							`;
+						}),
+					);
+
+					const offeringNo = () =>
+						sql<{ readonly changeNo: string }>`
+							SELECT change_no::text AS "changeNo" FROM offerings WHERE id = 'off_x'
+						`.pipe(Effect.map(([row]) => row?.changeNo));
+
+					const linked = () =>
+						sql<{ readonly smartId: number; readonly role: string }>`
+							SELECT i.smart_id AS "smartId", oi.role
+							FROM offering_instructors oi
+							JOIN instructors i ON i.id = oi.instructor_id
+							WHERE oi.offering_id = 'off_x'
+							ORDER BY 1
+						`;
+
+					yield* storeLists(smartLists());
+
+					const before = yield* offeringNo();
+
+					yield* parseSmart("reparse");
+
+					const after = yield* offeringNo();
+
+					assert.notStrictEqual(after, before);
+					assert.deepStrictEqual(yield* linked(), [
+						{ smartId: 7001, role: "LECTURER" },
+						{ smartId: 7002, role: "PRACTICE_TEACHER" },
+					]);
+
+					yield* parseSmart("reparse");
+
+					assert.strictEqual(yield* offeringNo(), after);
+
+					const retitle = (title: string) =>
+						changes.withTurn(
+							sql`UPDATE offerings SET title = ${title} WHERE id = 'off_x'`,
+						);
+
+					yield* retitle("Інша уявна дисципліна");
+					yield* relinkTeachers();
+
+					assert.lengthOf(yield* linked(), 0);
+					assert.notStrictEqual(yield* offeringNo(), after);
+
+					yield* retitle("Уявні алгоритми");
+					yield* relinkTeachers();
+
+					assert.lengthOf(yield* linked(), 2);
+
+					const relinked = yield* offeringNo();
+
+					yield* changes.withTurn(
+						sql`
+							UPDATE instructors
+							SET email = 'renamed@example.edu', change_no = nextval('change_no_seq')
+							WHERE smart_id = 7001
+						`,
+					);
+					yield* relinkTeachers();
+
+					assert.notStrictEqual(yield* offeringNo(), relinked);
+
+					const afterRename = yield* offeringNo();
+
+					yield* relinkTeachers();
+
+					assert.strictEqual(yield* offeringNo(), afterRename);
+
+					const removed = yield* changes.withTurn(
+						sql`
+							UPDATE offerings
+							SET removed_at = now(), change_no = nextval('change_no_seq')
+							WHERE id = 'off_x'
+						`.pipe(Effect.andThen(offeringNo())),
+					);
+
+					yield* parseSmart("reparse");
+
+					assert.strictEqual(yield* offeringNo(), removed);
+					assert.lengthOf(yield* linked(), 2);
+				}),
 		);
 
 		it.effect("reads a list larger than one query may carry", () =>

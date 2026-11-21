@@ -52,7 +52,7 @@ export default function Header() {
 	return (
 		<>
 			<header
-				className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+				className="sticky top-0 z-40 border-b border-border/40 bg-background"
 				data-testid={testIds.header.root}
 			>
 				<div className="container mx-auto px-6 max-w-7xl flex h-16 items-center justify-between">

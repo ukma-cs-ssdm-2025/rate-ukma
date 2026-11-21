@@ -125,11 +125,10 @@ function OldestCase({ openedAt }: Readonly<{ openedAt: string }>) {
 function OpenCasesCard() {
 	const { data, error, isLoading, refetch, isRefetching } =
 		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
-	const open = data?.items?.filter((item) => item.status === "open") ?? [];
+	const open = data?.items.filter((item) => item.status === "open") ?? [];
 	const complete = data !== undefined && !error && !data.has_more;
 	const oldest = open.reduce<string | undefined>(
-		(min, item) =>
-			item.opened_at && (!min || item.opened_at < min) ? item.opened_at : min,
+		(min, item) => (!min || item.opened_at < min ? item.opened_at : min),
 		undefined,
 	);
 	return (

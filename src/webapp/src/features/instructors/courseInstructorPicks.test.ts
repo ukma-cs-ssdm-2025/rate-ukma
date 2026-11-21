@@ -13,6 +13,8 @@ function mention(
 		ratings_count,
 		offering_ratings_count,
 		students_count: ratings_count,
+		recent_students_count: ratings_count,
+		planned: false,
 	};
 }
 
