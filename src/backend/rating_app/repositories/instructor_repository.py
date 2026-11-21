@@ -65,6 +65,16 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             qs = qs.order_by("last_name", "first_name", "id")
         return self._map_to_domain_models(qs)
 
+    def get_named(self) -> list[Instructor]:
+        """Teachers some rating names, ordered by name: the only ones the
+        course list's instructor filter can match."""
+        qs = (
+            InstructorModel.objects.filter(ratings__isnull=False)
+            .distinct()
+            .order_by("last_name", "first_name", "id")
+        )
+        return self._map_to_domain_models(qs)
+
     def list_ranked(
         self,
         *,

@@ -10,7 +10,7 @@ from structlog.testing import capture_logs
 from rating_app.scheduler.jobs import Job
 
 COMMAND = "rating_app.management.commands.run_scheduler"
-JOBS = (Job("first", datetime.time(4, 30), 1), Job("second", datetime.time(5, 0), 2))
+JOBS = (Job("first", datetime.time(2, 0), 1), Job("second", datetime.time(3, 0), 2))
 
 
 def test_runs_due_jobs_survives_a_failure_and_stops_on_sigterm():
