@@ -123,7 +123,7 @@ class CourseDbInjector(IDbInjector):
             raise e
 
         self.tracker.complete()
-        self._invalidate_cache()
+        transaction.on_commit(self._invalidate_cache)
 
     def reset_state(self) -> None:
         self._reset_caches()

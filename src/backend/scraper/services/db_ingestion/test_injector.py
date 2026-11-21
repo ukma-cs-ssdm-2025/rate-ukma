@@ -557,12 +557,15 @@ def test_execute_deletes_stored_terms_when_import_omits_their_semester(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_injector_invalidates_cache_after_successful_execution(injector, repo_mocks):
+def test_injector_invalidates_cache_after_successful_execution(
+    injector, repo_mocks, django_capture_on_commit_callbacks
+):
     # Arrange
     models = create_mock_payload()
 
     # Act
-    injector.execute(models)
+    with django_capture_on_commit_callbacks(execute=True):
+        injector.execute(models)
 
     # Assert
     assert repo_mocks.cache_manager.invalidate_pattern.call_count == 3
@@ -570,6 +573,24 @@ def test_injector_invalidates_cache_after_successful_execution(injector, repo_mo
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*ratings*")
     repo_mocks.cache_manager.invalidate_pattern.assert_any_call("*get_filter_options*")
     repo_mocks.cache_manager.bump_version.assert_called_once_with("plan:all")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_injector_invalidates_cache_only_after_commit(
+    injector, repo_mocks, django_capture_on_commit_callbacks
+):
+    # Arrange
+    models = create_mock_payload()
+
+    # Act
+    with django_capture_on_commit_callbacks() as callbacks:
+        injector.execute(models)
+
+    # Assert - nothing is invalidated until the transaction commits
+    repo_mocks.cache_manager.invalidate_pattern.assert_not_called()
+    repo_mocks.cache_manager.bump_version.assert_not_called()
+    assert len(callbacks) == 1
 
 
 @pytest.mark.django_db
