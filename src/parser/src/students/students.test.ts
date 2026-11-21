@@ -21,30 +21,34 @@ const TestLive = Layer.mergeAll(
 );
 
 /** Stores a page as a crawl does, in a run of its own. */
-const store = (path: string, kind: "course" | "students", content: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const store = Effect.fnUntraced(function* (
+	path: string,
+	kind: "course" | "students",
+	content: string,
+) {
+	const sql = yield* SqlClient.SqlClient;
 
-		yield* sql`
+	yield* sql`
 			WITH run AS (INSERT INTO runs (source_part) VALUES ('test') RETURNING id)
 			INSERT INTO page_snapshots (path, kind, content_hash, content, run_id)
 			SELECT ${path}, ${kind}, ${`hash ${content.length}`}, ${content}, id FROM run
 		`;
-	});
+});
 
 type Card = NonNullable<Parameters<typeof coursePage>[0]>;
 
 /** Offerings parsed from these course pages; a code alone is the fixture's. */
-const offerings = (...cards: ReadonlyArray<string | Card>) =>
-	Effect.gen(function* () {
-		for (const card of cards) {
-			const parts = Predicate.isString(card) ? { code: card } : card;
+const offerings = Effect.fnUntraced(function* (
+	...cards: ReadonlyArray<string | Card>
+) {
+	for (const card of cards) {
+		const parts = Predicate.isString(card) ? { code: card } : card;
 
-			yield* store(`/course/${parts.code}`, "course", coursePage(parts));
-		}
+		yield* store(`/course/${parts.code}`, "course", coursePage(parts));
+	}
 
-		yield* parseOfferings("crawl");
-	});
+	yield* parseOfferings("crawl");
+});
 
 const list = (code: string, content: string) =>
 	store(`/course/${code}/students`, "students", content);
@@ -55,11 +59,10 @@ interface Listed {
 	readonly removed: boolean;
 }
 
-const enrollmentsOf = (code: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const enrollmentsOf = Effect.fnUntraced(function* (code: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		return yield* sql<Listed>`
+	return yield* sql<Listed>`
 			SELECT sp.saz_cdoc AS cdoc, e.change_no AS "changeNo",
 				e.removed_at IS NOT NULL AS removed
 			FROM enrollments e
@@ -68,7 +71,7 @@ const enrollmentsOf = (code: string) =>
 			WHERE o.saz_code = ${code}
 			ORDER BY sp.saz_cdoc
 		`;
-	});
+});
 
 interface Person {
 	readonly cdoc: string;
@@ -77,44 +80,41 @@ interface Person {
 	readonly removed: boolean;
 }
 
-const programmeOf = (cdoc: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const programmeOf = Effect.fnUntraced(function* (cdoc: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const [record] = yield* sql<{ readonly level: string | null }>`
+	const [record] = yield* sql<{ readonly level: string | null }>`
 			SELECT p.level FROM student_programmes sp
 			LEFT JOIN programmes p ON p.id = sp.programme_id
 			WHERE sp.saz_cdoc = ${cdoc}
 		`;
 
-		return record?.level;
-	});
+	return record?.level;
+});
 
-const personOf = (cdoc: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const personOf = Effect.fnUntraced(function* (cdoc: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const [person] = yield* sql<Person>`
+	const [person] = yield* sql<Person>`
 			SELECT sp.saz_cdoc AS cdoc, s.email, s.full_name AS "fullName",
 				s.removed_at IS NOT NULL AS removed
 			FROM student_programmes sp JOIN students s ON s.id = sp.student_id
 			WHERE sp.saz_cdoc = ${cdoc}
 		`;
 
-		return person;
-	});
+	return person;
+});
 
-const studentIdOf = (cdoc: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const studentIdOf = Effect.fnUntraced(function* (cdoc: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const [record] = yield* sql<{ readonly studentId: string }>`
+	const [record] = yield* sql<{ readonly studentId: string }>`
 			SELECT student_id AS "studentId" FROM student_programmes
 			WHERE saz_cdoc = ${cdoc}
 		`;
 
-		return record?.studentId;
-	});
+	return record?.studentId;
+});
 
 interface Case {
 	readonly status: string;
@@ -122,17 +122,16 @@ interface Case {
 	readonly safeAnswer: unknown;
 }
 
-const casesOf = (cdoc: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const casesOf = Effect.fnUntraced(function* (cdoc: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		return yield* sql<Case>`
+	return yield* sql<Case>`
 			SELECT rc.status, rc.candidates, rc.safe_answer AS "safeAnswer"
 			FROM review_cases rc
 			JOIN student_programmes sp ON sp.id = rc.subject_id
 			WHERE rc.kind = 'student_match' AND sp.saz_cdoc = ${cdoc}
 		`;
-	});
+});
 
 describe("student tracking", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {

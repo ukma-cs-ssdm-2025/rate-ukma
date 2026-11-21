@@ -45,7 +45,7 @@ class Command(BaseCommand):
                 )
 
             self.stdout.write(
-                self.style.SUCCESS(f"Successfully cleared {cleared_count} cache keys")  # type: ignore
+                self.style.SUCCESS(f"Successfully cleared {cleared_count} cache keys")
             )
             return
 

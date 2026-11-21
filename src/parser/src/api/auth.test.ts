@@ -87,17 +87,16 @@ const withToken = (token: Redacted.Redacted<string>) =>
 const probeAs = (token: Redacted.Redacted<string>) =>
 	HttpApiTest.groups(ProbeApi, ["probe"]).pipe(withToken(token));
 
-const newKey = (scopes: ReadonlyArray<Scope>) =>
-	Effect.gen(function* () {
-		const keys = yield* Keys;
+const newKey = Effect.fnUntraced(function* (scopes: ReadonlyArray<Scope>) {
+	const keys = yield* Keys;
 
-		return yield* keys.create({
-			name: "test reader",
-			scopes,
-			expiresInDays: 30,
-			createdBy: null,
-		});
+	return yield* keys.create({
+		name: "test reader",
+		scopes,
+		expiresInDays: 30,
+		createdBy: null,
 	});
+});
 
 const AuditRow = Schema.Struct({
 	action: Schema.String,
@@ -107,21 +106,20 @@ const AuditRow = Schema.Struct({
 	reason: Schema.NullOr(Schema.String),
 });
 
-const auditOf = (keyId: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const auditOf = Effect.fnUntraced(function* (keyId: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const rows = yield* sql<{ readonly row: string }>`
+	const rows = yield* sql<{ readonly row: string }>`
 			SELECT row_to_json(a)::text AS row FROM audit_log a
 			WHERE key_id = ${keyId} ORDER BY at, id
 		`;
 
-		return yield* Effect.forEach(rows, ({ row }) =>
-			Schema.decodeUnknownEffect(Schema.fromJsonString(AuditRow))(row).pipe(
-				Effect.map((fields) => ({ ...fields, raw: row })),
-			),
-		);
-	});
+	return yield* Effect.forEach(rows, ({ row }) =>
+		Schema.decodeUnknownEffect(Schema.fromJsonString(AuditRow))(row).pipe(
+			Effect.map((fields) => ({ ...fields, raw: row })),
+		),
+	);
+});
 
 describe("ApiKeyAuth", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {

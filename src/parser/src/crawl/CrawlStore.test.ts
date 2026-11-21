@@ -31,59 +31,58 @@ const reset = Effect.gen(function* () {
 });
 
 /** Starts a run whose first page links to `next`, with the first page done. */
-const startWith = (next: ReadonlyArray<QueuedPage>) =>
-	Effect.gen(function* () {
-		const store = yield* CrawlStore;
+const startWith = Effect.fnUntraced(function* (
+	next: ReadonlyArray<QueuedPage>,
+) {
+	const store = yield* CrawlStore;
 
-		const [run] = yield* store.startRuns([
-			{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
-		]);
+	const [run] = yield* store.startRuns([
+		{ sourcePart: "saz-courses:2031-32", pages: [FIRST] },
+	]);
 
-		const first = yield* store.claim(run.id);
+	const first = yield* store.claim(run.id);
 
-		assert.isDefined(first);
-		yield* store.complete(run.id, first, snapshotOf("<html></html>"), next);
+	assert.isDefined(first);
+	yield* store.complete(run.id, first, snapshotOf("<html></html>"), next);
 
-		return run;
-	});
+	return run;
+});
 
 /** A run of one page with this body, done. */
-const fetchOnce = (path: string, body: string) =>
-	Effect.gen(function* () {
-		const store = yield* CrawlStore;
+const fetchOnce = Effect.fnUntraced(function* (path: string, body: string) {
+	const store = yield* CrawlStore;
 
-		const [run] = yield* store.startRuns([
-			{ sourcePart: "saz-courses:2031-32", pages: [course(path)] },
-		]);
+	const [run] = yield* store.startRuns([
+		{ sourcePart: "saz-courses:2031-32", pages: [course(path)] },
+	]);
 
-		const page = yield* store.claim(run.id);
+	const page = yield* store.claim(run.id);
 
-		assert.isDefined(page);
-		yield* store.complete(run.id, page, snapshotOf(body), []);
+	assert.isDefined(page);
+	yield* store.complete(run.id, page, snapshotOf(body), []);
 
-		return run.id;
-	});
+	return run.id;
+});
 
-const pagesOf = (runId: bigint) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const pagesOf = Effect.fnUntraced(function* (runId: bigint) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const rows = yield* sql<{
-			readonly path: string;
-			readonly status: string;
-			readonly attempts: number;
-			readonly error: string | null;
-		}>`
+	const rows = yield* sql<{
+		readonly path: string;
+		readonly status: string;
+		readonly attempts: number;
+		readonly error: string | null;
+	}>`
 			SELECT path, status, attempts, error FROM run_pages
 			WHERE run_id = ${runId}
 			ORDER BY id
 		`;
 
-		return rows.map(
-			({ path, status, attempts, error }) =>
-				`${status} ${attempts} ${path}${error === null ? "" : ` ${error}`}`,
-		);
-	});
+	return rows.map(
+		({ path, status, attempts, error }) =>
+			`${status} ${attempts} ${path}${error === null ? "" : ` ${error}`}`,
+	);
+});
 
 describe("CrawlStore", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {

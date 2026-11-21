@@ -223,37 +223,43 @@ export class RemovalStore extends Context.Service<
 					`,
 				);
 
-			const apply = (runId: bigint, year: number, ids: ReadonlyArray<string>) =>
-				Effect.gen(function* () {
-					const removed =
-						ids.length === 0
-							? []
-							: yield* changes.track(
-									"offerings",
-									{ runId },
-									sql`
+			const apply = Effect.fnUntraced(function* (
+				runId: bigint,
+				year: number,
+				ids: ReadonlyArray<string>,
+			) {
+				const removed =
+					ids.length === 0
+						? []
+						: yield* changes.track(
+								"offerings",
+								{ runId },
+								sql`
 										UPDATE offerings
 										SET removed_at = now(), change_no = nextval('change_no_seq')
 										WHERE id IN ${sql.in(ids)} AND removed_at IS NULL
 										RETURNING id, change_no, 'remove' AS action
 									`,
-								);
+							);
 
-					yield* closeHeld(runId, year);
-					yield* decide(runId, "applied");
+				yield* closeHeld(runId, year);
+				yield* decide(runId, "applied");
 
-					return removed.length;
-				});
+				return removed.length;
+			});
 
-			const hold = (runId: bigint, year: number, ids: ReadonlyArray<string>) =>
-				Effect.gen(function* () {
-					const candidates = { academicYear: year, offeringIds: ids };
+			const hold = Effect.fnUntraced(function* (
+				runId: bigint,
+				year: number,
+				ids: ReadonlyArray<string>,
+			) {
+				const candidates = { academicYear: year, offeringIds: ids };
 
-					yield* closeHeld(runId, year, ids);
-					yield* changes.track(
-						"review_cases",
-						{ runId },
-						sql`
+				yield* closeHeld(runId, year, ids);
+				yield* changes.track(
+					"review_cases",
+					{ runId },
+					sql`
 							INSERT INTO review_cases (
 								kind, subject_id, candidates, safe_answer, run_id, change_no
 							)
@@ -267,9 +273,9 @@ export class RemovalStore extends Context.Service<
 							)
 							RETURNING id, change_no, 'add' AS action
 						`,
-					);
-					yield* decide(runId, "held");
-				});
+				);
+				yield* decide(runId, "held");
+			});
 
 			return RemovalStore.of({
 				undecidedRuns: findUndecidedRuns().pipe(Effect.orDie),

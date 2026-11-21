@@ -21,7 +21,7 @@ const PATHS: Readonly<Record<SmartList, string>> = {
  *  parse's failure and fails it, leaving the tables as they were; a parse
  *  that finds newer lists stored meanwhile writes nothing. After a write,
  *  teachers are linked to САЗ offerings by the matching rule. */
-export const parseSmart = Effect.fn("parseSmart")(function* (
+export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 	trigger: ParseTrigger,
 ) {
 	const store = yield* SmartStore;
@@ -85,7 +85,7 @@ export const parseSmart = Effect.fn("parseSmart")(function* (
 });
 
 /** Links smart.ukma teachers to САЗ offerings, as a part of the parse. */
-const linkTeachers = Effect.fnUntraced(function* (parseId: bigint) {
+const linkTeachers = Effect.fn("Smart.linkTeachers")(function* (parseId: bigint) {
 	const store = yield* OfferingTeacherStore;
 
 	const { report, changed } = yield* store.link(

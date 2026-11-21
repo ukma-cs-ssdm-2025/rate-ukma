@@ -23,3 +23,4 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0014](0014-parser-observability.md) - UKMA Data Staging Observability with Grafana Alloy and Grafana Cloud
 * [ADR-0015](0015-parser-single-live-environment.md) - One Live Environment for UKMA Data, Promoted from Staging
 * [ADR-0016](0016-sign-in-log.md) - Record Every Sign-in as a `SignIn` Row
+* [ADR-0017](0017-webapp-layers.md) - Webapp Layers Enforced by Lint

@@ -31,7 +31,7 @@ const refuse = (reason: CourseDecisionRefused["reason"]) =>
  *  offerings move there with `course_source` `decision`, so the course rule
  *  keeps them, and the course gets `merged_into` with `merge_source`
  *  `decision`, which the rule never undoes. */
-export const mergeCourse = Effect.fn("mergeCourse")(function* (
+export const mergeCourse = Effect.fn("Courses.mergeCourse")(function* (
 	keyId: string,
 	id: string,
 	into: string,
@@ -81,7 +81,7 @@ export const mergeCourse = Effect.fn("mergeCourse")(function* (
 /** A staff decision to undo a course's merge, the rule's or staff's: the
  *  course comes back and takes back its key's offerings, held by the
  *  decision, so the rule does not merge it again. */
-export const unmergeCourse = Effect.fn("unmergeCourse")(function* (
+export const unmergeCourse = Effect.fn("Courses.unmergeCourse")(function* (
 	keyId: string,
 	id: string,
 ) {

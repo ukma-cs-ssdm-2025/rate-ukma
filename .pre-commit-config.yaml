@@ -1,3 +1,5 @@
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.0
@@ -12,6 +14,7 @@ repos:
         name: Generate OpenAPI schema
         entry: bash -lc "cd src/backend && uv run python manage.py spectacular --file ../../docs/api/openapi-generated.yaml"
         language: system
+        files: ^src/backend/
         pass_filenames: false
       - id: webapp-oxc-check
         name: Oxlint + Oxfmt check webapp
@@ -19,9 +22,15 @@ repos:
         language: system
         files: ^src/webapp/.*\.(ts|tsx|js|jsx|json|css)$
         pass_filenames: false
+      - id: parser-oxc-check
+        name: Oxlint + Oxfmt check parser
+        entry: bash -c "cd src/parser && pnpm lint:fix && pnpm format"
+        language: system
+        files: ^src/parser/.*\.(ts|json)$
+        pass_filenames: false
       - id: check-commit-message
         name: Check commit message format
-        entry: "./semantic-commit.sh"
+        entry: sh ./semantic-commit.sh
         language: system
         stages: [commit-msg]
       - id: yaml-lint

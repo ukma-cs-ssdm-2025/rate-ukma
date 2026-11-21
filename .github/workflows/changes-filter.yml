@@ -49,7 +49,7 @@ env:
 
 jobs:
   filter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       backend_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.backend == 'true' }}
       webapp_changed: ${{ inputs.force_all_changed == true || steps.filter.outputs.webapp == 'true' }}

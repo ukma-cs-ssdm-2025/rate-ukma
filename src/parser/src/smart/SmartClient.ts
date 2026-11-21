@@ -168,34 +168,36 @@ export class SmartClient extends Context.Service<
 			// The web app treats a 403 as an expired token too, so a held token that
 			// gets one counts as signed out. A `fresh` token cannot have expired, so
 			// its 403 is the API refusing the list.
-			const fetchJson = (path: string, fresh = false) =>
-				Effect.gen(function* () {
-					const token = yield* Ref.get(held);
+			const fetchJson = Effect.fn("SmartClient.fetchJson")(function* (
+				path: string,
+				fresh = false,
+			) {
+				const token = yield* Ref.get(held);
 
-					if (Option.isNone(token)) return yield* new SignedOut({ path });
+				if (Option.isNone(token)) return yield* new SignedOut({ path });
 
-					const response = yield* send(
-						HttpClientRequest.get(`${SMART_URL}${path}`).pipe(
-							HttpClientRequest.bearerToken(token.value),
-						),
+				const response = yield* send(
+					HttpClientRequest.get(`${SMART_URL}${path}`).pipe(
+						HttpClientRequest.bearerToken(token.value),
+					),
+					path,
+				);
+
+				if (response.status === 401 || (response.status === 403 && !fresh)) {
+					return yield* new SignedOut({ path });
+				}
+
+				if (response.status !== 200) {
+					return yield* new SmartRequestFailed({
 						path,
-					);
+						status: response.status,
+					});
+				}
 
-					if (response.status === 401 || (response.status === 403 && !fresh)) {
-						return yield* new SignedOut({ path });
-					}
-
-					if (response.status !== 200) {
-						return yield* new SmartRequestFailed({
-							path,
-							status: response.status,
-						});
-					}
-
-					return yield* response.json.pipe(
-						Effect.mapError(() => new SmartNotJson({ path })),
-					);
-				});
+				return yield* response.json.pipe(
+					Effect.mapError(() => new SmartNotJson({ path })),
+				);
+			});
 
 			const get = (path: string) =>
 				withSignIn(

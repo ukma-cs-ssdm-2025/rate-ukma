@@ -16,14 +16,25 @@ import { OfferingTeacherStore } from "./smart/OfferingTeacherStore.ts";
 import { SmartStore } from "./smart/SmartStore.ts";
 import { parseStudents } from "./students/students.ts";
 import { StudentStore } from "./students/StudentStore.ts";
+import { TelemetryLive } from "./telemetry/telemetry.ts";
 import { WorkerLive } from "./worker/Worker.ts";
 
 const api = Command.make("api", {}, () =>
-	Layer.launch(HttpServerLive.pipe(Layer.provide(PgLive))),
+	Layer.launch(
+		HttpServerLive.pipe(
+			Layer.provide(PgLive),
+			Layer.provide(TelemetryLive("parser-api")),
+		),
+	),
 ).pipe(Command.withDescription("Serve the HTTP API"));
 
 const worker = Command.make("worker", {}, () =>
-	Layer.launch(WorkerLive.pipe(Layer.provide(PgLive))),
+	Layer.launch(
+		WorkerLive.pipe(
+			Layer.provide(PgLive),
+			Layer.provide(TelemetryLive("parser-worker")),
+		),
+	),
 ).pipe(Command.withDescription("Run the background worker"));
 
 const migrate = Command.make("migrate", {}, () =>
@@ -44,6 +55,7 @@ const reparse = Command.make("reparse", {}, () =>
 			).pipe(Layer.provideMerge(ChangeLog.layer)),
 		),
 		Effect.provide(PgLive),
+		Effect.provide(TelemetryLive("parser-cli")),
 	),
 ).pipe(
 	Command.withDescription(
@@ -55,6 +67,7 @@ const crawlSmartCommand = Command.make("crawl-smart", {}, () =>
 	crawlSmart().pipe(
 		Effect.provide([CrawlStore.layer, SmartClient.layer]),
 		Effect.provide(PgLive),
+		Effect.provide(TelemetryLive("parser-cli")),
 	),
 ).pipe(Command.withDescription("Store the smart.ukma lists once"));
 
@@ -65,7 +78,9 @@ Command.make("ukma-data").pipe(
 		migrate,
 		reparse,
 		crawlSmartCommand,
-		...keyCommands(KeysLive),
+		...keyCommands(
+			KeysLive.pipe(Layer.provideMerge(TelemetryLive("parser-cli"))),
+		),
 	]),
 	Command.run({ version: "0.0.0" }),
 	Effect.provide(NodeServices.layer),

@@ -82,6 +82,7 @@ const personOf = (row: PersonRow): CasePerson => {
 	};
 };
 
+// oxlint-disable-next-line anti-slop-effect/require-named-effect-fn -- the StudentCaseStore spans cover the lookup.
 const studentMatch = Effect.fnUntraced(function* (id: string) {
 	const store = yield* StudentCaseStore;
 	const found = yield* store.find(id);
@@ -98,7 +99,9 @@ const studentMatch = Effect.fnUntraced(function* (id: string) {
 
 /** A `student_match` case with the names, programmes, study years and
  *  statuses staff need to tell whether two records are one person. */
-export const studentCase = Effect.fn("studentCase")(function* (id: string) {
+export const studentCase = Effect.fn("Students.studentCase")(function* (
+	id: string,
+) {
 	const store = yield* StudentCaseStore;
 	const found = yield* studentMatch(id);
 	const record = yield* store.record(found.recordId);
@@ -124,28 +127,27 @@ export const studentCase = Effect.fn("studentCase")(function* (id: string) {
 
 /** Staff confirm the safe answer: the record is the student it joined. The
  *  case closes; the record stays where it is. */
-export const decideSamePerson = Effect.fn("decideSamePerson")(function* (
-	keyId: string,
-	id: string,
-) {
-	const store = yield* StudentCaseStore;
-	const changes = yield* ChangeLog;
-	const audit = yield* Audit;
+export const decideSamePerson = Effect.fn("Students.decideSamePerson")(
+	function* (keyId: string, id: string) {
+		const store = yield* StudentCaseStore;
+		const changes = yield* ChangeLog;
+		const audit = yield* Audit;
 
-	return yield* changes.withTurn(
-		Effect.gen(function* () {
-			const found = yield* studentMatch(id);
+		return yield* changes.withTurn(
+			Effect.gen(function* () {
+				const found = yield* studentMatch(id);
 
-			if (!(yield* store.close(id))) {
-				return yield* new ReviewCaseRefused({ reason: "not_open" });
-			}
+				if (!(yield* store.close(id))) {
+					return yield* new ReviewCaseRefused({ reason: "not_open" });
+				}
 
-			yield* audit.record({
-				action: "student_case_decided",
-				keyId,
-				targetId: id,
-				relatedId: found.studentId ?? undefined,
-			});
-		}),
-	);
-});
+				yield* audit.record({
+					action: "student_case_decided",
+					keyId,
+					targetId: id,
+					relatedId: found.studentId ?? undefined,
+				});
+			}),
+		);
+	},
+);

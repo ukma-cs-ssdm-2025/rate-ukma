@@ -114,30 +114,28 @@ const TestLive = Layer.mergeAll(
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
-const trailOf = (rowId: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const trailOf = Effect.fnUntraced(function* (rowId: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		return yield* sql<{
-			readonly changeNo: bigint;
-			readonly action: string;
-			readonly runId: bigint | null;
-		}>`
+	return yield* sql<{
+		readonly changeNo: bigint;
+		readonly action: string;
+		readonly runId: bigint | null;
+	}>`
 			SELECT change_no AS "changeNo", action, run_id AS "runId" FROM changes
 			WHERE row_id = ${rowId} ORDER BY change_no
 		`;
-	});
+});
 
-const removalsOf = (runId: bigint) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const removalsOf = Effect.fnUntraced(function* (runId: bigint) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const [run] = yield* sql<{ readonly decision: string | null }>`
+	const [run] = yield* sql<{ readonly decision: string | null }>`
 			SELECT offering_removals AS decision FROM runs WHERE id = ${runId}
 		`;
 
-		return run?.decision;
-	});
+	return run?.decision;
+});
 
 describe("removeOfferings", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {

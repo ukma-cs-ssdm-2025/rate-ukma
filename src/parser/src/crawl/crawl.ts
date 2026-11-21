@@ -113,7 +113,7 @@ const linkedPages = (
  *  run goes on; an error of the source, such as a failed sign-in or a long
  *  rate limit, or a page `source.failsRun` names fails the run. A crash, such
  *  as a lost database, leaves the run `running` to resume later. */
-export const crawlRun = Effect.fn("crawlRun")(function* <E>(
+export const crawlRun = Effect.fn("Crawl.crawlRun")(function* <E>(
 	run: OpenRun,
 	source: PageSource<E>,
 ) {
@@ -151,25 +151,24 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 		Effect.andThen((requeued) => (requeued > 0 ? drain : Effect.void)),
 	);
 
-	const finish = (crashed: boolean) =>
-		Effect.gen(function* () {
-			const report = yield* store.report(run.id);
+	const finishRun = Effect.fn("Crawl.finishRun")(function* (crashed: boolean) {
+		const report = yield* store.report(run.id);
 
-			const status =
-				crashed || report.pages.some(source.failsRun) ? "failed" : "succeeded";
+		const status =
+			crashed || report.pages.some(source.failsRun) ? "failed" : "succeeded";
 
-			yield* store.finishRun(run.id, status, report);
+		yield* store.finishRun(run.id, status, report);
 
-			yield* Effect.logInfo("Run finished", report).pipe(
-				Effect.annotateLogs({
-					run_id: String(run.id),
-					source_part: run.sourcePart,
-					status,
-				}),
-			);
+		yield* Effect.logInfo("Run finished", report).pipe(
+			Effect.annotateLogs({
+				run_id: String(run.id),
+				source_part: run.sourcePart,
+				status,
+			}),
+		);
 
-			return { sourcePart: run.sourcePart, status, report };
-		});
+		return { sourcePart: run.sourcePart, status, report };
+	});
 
 	yield* Effect.logInfo("Run started").pipe(
 		Effect.annotateLogs({
@@ -183,9 +182,9 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 	// so the next start resumes it.
 	return yield* crawl.pipe(
 		Effect.tapCause((cause) =>
-			Cause.hasFails(cause) ? finish(true) : Effect.void,
+			Cause.hasFails(cause) ? finishRun(true) : Effect.void,
 		),
-		Effect.andThen(finish(false)),
+		Effect.andThen(finishRun(false)),
 	);
 });
 
@@ -217,7 +216,7 @@ export const yearsToCrawl = (
 /** Crawls the years `yearsToCrawl` picks from the catalog, one run per year.
  *  Runs that a crash left open are resumed instead, so finished pages are not
  *  fetched again. */
-export const crawlYears = Effect.fn("crawlYears")(function* () {
+export const crawlYears = Effect.fn("Crawl.crawlYears")(function* () {
 	const store = yield* CrawlStore;
 	const saz = yield* SazClient;
 
@@ -332,7 +331,7 @@ export const crawlDelay = (
 
 /** The wait before the next САЗ crawl, from the runs stored and `triedAt`,
  *  when this worker last tried one. */
-export const untilNextCrawl = Effect.fn("untilNextCrawl")(function* (
+export const untilNextCrawl = Effect.fn("Crawl.untilNextCrawl")(function* (
 	interval: Duration.Duration,
 	triedAt: number | undefined,
 ) {

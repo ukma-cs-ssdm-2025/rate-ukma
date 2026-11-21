@@ -169,14 +169,6 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           uv run pytest --cov=. --cov-report=html --cov-report=xml --junitxml=junit.xml --cov-report=term-missing:skip-covered
-          EXIT_CODE=$?
-
-          if [ $EXIT_CODE -eq 5 ]; then
-              echo "No tests found. Exiting with 0."
-              exit 0
-          else
-              exit $EXIT_CODE
-          fi
 
       - name: Store coverage report
         if: success()
@@ -191,7 +183,7 @@ jobs:
 
       - name: PR coverage comment
         if: success() && (github.event_name == 'pull_request' || github.event_name == 'workflow_run' || inputs.is_pr_run == true)
-        uses: MishaKav/pytest-coverage-comment@main
+        uses: MishaKav/pytest-coverage-comment@4cfb48edc8f875ac019afdcfd97c48d78ad2b723 # v1.13.1
         with:
           pytest-xml-coverage-path: ${{ env.BACKEND_DIR }}/coverage.xml
           junitxml-path: ${{ env.BACKEND_DIR }}/junit.xml
@@ -200,7 +192,7 @@ jobs:
 
       - name: Generate coverage badge
         if: success() && github.ref_name != github.event.repository.default_branch
-        uses: tj-actions/coverage-badge-py@v2
+        uses: tj-actions/coverage-badge-py@1788babcb24544eb5bbb6e0d374df5d1e54e670f # v2.0.4
         with:
           working-directory: ${{ env.BACKEND_DIR }}
           output: ${{ github.workspace }}/${{ env.COVERAGE_BADGE_FILE }}

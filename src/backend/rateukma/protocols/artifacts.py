@@ -112,19 +112,19 @@ class PrefixLoggerWrapper(ILogger):
 
     @implements
     def info(self, message: str, *args, **kwargs):
-        self.logger.info(f"{self._append_prefix(message)}", *args, **kwargs)
+        self.logger.info(self._append_prefix(message), *args, **kwargs)
 
     @implements
     def error(self, message: str, *args, **kwargs):
-        self.logger.error(f"{self._append_prefix(message)}", *args, **kwargs)
+        self.logger.error(self._append_prefix(message), *args, **kwargs)
 
     @implements
     def warning(self, message: str, *args, **kwargs):
-        self.logger.warning(f"{self._append_prefix(message)}", *args, **kwargs)
+        self.logger.warning(self._append_prefix(message), *args, **kwargs)
 
     @implements
     def debug(self, message: str, *args, **kwargs):
-        self.logger.debug(f"{self._append_prefix(message)}", *args, **kwargs)
+        self.logger.debug(self._append_prefix(message), *args, **kwargs)
 
     @implements
     def close(self) -> None:

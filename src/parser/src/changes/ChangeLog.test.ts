@@ -9,47 +9,44 @@ const TestLive = ChangeLog.layer.pipe(
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
 
-const insertTerms = (codes: ReadonlyArray<string>) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const insertTerms = Effect.fnUntraced(function* (codes: ReadonlyArray<string>) {
+	const sql = yield* SqlClient.SqlClient;
 
-		return sql`
+	return sql`
 			INSERT INTO terms (code, academic_year, season, change_no)
 			SELECT code, 2031, 'FALL', nextval('change_no_seq')
 			FROM jsonb_array_elements_text(${JSON.stringify(codes)}::jsonb) AS code
 			RETURNING id, change_no, 'add' AS action
 		`;
-	});
+});
 
-const numbersOf = (codes: ReadonlyArray<string>) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const numbersOf = Effect.fnUntraced(function* (codes: ReadonlyArray<string>) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const rows = yield* sql<{ readonly changeNo: bigint }>`
+	const rows = yield* sql<{ readonly changeNo: bigint }>`
 			SELECT change_no AS "changeNo" FROM terms
 			WHERE code IN ${sql.in(codes)}
 			ORDER BY change_no
 		`;
 
-		return rows.map(({ changeNo }) => changeNo);
-	});
+	return rows.map(({ changeNo }) => changeNo);
+});
 
 /** Waits until a session holds the turn's lock, or until one waits for it. */
-const turnLock = (granted: boolean) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const turnLock = Effect.fnUntraced(function* (granted: boolean) {
+	const sql = yield* SqlClient.SqlClient;
 
-		return yield* sql<{ readonly locks: bigint }>`
+	return yield* sql<{ readonly locks: bigint }>`
 			SELECT count(*) AS locks FROM pg_locks
 			WHERE locktype = 'advisory' AND objid = ${TURN_LOCK} AND granted = ${granted}
 		`.pipe(
-			Effect.map(([row]) => row?.locks ?? 0n),
-			Effect.repeat({
-				until: (locks) => locks > 0n,
-				schedule: Schedule.spaced("10 millis"),
-			}),
-		);
-	});
+		Effect.map(([row]) => row?.locks ?? 0n),
+		Effect.repeat({
+			until: (locks) => locks > 0n,
+			schedule: Schedule.spaced("10 millis"),
+		}),
+	);
+});
 
 describe("ChangeLog", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {

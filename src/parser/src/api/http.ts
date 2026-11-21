@@ -14,6 +14,7 @@ import { StudentCaseStore } from "../students/StudentCaseStore.ts";
 import type { PageOf } from "../lists/lists.ts";
 import { StatsReader } from "../stats/StatsReader.ts";
 import { Api, Caller } from "./Api.ts";
+import { ServerSpanNames } from "../telemetry/telemetry.ts";
 import { ApiKeyAuthLive } from "./auth.ts";
 
 export const SystemApiHandlers = HttpApiBuilder.group(
@@ -133,6 +134,9 @@ export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 );
 
 export const HttpServerLive = HttpRouter.serve(ApiRoutes).pipe(
+	// Probes call /health every few seconds; their spans would be noise.
+	Layer.provide(HttpMiddleware.layerTracerDisabledForUrls(["/health"])),
+	Layer.provide(ServerSpanNames),
 	Layer.provide(
 		NodeHttpServer.layerConfig(createServer, {
 			port: Config.Port("PORT").pipe(Config.withDefault(8080)),

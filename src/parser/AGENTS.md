@@ -6,7 +6,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`, `pnpm crawl-smart`, `pnpm create-key`, `pnpm revoke-key`, `pnpm list-keys`.
 - Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role on `parser-db` and `parser-migrate` applies migrations. `parser-db` is the parser's own Postgres 18 with its own volume, on `127.0.0.1:${PARSER_POSTGRES_PORT:-5433}`, as live runs; the Django app keeps `db-rateukma` on Postgres 15.
-- Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the university account, for the worker's САЗ crawl and `crawl-smart`), `SAZ_REQUEST_GAP` and `SMART_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` and `SMART_REQUEST_TIMEOUT` (default 30 seconds, covering the response body), `CRAWL_INTERVAL` (from the start of one САЗ crawl to the start of the next, default 24 hours, at least 1 hour; the api reads it too, for the next crawl in `/v1/stats`) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
+- Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the university account, for the worker's САЗ crawl and `crawl-smart`), `SAZ_REQUEST_GAP` and `SMART_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` and `SMART_REQUEST_TIMEOUT` (default 30 seconds, covering the response body), `CRAWL_INTERVAL` (from the start of one САЗ crawl to the start of the next, default 24 hours, at least 1 hour; the api reads it too, for the next crawl in `/v1/stats`), `OTEL_EXPORTER_OTLP_ENDPOINT` (api and worker, and the `reparse`, `crawl-smart` and key commands as `parser-cli`: export spans over OTLP/HTTP; unset, nothing leaves the process) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
 
 ## Layout
 
@@ -20,6 +20,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.
 - `src/microsoft/`: the cookie session and Microsoft password sign-in both clients use.
 - `src/smart/`: the smart.ukma client and its crawl. The sign-in redirect chain ends on `/get-user?accessToken=…&refreshToken=…`, read from the `Location` header and never requested so no span or log holds the tokens; the API on `smart.ukma.edu.ua` takes `Authorization: Bearer`, the access token lives 5 minutes, longer than a crawl of the four lists, and a held token that gets a 401 or 403 makes the client sign in again once.
+- `src/telemetry/telemetry.ts`: the OTLP trace export, server span names by route template, and the tracer wrapper that keeps URL paths and queries out of span attributes, events and exceptions; exports time out after 10 seconds, reply included.
 - `src/db/database.ts`: the Postgres layer and the migration list; migrations live in `src/db/migrations/`.
 
 ## Rules
@@ -69,6 +70,7 @@ Tests:
 Logs and PRs:
 
 - Log annotation keys and fields are snake_case (`run_id`, `source_part`), the same as the columns, so one key finds a run across records. Log a report object under one key instead of spreading its fields.
+- Span names are `<Module>.<function>` (PascalCase module, then the camelCase name the code uses, equal to the variable for `const x = Effect.fn("Module.x")`), such as `Crawl.finishRun` or `MicrosoftSession.signIn`; server spans keep their route, as `GET /v1/courses/:id`. They are fixed strings; span attributes hold only ids, counts, routes, hosts and outcomes, never names, emails or full URLs. A named function that only returns `Effect.gen` is `Effect.fn("name")` (`Effect.fnUntraced` only in a `*Store.ts`, test file or `testing.ts` helper, whose SQL spans cover it; elsewhere it needs an `oxlint-disable-next-line` with a reason); the `require-named-effect-fn` lint rule enforces the names and this.
 - Errors and logs carry ids, keys and counts, never personal data. A `CoursePageError` has a short stable `reason` to group by and the page label in `detail`.
 - One feature per PR, about 400 changed lines of code at most, not counting tests, fixtures and generated files. Tests ship in the same PR. Split a larger change by layer, such as the pure parser before its persistence.
 
