@@ -137,4 +137,15 @@ describe("matchTeachers", () => {
 			["off_agrees", "off_unknown"],
 		);
 	});
+
+	it("never reads a teacher missing from the list as named by САЗ", () => {
+		const { links, report } = matchTeachers(
+			[offering({ sazTeachers: "Уявна О." })],
+			[discipline([lecturer(1), lecturer(99)])],
+			teachers,
+		);
+
+		assert.deepStrictEqual(links, []);
+		assert.strictEqual(report.sazDisagrees, 1);
+	});
 });

@@ -92,7 +92,12 @@ const joinedRole = (a: TeacherRole, b: TeacherRole): TeacherRole =>
 	a === b ? a : "LECTURER_AND_PRACTICE_TEACHER";
 
 const wordsOf = (text: string): ReadonlySet<string> =>
-	new Set(text.toLowerCase().split(/[^\p{L}\p{N}’ʼ'-]+/u));
+	new Set(
+		text
+			.toLowerCase()
+			.split(/[^\p{L}\p{N}’ʼ'-]+/u)
+			.filter((word) => word !== ""),
+	);
 
 /** The automatic part of matching.md's rule. An offering takes smart.ukma
  *  teachers when its disciplines agree on title, credits, mapped department
@@ -126,7 +131,7 @@ export const matchTeachers = (
 		teachers.map(({ smartId, lastName }) => [smartId, lastName.toLowerCase()]),
 	);
 
-	const allLastNames = new Set(lastNames.values());
+	const allLastNames = new Set([...lastNames.values()].filter((n) => n !== ""));
 	const links: Array<OfferingTeacher> = [];
 	const report = { linked: 0, tieBrokenBySaz: 0, tieLeft: 0, sazDisagrees: 0 };
 
@@ -159,9 +164,11 @@ export const matchTeachers = (
 		const oneSet = new Set(matched.map(setOf)).size === 1;
 		const words = wordsOf(offering.sazTeachers ?? "");
 
-		const named = [...roles.keys()].filter((id) =>
-			words.has(lastNames.get(id) ?? ""),
-		);
+		const named = [...roles.keys()].filter((id) => {
+			const lastName = lastNames.get(id);
+
+			return lastName !== undefined && words.has(lastName);
+		});
 
 		const sazNamesSmart = [...words].some((word) => allLastNames.has(word));
 
