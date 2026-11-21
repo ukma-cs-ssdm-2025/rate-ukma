@@ -11,6 +11,14 @@
 
 ## Layers and types
 
+Lint enforces these (ADR-0017, `lint/layers.ts`, `pnpm lint:ratchet`):
+
+- **Routes are thin:** params, auth guard, head/title, then one `<XPage>` from the feature. No generated API hooks in `routes/`.
+- **Features own pages, components and hooks.** A feature imports another only as declared in `FEATURE_DEPENDENCIES` (`lint/layers.ts`), and that graph stays acyclic.
+- **`components/` and `lib/` are shared:** they never import `features/` or `routes/`. Pass feature content in as a prop or slot.
+- **Files stay under 400 lines; no barrel `index.ts` files.**
+- **The allowlist only shrinks:** `lint/allowlist.ts` lists today's offenders. Remove an entry in the change that fixes it (the ratchet fails until you do); never add one.
+
 - **The generated type is the type.** Use `@/lib/api/generated` types as they are: no camelCase copies, no `Extended*` interfaces, no `?? ""` to paper over optional fields. If a type is wrong (optional when it's always sent, `string` instead of an enum), fix the serializer and regenerate.
 - **Call generated hooks directly.** Add a feature hook only when it adds behavior: combines queries, derives data, gates on auth or a flag, or owns side effects. A file that only renames or re-exports something is deleted, not added.
 - **Pure logic goes in plain `.ts` modules** next to the feature (`groupRatings.ts`, `courseFormatting.ts`), tested without React.
