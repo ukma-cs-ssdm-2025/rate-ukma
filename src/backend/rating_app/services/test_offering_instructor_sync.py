@@ -2,12 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from rating_app.application_schemas.ukma_data import (
-    UkmaDataKey,
-    UkmaDataOfferingInstructor,
-    UkmaDataOfferingInstructors,
-    UkmaDataPage,
-)
+from rating_app.application_schemas import ukma_data_api as ud
 from rating_app.models import CourseInstructor, Instructor
 from rating_app.models.choices import InstructorRole
 from rating_app.repositories.instructor_repository import current_academic_year_start
@@ -18,7 +13,7 @@ SYNC = "rating_app.services.offering_instructor_sync"
 
 
 def teacher(email: str | None, role: str = "lecturer", last_name: str = "Вигадана"):
-    return UkmaDataOfferingInstructor.model_validate(
+    return ud.OfferingInstructor.model_validate(
         {
             "id": f"ins_{email}",
             "lastName": last_name,
@@ -31,8 +26,9 @@ def teacher(email: str | None, role: str = "lecturer", last_name: str = "Виг�
 
 
 def offering(code: str, teachers, year: int = YEAR, removed: bool = False):
-    return UkmaDataOfferingInstructors.model_validate(
+    return ud.OfferingTeachers.model_validate(
         {
+            "id": f"ot_{code}",
             "sazCode": code,
             "academicYear": year,
             "instructors": [t.model_dump(by_alias=True) for t in teachers],
@@ -42,16 +38,16 @@ def offering(code: str, teachers, year: int = YEAR, removed: bool = False):
     )
 
 
-def key(*scopes: str) -> UkmaDataKey:
-    return UkmaDataKey.model_validate(
+def key(*scopes: str) -> ud.V1KeyGetResponse:
+    return ud.V1KeyGetResponse.model_validate(
         {"id": "key_1", "scopes": list(scopes), "expiresAt": "2031-01-01T00:00:00Z"}
     )
 
 
-def pages_of(pages: tuple[list[UkmaDataOfferingInstructors], ...]):
+def pages_of(pages: tuple[list[ud.OfferingTeachers], ...]):
     return iter(
         [
-            UkmaDataPage[UkmaDataOfferingInstructors].model_validate(
+            ud.OfferingTeachersPage.model_validate(
                 {
                     "items": [item.model_dump(by_alias=True) for item in items],
                     "cursor": n + 1,
@@ -65,8 +61,8 @@ def pages_of(pages: tuple[list[UkmaDataOfferingInstructors], ...]):
 
 
 def service_with(
-    *pages: list[UkmaDataOfferingInstructors],
-    previous: tuple[list[UkmaDataOfferingInstructors], ...] = ([],),
+    *pages: list[ud.OfferingTeachers],
+    previous: tuple[list[ud.OfferingTeachers], ...] = ([],),
 ) -> MagicMock:
     """UKMA Data serving ``pages`` for the current academic year and
     ``previous`` for the one before."""
