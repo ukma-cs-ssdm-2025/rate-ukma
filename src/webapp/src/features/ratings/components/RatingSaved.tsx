@@ -1,6 +1,9 @@
 import { ArrowRight, Check } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
+import { Link } from "@tanstack/react-router";
+
+import { Button, buttonVariants } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 import { DialogDescription, DialogTitle } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
@@ -14,6 +17,7 @@ interface RatingSavedProps {
 	readonly onClose: () => void;
 	/** Set when the rated course is not the page the user is on. */
 	readonly openCourse?: {
+		readonly courseId: string;
 		readonly name?: string;
 		readonly onOpen: () => void;
 	};
@@ -26,6 +30,7 @@ function description({ suggestions, isLoading, isError }: RatingSavedProps) {
 }
 
 function SavedCourse({
+	courseId,
 	name,
 	onOpen,
 }: NonNullable<RatingSavedProps["openCourse"]>) {
@@ -41,16 +46,30 @@ function SavedCourse({
 					Оцінено
 				</p>
 			</div>
-			<Button
-				size="sm"
-				variant="outline"
-				className="min-h-10 shrink-0 px-4 sm:min-h-0"
-				onClick={onOpen}
+			<Link
+				to="/courses/$courseId"
+				params={{ courseId }}
+				className={cn(
+					buttonVariants({ size: "sm", variant: "outline" }),
+					"min-h-10 shrink-0 px-4 sm:min-h-0",
+				)}
 				aria-label={`Відкрити ${label}`}
+				onClick={(event) => {
+					// A new-tab click leaves this tab, and the thanks, where they are.
+					if (
+						event.button !== 0 ||
+						event.metaKey ||
+						event.ctrlKey ||
+						event.shiftKey ||
+						event.altKey
+					)
+						return;
+					onOpen();
+				}}
 			>
 				Відкрити
 				<ArrowRight className="size-3.5" aria-hidden />
-			</Button>
+			</Link>
 		</article>
 	);
 }

@@ -60,7 +60,7 @@ for (const width of [1440, 390]) {
 		await shot(page, `thanks-${width}`);
 		// The list already updates in place, so no way to another page here.
 		await expect(
-			thanks(page).getByRole("button", { name: /^Відкрити/ }),
+			thanks(page).getByRole("link", { name: /^Відкрити/ }),
 		).toHaveCount(0);
 		await expect(
 			thanks(page).getByRole("button", { name: "Не зараз", exact: true }),
@@ -117,7 +117,7 @@ for (const width of [1440, 390]) {
 		const rated = await page.getByTestId(testIds.rating.modalTitle).innerText();
 		await score(page);
 		await page.getByTestId(testIds.rating.submitButton).click();
-		const open = thanks(page).getByRole("button", {
+		const open = thanks(page).getByRole("link", {
 			name: `Відкрити «${rated}»`,
 			exact: true,
 		});
@@ -150,7 +150,7 @@ test("with nothing left, thanks closes with «Готово»", async ({ page }) 
 	).toBeVisible();
 	await shot(page, "all-rated-1440");
 	await expect(
-		thanks(page).getByRole("button", { name: /^Відкрити/ }),
+		thanks(page).getByRole("link", { name: /^Відкрити/ }),
 	).toHaveCount(0);
 	await thanks(page)
 		.getByRole("button", { name: "Готово", exact: true })

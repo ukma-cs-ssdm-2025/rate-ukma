@@ -116,14 +116,9 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 						openCourse={
 							ratedElsewhere
 								? {
+										courseId: ratedElsewhere.courseId,
 										name: ratedElsewhere.courseName,
-										onOpen: () => {
-											close();
-											void navigate({
-												to: "/courses/$courseId",
-												params: { courseId: ratedElsewhere.courseId },
-											});
-										},
+										onOpen: close,
 									}
 								: undefined
 						}

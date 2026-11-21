@@ -6,6 +6,11 @@ import type { RatingSuggestion } from "@/lib/api/generated";
 import { render, screen } from "@/test-utils/render";
 import { RatingSaved } from "./RatingSaved";
 
+vi.mock("@tanstack/react-router", async () => ({
+	...(await vi.importActual("@tanstack/react-router")),
+	Link: (await import("@/test-utils/router")).MockLink,
+}));
+
 const SUGGESTION = {
 	course_id: "c-db",
 	course_offering_id: "offering-c-db",
@@ -17,7 +22,7 @@ const SUGGESTION = {
 function renderSaved(
 	suggestions: RatingSuggestion[],
 	isError = false,
-	openCourse?: { name?: string; onOpen: () => void },
+	openCourse?: { courseId: string; name?: string; onOpen: () => void },
 ) {
 	const onClose = vi.fn();
 	const onSelect = vi.fn();
@@ -61,7 +66,7 @@ describe("RatingSaved", () => {
 
 	it("offers the rated course only when asked to", async () => {
 		renderSaved([SUGGESTION]);
-		expect(screen.queryByRole("button", { name: /^Відкрити/ })).toBeNull();
+		expect(screen.queryByRole("link", { name: /^Відкрити/ })).toBeNull();
 	});
 
 	it.each([
@@ -71,8 +76,10 @@ describe("RatingSaved", () => {
 		"opens the rated course next to the way out (%#)",
 		async (suggestions, name, label) => {
 			const onOpen = vi.fn();
-			renderSaved(suggestions, false, { name, onOpen });
-			await userEvent.click(screen.getByRole("button", { name: label }));
+			renderSaved(suggestions, false, { courseId: "c-asd", name, onOpen });
+			const link = screen.getByRole("link", { name: label });
+			expect(link.getAttribute("href")).toBe("/courses/$courseId");
+			await userEvent.click(link);
 			expect(onOpen).toHaveBeenCalled();
 			expect(
 				screen.getByRole("button", {
