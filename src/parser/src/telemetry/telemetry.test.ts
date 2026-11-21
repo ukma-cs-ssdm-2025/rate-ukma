@@ -1,7 +1,13 @@
 import { assert, describe, it, layer } from "@effect/vitest";
-import { Effect, Layer, Predicate, Redacted, Tracer } from "effect";
+import { Effect, Fiber, Layer, Predicate, Redacted, Tracer } from "effect";
+import { TestClock } from "effect/testing";
 import { NodeHttpServer } from "@effect/platform-node";
-import { HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
+import {
+	HttpClient,
+	HttpClientRequest,
+	HttpClientResponse,
+	HttpRouter,
+} from "effect/http";
 import { ApiRoutes, AuthLive } from "../api/http.ts";
 import { ChangeLog } from "../changes/ChangeLog.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
@@ -9,7 +15,9 @@ import { Keys } from "../keys/Keys.ts";
 import { SmartClient } from "../smart/SmartClient.ts";
 import { clientWith, makeFakeFetch } from "../smart/testing.ts";
 import {
+	otlpTracer,
 	redactingTracer,
+	withExportDeadline,
 	ServerSpanNames,
 	serverSpanName,
 } from "./telemetry.ts";
@@ -33,8 +41,13 @@ const recorder = () => {
 	return { spans, tracer };
 };
 
-/** Attributes and event attributes that hold a token, an email or a URL
- *  with its query. */
+/** A token, an email, or a URL with a path or a query. */
+const leaks = (text: string) =>
+	/accessToken|refreshToken|@/.test(text) ||
+	/https?:\/\/[^\s"/?#]+[/?#][^\s"]/.test(text);
+
+/** Attributes and event attributes that hold a token, an email, a URL path
+ *  or a URL query. */
 const leaksIn = (spans: ReadonlyArray<Tracer.NativeSpan>) =>
 	spans.flatMap((span) =>
 		[
@@ -45,10 +58,7 @@ const leaksIn = (spans: ReadonlyArray<Tracer.NativeSpan>) =>
 				Predicate.isBigInt(item) ? String(item) : item,
 			);
 
-			return /accessToken|refreshToken|@/.test(text) ||
-				/https?:\/\/[^\s"]*\?/.test(text)
-				? [text]
-				: [];
+			return leaks(text) || text.startsWith('["url.path"') ? [text] : [];
 		}),
 	);
 
@@ -82,11 +92,81 @@ describe("redactingTracer", () => {
 			});
 
 			assert.deepStrictEqual(spans[0]?.events[0]?.[2], {
-				"url.full": "https://smart.ukma.edu.ua/get-user",
+				"url.full": "https://smart.ukma.edu.ua",
 			});
 			assert.deepStrictEqual(leaksIn(spans), []);
 		}).pipe(Effect.withSpan("event test"), Effect.withTracer(tracer));
 	});
+});
+
+describe("OTLP export", () => {
+	it.effect("cuts URL queries from a failed span's exception", () => {
+		const bodies: Array<string> = [];
+
+		const collector = Layer.succeed(HttpClient.HttpClient)(
+			HttpClient.make((request) => {
+				const { body } = request;
+
+				bodies.push(
+					Predicate.isTagged(body, "Uint8Array")
+						? new TextDecoder().decode(body.body)
+						: "",
+				);
+
+				return Effect.succeed(
+					HttpClientResponse.fromWeb(request, new Response(null)),
+				);
+			}),
+		);
+
+		return Effect.gen(function* () {
+			yield* Effect.fail(
+				new Error(
+					"GET https://smart.ukma.edu.ua/get-user?accessToken=a failed",
+				),
+			).pipe(Effect.withSpan("failing request"), Effect.ignore);
+		}).pipe(
+			Effect.provide(
+				otlpTracer("parser-worker", "http://collector.test/v1/traces").pipe(
+					Layer.provide(collector),
+				),
+			),
+			Effect.andThen(
+				Effect.sync(() => {
+					const exported = bodies.join("\n");
+
+					assert.include(exported, "failing request");
+					assert.include(exported, "https://smart.ukma.edu.ua/get-user failed");
+					assert.notInclude(exported, "accessToken");
+				}),
+			),
+		);
+	});
+});
+
+describe("withExportDeadline", () => {
+	it.effect("gives up on a reply whose body never ends", () =>
+		Effect.gen(function* () {
+			const stalled = HttpClient.make((request) =>
+				Effect.succeed(
+					HttpClientResponse.fromWeb(
+						request,
+						new Response(new ReadableStream({ start: () => undefined })),
+					),
+				),
+			);
+
+			const fiber = yield* withExportDeadline(stalled)
+				.post("http://collector.test/v1/traces")
+				.pipe(Effect.flip, Effect.forkChild);
+
+			yield* TestClock.adjust("10 seconds");
+
+			const error = yield* Fiber.join(fiber);
+
+			assert.strictEqual(error.reason._tag, "TransportError");
+		}),
+	);
 });
 
 describe("smart.ukma crawl step", () => {
@@ -105,7 +185,7 @@ describe("smart.ukma crawl step", () => {
 			assert.deepStrictEqual(leaksIn(spans), []);
 			assert.deepInclude(
 				spans.map((span) => span.attributes.get("url.full")),
-				"https://smart.ukma.edu.ua/api/department",
+				"https://smart.ukma.edu.ua",
 			);
 		}).pipe(
 			Effect.provide(clientWith(makeFakeFetch())),
@@ -154,12 +234,19 @@ layer(ApiLive, { timeout: 30_000, excludeTestServices: true })(
 				yield* http.execute(
 					authorized(HttpClientRequest.post("/v1/courses/crs_missing/unmerge")),
 				);
+				yield* http.execute(
+					authorized(HttpClientRequest.get("/v1/people/someone@example.edu")),
+				);
 
 				const server = api.spans.filter(({ kind }) => kind === "server");
 
 				assert.deepStrictEqual(
 					server.map(({ name }) => name),
-					["GET /v1/offerings", "POST /v1/courses/:id/unmerge"],
+					[
+						"GET /v1/offerings",
+						"POST /v1/courses/:id/unmerge",
+						"GET unmatched",
+					],
 				);
 				assert.include(
 					api.spans.map(({ name }) => name),
