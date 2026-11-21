@@ -10,8 +10,6 @@ export const LINT_ALLOWLIST = {
 	],
 	"no-restricted-imports": [
 		"src/components/AuthShell.tsx",
-		"src/components/Header/Header.tsx",
-		"src/components/Header/MobileMenu.tsx",
 		"src/components/TermBadge.tsx",
 		"src/features/courses/components/CourseStatsCards.tsx",
 		"src/features/feed/components/FeedReviewItem.tsx",
