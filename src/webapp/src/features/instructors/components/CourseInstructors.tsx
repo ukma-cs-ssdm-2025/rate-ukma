@@ -12,7 +12,9 @@ export function CourseInstructors({
 		query: { enabled },
 	});
 
-	if (!enabled) return null;
+	if (!enabled) {
+		return null;
+	}
 
 	return (
 		<CourseTeachersRow teachers={namedCourseTeachers(data?.items ?? [])} />

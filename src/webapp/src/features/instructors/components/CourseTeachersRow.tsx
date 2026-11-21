@@ -14,7 +14,9 @@ interface CourseTeachersRowProps {
  *  listed shows on hover and is read out by screen readers. Nothing when no
  *  teacher qualifies. */
 export function CourseTeachersRow({ teachers }: CourseTeachersRowProps) {
-	if (teachers.length === 0) return null;
+	if (teachers.length === 0) {
+		return null;
+	}
 
 	return (
 		<section
