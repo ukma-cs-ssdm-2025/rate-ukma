@@ -15,6 +15,7 @@ from .semester import Semester
 if TYPE_CHECKING:
     from django.db.models.manager import RelatedManager
 
+    from .course_instructor import CourseInstructor
     from .course_offering_speciality import CourseOfferingSpeciality
     from .course_offering_term import CourseOfferingTerm
     from .enrollment import Enrollment as EnrollmentType
@@ -25,6 +26,7 @@ class CourseOffering(models.Model):
     enrollments: Manager[EnrollmentType]
     course_offering_specialities: RelatedManager[CourseOfferingSpeciality]
     terms: RelatedManager[CourseOfferingTerm]
+    instructor_assignments: RelatedManager[CourseInstructor]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     ukma_data_id = models.CharField(max_length=64, null=True, blank=True, unique=True)
