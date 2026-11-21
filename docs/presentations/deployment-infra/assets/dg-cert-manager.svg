@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 130" width="1000" height="130" role="img" aria-label="From an annotation on the Ingress to a certificate in a Secret">
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:20px;fill:#111318}
+.mu{fill:#5c6470;font-size:17px}.c{text-anchor:middle}.ac{fill:#0074a3;font-weight:650}.wh{fill:#fff}
+.bd{fill:#fff;stroke:#c9ced4;stroke-width:1.5}.bd.ac{fill:#fff;stroke:#0074a3;stroke-width:2}.bd.now{fill:#0074a3;stroke:#0074a3}
+.bd.new{fill:#fff;stroke:#9aa3ad;stroke-width:1.5;stroke-dasharray:6 5}.bd.soft{fill:#f3f7fa;stroke:none}
+.ln{stroke:#9aa3ad;stroke-width:1.5;fill:none}.ln.ac{stroke:#0074a3;stroke-width:2}.ln.dash{stroke-dasharray:5 5}
+.hd{fill:#9aa3ad}.hd.ac{fill:#0074a3}
+</style>
+<defs><marker id="m14" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="hd ac"/></marker></defs>
+<rect class="bd" x="0" y="15" width="205" height="100" rx="12"/>
+<text class="c" x="102" y="56">Ingress</text>
+<text class="c mu" x="102" y="86">issuer annotation</text>
+<path class="ln ac" d="M205 65 H261" marker-end="url(#m14)"/>
+<rect class="bd now" x="265" y="15" width="205" height="100" rx="12"/>
+<text class="c wh" x="367" y="56">cert-manager</text>
+<text class="c wh" x="367" y="86" style="font-size:17px">sees the annotation</text>
+<path class="ln ac" d="M470 65 H526" marker-end="url(#m14)"/>
+<rect class="bd" x="530" y="15" width="205" height="100" rx="12"/>
+<text class="c" x="632" y="56">Let's Encrypt</text>
+<text class="c mu" x="632" y="86">HTTP-01 challenge</text>
+<path class="ln ac" d="M735 65 H791" marker-end="url(#m14)"/>
+<rect class="bd" x="795" y="15" width="205" height="100" rx="12"/>
+<text class="c" x="897" y="56">Secret</text>
+<text class="c mu" x="897" y="86">parser-api-tls</text>
+</svg>

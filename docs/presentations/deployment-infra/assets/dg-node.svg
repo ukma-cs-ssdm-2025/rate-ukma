@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 220" width="1000" height="220" role="img" aria-label="One node holds the control plane and the workload pods">
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:20px;fill:#111318}
+.mu{fill:#5c6470;font-size:17px}.c{text-anchor:middle}.ac{fill:#0074a3;font-weight:650}.wh{fill:#fff}
+.bd{fill:#fff;stroke:#c9ced4;stroke-width:1.5}.bd.ac{fill:#fff;stroke:#0074a3;stroke-width:2}.bd.now{fill:#0074a3;stroke:#0074a3}
+.bd.new{fill:#fff;stroke:#9aa3ad;stroke-width:1.5;stroke-dasharray:6 5}.bd.soft{fill:#f3f7fa;stroke:none}
+.ln{stroke:#9aa3ad;stroke-width:1.5;fill:none}.ln.ac{stroke:#0074a3;stroke-width:2}.ln.dash{stroke-dasharray:5 5}
+.hd{fill:#9aa3ad}.hd.ac{fill:#0074a3}
+</style>
+<rect class="bd soft" x="0" y="0" width="1000" height="220" rx="12"/>
+<text x="24" y="36">Hetzner VM, 4 GB RAM, k3s</text>
+<rect class="bd" x="24" y="56" width="466" height="140" rx="12"/>
+<text x="48" y="94">Control plane</text>
+<text class="mu" x="48" y="128">API server, controllers, scheduler</text>
+<text class="mu" x="48" y="156">manages the cluster</text>
+<rect class="bd" x="510" y="56" width="466" height="140" rx="12"/>
+<text x="534" y="94">Workloads</text>
+<text class="mu" x="534" y="128">our containers, Postgres, operators</text>
+<text class="mu" x="534" y="156">runs in pods</text>
+</svg>

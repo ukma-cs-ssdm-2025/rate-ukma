@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 130" width="1000" height="130" role="img" aria-label="Five deployment steps">
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:20px;fill:#111318}
+.mu{fill:#5c6470;font-size:17px}.c{text-anchor:middle}.ac{fill:#0074a3;font-weight:650}.wh{fill:#fff}
+.bd{fill:#fff;stroke:#c9ced4;stroke-width:1.5}.bd.ac{fill:#fff;stroke:#0074a3;stroke-width:2}.bd.now{fill:#0074a3;stroke:#0074a3}
+.bd.new{fill:#fff;stroke:#9aa3ad;stroke-width:1.5;stroke-dasharray:6 5}.bd.soft{fill:#f3f7fa;stroke:none}
+.ln{stroke:#9aa3ad;stroke-width:1.5;fill:none}.ln.ac{stroke:#0074a3;stroke-width:2}.ln.dash{stroke-dasharray:5 5}
+.hd{fill:#9aa3ad}.hd.ac{fill:#0074a3}
+</style>
+<defs><marker id="m19" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="hd ac"/></marker></defs>
+<rect class="bd" x="0" y="15" width="168" height="100" rx="12"/>
+<text class="c" x="84" y="56">Image</text>
+<text class="c mu" x="84" y="86">tag from ghcr.io</text>
+<path class="ln ac" d="M168 65 H204" marker-end="url(#m19)"/>
+<rect class="bd" x="208" y="15" width="168" height="100" rx="12"/>
+<text class="c" x="292" y="56">Render</text>
+<text class="c mu" x="292" y="86">kustomize</text>
+<path class="ln ac" d="M376 65 H412" marker-end="url(#m19)"/>
+<rect class="bd" x="416" y="15" width="168" height="100" rx="12"/>
+<text class="c" x="500" y="56">Migrate</text>
+<text class="c mu" x="500" y="86">Job</text>
+<path class="ln ac" d="M584 65 H620" marker-end="url(#m19)"/>
+<rect class="bd" x="624" y="15" width="168" height="100" rx="12"/>
+<text class="c" x="708" y="56">Rollout</text>
+<text class="c mu" x="708" y="86">api, worker</text>
+<path class="ln ac" d="M792 65 H828" marker-end="url(#m19)"/>
+<rect class="bd" x="832" y="15" width="168" height="100" rx="12"/>
+<text class="c" x="916" y="56">Check</text>
+<text class="c mu" x="916" y="86">/health, logs</text>
+</svg>

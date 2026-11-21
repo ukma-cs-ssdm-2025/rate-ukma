@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 190" width="1000" height="190" role="img" aria-label="The state reconciliation loop in Kubernetes">
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:20px;fill:#111318}
+.mu{fill:#5c6470;font-size:17px}.c{text-anchor:middle}.ac{fill:#0074a3;font-weight:650}.wh{fill:#fff}
+.bd{fill:#fff;stroke:#c9ced4;stroke-width:1.5}.bd.ac{fill:#fff;stroke:#0074a3;stroke-width:2}.bd.now{fill:#0074a3;stroke:#0074a3}
+.bd.new{fill:#fff;stroke:#9aa3ad;stroke-width:1.5;stroke-dasharray:6 5}.bd.soft{fill:#f3f7fa;stroke:none}
+.ln{stroke:#9aa3ad;stroke-width:1.5;fill:none}.ln.ac{stroke:#0074a3;stroke-width:2}.ln.dash{stroke-dasharray:5 5}
+.hd{fill:#9aa3ad}.hd.ac{fill:#0074a3}
+</style>
+<defs><marker id="m3" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="hd ac"/></marker></defs>
+<rect class="bd" x="0" y="10" width="205" height="100" rx="12"/>
+<text class="c" x="102" y="52">YAML</text>
+<text class="c mu" x="102" y="82">desired state</text>
+<path class="ln ac" d="M205 60 H261" marker-end="url(#m3)"/>
+<rect class="bd" x="265" y="10" width="205" height="100" rx="12"/>
+<text class="c" x="367" y="52">API server</text>
+<text class="c mu" x="367" y="82">stores it</text>
+<path class="ln ac" d="M470 60 H526" marker-end="url(#m3)"/>
+<rect class="bd now" x="530" y="10" width="205" height="100" rx="12"/>
+<text class="c wh" x="632" y="52">Controllers</text>
+<text class="c wh" x="632" y="82" style="font-size:17px">compare</text>
+<path class="ln ac" d="M735 60 H791" marker-end="url(#m3)"/>
+<rect class="bd" x="795" y="10" width="205" height="100" rx="12"/>
+<text class="c" x="897" y="52">Cluster</text>
+<text class="c mu" x="897" y="82">real state</text>
+<path class="ln ac" d="M897 110 V160 H632 V114" marker-end="url(#m3)"/>
+<text class="c mu" x="765" y="184">check constantly</text>
+</svg>
