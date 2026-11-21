@@ -46,7 +46,6 @@ function lastQueryKey() {
 describe("feature flags", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		localStorage.clear();
 		authState.current = { status: "unauthenticated", user: null };
 		mockUseFlagsList.mockReturnValue({
 			data: { flags: { [FE_EXAMPLE]: true } },

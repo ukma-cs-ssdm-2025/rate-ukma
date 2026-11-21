@@ -9,6 +9,8 @@ if (!Element.prototype.scrollIntoView) {
 
 afterEach(() => {
 	cleanup();
+	localStorage.clear();
+	sessionStorage.clear();
 });
 
 Object.defineProperty(globalThis, "matchMedia", {
