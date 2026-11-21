@@ -199,7 +199,7 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — essentials are always visible
+			// Act
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
@@ -224,7 +224,7 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — essentials are always visible
+			// Act
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert
@@ -346,7 +346,6 @@ describe("CourseFiltersPanel", () => {
 		});
 
 		it("keeps the chosen speciality when the faculty changes", async () => {
-			// cmdk scrolls the active option into view; jsdom lacks this API.
 			Element.prototype.scrollIntoView = vi.fn();
 			const user = userEvent.setup();
 			const setParams = vi.fn();
@@ -444,7 +443,7 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — essentials are always visible
+			// Act
 			render(<TestWrapper filterOptions={filterOptions} />);
 
 			// Assert

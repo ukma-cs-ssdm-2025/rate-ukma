@@ -3,12 +3,10 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
-// Cleanup after each test
 afterEach(() => {
 	cleanup();
 });
 
-// Mock window.matchMedia for responsive design tests
 Object.defineProperty(globalThis, "matchMedia", {
 	writable: true,
 	value: vi.fn().mockImplementation(function (query) {
@@ -25,7 +23,6 @@ Object.defineProperty(globalThis, "matchMedia", {
 	}),
 });
 
-// Mock IntersectionObserver for components that use it
 globalThis.IntersectionObserver = vi.fn().mockImplementation(function () {
 	return {
 		observe: vi.fn(),
@@ -38,7 +35,6 @@ globalThis.IntersectionObserver = vi.fn().mockImplementation(function () {
 	};
 }) as unknown as typeof IntersectionObserver;
 
-// Mock ResizeObserver for components that use it
 globalThis.ResizeObserver = vi.fn().mockImplementation(function () {
 	return {
 		observe: vi.fn(),

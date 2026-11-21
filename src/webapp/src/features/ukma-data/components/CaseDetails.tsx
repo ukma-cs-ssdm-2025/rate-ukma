@@ -30,10 +30,7 @@ export function CaseDetails({
 		["Кандидати", reviewCase.candidates],
 		["Опубліковано", reviewCase.safe_answer],
 		["Запуск", reviewCase.run_id],
-		[
-			"Відкрито",
-			reviewCase.opened_at ? formatDateTime(reviewCase.opened_at) : null,
-		],
+		["Відкрито", formatDateTime(reviewCase.opened_at)],
 		["Рішення", reviewCase.decision_id],
 	] as const;
 	return (

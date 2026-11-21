@@ -74,7 +74,6 @@ describe("FeedStrip", () => {
 		const pinned = screen.getByText("Хакатон факультету інформатики");
 		const unpinned = screen.getByText("Реєстрація на вибіркові відкрита");
 
-		// pinned promo (later by recency) should appear before the unpinned one.
 		expect(
 			pinned.compareDocumentPosition(unpinned) &
 				Node.DOCUMENT_POSITION_FOLLOWING,
@@ -93,8 +92,6 @@ describe("FeedStrip", () => {
 			flags: { fe_feed: true },
 		});
 
-		// jsdom reports no overflow, so stub a scrollable container and
-		// re-fire scroll so the hook refreshes its edge state.
 		const scroller = screen.getByRole("link", {
 			name: /Переглянути всю стрічку/,
 		}).parentElement as HTMLElement;

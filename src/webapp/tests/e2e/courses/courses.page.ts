@@ -7,28 +7,23 @@ import { getSearchParam } from "../shared/url-assertions";
 export class CoursesPage {
 	private readonly page: Page;
 
-	// Main
 	private readonly coursesTable: Locator;
 	private readonly courseTitleLinks: Locator;
 	private readonly searchInput: Locator;
 
-	// Sorting
 	private readonly difficultySortButton: Locator;
 	private readonly usefulnessSortButton: Locator;
 
-	// Filters
 	private readonly filtersDrawer: Locator;
 	private readonly filtersDrawerTrigger: Locator;
 	private readonly filtersDrawerCloseButton: Locator;
 	private readonly filtersResetButton: Locator;
 
-	// Pagination
 	private readonly paginationLabel: Locator;
 	private readonly paginationNextButton: Locator;
 	private readonly paginationPreviousButton: Locator;
 	private readonly paginationLastButton: Locator;
 
-	// Navigation
 	private readonly courseDetailsPagePattern: RegExp;
 
 	constructor(page: Page) {

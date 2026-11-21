@@ -23,6 +23,7 @@ import {
 	ApiRoutes,
 	AuthLive,
 	CatalogApiHandlers,
+	InstructorApiHandlers,
 	ReviewApiHandlers,
 	SystemApiHandlers,
 } from "./http.ts";
@@ -146,6 +147,7 @@ const seed = Effect.gen(function* () {
 
 const TestLive = Layer.mergeAll(
 	CatalogApiHandlers,
+	InstructorApiHandlers,
 	ReviewApiHandlers,
 	// serve's router stays out of the context, where HttpApiTest would add the
 	// routes to it a second time.
@@ -182,7 +184,11 @@ const clientAs = Effect.fnUntraced(function* (scopes: ReadonlyArray<Scope>) {
 		createdBy: null,
 	});
 
-	const client = yield* HttpApiTest.groups(Api, ["catalog", "review"]).pipe(
+	const client = yield* HttpApiTest.groups(Api, [
+		"catalog",
+		"instructors",
+		"review",
+	]).pipe(
 		Effect.provide(
 			HttpApiMiddleware.layerClient(ApiKeyAuth, ({ next, request }) =>
 				next(HttpClientRequest.bearerToken(request, Redacted.value(key.token))),
@@ -255,6 +261,107 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 						["crs_b", null, null],
 					);
 					assert.notProperty(offering, "sazTeachers");
+				}),
+		);
+
+		it.effect(
+			"serves linked teachers on their own route, only to a key with instructors:read",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
+
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							const [snapshot] = yield* sql<{ readonly id: bigint }>`
+								SELECT id FROM page_snapshots LIMIT 1
+							`;
+
+							yield* sql`
+								INSERT INTO instructors (
+									id, smart_id, last_name, first_name, email, row_hash,
+									snapshot_id, change_no
+								)
+								VALUES (
+									'ins_one', 7101, 'Вигаданенко', 'Марта', 'm.v@example.edu',
+									'hash', ${snapshot?.id ?? 0n}, nextval('change_no_seq')
+								)
+							`;
+							yield* sql`
+								INSERT INTO offering_instructors (offering_id, instructor_id, role)
+								VALUES ('off_930001', 'ins_one', 'LECTURER_AND_PRACTICE_TEACHER')
+							`;
+						}),
+					);
+
+					const catalogOnly = yield* clientAs(["catalog:read"]);
+
+					const plain = yield* catalogOnly.client.catalog.offerings({
+						query: FROM_START,
+					});
+
+					assert.isTrue(plain.items.every((item) => !("instructors" in item)));
+
+					const denied = yield* Effect.flip(
+						catalogOnly.client.instructors.offeringTeachers({
+							query: { ...FROM_START, year: 0 },
+						}),
+					);
+
+					assert.strictEqual(denied._tag, "Forbidden");
+
+					const both = yield* clientAs(["catalog:read", "instructors:read"]);
+
+					assert.deepStrictEqual(
+						yield* both.client.catalog.offerings({ query: FROM_START }),
+						plain,
+					);
+
+					const staff = yield* clientAs(["instructors:read"]);
+
+					const page = yield* staff.client.instructors.offeringTeachers({
+						query: { ...FROM_START, year: 2031 },
+					});
+
+					assert.deepStrictEqual(
+						page.items.map(({ id, sazCode, academicYear, instructors }) => [
+							id,
+							sazCode,
+							academicYear,
+							instructors,
+						]),
+						[
+							[
+								"off_930001",
+								"930001",
+								2031,
+								[
+									{
+										id: "ins_one",
+										lastName: "Вигаданенко",
+										firstName: "Марта",
+										middleName: null,
+										email: "m.v@example.edu",
+										role: "lecturer_and_practice_teacher",
+									},
+								],
+							],
+							["off_930003", "930003", 2031, []],
+							["off_930002", "930002", 2031, []],
+						],
+					);
+
+					const otherYear = yield* staff.client.instructors.offeringTeachers({
+						query: { ...FROM_START, year: 2030 },
+					});
+
+					assert.deepStrictEqual(otherYear.items, []);
+
+					const catalogDenied = yield* Effect.flip(
+						staff.client.catalog.offerings({ query: FROM_START }),
+					);
+
+					assert.strictEqual(catalogDenied._tag, "Forbidden");
 				}),
 		);
 

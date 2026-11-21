@@ -7,12 +7,6 @@ import type { RenderOptions } from "@testing-library/react";
 import { AuthProvider } from "@/lib/auth";
 import { FeatureFlagsContext } from "@/lib/feature-flags/FeatureFlagsContext";
 
-/**
- * Custom render function that wraps components with necessary providers
- * Use this instead of @testing-library/react's render for tests that need API/query context
- *
- * Pass `flags` to control feature flags under test (defaults to all-off).
- */
 export function renderWithProviders(
 	ui: ReactElement,
 	options?: Readonly<
@@ -56,10 +50,6 @@ export function renderWithProviders(
 	};
 }
 
-/**
- * Custom renderHook function that wraps hooks with necessary providers
- * Use this for testing hooks that depend on React Query
- */
 export function renderHookWithProviders<Result, Props>(
 	renderCallback: (initialProps: Props) => Result,
 	options?: Readonly<{
@@ -98,7 +88,6 @@ export function renderHookWithProviders<Result, Props>(
 	};
 }
 
-// Our `render` below deliberately shadows the library one.
-// oxlint-disable-next-line import/export
+// oxlint-disable-next-line import/export -- the custom render below replaces RTL's, as Testing Library's setup guide does
 export * from "@testing-library/react";
 export { renderWithProviders as render };
