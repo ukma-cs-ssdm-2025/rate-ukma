@@ -32,7 +32,7 @@ const migrate = Command.make("migrate", {}, () =>
 const reparse = Command.make("reparse", {}, () =>
 	reparseOfferings.pipe(
 		Effect.andThen(parseStudents("reparse")),
-		Effect.andThen(parseSmart()),
+		Effect.andThen(parseSmart("reparse")),
 		Effect.provide(
 			Layer.mergeAll(
 				CourseStore.layer,

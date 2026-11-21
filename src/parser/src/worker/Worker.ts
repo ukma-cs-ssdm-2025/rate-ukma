@@ -121,7 +121,7 @@ export const WorkerLive = Layer.effectDiscard(
 
 		// A failed write's cause may quote a row, names and emails included, so
 		// only the list error's reason is logged.
-		const smartParse = parseSmart().pipe(
+		const smartParse = parseSmart("crawl").pipe(
 			Effect.catchTag("SmartListError", ({ reason }) =>
 				Effect.logError("Parsing smart.ukma lists failed", { reason }),
 			),

@@ -2,13 +2,18 @@ import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { ChangeLog, type ChangeSource } from "../changes/ChangeLog.ts";
 import { recordsetOf } from "../db/recordset.ts";
-import type { DisciplineRow, InstructorRow, SmartLists } from "./catalog.ts";
+import type {
+	DisciplineRow,
+	InstructorRow,
+	SmartList,
+	SmartLists,
+} from "./catalog.ts";
 
 /** The newest stored copy of each smart.ukma list. */
 export interface StoredLists {
 	readonly lists: SmartLists;
-	readonly teachersSnapshotId: bigint;
-	readonly disciplinesSnapshotId: bigint;
+	/** The snapshot each list came from. */
+	readonly snapshotIds: Readonly<Record<SmartList, bigint>>;
 }
 
 export interface SmartWritten {
@@ -36,13 +41,14 @@ export class SmartStore extends Context.Service<
 		latest(): Effect.Effect<Option.Option<StoredLists>>;
 		/** Upserts teachers and disciplines in one writers' turn; only a row
 		 *  whose hash changed, or that comes back, takes a number, and rows gone from a list that
-		 *  is not empty are removed. Returns how many rows took a number. */
+		 *  is not empty are removed. Returns how many rows took a number, or
+		 *  none when a newer copy of a list was stored after `stored` was read. */
 		write(
 			instructors: ReadonlyArray<InstructorRow>,
 			disciplines: ReadonlyArray<DisciplineRow>,
 			stored: StoredLists,
 			source: ChangeSource,
-		): Effect.Effect<SmartWritten>;
+		): Effect.Effect<Option.Option<SmartWritten>>;
 	}
 >()("ukma-data/smart/SmartStore") {
 	static readonly layer = Layer.effect(
@@ -108,8 +114,12 @@ export class SmartStore extends Context.Service<
 							disciplines: yield* contentOf(disciplines),
 							links: yield* contentOf(links),
 						},
-						teachersSnapshotId: teachers.id,
-						disciplinesSnapshotId: disciplines.id,
+						snapshotIds: {
+							departments: departments.id,
+							teachers: teachers.id,
+							disciplines: disciplines.id,
+							links: links.id,
+						},
 					});
 				}).pipe(Effect.orDie);
 
@@ -127,6 +137,22 @@ export class SmartStore extends Context.Service<
 			) =>
 				changes.withTurn(
 					Effect.gen(function* () {
+						// Checked inside the turn: a parse that read older lists
+						// must not overwrite one that wrote newer lists meanwhile.
+						const [newer] = yield* sql<{ readonly newer: boolean }>`
+							SELECT EXISTS (
+								SELECT 1 FROM page_snapshots
+								WHERE kind = 'smart_departments' AND id > ${stored.snapshotIds.departments}
+									OR kind = 'smart_teachers' AND id > ${stored.snapshotIds.teachers}
+									OR kind = 'smart_disciplines' AND id > ${stored.snapshotIds.disciplines}
+									OR kind = 'smart_teacher_disciplines' AND id > ${stored.snapshotIds.links}
+							) AS newer
+						`;
+
+						if (newer?.newer === true) {
+							return Option.none();
+						}
+
 						const teachers = yield* changes.track(
 							"instructors",
 							source,
@@ -138,7 +164,7 @@ export class SmartStore extends Context.Service<
 								)
 								SELECT r."smartId", r."lastName", r."firstName", r."middleName",
 									r.email, r."smartDepartmentId", r."departmentName", r."rowHash",
-									${stored.teachersSnapshotId}, nextval('change_no_seq')
+									${stored.snapshotIds.teachers}, nextval('change_no_seq')
 								FROM ${recordset(instructors, {
 									smartId: "integer",
 									lastName: "text",
@@ -179,7 +205,7 @@ export class SmartStore extends Context.Service<
 								SELECT r."smartId", r.title, r."smartDepartmentId",
 									r."departmentName", r.credits, r.semester, r."entranceYear",
 									r."academicYear", r.season, r.level, r."rowHash",
-									${stored.disciplinesSnapshotId},
+									${stored.snapshotIds.disciplines},
 									nextval('change_no_seq')
 								FROM ${recordset(disciplines, {
 									smartId: "integer",
@@ -279,10 +305,10 @@ export class SmartStore extends Context.Service<
 							disciplines.map(({ smartId }) => smartId),
 						);
 
-						return {
+						return Option.some({
 							instructors: teachers.length + gone.length,
 							disciplines: courses.length + dropped.length,
-						};
+						});
 					}),
 				);
 

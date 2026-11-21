@@ -1,11 +1,16 @@
 import { createHash } from "node:crypto";
 import { Result, Schema } from "effect";
 
-/** Why a stored smart.ukma list did not decode. `reason` names the list and
- *  a key at most, never a value: the lists hold names and emails. */
+export type SmartList = "departments" | "teachers" | "disciplines" | "links";
+
+/** Why a stored smart.ukma list was refused. `reason` names the list and a
+ *  key at most, never a value: the lists hold names and emails. */
 export class SmartListError extends Schema.TaggedError<SmartListError>()(
 	"SmartListError",
-	{ reason: Schema.String },
+	{
+		list: Schema.Literals(["departments", "teachers", "disciplines", "links"]),
+		reason: Schema.String,
+	},
 ) {}
 
 const OptionalText = Schema.optional(Schema.NullOr(Schema.String));
@@ -13,7 +18,9 @@ const OptionalText = Schema.optional(Schema.NullOr(Schema.String));
 const OptionalId = Schema.optional(Schema.NullOr(Schema.Int));
 
 const ListOf = <S extends Schema.Top>(item: S) =>
-	Schema.fromJsonString(Schema.Struct({ items: Schema.Array(item) }));
+	Schema.fromJsonString(
+		Schema.Struct({ items: Schema.Array(item), total: Schema.Int }),
+	);
 
 const Department = Schema.Struct({ id: Schema.Int, nameUa: Schema.String });
 
@@ -144,13 +151,30 @@ const uniqueById = <T extends { readonly id: number }>(
 	...new Map(items.map((item) => [item.id, item])).values(),
 ];
 
-const decode = <S extends Schema.Top & { readonly DecodingServices: never }>(
+/** A list whose items fall short of its `total` is a cut reply: trusting it
+ *  would remove the rows it left out. */
+const decode = <
+	S extends Schema.Top & {
+		readonly DecodingServices: never;
+		readonly Type: {
+			readonly items: ReadonlyArray<unknown>;
+			readonly total: number;
+		};
+	},
+>(
 	schema: S,
-	list: string,
+	list: SmartList,
 	content: string,
-) =>
+): Result.Result<S["Type"], SmartListError> =>
 	Schema.decodeUnknownResult(schema)(content).pipe(
-		Result.mapError(() => new SmartListError({ reason: `invalid ${list}` })),
+		Result.mapError(
+			() => new SmartListError({ list, reason: `invalid ${list}` }),
+		),
+		Result.flatMap((decoded) =>
+			decoded.items.length < decoded.total
+				? Result.fail(new SmartListError({ list, reason: `partial ${list}` }))
+				: Result.succeed(decoded),
+		),
 	);
 
 /** The rows the four stored lists give. A teacher link to a discipline
@@ -186,7 +210,9 @@ export const smartRowsOf = (
 		// No links beside a full discipline list is a broken reply: parsing it
 		// would strip every discipline's teachers, then add them back next time.
 		if (links.items.length === 0 && disciplines.items.length > 0) {
-			return yield* Result.fail(new SmartListError({ reason: "empty links" }));
+			return yield* Result.fail(
+				new SmartListError({ list: "links", reason: "empty links" }),
+			);
 		}
 
 		const departmentName = new Map(

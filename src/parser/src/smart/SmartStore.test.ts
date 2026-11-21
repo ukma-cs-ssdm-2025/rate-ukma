@@ -6,9 +6,10 @@ import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { smartRowsOf } from "./catalog.ts";
 import { link, smartLists } from "./catalog.fixture.ts";
 import { parseSmart } from "./parse.ts";
+import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { SmartStore } from "./SmartStore.ts";
 
-const TestLive = SmartStore.layer.pipe(
+const TestLive = Layer.mergeAll(SmartStore.layer, OfferingStore.layer).pipe(
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
 );
@@ -86,7 +87,7 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 			() =>
 				Effect.gen(function* () {
 					yield* storeLists(smartLists());
-					yield* parseSmart();
+					yield* parseSmart("reparse");
 
 					const first = yield* numbersOf();
 
@@ -104,7 +105,7 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 						},
 					]);
 
-					yield* parseSmart();
+					yield* parseSmart("reparse");
 
 					assert.deepStrictEqual(yield* numbersOf(), first);
 
@@ -112,6 +113,7 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					const disciplines = JSON.parse(lists.disciplines);
 
 					disciplines.items = disciplines.items.slice(0, 2);
+					disciplines.total = 2;
 
 					yield* storeLists({
 						...lists,
@@ -121,7 +123,7 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 							total: 1,
 						}),
 					});
-					yield* parseSmart();
+					yield* parseSmart("reparse");
 
 					const after = yield* numbersOf();
 
@@ -146,6 +148,40 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 						{ smartId: 5002, teacher: 7001, role: "LECTURER" },
 					]);
 				}),
+		);
+
+		it.effect("writes nothing from lists older than the newest stored", () =>
+			Effect.gen(function* () {
+				const store = yield* SmartStore;
+				const sql = yield* SqlClient.SqlClient;
+				const old = yield* store.latest();
+
+				yield* storeLists(smartLists());
+
+				const rows = Result.getOrThrow(smartRowsOf(smartLists()));
+
+				assert.isTrue(Option.isSome(old));
+
+				if (Option.isSome(old)) {
+					const written = yield* store.write(
+						rows.instructors,
+						rows.disciplines,
+						old.value,
+						{},
+					);
+
+					assert.isTrue(Option.isNone(written));
+				}
+
+				yield* parseSmart("reparse");
+
+				const [last] = yield* sql<{ readonly parsed: number | null }>`
+					SELECT (report ->> 'parsed')::int AS parsed FROM parses
+					WHERE finished_at IS NOT NULL ORDER BY id DESC LIMIT 1
+				`;
+
+				assert.strictEqual(last?.parsed, 4);
+			}),
 		);
 
 		it.effect("reads a list larger than one query may carry", () =>
@@ -178,7 +214,7 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 				yield* storeLists(
 					smartLists({ teachers: JSON.stringify({ items: [], total: 0 }) }),
 				);
-				yield* parseSmart();
+				yield* parseSmart("reparse");
 
 				const after = yield* numbersOf();
 

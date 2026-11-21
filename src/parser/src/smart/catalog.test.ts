@@ -97,6 +97,19 @@ describe("smartRowsOf", () => {
 		assert.deepStrictEqual(first, second);
 	});
 
+	it("refuses a list shorter than its total", () => {
+		const result = smartRowsOf(
+			smartLists({
+				teachers: JSON.stringify({ items: [], total: 2 }),
+			}),
+		);
+
+		assert.strictEqual(
+			Result.isFailure(result) ? result.failure.reason : "",
+			"partial teachers",
+		);
+	});
+
 	it("refuses an empty link list beside disciplines", () => {
 		const result = smartRowsOf(
 			smartLists({ links: JSON.stringify({ items: [], total: 0 }) }),
