@@ -157,7 +157,7 @@ describe("ConnectionErrorPage auto-return", () => {
 			globalThis.dispatchEvent(new Event("online"));
 		});
 
-		await waitFor(() => expect(sessionRetrieveMock).not.toHaveBeenCalled());
+		expect(sessionRetrieveMock).not.toHaveBeenCalled();
 	});
 
 	it("stops auto-return past the bounce cap", async () => {
@@ -171,7 +171,7 @@ describe("ConnectionErrorPage auto-return", () => {
 			globalThis.dispatchEvent(new Event("online"));
 		});
 
-		await waitFor(() => expect(sessionRetrieveMock).not.toHaveBeenCalled());
+		expect(sessionRetrieveMock).not.toHaveBeenCalled();
 	});
 
 	it("removes the online listener on unmount", async () => {
@@ -184,7 +184,7 @@ describe("ConnectionErrorPage auto-return", () => {
 			globalThis.dispatchEvent(new Event("online"));
 		});
 
-		await waitFor(() => expect(sessionRetrieveMock).not.toHaveBeenCalled());
+		expect(sessionRetrieveMock).not.toHaveBeenCalled();
 	});
 });
 
