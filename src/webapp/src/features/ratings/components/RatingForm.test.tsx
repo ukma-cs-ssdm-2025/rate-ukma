@@ -165,7 +165,6 @@ describe("RatingForm", () => {
 
 		it("keeps a teacher found by search in the preview after the search changes", async () => {
 			const user = userEvent.setup();
-			Element.prototype.scrollIntoView = vi.fn();
 			mockDirectory([DEMCHENKO]);
 			renderWithCourse();
 
