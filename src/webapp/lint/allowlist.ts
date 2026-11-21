@@ -1,6 +1,5 @@
 export const LINT_ALLOWLIST = {
 	"max-lines": [
-		"src/components/AuthShell.tsx",
 		"src/features/courses/components/CourseFiltersPanel.tsx",
 		"src/features/courses/components/CoursesScatterPlot.tsx",
 		"src/features/courses/components/CoursesTable.tsx",
