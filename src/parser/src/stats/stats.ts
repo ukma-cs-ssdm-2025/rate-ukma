@@ -48,7 +48,7 @@ export const Stats = Schema.Struct({
 	}),
 	nextCrawlAt: Schema.Date.annotate({
 		description:
-			"When the worker should start the next САЗ crawl, from the last run and `CRAWL_INTERVAL`; now when one is due or running",
+			"The last stored САЗ run start plus `CRAWL_INTERVAL`, now when that has passed or a run is open. An estimate: the worker waits longer after a try that failed before it stored a run, and an hour before resuming a crawl it left open itself",
 	}),
 }).annotate({ identifier: "Stats" });
 
