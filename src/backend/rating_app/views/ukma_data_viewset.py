@@ -41,8 +41,7 @@ PAGE_DESCRIPTION = (
 
 
 class IsSuperuser(BasePermission):
-    # DRF has no stubs, so pyright reads the base's `return True` as Literal[True]
-    def has_permission(self, request, view) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def has_permission(self, request, view) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]  # DRF has no stubs, base reads as Literal[True]
         return bool(request.user and request.user.is_superuser)
 
 

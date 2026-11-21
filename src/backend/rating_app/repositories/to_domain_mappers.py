@@ -373,8 +373,8 @@ class CourseOfferingMapper(IProcessor[[CourseOfferingModel], CourseOfferingDTO])
         return CourseOfferingDTO(
             id=model.id,
             code=model.code,
-            course_id=model.course_id,  # type: ignore TODO: resolve type checker issue - prefetched field
-            semester_id=model.semester_id,  # type: ignore TODO: resolve type checker issue - prefetched field
+            course_id=model.course_id,  # pyright: ignore[reportAttributeAccessIssue]  # FK id attribute is not in the stubs
+            semester_id=model.semester_id,  # pyright: ignore[reportAttributeAccessIssue]  # FK id attribute is not in the stubs
             exam_type=exam_type,
             study_year=model.study_year,
             max_students=model.max_students,
