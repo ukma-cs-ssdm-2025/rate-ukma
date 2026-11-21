@@ -12,6 +12,7 @@ import { ListReader } from "../lists/ListReader.ts";
 import { decideSamePerson, studentCase } from "../students/cases.ts";
 import { StudentCaseStore } from "../students/StudentCaseStore.ts";
 import type { PageOf } from "../lists/lists.ts";
+import { StatsReader } from "../stats/StatsReader.ts";
 import { Api, Caller } from "./Api.ts";
 import { ApiKeyAuthLive } from "./auth.ts";
 
@@ -52,6 +53,7 @@ export const CatalogApiHandlers = HttpApiBuilder.group(
 	(handlers) =>
 		Effect.gen(function* () {
 			const lists = yield* ListReader;
+			const stats = yield* StatsReader;
 
 			return handlers
 				.handle("terms", ({ query }) => served(lists.terms(query)))
@@ -59,7 +61,8 @@ export const CatalogApiHandlers = HttpApiBuilder.group(
 				.handle("departments", ({ query }) => served(lists.departments(query)))
 				.handle("programmes", ({ query }) => served(lists.programmes(query)))
 				.handle("courses", ({ query }) => served(lists.courses(query)))
-				.handle("offerings", ({ query }) => served(lists.offerings(query)));
+				.handle("offerings", ({ query }) => served(lists.offerings(query)))
+				.handle("stats", () => stats.stats());
 		}),
 );
 
@@ -115,7 +118,12 @@ export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 		CatalogApiHandlers,
 		ReviewApiHandlers,
 	]),
-	Layer.provide([ListReader.layer, CourseStore.layer, StudentCaseStore.layer]),
+	Layer.provide([
+		ListReader.layer,
+		CourseStore.layer,
+		StudentCaseStore.layer,
+		StatsReader.layer,
+	]),
 	Layer.provide(AuthLive),
 	Layer.provide(ChangeLog.layer),
 );

@@ -493,6 +493,53 @@
 				"summary": "Offerings, each with its terms and programmes"
 			}
 		},
+		"/v1/stats": {
+			"get": {
+				"tags": [
+					"catalog"
+				],
+				"operationId": "catalog.stats",
+				"parameters": [],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Stats",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Stats"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Totals per academic year, merged courses, open review cases and the crawl schedule"
+			}
+		},
 		"/v1/review-cases": {
 			"get": {
 				"tags": [
@@ -1305,6 +1352,161 @@
 					"decisionId",
 					"openedAt",
 					"changeNo"
+				],
+				"additionalProperties": false
+			},
+			"Stats": {
+				"type": "object",
+				"properties": {
+					"years": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/YearStats"
+						},
+						"description": "Every academic year with offerings, latest first"
+					},
+					"mergedCourses": {
+						"type": "object",
+						"properties": {
+							"rule": {
+								"type": "integer",
+								"minimum": 0,
+								"description": "Merged by a department handoff"
+							},
+							"decision": {
+								"type": "integer",
+								"minimum": 0,
+								"description": "Merged by staff"
+							}
+						},
+						"required": [
+							"rule",
+							"decision"
+						],
+						"additionalProperties": false
+					},
+					"openReviewCases": {
+						"$ref": "#/components/schemas/ReviewCaseCounts"
+					},
+					"lastCrawl": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"finishedAt": {
+										"type": "string"
+									},
+									"status": {
+										"type": "string",
+										"enum": [
+											"succeeded",
+											"failed"
+										]
+									}
+								},
+								"required": [
+									"finishedAt",
+									"status"
+								],
+								"additionalProperties": false
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The САЗ run that finished last, or null before the first"
+					},
+					"nextCrawlAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"years",
+					"mergedCourses",
+					"openReviewCases",
+					"lastCrawl",
+					"nextCrawlAt"
+				],
+				"additionalProperties": false
+			},
+			"ReviewCaseCounts": {
+				"type": "object",
+				"properties": {
+					"courseMatch": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"instructorMatch": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"studentMatch": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"removalsHeld": {
+						"type": "integer",
+						"minimum": 0
+					}
+				},
+				"required": [
+					"courseMatch",
+					"instructorMatch",
+					"studentMatch",
+					"removalsHeld"
+				],
+				"additionalProperties": false
+			},
+			"YearStats": {
+				"type": "object",
+				"properties": {
+					"academicYear": {
+						"type": "integer",
+						"description": "`2025` is the academic year 2025-26"
+					},
+					"offerings": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Offerings not removed"
+					},
+					"courses": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Courses with an offering this year, not merged or removed"
+					},
+					"students": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Students enrolled in an offering this year"
+					},
+					"enrollments": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Enrollments in this year's offerings, not removed"
+					},
+					"teacherShare": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"Infinity",
+									"-Infinity",
+									"NaN"
+								]
+							}
+						]
+					}
+				},
+				"required": [
+					"academicYear",
+					"offerings",
+					"courses",
+					"students",
+					"enrollments",
+					"teacherShare"
 				],
 				"additionalProperties": false
 			},
@@ -2131,7 +2333,7 @@
 		},
 		{
 			"name": "catalog",
-			"description": "Reference lists, courses and offerings: `catalog:read`"
+			"description": "Reference lists, courses, offerings and their totals: `catalog:read`"
 		},
 		{
 			"name": "review",
