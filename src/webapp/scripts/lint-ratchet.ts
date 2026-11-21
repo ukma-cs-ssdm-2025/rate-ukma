@@ -25,7 +25,8 @@ function lintWithoutAllowlist(): Map<string, Set<string>> {
 			problems.push(`${filename}: ${message}`);
 			continue;
 		}
-		const rule = code.replace(/^.*\((.*)\)$/, "$1");
+		const [, plugin, name] = /^(.*)\((.*)\)$/.exec(code) ?? [];
+		const rule = plugin === "eslint" ? name : `${plugin}/${name}`;
 		const files = filesByRule.get(rule) ?? new Set<string>();
 		files.add(filename);
 		filesByRule.set(rule, files);
