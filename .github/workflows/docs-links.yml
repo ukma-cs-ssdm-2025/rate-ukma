@@ -1,0 +1,24 @@
+---
+name: Docs links
+
+on:
+  pull_request:
+    paths:
+      - "**.md"
+
+permissions:
+  contents: read
+
+jobs:
+  docs-links:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Check relative links and anchors in Markdown
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --no-progress --include-fragments --exclude-path node_modules --exclude-path src/webapp/node_modules '**/*.md'
+          fail: true

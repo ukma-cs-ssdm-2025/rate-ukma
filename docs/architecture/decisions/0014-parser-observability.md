@@ -1,8 +1,8 @@
-# ADR-0014: UKMA Data Staging Observability with Grafana Alloy and Grafana Cloud
+# ADR-0014: UKMA Data Observability with Grafana Alloy and Grafana Cloud
 
 ## Status
 
-Proposed
+Accepted
 
 ## Date
 
