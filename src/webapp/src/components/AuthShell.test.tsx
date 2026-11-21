@@ -115,8 +115,14 @@ describe("AuthShell course carousel", () => {
 		fireEvent.mouseEnter(dotOf(HOVERED_COURSE));
 		expect(shownCourses()).toEqual([HOVERED_COURSE]);
 
-		await advance(SPOTLIGHT_SHOW_MS + SPOTLIGHT_REST_MS + SPOTLIGHT_SHOW_MS);
-		expect(shownCourses()).toEqual([HOVERED_COURSE]);
+		for (const step of [
+			SPOTLIGHT_SHOW_MS,
+			SPOTLIGHT_REST_MS,
+			SPOTLIGHT_SHOW_MS,
+		]) {
+			await advance(step);
+			expect(shownCourses()).toEqual([HOVERED_COURSE]);
+		}
 	});
 
 	it("moves on to the next course two seconds after a hover that interrupted a shown one", async () => {
@@ -175,8 +181,14 @@ describe("AuthShell course carousel", () => {
 	])("stays off %s", async (_, viewport) => {
 		renderShell(viewport);
 
-		await advance(SPOTLIGHT_START_MS + SPOTLIGHT_SHOW_MS + SPOTLIGHT_REST_MS);
-		expect(shownCourses()).toEqual([]);
+		for (const step of [
+			SPOTLIGHT_START_MS,
+			SPOTLIGHT_SHOW_MS,
+			SPOTLIGHT_REST_MS,
+		]) {
+			await advance(step);
+			expect(shownCourses()).toEqual([]);
+		}
 	});
 
 	it("still shows a hovered course with reduced motion", () => {
