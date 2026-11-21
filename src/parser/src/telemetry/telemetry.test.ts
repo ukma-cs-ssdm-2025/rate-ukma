@@ -1,5 +1,6 @@
 import { assert, describe, it, layer } from "@effect/vitest";
-import { Effect, Layer, Predicate, Redacted, Tracer } from "effect";
+import { Effect, Fiber, Layer, Predicate, Redacted, Tracer } from "effect";
+import { TestClock } from "effect/testing";
 import { NodeHttpServer } from "@effect/platform-node";
 import {
 	HttpClient,
@@ -16,6 +17,7 @@ import { clientWith, makeFakeFetch } from "../smart/testing.ts";
 import {
 	otlpTracer,
 	redactingTracer,
+	withExportDeadline,
 	ServerSpanNames,
 	serverSpanName,
 } from "./telemetry.ts";
@@ -140,6 +142,31 @@ describe("OTLP export", () => {
 			),
 		);
 	});
+});
+
+describe("withExportDeadline", () => {
+	it.effect("gives up on a reply whose body never ends", () =>
+		Effect.gen(function* () {
+			const stalled = HttpClient.make((request) =>
+				Effect.succeed(
+					HttpClientResponse.fromWeb(
+						request,
+						new Response(new ReadableStream({ start: () => undefined })),
+					),
+				),
+			);
+
+			const fiber = yield* withExportDeadline(stalled)
+				.post("http://collector.test/v1/traces")
+				.pipe(Effect.flip, Effect.forkChild);
+
+			yield* TestClock.adjust("10 seconds");
+
+			const error = yield* Fiber.join(fiber);
+
+			assert.strictEqual(error.reason._tag, "TransportError");
+		}),
+	);
 });
 
 describe("smart.ukma crawl step", () => {

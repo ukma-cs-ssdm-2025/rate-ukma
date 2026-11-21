@@ -205,42 +205,44 @@ export const ServerSpanNames = Layer.succeed(HttpMiddleware.SpanNameGenerator)(
  *  exporter's capped, spaced retry then takes over. */
 const EXPORT_TIMEOUT = Duration.seconds(10);
 
-/** The fetch client with a deadline over the whole exchange. The exporter
- *  reads the reply body after the request returns, so the body is read here,
- *  inside the deadline, and handed on buffered. */
-export const ExportHttpClient = Layer.effect(HttpClient.HttpClient)(
-	Effect.gen(function* () {
-		const client = yield* HttpClient.HttpClient;
-
-		return client.pipe(
-			HttpClient.transform((response, request) =>
-				response.pipe(
-					Effect.flatMap((reply) =>
-						Effect.map(reply.arrayBuffer, (body) =>
-							HttpClientResponse.fromWeb(
-								request,
-								new Response(body.byteLength === 0 ? null : body, {
-									status: reply.status,
-									headers: reply.headers,
-								}),
-							),
+/** `client` with a deadline over the whole exchange. The exporter reads the
+ *  reply body after the request returns, so the body is read here, inside
+ *  the deadline, and handed on buffered. */
+export const withExportDeadline = (client: HttpClient.HttpClient) =>
+	client.pipe(
+		HttpClient.transform((response, request) =>
+			response.pipe(
+				Effect.flatMap((reply) =>
+					Effect.map(reply.arrayBuffer, (body) =>
+						HttpClientResponse.fromWeb(
+							request,
+							new Response(body.byteLength === 0 ? null : body, {
+								status: reply.status,
+								headers: reply.headers,
+							}),
 						),
 					),
-					Effect.timeoutOrElse({
-						duration: EXPORT_TIMEOUT,
-						orElse: () =>
-							Effect.fail(
-								new HttpClientError.HttpClientError({
-									reason: new HttpClientError.TransportError({
-										request,
-										description: "OTLP export timed out",
-									}),
-								}),
-							),
-					}),
 				),
+				Effect.timeoutOrElse({
+					duration: EXPORT_TIMEOUT,
+					orElse: () =>
+						Effect.fail(
+							new HttpClientError.HttpClientError({
+								reason: new HttpClientError.TransportError({
+									request,
+									description: "OTLP export timed out",
+								}),
+							}),
+						),
+				}),
 			),
-		);
+		),
+	);
+
+/** The fetch client the export uses, behind `withExportDeadline`. */
+export const ExportHttpClient = Layer.effect(HttpClient.HttpClient)(
+	Effect.gen(function* () {
+		return withExportDeadline(yield* HttpClient.HttpClient);
 	}),
 ).pipe(Layer.provide(FetchHttpClient.layer));
 
