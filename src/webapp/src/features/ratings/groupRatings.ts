@@ -1,4 +1,4 @@
-import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
+import { getSemesterTermDisplay } from "@/lib/semester-term";
 import type {
 	SemesterTermEnum,
 	StudentRatingsDetailed,

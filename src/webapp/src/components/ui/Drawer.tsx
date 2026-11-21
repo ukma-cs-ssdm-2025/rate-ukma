@@ -10,7 +10,6 @@ interface DrawerProps {
 	children: React.ReactNode;
 	ariaLabel: string;
 	side?: "right" | "bottom";
-	closeButtonLabel?: string;
 	"data-testid"?: string;
 }
 
@@ -30,7 +29,6 @@ export function Drawer({
 	"data-testid": testId,
 }: Readonly<DrawerProps>) {
 	const [isMounted, setIsMounted] = useState(open);
-	const [isShown, setIsShown] = useState(false);
 
 	useEffect(() => {
 		if (open) {
@@ -38,23 +36,12 @@ export function Drawer({
 			return;
 		}
 
-		setIsShown(false);
 		const timer = globalThis.window.setTimeout(
 			() => setIsMounted(false),
 			EXIT_DURATION_MS,
 		);
 		return () => globalThis.window.clearTimeout(timer);
 	}, [open]);
-
-	useEffect(() => {
-		if (!open || !isMounted) {
-			return;
-		}
-		let frame = requestAnimationFrame(() => {
-			frame = requestAnimationFrame(() => setIsShown(true));
-		});
-		return () => cancelAnimationFrame(frame);
-	}, [open, isMounted]);
 
 	useEffect(() => {
 		if (!isMounted) {
@@ -69,7 +56,7 @@ export function Drawer({
 		return null;
 	}
 
-	const motion = isShown
+	const motion = open
 		? "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
 		: "duration-200 ease-in";
 
@@ -83,9 +70,9 @@ export function Drawer({
 		>
 			<div
 				className={cn(
-					"fixed inset-0 z-0 bg-background/80 backdrop-blur transition-opacity motion-reduce:transition-none",
+					"fixed inset-0 z-0 bg-background/80 backdrop-blur transition-opacity starting:opacity-0 motion-reduce:transition-none",
 					motion,
-					isShown ? "opacity-100" : "pointer-events-none opacity-0",
+					open ? "opacity-100" : "pointer-events-none opacity-0",
 				)}
 				onClick={close}
 				aria-hidden="true"
@@ -95,9 +82,9 @@ export function Drawer({
 					"fixed z-10 flex flex-col bg-card text-card-foreground shadow-xl transition-transform will-change-transform motion-reduce:transition-none",
 					motion,
 					side === "right"
-						? "top-0 right-0 h-full w-full max-w-sm gap-6 overflow-y-auto rounded-l-xl p-6"
-						: "inset-x-0 bottom-0 max-h-[85dvh] gap-4 overflow-hidden rounded-t-2xl border-t border-border px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
-					isShown ? "translate-x-0 translate-y-0" : HIDDEN_OFFSET[side],
+						? "top-0 right-0 h-full w-full max-w-sm gap-6 overflow-y-auto rounded-l-xl p-6 starting:translate-x-full"
+						: "inset-x-0 bottom-0 max-h-[85dvh] gap-4 overflow-hidden rounded-t-2xl border-t border-border px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))] starting:translate-y-full",
+					open ? "translate-x-0 translate-y-0" : HIDDEN_OFFSET[side],
 				)}
 			>
 				{side === "bottom" && (

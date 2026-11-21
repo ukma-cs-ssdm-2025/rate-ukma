@@ -121,6 +121,30 @@ class UkmaDataOffering(UkmaDataModel):
     removed_at: datetime.datetime | None
 
 
+OfferingInstructorRole = Literal["lecturer", "practice_teacher", "lecturer_and_practice_teacher"]
+
+
+class UkmaDataOfferingInstructor(UkmaDataModel):
+    """A smart.ukma teacher UKMA Data linked to an offering."""
+
+    id: str
+    last_name: str
+    first_name: str
+    middle_name: str | None
+    email: str | None
+    role: OfferingInstructorRole
+
+
+class UkmaDataOfferingInstructors(UkmaDataModel):
+    """One row of `/v1/offerings/instructors`: an offering and its teachers."""
+
+    saz_code: str
+    academic_year: int
+    instructors: list[UkmaDataOfferingInstructor]
+    change_no: int
+    removed_at: datetime.datetime | None
+
+
 class UkmaDataReviewCase(UkmaDataModel):
     id: str
     kind: ReviewCaseKind

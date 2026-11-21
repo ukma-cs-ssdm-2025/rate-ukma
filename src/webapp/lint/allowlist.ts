@@ -9,19 +9,10 @@ export const LINT_ALLOWLIST = {
 		"src/features/ratings/components/RatingForm.tsx",
 	],
 	"no-restricted-imports": [
-		"src/components/AuthShell.tsx",
 		"src/components/Header/Header.tsx",
 		"src/components/Header/MobileMenu.tsx",
-		"src/components/TermBadge.tsx",
 		"src/features/courses/components/CourseStatsCards.tsx",
-		"src/features/feed/components/FeedReviewItem.tsx",
-		"src/routes/connection-error.tsx",
 		"src/routes/courses.$courseId.tsx",
-		"src/routes/data.cases.$caseId.tsx",
-		"src/routes/data.cases.index.tsx",
-		"src/routes/data.index.tsx",
-		"src/routes/explore.tsx",
-		"src/routes/my-ratings.tsx",
 	],
 } satisfies Record<string, string[]>;
 

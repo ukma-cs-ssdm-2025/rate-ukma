@@ -837,10 +837,11 @@ def test_sorting_by_last_review_breaks_ties_by_title(
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_filter_options_returns_seeded_values_when_rows_exist(
-    token_client, instructor_factory, semester_factory, course_factory
+    token_client, instructor_factory, semester_factory, course_factory, rating_factory
 ):
     # Arrange
-    instructor_factory(first_name="Ada", last_name="Lovelace")
+    rating_factory().instructors.add(instructor_factory(first_name="Ada", last_name="Lovelace"))
+    instructor_factory(first_name="Planned", last_name="Only")
     semester_factory(year=2024, term="FALL")
     course = course_factory()
     url = reverse("course-filter-options")
@@ -851,7 +852,9 @@ def test_filter_options_returns_seeded_values_when_rows_exist(
     # Assert
     assert response.status_code == 200
     data = response.json()
-    assert "Ada Lovelace" in [item["name"] for item in data["instructors"]]
+    names = [item["name"] for item in data["instructors"]]
+    assert "Ada Lovelace" in names
+    assert "Planned Only" not in names
     faculty = next(
         item for item in data["faculties"] if item["id"] == str(course.department.faculty.id)
     )

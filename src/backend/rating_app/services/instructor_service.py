@@ -45,23 +45,56 @@ class InstructorService(IFilterable):
         return InstructorListResult(items=items, pagination=paginated.metadata)
 
     def list_course_instructors(
-        self, course_id: uuid.UUID, params: CourseInstructorsQueryParams
+        self,
+        course_id: uuid.UUID,
+        params: CourseInstructorsQueryParams,
+        *,
+        with_planned: bool = False,
     ) -> list[CourseInstructorMentions]:
+        """Teachers ratings of the course name, by mentions. ``with_planned``
+        marks those UKMA Data plans for the offering (``offering_id``, else the
+        course's latest one) and appends planned teachers nobody named yet,
+        with zero counts."""
         qs = self.instructor_repository.mentioned_on_course(
             course_id=course_id, offering_id=params.offering_id
         )
-        return [
+        planned = []
+        if with_planned:
+            offering_id = params.offering_id or self.instructor_repository.latest_offering_id(
+                course_id
+            )
+            if offering_id is not None:
+                planned = list(
+                    self.instructor_repository.planned_for_offering(offering_id, course_id)
+                )
+        planned_ids = {obj.id for obj in planned}
+        items = [
             CourseInstructorMentions(
                 instructor=self.mapper.process(obj),
                 ratings_count=obj.ratings_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
                 offering_ratings_count=obj.offering_ratings_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
                 students_count=obj.students_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
+                recent_students_count=obj.recent_students_count,  # pyright: ignore[reportAttributeAccessIssue]  # queryset annotation
+                planned=obj.id in planned_ids,
             )
             for obj in qs
         ]
+        named = {item.instructor.id for item in items}
+        items.extend(
+            CourseInstructorMentions(
+                instructor=self.mapper.process(obj),
+                ratings_count=0,
+                offering_ratings_count=0,
+                students_count=0,
+                planned=True,
+            )
+            for obj in planned
+            if obj.id not in named
+        )
+        return items
 
     def get_filter_options(self) -> list[dict[str, Any]]:
-        instructors = self.instructor_repository.get_all(ordered=True)
+        instructors = self.instructor_repository.get_named()
         return [
             {
                 "id": instructor.id,
