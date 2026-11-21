@@ -721,7 +721,9 @@ export function CoursesScatterPlot({
 					x: course.avg_usefulness ?? USEFULNESS_RANGE[0],
 					y: course.avg_difficulty ?? DIFFICULTY_RANGE[0],
 					radius,
-					color: facultyColorMap.get(course.faculty_name ?? "") ?? "#6b7280",
+					color:
+						facultyColorMap.get(course.faculty_name ?? "") ??
+						"var(--plot-point-fallback)",
 					facultyName: course.faculty_name ?? "Інше",
 					ratingsCount,
 				};

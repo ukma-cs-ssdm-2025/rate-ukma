@@ -3,6 +3,7 @@ import { defineConfig } from "orval";
 export default defineConfig({
 	api: {
 		output: {
+			clean: true,
 			mode: "split",
 			target: "endpoints.ts",
 			workspace: "src/lib/api/generated",

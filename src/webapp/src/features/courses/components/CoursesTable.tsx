@@ -95,7 +95,7 @@ function CoursesMapCard({
 		return (
 			<section
 				aria-label="Карта дисциплін"
-				className="overflow-hidden rounded-xl border bg-card shadow-sm [--plot-surface:var(--color-card)] md:hidden"
+				className="overflow-hidden rounded-xl border bg-card shadow-sm plot-surface-card md:hidden"
 			>
 				<div className="flex items-center justify-between gap-2 px-4 pt-3">
 					<h3 className="text-sm font-semibold">Карта дисциплін</h3>
@@ -126,7 +126,7 @@ function CoursesMapCard({
 				setCollapsed(!open);
 				localStorageAdapter.setItem(MAP_COLLAPSED_STORAGE_KEY, !open);
 			}}
-			className="hidden overflow-hidden rounded-xl border bg-card shadow-sm [--plot-surface:var(--color-card)] md:block"
+			className="hidden overflow-hidden rounded-xl border bg-card shadow-sm plot-surface-card md:block"
 		>
 			<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
 				<h3 className="text-sm font-semibold">Карта дисциплін</h3>
