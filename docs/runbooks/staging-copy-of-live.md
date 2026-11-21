@@ -101,5 +101,6 @@ sudo docker exec "$container" uv run python manage.py manage_cache --clear
 - The copy brings live's waffle flags and switches. Turn `catalog_sync_proposals` on after copying (`manage.py waffle_switch catalog_sync_proposals on --create`).
 - Staging's nightly teacher sync re-creates real teachers from UKMA Data and links them to offerings; that is expected with staging's read-only key.
 - `rateukma_prev` holds staging's old data. Drop it (`DROP DATABASE rateukma_prev`) once the copy is accepted; drop `rateukma_new` after a failed health check if you no longer need it.
+- If a run was killed without its cleanup (`kill -9`, a dropped ssh session, a sleeping laptop), the throwaway container on the live host still holds raw live data until its 3-hour timeout. Remove it at once: `sudo docker ps -a --filter name=rateukma-anon-`, then `sudo docker rm -f -v <name>`.
 - The temporary directory on staging (`/tmp/rateukma-staging-copy-*`) and the files copied into the postgres container are removed by the script; remove them by hand if a run was killed with `kill -9`.
 - Check the row counts the script printed against live before the run if you expect a specific number of ratings or courses.

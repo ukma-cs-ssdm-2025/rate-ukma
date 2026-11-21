@@ -157,7 +157,10 @@ printf '    %s KB free at %s\n' "$free_kb" "$docker_root"
 
 step "Starting throwaway postgres on $LIVE_HOST ($ANON_CONTAINER)"
 anon_password=$(openssl rand -hex 16)
-ssh "$LIVE_HOST" "sudo docker run --rm -d --name '$ANON_CONTAINER' -e POSTGRES_PASSWORD='$anon_password' postgres:15 >/dev/null"
+# timeout ends postgres after 3 hours even if this script dies without running
+# its trap (kill -9, a dropped ssh session); --rm then removes the container
+# and its anonymous volume, so raw live data cannot outlive a lost run.
+ssh "$LIVE_HOST" "sudo docker run --rm -d --name '$ANON_CONTAINER' -e POSTGRES_PASSWORD='$anon_password' --entrypoint timeout postgres:15 -s INT 3h docker-entrypoint.sh postgres >/dev/null"
 
 # The postgres image declares an anonymous volume for its data directory.
 # Nothing else is allowed: no bind mount, no named volume.
@@ -173,9 +176,11 @@ case "$mounts" in
   *) die "throwaway container $ANON_CONTAINER has an unexpected mount: $mounts" ;;
 esac
 
+# TCP, not the socket: during first-start init the image runs a temporary
+# server on the socket only, then restarts it.
 ready=0
 for _ in $(seq 1 60); do
-  if ssh "$LIVE_HOST" "sudo docker exec '$ANON_CONTAINER' pg_isready -U postgres -d postgres" >/dev/null 2>&1; then
+  if ssh "$LIVE_HOST" "sudo docker exec '$ANON_CONTAINER' pg_isready -h 127.0.0.1 -U postgres -d postgres" >/dev/null 2>&1; then
     ready=1
     break
   fi

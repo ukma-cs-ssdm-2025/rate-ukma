@@ -264,3 +264,72 @@ def test_anonymise_refuses_without_the_test_setting_outside_rateukma_anon(
         cursor.execute("ROLLBACK")
 
     assert User.objects.filter(email="guard@ukma.edu.ua", first_name="Вартовий").exists()
+
+
+# Every table the migrations create, each reviewed for personal data. A new
+# table fails the test below until it is added here and, if it holds personal
+# data or text a person wrote, anonymised or emptied in anonymise.sql.
+HANDLED_BY_ANONYMISE = {
+    "account_emailaddress",
+    "account_emailconfirmation",
+    "auth_user",
+    "authtoken_token",
+    "django_admin_log",
+    "django_session",
+    "rating_app_comment",
+    "rating_app_feedpost",
+    "rating_app_instructor",
+    "rating_app_rating",
+    "rating_app_signin",
+    "rating_app_student",
+    "reversion_revision",
+    "reversion_version",
+    "socialaccount_socialaccount",
+    "socialaccount_socialapp",
+    "socialaccount_socialapp_sites",
+    "socialaccount_socialtoken",
+    "waffle_flag_users",
+}
+NO_PERSONAL_DATA = {
+    "auth_group",
+    "auth_group_permissions",
+    "auth_permission",
+    "auth_user_groups",
+    "auth_user_user_permissions",
+    "django_content_type",
+    "django_migrations",
+    "django_site",
+    "rating_app_course",
+    "rating_app_courseinstructor",
+    "rating_app_courseoffering",
+    "rating_app_courseofferingspeciality",
+    "rating_app_courseofferingterm",
+    "rating_app_department",
+    "rating_app_enrollment",
+    "rating_app_faculty",
+    "rating_app_feedevent",
+    "rating_app_notification",
+    "rating_app_notificationcursor",
+    "rating_app_notificationgroupread",
+    "rating_app_plannedcourse",
+    "rating_app_promobanner",
+    "rating_app_rating_instructors",
+    "rating_app_ratingvote",
+    "rating_app_semester",
+    "rating_app_speciality",
+    "waffle_flag",
+    "waffle_flag_groups",
+    "waffle_sample",
+    "waffle_switch",
+}
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.integration
+def test_every_table_is_reviewed_for_personal_data(postgres_db):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+        tables = {row[0] for row in cursor.fetchall()}
+
+    unreviewed = tables - HANDLED_BY_ANONYMISE - NO_PERSONAL_DATA
+    assert not unreviewed, f"review these tables for personal data in anonymise.sql: {unreviewed}"
