@@ -168,6 +168,19 @@ describe("matchTeachers", () => {
 		assert.strictEqual(report.sazDisagrees, 1);
 	});
 
+	it("reads every apostrophe in a last name as one", () => {
+		const { links, report } = matchTeachers(
+			[offering({ sazTeachers: "доц. Об’ємна Т." })],
+			[discipline([lecturer(1)]), discipline([lecturer(5)])],
+			[...teachers, { smartId: 5, lastName: "Об'ємна" }],
+		);
+
+		assert.deepStrictEqual(links, [
+			{ offeringId: "off_1", smartId: 5, role: "LECTURER" },
+		]);
+		assert.strictEqual(report.tieBrokenBySaz, 1);
+	});
+
 	it("leaves a tie unlinked when САЗ names a last name two candidates share", () => {
 		const { links, report } = matchTeachers(
 			[offering({ sazTeachers: "доц. Зразковий Т." })],

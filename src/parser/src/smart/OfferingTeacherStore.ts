@@ -144,11 +144,21 @@ export class OfferingTeacherStore extends Context.Service<
 							JOIN offerings o ON o.id = oi.offering_id AND o.removed_at IS NULL
 						`;
 
+						// An offering also moves when a teacher it serves was renumbered
+						// after it, so a reader paging by change number gets the
+						// teacher's new name or email.
 						const changed = (yield* sql<{ readonly id: string }>`
 							SELECT DISTINCT offering_id AS id FROM (
 								(${wanted} EXCEPT ${held})
 								UNION ALL
 								(${held} EXCEPT ${wanted})
+								UNION ALL
+								SELECT oi.offering_id, oi.instructor_id, oi.role
+								FROM offering_instructors oi
+								JOIN offerings o
+									ON o.id = oi.offering_id AND o.removed_at IS NULL
+								JOIN instructors i ON i.id = oi.instructor_id
+								WHERE i.change_no > o.change_no
 							) diff
 						`).map(({ id }) => id);
 

@@ -101,11 +101,15 @@ const keyOf = (
 const joinedRole = (a: TeacherRole, b: TeacherRole): TeacherRole =>
 	a === b ? a : "LECTURER_AND_PRACTICE_TEACHER";
 
+/** A name in lower case with every apostrophe spelled one way, so САЗ's
+ *  "Лук’яненко" and smart.ukma's "Лук'яненко" compare equal. */
+const nameForm = (text: string): string =>
+	text.toLowerCase().replace(/[’ʼ`‘]/g, "'");
+
 const wordsOf = (text: string): ReadonlySet<string> =>
 	new Set(
-		text
-			.toLowerCase()
-			.split(/[^\p{L}\p{N}’ʼ'-]+/u)
+		nameForm(text)
+			.split(/[^\p{L}\p{N}'-]+/u)
 			.filter((word) => word !== ""),
 	);
 
@@ -138,7 +142,7 @@ export const matchTeachers = (
 	}
 
 	const lastNames = new Map(
-		teachers.map(({ smartId, lastName }) => [smartId, lastName.toLowerCase()]),
+		teachers.map(({ smartId, lastName }) => [smartId, nameForm(lastName)]),
 	);
 
 	const allLastNames = new Set([...lastNames.values()].filter((n) => n !== ""));

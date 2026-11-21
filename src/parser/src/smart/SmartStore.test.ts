@@ -269,6 +269,25 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 
 					assert.lengthOf(yield* linked(), 2);
 
+					const relinked = yield* offeringNo();
+
+					yield* changes.withTurn(
+						sql`
+							UPDATE instructors
+							SET email = 'renamed@example.edu', change_no = nextval('change_no_seq')
+							WHERE smart_id = 7001
+						`,
+					);
+					yield* relinkTeachers();
+
+					assert.notStrictEqual(yield* offeringNo(), relinked);
+
+					const afterRename = yield* offeringNo();
+
+					yield* relinkTeachers();
+
+					assert.strictEqual(yield* offeringNo(), afterRename);
+
 					const removed = yield* changes.withTurn(
 						sql`
 							UPDATE offerings
