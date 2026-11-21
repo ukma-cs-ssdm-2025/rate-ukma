@@ -90,17 +90,14 @@ describe("Network Error Handling - Full Integration", () => {
 	});
 
 	it("redirects to error page when API call fails due to network issues", async () => {
-		// Arrange
 		const user = userEvent.setup();
 		mockAxios.onGet("/api/courses").networkError();
 
 		render(<TestComponent endpoint="/api/courses" />);
 
-		// Act
 		const button = screen.getByRole("button", { name: /Fetch Data/i });
 		await user.click(button);
 
-		// Assert
 		await vi.waitFor(() => {
 			expect(mockWindowReplace).toHaveBeenCalledOnce();
 		});
@@ -108,18 +105,15 @@ describe("Network Error Handling - Full Integration", () => {
 	});
 
 	it("redirects with offline reason when user is offline", async () => {
-		// Arrange
 		const user = userEvent.setup();
 		vi.stubGlobal("navigator", { onLine: false } as Navigator);
 		mockAxios.onGet("/api/data").networkError();
 
 		render(<TestComponent endpoint="/api/data" />);
 
-		// Act
 		const button = screen.getByRole("button", { name: /Fetch Data/i });
 		await user.click(button);
 
-		// Assert
 		await vi.waitFor(() => {
 			expect(mockWindowReplace).toHaveBeenCalledOnce();
 		});
@@ -127,17 +121,14 @@ describe("Network Error Handling - Full Integration", () => {
 	});
 
 	it("does not redirect on successful API call", async () => {
-		// Arrange
 		const user = userEvent.setup();
 		mockAxios.onGet("/api/data").reply(200, "success");
 
 		render(<TestComponent endpoint="/api/data" />);
 
-		// Act
 		const button = screen.getByRole("button", { name: /Fetch Data/i });
 		await user.click(button);
 
-		// Assert
 		await vi.waitFor(() => {
 			expect(screen.getByText("Data: success")).toBeInTheDocument();
 		});
@@ -145,17 +136,14 @@ describe("Network Error Handling - Full Integration", () => {
 	});
 
 	it("does not redirect on 404 errors", async () => {
-		// Arrange
 		const user = userEvent.setup();
 		mockAxios.onGet("/api/nonexistent").reply(404);
 
 		render(<TestComponent endpoint="/api/nonexistent" />);
 
-		// Act
 		const button = screen.getByRole("button", { name: /Fetch Data/i });
 		await user.click(button);
 
-		// Assert
 		await vi.waitFor(() => {
 			expect(screen.getByText(/Error:/)).toBeInTheDocument();
 		});
@@ -163,7 +151,6 @@ describe("Network Error Handling - Full Integration", () => {
 	});
 
 	it("simulates user on authenticated page (courses) making request that triggers connection error", async () => {
-		// Arrange
 		const user = userEvent.setup();
 		const { replace } = stubBrowserLocation({
 			pathname: "/courses",
@@ -177,11 +164,9 @@ describe("Network Error Handling - Full Integration", () => {
 
 		render(<TestComponent endpoint="/api/user/dashboard" />);
 
-		// Act
 		const button = screen.getByRole("button", { name: /Fetch Data/i });
 		await user.click(button);
 
-		// Assert
 		await vi.waitFor(() => {
 			expect(mockWindowReplace).toHaveBeenCalledOnce();
 		});

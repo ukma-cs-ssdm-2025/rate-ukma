@@ -29,7 +29,6 @@ const SUGGESTION = {
 
 function renderPrompt(flags: Record<string, boolean>, flagsReady = true) {
 	vi.mocked(useStudentsMeRatingSuggestionsList).mockClear();
-	// Echo the caller's `enabled` the way react-query does: a disabled query has no data.
 	vi.mocked(useStudentsMeRatingSuggestionsList).mockImplementation(((
 		_params: unknown,
 		options?: {

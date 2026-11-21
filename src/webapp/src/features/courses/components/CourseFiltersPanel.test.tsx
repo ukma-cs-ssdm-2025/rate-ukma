@@ -79,15 +79,12 @@ function TestWrapper({
 describe("CourseFiltersPanel", () => {
 	describe("Rendering", () => {
 		it("should render filter panel with title", () => {
-			// Arrange & Act
 			render(<TestWrapper />);
 
-			// Assert
 			expect(screen.getByText("Фільтри")).toBeInTheDocument();
 		});
 
 		it("should render skeleton when loading", () => {
-			// Act
 			render(
 				<CourseFiltersPanel
 					params={DEFAULT_PARAMS}
@@ -98,24 +95,19 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 
-			// Assert
 			expect(screen.queryByText("Фільтри")).not.toBeInTheDocument();
 		});
 
 		it("should render all range filters", () => {
-			// Arrange & Act
 			render(<TestWrapper />);
 
-			// Assert
 			expect(screen.getByText("Складність")).toBeInTheDocument();
 			expect(screen.getByText("Корисність")).toBeInTheDocument();
 		});
 
 		it("should render all filter groups", () => {
-			// Arrange & Act
 			render(<TestWrapper />);
 
-			// Assert
 			for (const name of [
 				"Спеціальність і тип дисципліни",
 				"Семестр",
@@ -132,7 +124,6 @@ describe("CourseFiltersPanel", () => {
 
 	describe("Range Filter Interactions", () => {
 		it("should display current difficulty range values", () => {
-			// Arrange & Act
 			render(
 				<TestWrapper
 					initialParams={{
@@ -142,12 +133,10 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 
-			// Assert
 			expect(screen.getByText("2.5–4.5")).toBeInTheDocument();
 		});
 
 		it("should display current usefulness range values", () => {
-			// Arrange & Act
 			render(
 				<TestWrapper
 					initialParams={{
@@ -157,12 +146,10 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 
-			// Assert
 			expect(screen.getByText("3–5")).toBeInTheDocument();
 		});
 
 		it("should display credits value readout", () => {
-			// Arrange & Act
 			render(
 				<TestWrapper
 					initialParams={{
@@ -173,7 +160,6 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 
-			// Assert
 			expect(screen.getByText("Кредити ECTS")).toBeInTheDocument();
 			expect(screen.getByText("4–5.5")).toBeInTheDocument();
 		});
@@ -181,7 +167,6 @@ describe("CourseFiltersPanel", () => {
 
 	describe("Select Filter Interactions", () => {
 		it("should render faculty select with options when structure expanded", () => {
-			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -199,10 +184,8 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
-			// Assert
 			const facultyLabel = screen.getByText("Факультет");
 			expect(facultyLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
@@ -215,7 +198,6 @@ describe("CourseFiltersPanel", () => {
 		});
 
 		it("should render one toggle per term option in FALL, SPRING, SUMMER order", () => {
-			// Arrange
 			const filterOptions = createMockFilterOptions({
 				semester_terms: [
 					{ value: "SUMMER", label: "Літо" },
@@ -224,10 +206,8 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
-			// Assert
 			const toggleGroup = screen.getByTestId(testIds.filters.termToggle);
 			expect(toggleGroup).toBeInTheDocument();
 			expect(toggleGroup).toHaveAttribute("role", "group");
@@ -346,7 +326,6 @@ describe("CourseFiltersPanel", () => {
 		});
 
 		it("keeps the chosen speciality when the faculty changes", async () => {
-			// cmdk scrolls the active option into view; jsdom lacks this API.
 			Element.prototype.scrollIntoView = vi.fn();
 			const user = userEvent.setup();
 			const setParams = vi.fn();
@@ -376,7 +355,6 @@ describe("CourseFiltersPanel", () => {
 
 	describe("Reset Functionality", () => {
 		it("should show reset button when filters are active", () => {
-			// Arrange & Act
 			render(
 				<TestWrapper
 					initialParams={{
@@ -386,24 +364,20 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 
-			// Assert
 			expect(
 				screen.getByRole("button", { name: /скинути/i }),
 			).toBeInTheDocument();
 		});
 
 		it("should not show reset button when no filters are active", () => {
-			// Arrange & Act
 			render(<TestWrapper initialParams={DEFAULT_PARAMS} />);
 
-			// Assert
 			expect(
 				screen.queryByRole("button", { name: /скинути/i }),
 			).not.toBeInTheDocument();
 		});
 
 		it("should call onReset when reset button is clicked", async () => {
-			// Arrange
 			const user = userEvent.setup();
 			const onReset = vi.fn();
 			render(
@@ -416,18 +390,15 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 
-			// Act
 			const resetButton = screen.getByRole("button", { name: /скинути/i });
 			await user.click(resetButton);
 
-			// Assert
 			expect(onReset).toHaveBeenCalledTimes(1);
 		});
 	});
 
 	describe("Department Cascading Logic", () => {
 		it("should render department select when structure group expanded", () => {
-			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -444,10 +415,8 @@ describe("CourseFiltersPanel", () => {
 				],
 			});
 
-			// Act — essentials are always visible
 			render(<TestWrapper filterOptions={filterOptions} />);
 
-			// Assert
 			const deptLabel = screen.getByText("Кафедра");
 			expect(deptLabel).toBeInTheDocument();
 			const selectContainer = assertElement(
@@ -462,16 +431,13 @@ describe("CourseFiltersPanel", () => {
 
 	describe("Accessibility", () => {
 		it("should have proper labels for range filters", () => {
-			// Arrange & Act
 			render(<TestWrapper />);
 
-			// Assert
 			expect(screen.getByText("Складність")).toBeInTheDocument();
 			expect(screen.getByText("Корисність")).toBeInTheDocument();
 		});
 
 		it("should have reset button with proper text", () => {
-			// Arrange & Act
 			render(
 				<TestWrapper
 					initialParams={{
@@ -481,7 +447,6 @@ describe("CourseFiltersPanel", () => {
 				/>,
 			);
 
-			// Assert
 			const resetButton = screen.getByRole("button", { name: /скинути/i });
 			expect(resetButton).toHaveAttribute("type", "button");
 		});
@@ -490,7 +455,6 @@ describe("CourseFiltersPanel", () => {
 
 describe("ActiveFilterChips", () => {
 	it("should render a removable chip per active filter", async () => {
-		// Arrange
 		const user = userEvent.setup();
 		const setParams = vi.fn();
 		render(
@@ -505,16 +469,13 @@ describe("ActiveFilterChips", () => {
 			/>,
 		);
 
-		// Assert
 		expect(screen.getByText("Складність 1–2.5")).toBeInTheDocument();
 		expect(screen.getByText("Осінь")).toBeInTheDocument();
 
-		// Act
 		await user.click(
 			screen.getByRole("button", { name: "Прибрати фільтр Осінь" }),
 		);
 
-		// Assert
 		expect(setParams).toHaveBeenCalledWith({ term: [], page: 1 });
 	});
 });

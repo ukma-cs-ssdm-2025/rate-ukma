@@ -73,8 +73,6 @@ describe("FeedPage", () => {
 		).not.toBeInTheDocument();
 	});
 
-	// The header stays mounted through every state, so each assertion below
-	// also pins that the state replaces only the content beneath it.
 	it("shows the skeleton while the first page loads", async () => {
 		await setFeed({ items: [], isLoading: true });
 		renderWithProviders(<FeedPage />, { flags: { fe_feed: true } });

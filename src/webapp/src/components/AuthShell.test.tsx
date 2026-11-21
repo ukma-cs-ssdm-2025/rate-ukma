@@ -18,7 +18,6 @@ vi.mock("@/components/Logo", () => ({
 	Logo: () => null,
 }));
 
-// The first courses the carousel shows, in order, and one it reaches much later.
 const FIRST_COURSE = "Архітектура обчислювальних систем";
 const SECOND_COURSE = "Політична економія";
 const HOVERED_COURSE = "Військова соціологія";
@@ -184,7 +183,6 @@ describe("AuthShell course carousel", () => {
 	])("stays off %s", (_, viewport) => {
 		renderShell(viewport);
 
-		// One step per call: each timer is only scheduled after the previous one renders.
 		for (const step of [
 			SPOTLIGHT_START_MS,
 			SPOTLIGHT_SHOW_MS,

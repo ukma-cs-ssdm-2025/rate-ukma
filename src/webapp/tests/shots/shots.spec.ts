@@ -14,16 +14,6 @@ import { testIds } from "../../src/lib/test-ids";
 import { COURSE } from "./fixtures/data";
 import { mockBackend } from "./fixtures/mockBackend";
 
-/**
- * Screenshot every state of the webapp at desktop and phone widths, light and
- * dark, against a route-mocked backend with invented data:
- *
- *   pnpm shots                                   # shots/<state>-<width>-<theme>.png + index.html
- *   SHOT_BEFORE_DIR=/tmp/before pnpm shots       # index.html pairs before | after
- *   SHOT_BASE_URL=http://127.0.0.1:3100 pnpm shots   # drive a server that is already running
- *   SHOT_ONLY=feed pnpm shots                    # states whose name matches the regex
- *   pnpm shots:compare [ref]                     # base ref (origin/main) vs working tree
- */
 const out = process.env.SHOT_DIR ? resolve(process.env.SHOT_DIR) : "";
 const beforeDir = process.env.SHOT_BEFORE_DIR
 	? resolve(process.env.SHOT_BEFORE_DIR)
@@ -37,18 +27,14 @@ const WIDTHS = [
 ] as const;
 const THEMES = ["light", "dark"] as const;
 
-// Fixture timestamps are relative to this instant, so "3 год тому" is stable.
 const NOW = new Date("2026-09-16T09:00:00Z");
 
-// Failed queries retry with backoff (2s + 4s + 8s) before the error UI shows.
 const ERROR_TIMEOUT = 30_000;
 
 interface State {
 	readonly name: string;
-	/** Gallery group, in the order sections first appear below. */
 	readonly section: string;
 	readonly note: string;
-	/** Widths the state exists at; all by default. */
 	readonly widths?: ReadonlyArray<(typeof WIDTHS)[number]["name"]>;
 	readonly run: (page: Page) => Promise<void>;
 }
@@ -68,7 +54,6 @@ async function openNotifications(page: Page) {
 const feedStrip = (page: Page) =>
 	page.getByRole("region", { name: "Стрічка оновлень" });
 
-/** Bottom of the courses page; the footer GitHub link must stay tappable (#728). */
 async function scrollToFooterLink(page: Page) {
 	await mockBackend(page);
 	await page.goto("/");
@@ -79,7 +64,6 @@ async function scrollToFooterLink(page: Page) {
 	await expectUncovered(page.getByTestId(testIds.footer.repoLink));
 }
 
-/** Fails when another element (e.g. a floating button) covers the target's centre. */
 async function expectUncovered(target: Locator) {
 	const uncovered = await target.evaluate((el) => {
 		const r = el.getBoundingClientRect();
@@ -92,7 +76,6 @@ async function expectUncovered(target: Locator) {
 	expect(uncovered).toBe(true);
 }
 
-/** Course page with the rating modal open and one teacher others named picked. */
 async function openRatingWithPickedTeacher(page: Page) {
 	await mockBackend(page, { myCourses: "rateable" });
 	await page.goto(`/courses/${COURSE.id}`);
@@ -472,7 +455,6 @@ const ALL_STATES: ReadonlyArray<State> = [
 		run: async (page: Page) => {
 			await mockBackend(page, { myCourses, reviews: "empty" });
 			await page.goto(`/courses/${COURSE.id}`);
-			// Phones stack «Про дисципліну» above the reviews, so bring the empty state up.
 			await page.getByText("Відгуків ще немає").scrollIntoViewIfNeeded();
 		},
 	})),
@@ -907,7 +889,6 @@ for (const width of WIDTHS) {
 	}
 }
 
-// One contact sheet, so a reviewer opens a single page.
 test.afterAll(() => {
 	if (!out) {
 		return;
@@ -927,7 +908,6 @@ test.afterAll(() => {
 	const figure = (src: string, caption: string) =>
 		`<figure><img src="${src}" alt="${escape(caption)}" loading="lazy"><figcaption>${caption}</figcaption></figure>`;
 
-	// Byte-identical screenshots mean nothing moved; the renderer is deterministic.
 	const status = (name: string): "same" | "changed" | "new" | "" => {
 		if (!beforeDir) {
 			return "";
