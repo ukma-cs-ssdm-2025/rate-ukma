@@ -40,22 +40,15 @@ interface FeedCardProps {
 		readonly tone: FeedTone;
 	};
 	readonly pinned?: boolean;
-	/** Tints the whole card with the kind colour (plus a rail on banners); kept for announcements so they stand out from the review stream. */
 	readonly tinted?: boolean;
 	readonly title: ReactNode;
-	/** Channel logo or face; takes the kind icon's place beside the title. */
 	readonly avatarUrl?: string | null;
 	readonly children?: ReactNode;
 	readonly footer?: ReactNode;
 	readonly className?: string;
-	/** `card` is the compact strip tile; `banner` is the roomier `/feed` card. */
 	readonly variant?: "card" | "banner";
 }
 
-/**
- * One shell for every feed entry. Only the kind icon carries colour on plain
- * cards; tinted cards spend the colour on the whole surface instead.
- */
 export function FeedCard({
 	kind,
 	pinned,
@@ -80,8 +73,6 @@ export function FeedCard({
 		</span>
 	);
 
-	// Strip tile: three single lines, so the strip stays a glance above the
-	// course search instead of competing with it.
 	if (!isBanner) {
 		const heading = (
 			<div className="flex min-w-0 items-center gap-2">
@@ -145,7 +136,6 @@ export function FeedCard({
 				/>
 			)}
 			{avatarUrl ? (
-				// Reads like a channel header: who posted, then what kind of post.
 				<div className="flex items-center gap-3">
 					<FeedAvatar src={avatarUrl} className="size-11" />
 					<div className="min-w-0 flex-1">
@@ -183,10 +173,6 @@ export function FeedCard({
 	);
 }
 
-// Decorative: the title next to it already names the channel. Uploads come in
-// any shape: `object-cover` center-crops banners and tall posters instead of
-// shrinking them to slivers (square logos and round photos fit as they are),
-// and the white backdrop keeps dark transparent logos visible in dark mode.
 function FeedAvatar({ src, className }: { src: string; className: string }) {
 	return (
 		<img
@@ -203,7 +189,6 @@ function FeedAvatar({ src, className }: { src: string; className: string }) {
 
 const SKELETON_KEYS = ["skeleton-1", "skeleton-2", "skeleton-3"];
 
-// Mirrors the feed card order: kind, title, text, time and action.
 export function FeedSkeleton() {
 	return (
 		<div className="space-y-3" data-testid={testIds.feed.skeleton}>

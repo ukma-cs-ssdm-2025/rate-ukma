@@ -14,7 +14,7 @@ logger = structlog.get_logger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Run the periodic jobs in rating_app/scheduler/jobs.py until SIGTERM (ADR 0018)."
+    help = "Run the periodic jobs in rating_app/scheduler/jobs.py until SIGTERM (ADR 0019)."
 
     def handle(self, *args, **options) -> None:
         stop = threading.Event()

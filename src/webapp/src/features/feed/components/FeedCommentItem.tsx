@@ -10,7 +10,6 @@ interface FeedCommentItemProps {
 	readonly variant?: "card" | "banner";
 }
 
-/** A comment left on a review; anonymous in the feed. */
 export function FeedCommentItem({
 	item,
 	variant = "card",

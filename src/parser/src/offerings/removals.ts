@@ -75,7 +75,7 @@ export const planRemovals = (
  *  offerings of a year here; the enrollments of one offering (#766) are
  *  replaced in their own write, and only when that offering's students page
  *  is `done` in the run, so a failed students page keeps the last good list. */
-export const removeOfferings = Effect.fn("removeOfferings")(function* (
+export const removeOfferings = Effect.fn("Removals.removeOfferings")(function* (
 	threshold: number,
 ) {
 	const store = yield* RemovalStore;

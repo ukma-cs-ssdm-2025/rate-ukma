@@ -393,8 +393,6 @@ function RepliesPreview({
 	);
 }
 
-// Opens a thread only once its first page is cached, so the height animation
-// runs to the real list instead of to a loading row that then jumps.
 function openWhenLoaded<T>(load: () => Promise<T>, open: () => void) {
 	load()
 		.catch(() => undefined)
@@ -796,7 +794,6 @@ export function RatingComments({
 					<div className="mt-2 mb-1 w-full space-y-3 border-l-2 border-border pl-3">
 						<Collapsible open={isCreating} className="empty:hidden">
 							<CollapsibleContent>
-								{/* Room for the textarea focus ring, which the height clip would cut. */}
 								<div className="pt-1">
 									<CommentForm
 										placeholder="Напишіть коментар"

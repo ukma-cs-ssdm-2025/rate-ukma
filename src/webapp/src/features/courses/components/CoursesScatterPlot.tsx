@@ -139,26 +139,21 @@ function ScatterPlotLoader({ message }: Readonly<{ message: LoadingMessage }>) {
 }
 
 const margin: Margin = { top: 16, right: 24, bottom: 56, left: 52 };
-// Extra headroom so the floating explore toolbar never covers top points.
 const EXPLORE_MARGIN: Margin = { top: 76, right: 40, bottom: 60, left: 60 };
 
-// Axis styling constants
 const AXIS_TICK_FONT_SIZE = 12;
 const AXIS_LABEL_FONT_SIZE = 12;
 const AXIS_LABEL_FONT_WEIGHT = 500;
 
-// Axis positioning constants
-const AXIS_BG_TOP_EXTENSION = 20; // Extension above the Y-axis
-const X_AXIS_TICK_Y_OFFSET = 20; // Distance of tick labels from axis
-const X_AXIS_LABEL_Y_OFFSET = 45; // Distance of axis label from axis
-const Y_AXIS_TICK_X_OFFSET = 10; // Distance of tick labels from axis
-const Y_AXIS_LABEL_X_OFFSET = 35; // Distance of axis label from axis
+const AXIS_BG_TOP_EXTENSION = 20;
+const X_AXIS_TICK_Y_OFFSET = 20;
+const X_AXIS_LABEL_Y_OFFSET = 45;
+const Y_AXIS_TICK_X_OFFSET = 10;
+const Y_AXIS_LABEL_X_OFFSET = 35;
 
-// Grid styling constants
 const GRID_STROKE_OPACITY = 0.2;
 const GRID_STROKE_DASHARRAY = "3,3";
 
-// Point styling constants
 const POINT_HOVER_SCALE = 1.08;
 const POINT_DEFAULT_SCALE = 1;
 const POINT_HOVER_STROKE_WIDTH = 3.2;
@@ -167,22 +162,18 @@ const POINT_HOVER_FILL_OPACITY = 1;
 const POINT_DEFAULT_FILL_OPACITY = 0.8;
 const POINT_TRANSITION_DURATION_MS = 200;
 
-// Label styling constants
 const LABEL_FONT_SIZE = 12;
-const LABEL_Y_OFFSET = 4; // Distance from point radius
+const LABEL_Y_OFFSET = 4;
 
-// Zoom constants
 const ZOOM_MIN_SCALE = 1;
 const ZOOM_MAX_SCALE = 8;
 const ZOOM_IN_FACTOR = 1.25;
 const ZOOM_OUT_FACTOR = 0.8;
 
-// Point radius constants
 const POINT_MIN_RADIUS = 3;
 const POINT_MAX_RADIUS = 30;
 const POINT_RADIUS_MULTIPLIER = 2;
 
-// Axis ticks
 const NUM_AXIS_TICKS = 5;
 
 const DOMAIN_PADDING = 0.2;
@@ -269,7 +260,6 @@ function ScatterPlotContent({
 		[difficultyDomain, innerHeight],
 	);
 
-	// Create rescaled versions for axes that respond to zoom
 	const xAxisScale = useMemo(
 		() => transform.rescaleX(xScale),
 		[transform, xScale],
@@ -289,7 +279,6 @@ function ScatterPlotContent({
 		hideTooltip,
 	} = useTooltip<CourseDataPoint>();
 
-	// Setup zoom behavior
 	useEffect(() => {
 		if (!svgRef.current) {
 			return;
@@ -376,12 +365,10 @@ function ScatterPlotContent({
 
 	return (
 		<>
-			{/* Interactive chart with aria-label, title element not suitable for this interaction model */}
 			<svg
 				ref={svgRef}
 				width={width}
 				height={height}
-				// A host card sets --plot-surface so the axis bars and point halos match it.
 				className="cursor-grab bg-[var(--plot-surface,var(--color-background))] active:cursor-grabbing"
 				aria-label="Діаграма розподілу дисциплін за корисністю та складністю"
 			>
@@ -407,7 +394,6 @@ function ScatterPlotContent({
 							? POINT_HOVER_STROKE_WIDTH
 							: POINT_DEFAULT_STROKE_WIDTH;
 						return (
-							// Interactive SVG point cannot be a native button element
 							<circle
 								key={point.id}
 								cx={cx}
@@ -457,7 +443,6 @@ function ScatterPlotContent({
 						);
 					})}
 
-					{/* Labels - density + importance gated */}
 					{showLabels &&
 						labelPoints.map(({ point, cx, cy }) => (
 							<Text
@@ -475,7 +460,6 @@ function ScatterPlotContent({
 				</Group>
 
 				<Group left={plotMargin.left} top={plotMargin.top}>
-					{/* X-axis background bar */}
 					<rect
 						x={-plotMargin.left}
 						y={innerHeight}
@@ -484,7 +468,6 @@ function ScatterPlotContent({
 						fill="var(--plot-surface, var(--color-background))"
 					/>
 
-					{/* Y-axis background bar */}
 					<rect
 						x={-plotMargin.left}
 						y={-AXIS_BG_TOP_EXTENSION}
@@ -493,7 +476,6 @@ function ScatterPlotContent({
 						fill="var(--plot-surface, var(--color-background))"
 					/>
 
-					{/* X-axis tick labels */}
 					{xAxisScale.ticks(NUM_AXIS_TICKS).map((tick) => {
 						const x = xAxisScale(tick) ?? 0;
 						return (
@@ -511,7 +493,6 @@ function ScatterPlotContent({
 						);
 					})}
 
-					{/* Y-axis tick labels */}
 					{yAxisScale.ticks(NUM_AXIS_TICKS).map((tick) => {
 						const y = yAxisScale(tick) ?? 0;
 						return (
@@ -529,7 +510,6 @@ function ScatterPlotContent({
 						);
 					})}
 
-					{/* X-axis label */}
 					<text
 						x={innerWidth / 2}
 						y={innerHeight + X_AXIS_LABEL_Y_OFFSET}
@@ -542,7 +522,6 @@ function ScatterPlotContent({
 						Корисність
 					</text>
 
-					{/* Y-axis label */}
 					<text
 						x={-Y_AXIS_LABEL_X_OFFSET}
 						y={innerHeight / 2}
@@ -721,7 +700,9 @@ export function CoursesScatterPlot({
 					x: course.avg_usefulness ?? USEFULNESS_RANGE[0],
 					y: course.avg_difficulty ?? DIFFICULTY_RANGE[0],
 					radius,
-					color: facultyColorMap.get(course.faculty_name ?? "") ?? "#6b7280",
+					color:
+						facultyColorMap.get(course.faculty_name ?? "") ??
+						"var(--plot-point-fallback)",
 					facultyName: course.faculty_name ?? "Інше",
 					ratingsCount,
 				};

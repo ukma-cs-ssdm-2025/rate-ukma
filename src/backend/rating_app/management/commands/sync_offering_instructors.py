@@ -19,7 +19,7 @@ JOB = job_named("sync_offering_instructors")
 
 
 class Command(BaseCommand):
-    help = "Mirror UKMA Data's planned teachers into CourseInstructor (ADR 0018)."
+    help = "Mirror UKMA Data's planned teachers into CourseInstructor (ADR 0019)."
 
     def handle(self, *args, **options) -> None:
         with advisory_lock(JOB.lock_key) as held:

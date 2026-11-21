@@ -1,8 +1,3 @@
-/**
- * Faculty color mappings for NaUKMA
- * Maps faculty names to their Tailwind color names and brand hex colors
- */
-
 const FACULTY_COLOR_MAP = {
 	"Факультет інформатики": {
 		color: "purple",
@@ -40,8 +35,6 @@ const FACULTY_COLOR_MAP = {
 
 type ColorConfig = { bg: string; text: string; border: string; hex: string };
 
-// Explicit token classes (prevents purging in production); light and dark
-// values come from the faculty tokens in styles.css.
 const COLOR_CLASS_MAP = {
 	purple: {
 		bg: "bg-faculty-purple/12",
@@ -101,12 +94,10 @@ export function getFacultyColors(facultyName: string): ColorConfig {
 	return FACULTY_COLORS.get(facultyName) ?? FALLBACK_COLORS;
 }
 
-/** Get hex color for a faculty (useful for charts/graphs). */
 export function getFacultyHexColor(facultyName: string): string {
 	return getFacultyColors(facultyName).hex;
 }
 
-/** Readable text on a faculty hex background (WCAG luminance). */
 export function getFacultyContrastTextColor(
 	hex: string,
 ): "#ffffff" | "#1a1a1a" {
@@ -133,7 +124,6 @@ export interface FacultyAccent {
 	foreground: string;
 }
 
-/** Accent colors, or null when no faculty is assigned (blue fallback). */
 export function getFacultyAccent(
 	facultyName: string | null | undefined,
 ): FacultyAccent | null {

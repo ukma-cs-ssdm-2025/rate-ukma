@@ -12,7 +12,6 @@ interface InstructorQuickPicksProps {
 	readonly onPick: (instructorId: string) => void;
 }
 
-/** Teachers other students named on this course, one tap from the picker. */
 export function InstructorQuickPicks({
 	instructors,
 	onPick,

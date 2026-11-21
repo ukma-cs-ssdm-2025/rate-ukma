@@ -23,20 +23,16 @@ import { formatInstructorName } from "../formatInstructorName";
 const SEARCH_DEBOUNCE_MS = 200;
 
 interface InstructorFilterSelectProps {
-	/** Selected instructor id, or "" for none. */
 	readonly value: string;
 	readonly onChange: (next: string) => void;
 	readonly placeholder?: string;
 	readonly searchPlaceholder?: string;
 	readonly emptyText?: string;
 	readonly className?: string;
-	/** List only instructors mentioned in ratings (courses filter). */
 	readonly mentionedOnly?: boolean;
 	readonly "data-testid"?: string;
 }
 
-/** Single-select instructor picker for the courses filter: server search +
- * infinite scroll over the full directory (not a truncated top-N list). */
 function InstructorFilterSelect({
 	value,
 	onChange,
@@ -67,8 +63,6 @@ function InstructorFilterSelect({
 		return () => unlock();
 	}, [open]);
 
-	// Resolve the selected instructor's name — it may not be in the loaded
-	// page (e.g. when the id comes from the URL on first load).
 	const { data: selected } = useInstructorsRetrieve(value, {
 		query: { enabled: Boolean(value) },
 	});
@@ -96,7 +90,6 @@ function InstructorFilterSelect({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				{/* A div, not a button — the clear control is a button. */}
 				<div
 					role="combobox"
 					tabIndex={0}

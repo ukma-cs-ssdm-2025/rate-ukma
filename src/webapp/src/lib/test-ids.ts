@@ -1,55 +1,13 @@
-/**
- * Test ID utilities for E2E testing
- *
- * This module provides helpers for creating consistent data-testid attributes
- * throughout the application to support reliable E2E tests.
- *
- * Convention:
- * - Use kebab-case: `course-filters-panel`
- * - End with element type suffix: `-button`, `-input`, `-modal`, etc.
- * - Keep IDs stable and semantic (avoid dynamic/internal values)
- * - Structure: `<feature>-<component>-<element>-<type>`
- *
- * @example
- * // Creating test IDs
- * const testIds = createTestIds('rating-form', ['submit-button', 'cancel-button', 'comment-input']);
- * // Result: { submitButton: 'rating-form-submit-button', cancelButton: 'rating-form-cancel-button', ... }
- *
- * // Using in components
- * <Button data-testid={testIds.submitButton}>Submit</Button>
- *
- * // Using getTestId helper for simple cases
- * <Input data-testid={getTestId('search', 'input')} />
- */
-
-/**
- * Creates a test ID string from component and element parts
- */
 export function getTestId(...parts: string[]): string {
 	return parts.filter(Boolean).join("-");
 }
 
-/**
- * Transforms kebab-case to camelCase for object keys
- * Note: This assumes input is kebab-case with lowercase letters (e.g., 'submit-button')
- */
 function toCamelCase(str: string): string {
 	return str.replaceAll(/-([a-zA-Z])/g, (_match: string, char: string) =>
 		char.toUpperCase(),
 	);
 }
 
-/**
- * Creates a typed object of test IDs for a component
- *
- * @param prefix - Component prefix (e.g., 'rating-form', 'course-table')
- * @param ids - Array of element identifiers in kebab-case
- * @returns Object with camelCase keys mapping to full test ID strings
- *
- * @example
- * const testIds = createTestIds('login', ['submit-button', 'email-input']);
- * // Returns: { submitButton: 'login-submit-button', emailInput: 'login-email-input' }
- */
 export function createTestIds<T extends string>(
 	prefix: string,
 	ids: readonly T[],
@@ -59,13 +17,7 @@ export function createTestIds<T extends string>(
 	);
 }
 
-/**
- * Pre-defined test IDs for the application
- *
- * Organized by feature/component for easy discovery and consistent usage.
- */
 export const testIds = {
-	// Login page
 	login: {
 		microsoftButton: "login-microsoft-button",
 		form: "login-form",
@@ -77,13 +29,11 @@ export const testIds = {
 		errorMessage: "login-error-message",
 	},
 
-	// Auth pages backdrop (course dots and their tooltips)
 	authShell: {
 		dot: "auth-shell-dot",
 		tooltip: "auth-shell-tooltip",
 	},
 
-	// Header / Navigation
 	header: {
 		root: "header",
 		logo: "header-logo",
@@ -97,7 +47,6 @@ export const testIds = {
 		logoutButton: "header-logout-button",
 	},
 
-	// Courses page
 	courses: {
 		searchInput: "courses-search-input",
 		table: "courses-table",
@@ -114,7 +63,6 @@ export const testIds = {
 		retryButton: "courses-retry-button",
 	},
 
-	// Course filters
 	filters: {
 		panel: "filters-panel",
 		drawer: "filters-drawer",
@@ -139,7 +87,6 @@ export const testIds = {
 		educationLevelToggle: "filters-education-level-toggle",
 	},
 
-	// Course details page
 	courseDetails: {
 		title: "course-details-title",
 		teachers: "course-details-teachers",
@@ -152,7 +99,6 @@ export const testIds = {
 		noReviewsMessage: "course-details-no-reviews-message",
 	},
 
-	// Rating modal and form
 	rating: {
 		modal: "rating-modal",
 		modalTitle: "rating-modal-title",
@@ -169,7 +115,6 @@ export const testIds = {
 		deleteButton: "rating-delete-button",
 	},
 
-	// Rating comments
 	comments: {
 		toggleButton: "rating-comments-toggle-button",
 		item: "rating-comments-item",
@@ -182,14 +127,12 @@ export const testIds = {
 		deleteButton: "rating-comments-delete-button",
 	},
 
-	// Delete confirmation dialog
 	deleteDialog: {
 		root: "delete-dialog",
 		confirmButton: "delete-dialog-confirm-button",
 		cancelButton: "delete-dialog-cancel-button",
 	},
 
-	// My ratings page
 	myRatings: {
 		header: "my-ratings-header",
 		list: "my-ratings-list",
@@ -203,7 +146,6 @@ export const testIds = {
 		errorState: "my-ratings-error-state",
 	},
 
-	// Feed page
 	feed: {
 		list: "feed-list",
 		skeleton: "feed-skeleton",
@@ -213,7 +155,6 @@ export const testIds = {
 		unavailableState: "feed-unavailable-state",
 	},
 
-	// Notifications
 	notifications: {
 		bellTrigger: "notifications-bell-trigger",
 		panel: "notifications-panel",
@@ -228,19 +169,16 @@ export const testIds = {
 		mobilePanel: "notifications-mobile-panel",
 	},
 
-	// Homepage promo banner
 	promo: {
 		banner: "promo-banner",
 		link: "promo-banner-link",
 		dismissButton: "promo-banner-dismiss-button",
 	},
 
-	// Footer
 	footer: {
 		repoLink: "footer-repo-link",
 	},
 
-	// Common / Shared
 	common: {
 		loadingSpinner: "loading-spinner",
 		infiniteScrollLoader: "infinite-scroll-loader",
@@ -253,8 +191,5 @@ export const testIds = {
 	},
 } as const;
 
-/**
- * Type helper to get test ID keys for a specific feature
- */
 export type TestIdKeys<T extends keyof typeof testIds> =
 	keyof (typeof testIds)[T];

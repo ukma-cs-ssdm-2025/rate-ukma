@@ -19,8 +19,6 @@ function CollapsibleTrigger({
 	);
 }
 
-// Height animates from Radix's measured content height; padding on this element
-// would jump at the ends of the animation, so callers pad an inner wrapper.
 function CollapsibleContent({
 	className,
 	...props

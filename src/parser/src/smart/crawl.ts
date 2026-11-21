@@ -35,7 +35,7 @@ export class SmartCrawlFailed extends Schema.TaggedError<SmartCrawlFailed>()(
 /** Fetches the smart.ukma lists into one run, or finishes the run a crash
  *  left open, which keeps the day it started under. Any failed list fails
  *  the run. */
-export const crawlSmart = Effect.fn("crawlSmart")(function* () {
+export const crawlSmart = Effect.fn("Smart.crawlSmart")(function* () {
 	const store = yield* CrawlStore;
 	const smart = yield* SmartClient;
 
@@ -84,18 +84,18 @@ const SMART_INTERVAL = Duration.hours(24);
 
 /** The wait before the next smart.ukma crawl, as `untilNextCrawl` counts it
  *  for САЗ. */
-export const untilNextSmartCrawl = Effect.fn("untilNextSmartCrawl")(function* (
-	triedAt: number | undefined,
-) {
-	const store = yield* CrawlStore;
-	const now = yield* Clock.currentTimeMillis;
+export const untilNextSmartCrawl = Effect.fn("Smart.untilNextSmartCrawl")(
+	function* (triedAt: number | undefined) {
+		const store = yield* CrawlStore;
+		const now = yield* Clock.currentTimeMillis;
 
-	const sinceTry =
-		triedAt === undefined ? undefined : Duration.millis(now - triedAt);
+		const sinceTry =
+			triedAt === undefined ? undefined : Duration.millis(now - triedAt);
 
-	return crawlDelay(
-		SMART_INTERVAL,
-		yield* store.lastCrawl(SMART_SOURCE),
-		sinceTry,
-	);
-});
+		return crawlDelay(
+			SMART_INTERVAL,
+			yield* store.lastCrawl(SMART_SOURCE),
+			sinceTry,
+		);
+	},
+);

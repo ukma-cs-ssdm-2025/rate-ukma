@@ -282,6 +282,7 @@ const isRefusal = (cause: Cause.Cause<unknown>) => {
  *  Postgres refuses it, each half is written on its own, down to the pages it
  *  refuses; such a page keeps its last good rows, like a page that fails to
  *  parse. */
+// oxlint-disable-next-line anti-slop-effect/require-named-effect-fn -- the SQL spans of OfferingStore.write cover it.
 const writePages = Effect.fnUntraced(function* (
 	pages: ReadonlyArray<CoursePage>,
 	filters: CatalogFilters,
@@ -321,7 +322,7 @@ const writePages = Effect.fnUntraced(function* (
  *  that fails keeps the rows of its last good parse, and the failure is
  *  recorded with its snapshot. Runs take turns, so each reads a catalog page
  *  at least as new as the last. */
-export const parseOfferings = Effect.fn("parseOfferings")(function* (
+export const parseOfferings = Effect.fn("Offerings.parseOfferings")(function* (
 	trigger: ParseTrigger,
 ) {
 	const store = yield* OfferingStore;
@@ -435,4 +436,4 @@ export const reparseOfferings = Effect.gen(function* () {
 	}
 
 	return report;
-});
+}).pipe(Effect.withSpan("Offerings.reparse"));

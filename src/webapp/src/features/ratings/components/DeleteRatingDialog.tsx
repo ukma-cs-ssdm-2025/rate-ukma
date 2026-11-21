@@ -57,7 +57,6 @@ export function DeleteRatingDialog({
 			queryClient.invalidateQueries({
 				queryKey: getCoursesRetrieveQueryKey(courseId),
 			}),
-			// Prefix match also covers the offering-scoped variant.
 			queryClient.invalidateQueries({
 				queryKey: getCoursesInstructorsRetrieveQueryKey(courseId),
 			}),

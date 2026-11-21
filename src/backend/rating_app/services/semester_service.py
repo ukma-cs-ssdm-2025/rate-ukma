@@ -155,7 +155,7 @@ class SemesterService:
                 continue
 
             label = SemesterTerm(term).label if term in SemesterTerm.values else str(term).title()
-            term_labels[term] = label  # type: ignore
+            term_labels[term] = label
 
         return term_labels
 

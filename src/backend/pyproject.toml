@@ -76,8 +76,6 @@ dev = [
     # dev-only
     "pre-commit==4.3.0",
     "ipython>=9.4.0",
-    "django-debug-toolbar>=4.4.0",
-    "django-stubs>=5.1.0",
     "locust>=2.32.0",
 ]
 
@@ -101,6 +99,8 @@ select = [
     "UP", # use more modern Python
     "N",  # naming conventions
     "PT", # pytest style, see docs/testing/backend-tests.md
+    "PGH003", # no blanket type: ignore
+    "G004", # no f-strings in logging calls
 ]
 
 [tool.ruff.format]
@@ -151,6 +151,8 @@ exclude = [
     "rating_app/management/commands/generate_mock_data.py",
 ]
 typeCheckingMode = "standard"
+enableTypeIgnoreComments = false
+reportUnnecessaryTypeIgnoreComment = "error"
 pythonVersion = "3.12"
 
 [tool.coverage.run]

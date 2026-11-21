@@ -18,7 +18,7 @@ Runbook for refreshing Rate UKMA's courses, offerings, students and enrollments 
 ## Prerequisites
 
 - `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` of a САЗ account in `src/.env`.
-- Redis running for the ingest (`REDIS_HOST`, `docs/onboarding.md` section 3).
+- Redis running for the ingest (`docs/onboarding.md` section 3).
 - The backend deployed on the target host includes PR #819, which keeps students on a reused email apart (D14). Check the image tag of `rate_ukma_django_backend_release`.
 - SSH access to `rate-ukma-staging` and `rate-ukma-live`.
 

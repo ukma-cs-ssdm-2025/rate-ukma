@@ -10,9 +10,6 @@ interface CourseTeachersRowProps {
 	readonly teachers: ReadonlyArray<CourseTeacher>;
 }
 
-/** "Викладачі: …" under the course title, names only; why a teacher is
- *  listed shows on hover and is read out by screen readers. Nothing when no
- *  teacher qualifies. */
 export function CourseTeachersRow({ teachers }: CourseTeachersRowProps) {
 	if (teachers.length === 0) {
 		return null;

@@ -13,9 +13,9 @@ The system needs to support features such as course ratings, anonymous reviews, 
 
 **Forces**:
 
--   [NFR-PE-001](../requirements.md#nfr-pe-001) requires page load to be within 1.5 seconds. The architecture must support low-latency responses for course browsing, rating submission, and analytics.
+-   [NFR-PE-001](../../requirements/requirements.md#nfr-pe-001) requires page load to be within 1.5 seconds. The architecture must support low-latency responses for course browsing, rating submission, and analytics.
     
--  [NFR-R-002](../requirements.md#nfr-r-002) requires 99.5% monthly uptime and daily backups ([NFR-R-004](../requirements.md#nfr-r-004)) require a simple, maintainable system that minimizes operational complexity.
+-  [NFR-R-002](../../requirements/requirements.md#nfr-r-002) requires 99.5% monthly uptime and daily backups ([NFR-R-004](../../requirements/requirements.md#nfr-r-004)) require a simple, maintainable system that minimizes operational complexity.
     
 -  Small student team with limited experience favors a simple and widely-understood architecture. Complex architectures (microservices, event-driven) would increase risk and slow development.
     

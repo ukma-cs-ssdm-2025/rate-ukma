@@ -145,7 +145,7 @@ Then restart the containers - migrations are run on startup
 
 ### Pre-commit Hooks Setup
 
-Pre-commit is installed with other dependencies. To use it:
+Pre-commit is installed with the `dev` extra (`uv sync --extra dev`). To use it:
 
 1. Install git hooks:
 

@@ -39,8 +39,6 @@ export function UserRatingCard({
 		return DEFAULT_STUDENT_NAME;
 	};
 	const displayName = getUserDisplayName();
-	// The course page passes the full read model; right after saving, only the
-	// inline rating from the student's courses is known.
 	const read = "course_offering_year" in rating ? rating : null;
 
 	return (

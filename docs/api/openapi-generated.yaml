@@ -5255,9 +5255,6 @@ components:
         fe_feed:
           type: boolean
           description: Whether `fe_feed` is enabled for the current user.
-        fe_faculty_colors:
-          type: boolean
-          description: Whether `fe_faculty_colors` is enabled for the current user.
         fe_rate_flow:
           type: boolean
           description: Whether `fe_rate_flow` is enabled for the current user.
@@ -5270,7 +5267,6 @@ components:
             user.
       required:
       - fe_course_instructors
-      - fe_faculty_colors
       - fe_feed
       - fe_rate_flow
       - fe_ukma_data

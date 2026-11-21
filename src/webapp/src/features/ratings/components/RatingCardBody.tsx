@@ -42,7 +42,6 @@ interface RatingCardBodyProps {
 	readonly voteDisabledReason?: string;
 }
 
-// A badge keeps the offering apart from the review date beside it.
 function OfferingBadge({
 	year,
 	term,
@@ -123,8 +122,6 @@ export function RatingCardBody({
 						<span className="shrink-0 font-medium">Викладач:</span>
 						<span className="min-w-0 break-words">{instructor}</span>
 						<Tooltip>
-							{/* h-5 matches the text-sm line, so the icon centres on the
-							    first line instead of riding above it. */}
 							<TooltipTrigger asChild>
 								<button
 									type="button"

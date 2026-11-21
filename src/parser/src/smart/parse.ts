@@ -18,7 +18,7 @@ const PATHS: Readonly<Record<SmartList, string>> = {
  *  Nothing to do before the first crawl. A refused list is recorded as the
  *  parse's failure and fails it, leaving the tables as they were; a parse
  *  that finds newer lists stored meanwhile writes nothing. */
-export const parseSmart = Effect.fn("parseSmart")(function* (
+export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 	trigger: ParseTrigger,
 ) {
 	const store = yield* SmartStore;

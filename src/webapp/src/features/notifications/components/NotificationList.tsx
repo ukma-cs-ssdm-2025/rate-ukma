@@ -27,8 +27,6 @@ interface NotificationListProps {
 	onLoadMore?: () => void;
 }
 
-// Likes and dislikes read at a glance by colour, so each event keeps its tone
-// even once read; unread weight comes from the bold headline instead.
 const EVENT_ICONS: Record<
 	EventTypeEnum,
 	{ icon: typeof ThumbsUp; tone: string }
@@ -164,8 +162,6 @@ export function NotificationList({
 	);
 }
 
-// Comment notifications may carry the comment text as a trailing quoted
-// segment of the message; split it off so the headline stays short.
 interface CommentQuote {
 	title: string;
 	quote?: string;

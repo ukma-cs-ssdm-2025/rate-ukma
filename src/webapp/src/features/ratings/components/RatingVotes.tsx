@@ -14,13 +14,14 @@ import {
 } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 
+const VOTE_SYNC_DEBOUNCE_MS = 500;
+
 interface RatingVotesProps {
 	ratingId: string;
 	courseId?: string;
 	initialUpvotes?: number;
 	initialDownvotes?: number;
 	initialUserVote?: RatingVoteStrType | null;
-	/** Set when the viewer cannot vote; shown as the arrows' tooltip. */
 	disabledReason?: string;
 	inline?: boolean;
 }
@@ -33,7 +34,6 @@ interface VoteProps {
 	readonly onClick: () => void;
 }
 
-// The new count slides in from the side it moved towards; the first render stays still.
 function VoteCount({ count }: Readonly<{ count: number }>) {
 	const [last, setLast] = useState({ count, rose: true, changed: false });
 	if (count !== last.count) {
@@ -65,7 +65,6 @@ function Vote({
 }: Readonly<VoteProps>) {
 	const Icon = isUpvote ? ArrowBigUp : ArrowBigDown;
 	const disabled = disabledReason !== undefined;
-	// The resting tone doubles as the hover tone, so disabled arrows do not react.
 	const restingTone = active
 		? "bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary"
 		: "text-muted-foreground hover:bg-transparent hover:text-muted-foreground";
@@ -116,11 +115,9 @@ export function RatingVotes({
 	inline = false,
 }: Readonly<RatingVotesProps>) {
 	const queryClient = useQueryClient();
-	// The "optimistic" vote state - updates immediately on click
 	const [userVote, setUserVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
-	// The "authority" vote state - what is actually on the server
 	const [serverVote, setServerVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
@@ -128,17 +125,14 @@ export function RatingVotes({
 	const createVote = useRatingsVotesUpdate();
 	const deleteVote = useRatingsVotesDestroy();
 
-	// Store stable references to mutation functions
 	const createVoteRef = useRef(createVote.mutateAsync);
 	const deleteVoteRef = useRef(deleteVote.mutateAsync);
 
-	// Keep refs updated
 	useEffect(() => {
 		createVoteRef.current = createVote.mutateAsync;
 		deleteVoteRef.current = deleteVote.mutateAsync;
 	}, [createVote.mutateAsync, deleteVote.mutateAsync]);
 
-	// Counts derive from the server snapshot minus its own vote plus the local one.
 	const upvotes =
 		initialUpvotes +
 		(initialUserVote === RatingVoteStrType.UPVOTE ? -1 : 0) +
@@ -148,13 +142,11 @@ export function RatingVotes({
 		(initialUserVote === RatingVoteStrType.DOWNVOTE ? -1 : 0) +
 		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
 
-	// Sync local state with props if they change (e.g. after a re-fetch from elsewhere)
 	useEffect(() => {
 		setUserVote(initialUserVote);
 		setServerVote(initialUserVote);
 	}, [initialUserVote]);
 
-	// Debounced sync effect
 	useEffect(() => {
 		if (userVote === serverVote) {
 			return;
@@ -172,7 +164,6 @@ export function RatingVotes({
 						data: { vote_type: userVote },
 					});
 				}
-				// Sync authority state on success only if still mounted
 				if (isMounted) {
 					setServerVote(userVote);
 					if (courseId) {
@@ -183,18 +174,16 @@ export function RatingVotes({
 					}
 				}
 			} catch (error) {
-				// Only handle error if still mounted
 				if (isMounted) {
 					console.error("Failed to sync vote with server:", error);
 					toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
-					// Revert optimistic state on error
 					setUserVote(serverVote);
 				}
 			}
 		};
 		const timer = setTimeout(() => {
 			void sync();
-		}, 500); // 500ms debounce
+		}, VOTE_SYNC_DEBOUNCE_MS);
 
 		return () => {
 			clearTimeout(timer);

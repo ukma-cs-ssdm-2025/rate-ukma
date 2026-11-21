@@ -282,7 +282,7 @@ export const planLinks = (
  *  turn. Ids stay: a course is found by its key, and only a new key, a moved
  *  offering or an emptied course takes a change number. An offering that is
  *  removed keeps the course it had. */
-export const groupCourses = Effect.fn("groupCourses")(function* (
+export const groupCourses = Effect.fn("Courses.groupCourses")(function* (
 	source: ChangeSource,
 ) {
 	const store = yield* CourseStore;

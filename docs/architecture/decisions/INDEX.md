@@ -20,8 +20,9 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0011](0011-saz-data-service.md) - САЗ Data Through a Separate UKMA Data Service
 * [ADR-0012](0012-inp-plan-storage.md) - ІНП Plan Stored in the Backend as One Record per Planned Course
 * [ADR-0013](0013-student-identity.md) - A Student Is Matched by Programme Record and First Name, Not by Email
-* [ADR-0014](0014-parser-observability.md) - UKMA Data Staging Observability with Grafana Alloy and Grafana Cloud
+* [ADR-0014](0014-parser-observability.md) - UKMA Data Observability with Grafana Alloy and Grafana Cloud
 * [ADR-0015](0015-parser-single-live-environment.md) - One Live Environment for UKMA Data, Promoted from Staging
 * [ADR-0016](0016-sign-in-log.md) - Record Every Sign-in as a `SignIn` Row
 * [ADR-0017](0017-webapp-layers.md) - Webapp Layers Enforced by Lint
-* [ADR-0018](0018-planned-teachers-and-in-app-scheduler.md) - Planned Teachers Come from UKMA Data, Mirrored Daily by an In-App Scheduler
+* [ADR-0018](0018-webapp-decisions-from-comments.md) - Webapp Decisions Recorded Here Instead of in Code Comments
+* [ADR-0019](0019-planned-teachers-and-in-app-scheduler.md) - Planned Teachers Come from UKMA Data, Mirrored Daily by an In-App Scheduler

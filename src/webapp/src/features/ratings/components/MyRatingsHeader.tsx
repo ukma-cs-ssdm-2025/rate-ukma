@@ -9,7 +9,6 @@ import { testIds } from "@/lib/test-ids";
 interface MyRatingsHeaderProps {
 	totalCourses: number;
 	ratedCourses: number;
-	/** Unrated courses whose rating window is already open. */
 	rateableLeft?: number;
 	onlyUnrated?: boolean;
 	onOnlyUnratedChange?: (next: boolean) => void;
@@ -17,7 +16,6 @@ interface MyRatingsHeaderProps {
 }
 
 function ProgressBar({ share }: Readonly<{ share: number }>) {
-	// Starts empty and fills after the first paint so the bar sweeps in.
 	const [shown, setShown] = useState(0);
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setShown(share));
@@ -45,7 +43,6 @@ export function MyRatingsHeader({
 	onOnlyUnratedChange,
 	isLoading = false,
 }: Readonly<MyRatingsHeaderProps>) {
-	// The «Лише неоцінені» button already counts what can be rated now.
 	const hint =
 		rateableLeft === 0 && ratedCourses < totalCourses
 			? "решта відкриється згодом"
@@ -74,7 +71,6 @@ export function MyRatingsHeader({
 				description={
 					isLoading ? (
 						<>
-							{/* A span: the description renders inside a paragraph. */}
 							<span className="block h-6 w-28 animate-pulse rounded-md bg-accent" />
 							<ProgressBar share={0} />
 						</>

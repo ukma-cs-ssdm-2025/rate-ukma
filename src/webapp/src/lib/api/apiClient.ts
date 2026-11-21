@@ -10,7 +10,7 @@ export const authorizedHttpClient = axios.create({
 	baseURL: env.VITE_API_BASE_URL,
 	timeout: 60_000,
 	paramsSerializer: {
-		indexes: null, // serialize arrays as repeated keys: a=1&a=2 (not a[]=1&a[]=2)
+		indexes: null,
 	},
 });
 
@@ -80,8 +80,6 @@ const handleSessionExpiry = (error: unknown): boolean => {
 	if (requestUrl?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) {
 		return false;
 	}
-	// A signed-in user who is not a superuser gets 403 here; the staff section
-	// shows its own "superusers only" page instead of signing them out.
 	if (status === 403 && requestUrl?.startsWith(UKMA_DATA_PATH_PREFIX)) {
 		return false;
 	}
@@ -100,13 +98,10 @@ const logErrorToSentry = (error: unknown) => {
 	const status = error.response?.status;
 	const url = error.config?.url;
 
-	// 401 on the session probe is an expected "not authenticated" state — skip to avoid noise
 	if (status === 401 && url?.includes(AUTH_SESSION_ENDPOINT_SUBSTRING)) {
 		return;
 	}
 
-	// Capture a plain Error (not the raw AxiosError) to prevent sending PII/large
-	// payloads from config.data (request body) and response.data to Sentry.
 	Sentry.captureException(new Error(error.message), {
 		level: "error",
 		tags: {

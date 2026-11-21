@@ -20,10 +20,6 @@ const NATURAL_SCIENCES = "Факультет природничих наук";
 const SOCIAL_SCIENCES = "Факультет соціальних наук і соціальних технологій";
 const HEALTH = "Факультет охорони здоров`я, соціальної роботи і психології";
 
-// Echoes the course map: each dot is a real course, placed like on the map and
-// coloured by its faculty. Positions are percentages, so the scatter fits any screen
-// without cropping. Ratings and review counts are made up for illustration.
-// [x, y, colour, course, faculty, usefulness, difficulty, ratings count]
 const DOTS = [
 	[
 		11,
@@ -153,42 +149,29 @@ const DOTS = [
 	],
 ] as const;
 
-// Like on the map, a dot's area grows with the number of reviews.
 const DOT_REM_PER_SQRT_RATING = 0.5;
 
 function dotSize(ratingsCount: number) {
 	return Math.sqrt(ratingsCount) * DOT_REM_PER_SQRT_RATING;
 }
 
-// Dots that take turns showing their tooltip on their own, one per faculty. They sit
-// in the edge zones or below the form, so a tooltip never covers it.
 const SPOTLIGHTS = [0, 8, 2, 13, 5, 11, 10];
 
-// Share of the width on each side where a tooltip has room to open towards the centre.
 const EDGE_ZONE = 17;
-// Below this line there is no form, so a tooltip is free to open towards the centre.
 const BOTTOM_ZONE = 80;
-// Faculty names longer than this get a wider tooltip, so the badge stays on one line.
 const LONG_FACULTY_NAME = 50;
 
 export const SPOTLIGHT_START_MS = 1200;
 export const SPOTLIGHT_SHOW_MS = 3200;
-// Pause with nothing shown, so one tooltip has left before the next one arrives.
 export const SPOTLIGHT_REST_MS = 900;
-// Longer pause after the visitor stops hovering, before the carousel moves on.
 export const SPOTLIGHT_RESUME_MS = 2000;
 const TOOLTIP_DECIMAL_PLACES = 2;
 
-// Tooltips only fit beside and below the form on wide, tall enough screens, and the
-// carousel is motion the visitor did not ask for.
 const SPOTLIGHT_MEDIA =
 	"(min-width: 80rem) and (min-height: 38rem) and (prefers-reduced-motion: no-preference)";
 
-// The dot the carousel is currently on, or null before it starts, while it is paused
-// on a screen that does not qualify, or when motion is reduced.
 function useSpotlightDot(paused: boolean) {
 	const [enabled, setEnabled] = useState(false);
-	// Even steps show a dot, odd steps are the rest after it.
 	const [step, setStep] = useState(-1);
 
 	useEffect(() => {
@@ -202,7 +185,6 @@ function useSpotlightDot(paused: boolean) {
 		return () => media.removeEventListener?.("change", sync);
 	}, []);
 
-	// Pausing drops the dot being shown, so the carousel resumes with the next one.
 	const interrupted = useRef(false);
 	useEffect(() => {
 		if (!paused) {
@@ -234,9 +216,7 @@ function useSpotlightDot(paused: boolean) {
 	return enabled && step >= 0 && step % 2 === 0 ? SPOTLIGHTS[step / 2] : null;
 }
 
-// Gap kept between a tooltip and the edge of the shell.
 const TOOLTIP_MARGIN_PX = 8;
-// Dots above this line prefer to open their tooltip downwards.
 const OPENS_DOWN_ABOVE = 55;
 
 type TooltipBox = {
@@ -247,8 +227,6 @@ type TooltipBox = {
 	rem: number;
 };
 
-// Sizes of a tooltip and of the shell it is placed in, or null until both are laid out
-// (they are not rendered below the `xl` breakpoint).
 function useTooltipBox() {
 	const ref = useRef<HTMLDivElement>(null);
 	const [box, setBox] = useState<TooltipBox | null>(null);
@@ -309,8 +287,6 @@ function CourseTooltip({
 		DOTS[dot];
 	const facultyColors = getFacultyColors(faculty);
 	const [ref, box] = useTooltipBox();
-	// Like the map's tooltip: a corner of the card lands inside the dot. Edge dots open
-	// towards the centre, the rest open outwards, away from the form.
 	const insetRem = dotSize(ratingsCount) * 0.3;
 	const opensRight =
 		y >= BOTTOM_ZONE
@@ -322,8 +298,6 @@ function CourseTooltip({
 		const inset = insetRem * box.rem;
 		const dotLeft = (box.shellWidth * x) / 100;
 		const dotTop = (box.shellHeight * y) / 100;
-		// Open on the preferred side when the card fits there, otherwise on the side
-		// with more room.
 		const roomBelow = box.shellHeight - dotTop - inset - TOOLTIP_MARGIN_PX;
 		const roomAbove = dotTop - inset - TOOLTIP_MARGIN_PX;
 		const roomPreferred = opensDown ? roomBelow : roomAbove;
@@ -331,7 +305,6 @@ function CourseTooltip({
 		if (box.cardHeight > roomPreferred && roomOpposite > roomPreferred) {
 			opensDown = !opensDown;
 		}
-		// Whatever the side, never let the card leave the shell.
 		position = {
 			left: clamp(
 				opensRight ? dotLeft + inset : dotLeft - inset - box.cardWidth,
@@ -357,7 +330,6 @@ function CourseTooltip({
 			data-testid={testIds.authShell.tooltip}
 			data-state={visible ? "open" : "closed"}
 			style={{
-				// Until the card is measured it is placed by its corner alone.
 				...(position ?? {
 					...(opensRight
 						? { left: `calc(${x}% + ${insetRem}rem)` }
@@ -366,7 +338,6 @@ function CourseTooltip({
 						? { top: `calc(${y}% + ${insetRem}rem)` }
 						: { bottom: `calc(${100 - y}% + ${insetRem}rem)` }),
 				}),
-				// Unfolds out of the dot it belongs to.
 				transformOrigin: `${opensDown ? "top" : "bottom"} ${opensRight ? "left" : "right"}`,
 			}}
 			className={cn(
@@ -415,9 +386,6 @@ function CourseTooltip({
 
 function MapBackdrop() {
 	const [hoveredDot, setHoveredDot] = useState<number | null>(null);
-	// Hovering takes over from the carousel, which moves on to its next dot a moment
-	// after the pointer leaves. Both drive the same transitions, so one fades into the
-	// other.
 	const spotlightDot = useSpotlightDot(hoveredDot !== null);
 	const activeDot = hoveredDot ?? spotlightDot;
 
@@ -439,7 +407,6 @@ function MapBackdrop() {
 						}}
 						className={cn(
 							"absolute -translate-1/2 transition-[scale] duration-700 ease-in-out motion-reduce:transition-none xl:pointer-events-auto",
-							// Grows like a hovered point on the map while its tooltip is up.
 							activeDot === index && "xl:scale-115",
 						)}
 					>
@@ -470,7 +437,6 @@ export function AuthShell({ children }: Readonly<{ children: ReactNode }>) {
 	return (
 		<div className="relative isolate flex min-h-screen flex-col overflow-hidden bg-background">
 			<MapBackdrop />
-			{/* Empty areas let the pointer through to the dots behind. */}
 			<div className="pointer-events-none grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4">
 				<span aria-hidden="true" />
 				<span className="pointer-events-auto">

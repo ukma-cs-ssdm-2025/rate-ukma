@@ -6,8 +6,6 @@ import { usePromoBannerList } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 
 export function PromoBanner() {
-	// Visibility is the backend's call: the endpoint serves the active banner
-	// configured in admin, or null when there is none.
 	const { data } = usePromoBannerList();
 
 	const banner = data?.banner ?? null;

@@ -32,7 +32,7 @@ class CourseLinkParser(BaseParser):
 
     def _iter_course_matches(self, html: str) -> Iterator[re.Match]:
         if not html or not isinstance(html, str):
-            logger.warning("Invalid HTML input provided to _iter_course_matches")
+            logger.warning("invalid_html_input", function="_iter_course_matches")
             return
 
         soup = BeautifulSoup(html, "lxml")
@@ -61,10 +61,10 @@ class CourseLinkParser(BaseParser):
             return COURSE_PATH_PATTERN.match(path)
 
         except (ValueError, TypeError) as e:
-            logger.debug(f"Failed to parse href '{href}': {e}")
+            logger.debug("href_parse_failed", href=href, err=e)
             return None
         except Exception as e:
-            logger.warning(f"Unexpected error processing href '{href}': {e}")
+            logger.warning("href_processing_failed", href=href, err=e)
             return None
 
 

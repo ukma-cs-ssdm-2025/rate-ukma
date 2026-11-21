@@ -4,10 +4,7 @@ import {
 } from "@/lib/api/generated";
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
 
-// UKMA Data's largest page; the proxy caps a bigger limit to it anyway.
 export const PAGE = { limit: 1000 } as const;
-// A 502 or 503 shows its own state with a Retry button at once, not after
-// three backoffs.
 export const NO_RETRY = { query: { retry: false } } as const;
 
 export const caseKinds = Object.values(UkmaDataReviewCaseKindEnum);
@@ -34,8 +31,6 @@ export const SAFE_ANSWER_LABELS: Record<UkmaDataReviewCaseKindEnum, string> = {
 	removals_held: "нічого не вилучено",
 };
 
-// Every field of a generated read-only model is optional, though the proxy
-// always sends it.
 export const kindLabel = (kind: UkmaDataReviewCaseKindEnum | undefined) =>
 	kind ? CASE_KIND_LABELS[kind] : "—";
 export const statusLabel = (
@@ -47,7 +42,6 @@ export interface CaseFilter {
 	readonly status?: UkmaDataReviewCaseStatusEnum;
 }
 
-/** The proxy has no filters, so the list filters the page it got. */
 export function filterCases(
 	cases: ReadonlyArray<UkmaDataReviewCase>,
 	{ kind, status }: CaseFilter,
