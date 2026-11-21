@@ -1,5 +1,5 @@
 import { assert, layer } from "@effect/vitest";
-import { Effect, Layer, Redacted } from "effect";
+import { ConfigProvider, Effect, Layer, Redacted } from "effect";
 import { NodeHttpServer } from "@effect/platform-node";
 import {
 	HttpClient,
@@ -15,6 +15,7 @@ import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
 import { ListReader } from "../lists/ListReader.ts";
+import { StatsReader } from "../stats/StatsReader.ts";
 import { Api, ApiKeyAuth } from "./Api.ts";
 import {
 	ApiRoutes,
@@ -149,12 +150,23 @@ const TestLive = Layer.mergeAll(
 	Layer.empty.pipe(Layer.provide(HttpRouter.serve(ApiRoutes))),
 ).pipe(
 	Layer.provideMerge(
-		Layer.mergeAll(ListReader.layer, CourseStore.layer, AuthLive),
+		Layer.mergeAll(
+			ListReader.layer,
+			CourseStore.layer,
+			StatsReader.layer,
+			AuthLive,
+		),
 	),
 	Layer.provideMerge(NodeHttpServer.layerTest),
 	Layer.provideMerge(Layer.effectDiscard(seed)),
 	Layer.provideMerge(ChangeLog.layer),
 	Layer.provideMerge(TestDatabase(testDatabaseUrl)),
+	// The stats test expects the default interval, whatever the shell sets.
+	Layer.provideMerge(
+		ConfigProvider.layer(
+			ConfigProvider.fromEnvRecord({ CRAWL_INTERVAL: "24 hours" }),
+		),
+	),
 );
 
 const clientAs = Effect.fnUntraced(function* (scopes: ReadonlyArray<Scope>) {
@@ -272,6 +284,136 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 				assert.strictEqual(departments.items[0]?.facultyId, "fac_one");
 				assert.strictEqual(programmes.items[0]?.level, "bachelor");
 			}),
+		);
+
+		it.effect(
+			"counts each year's offerings, courses, students and teacher share",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
+					const next = sql`nextval('change_no_seq')`;
+
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							yield* sql`
+								INSERT INTO students (id, full_name, snapshot_id, change_no)
+								SELECT 'stu_one', 'Студент Вигаданий', snapshot_id, ${next}
+								FROM offerings WHERE id = 'off_930001'
+							`;
+							yield* sql`
+								INSERT INTO student_programmes (
+									id, saz_cdoc, student_id, spec_name, snapshot_id, change_no
+								)
+								SELECT 'spr_one', '990001', 'stu_one', 'Уявна інженерія',
+									snapshot_id, ${next}
+								FROM offerings WHERE id = 'off_930001'
+							`;
+							yield* sql`
+								INSERT INTO enrollments (
+									offering_id, student_programme_id, kind, status,
+									is_student_active, is_forced, grade, change_no
+								)
+								VALUES ('off_930001', 'spr_one', 'elective', 'enrolled',
+									true, false, 2, ${next})
+							`;
+							// Neither an unenrolled nor a removed enrollment counts.
+							yield* sql`
+								INSERT INTO student_programmes (
+									id, saz_cdoc, student_id, spec_name, snapshot_id, change_no
+								)
+								SELECT 'spr_two', '990002', 'stu_one', 'Уявна інженерія',
+									snapshot_id, ${next}
+								FROM offerings WHERE id = 'off_930001'
+							`;
+							yield* sql`
+								INSERT INTO enrollments (
+									offering_id, student_programme_id, kind, status,
+									is_student_active, is_forced, grade, change_no
+								)
+								VALUES ('off_930003', 'spr_one', 'elective', 'unenrolled',
+									true, false, 2, ${next}),
+									('off_930001', 'spr_two', 'elective', 'enrolled',
+									true, false, 2, ${next})
+							`;
+							yield* sql`
+								UPDATE enrollments SET removed_at = now(), change_no = ${next}
+								WHERE student_programme_id = 'spr_two'
+							`;
+							yield* sql`
+								INSERT INTO courses (
+									id, title, department_id, level, merged_into, merge_source,
+									change_no
+								)
+								VALUES ('crs_rule', 'Вигаданий курс 930009', 'dep_one',
+									'bachelor', 'crs_b', 'rule', ${next})
+							`;
+							yield* sql`
+								INSERT INTO review_cases (
+									kind, subject_id, candidates, safe_answer, status, change_no
+								)
+								VALUES
+									('student_match', 'stu_one', '[]', '{}', 'open', ${next}),
+									('course_match', 'crs_b', '[]', '{}', 'obsolete', ${next})
+							`;
+							yield* sql`
+								UPDATE offerings SET saz_teachers = ' ', change_no = ${next}
+								WHERE id = 'off_930003'
+							`;
+						}),
+					);
+					// A later smart.ukma run is not a САЗ crawl.
+					yield* sql`
+						INSERT INTO runs (source_part, status, finished_at)
+						VALUES ('smart-ukma:teachers', 'failed', ${new Date("2031-09-03T00:00:00Z")})
+					`;
+
+					const { client } = yield* clientAs(["catalog:read"]);
+					const before = Date.now();
+					const stats = yield* client.catalog.stats();
+
+					assert.deepStrictEqual(stats.years, [
+						{
+							academicYear: 2031,
+							offerings: 2,
+							courses: 1,
+							students: 1,
+							enrollments: 1,
+							teacherShare: 0.5,
+						},
+					]);
+					assert.deepStrictEqual(stats.mergedCourses, {
+						rule: 1,
+						decision: 1,
+					});
+					assert.deepStrictEqual(stats.openReviewCases, {
+						courseMatch: 0,
+						instructorMatch: 0,
+						studentMatch: 1,
+						removalsHeld: 0,
+					});
+					assert.deepStrictEqual(stats.lastCrawl, {
+						finishedAt: FINISHED_AT,
+						status: "succeeded",
+					});
+
+					// The seeded run started at insert, so the next one is a day later.
+					const nextIn = stats.nextCrawlAt.getTime() - before;
+					const day = 24 * 60 * 60 * 1000;
+
+					assert.isTrue(nextIn > day - 60_000 && nextIn <= day, `${nextIn}`);
+
+					// The later tests read the courses, review cases and runs.
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							yield* sql`DELETE FROM review_cases`;
+							yield* sql`DELETE FROM courses WHERE id = 'crs_rule'`;
+							yield* sql`
+								DELETE FROM runs WHERE source_part LIKE 'smart-ukma:%'
+							`;
+						}),
+					);
+				}),
 		);
 
 		it.effect(
