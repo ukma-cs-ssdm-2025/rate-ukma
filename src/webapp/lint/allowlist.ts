@@ -3,7 +3,6 @@ export const LINT_ALLOWLIST = {
 		"src/features/courses/components/CourseFiltersPanel.tsx",
 		"src/features/courses/components/CoursesScatterPlot.tsx",
 		"src/features/courses/components/CoursesTable.tsx",
-		"src/features/courses/hooks/useCourseFiltersData.ts",
 		"src/features/ratings/components/RatingComments.tsx",
 		"src/features/ratings/components/RatingForm.tsx",
 	],

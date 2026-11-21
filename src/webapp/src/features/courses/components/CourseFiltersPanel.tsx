@@ -29,10 +29,8 @@ import {
 } from "../courseFiltersParams";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
-import {
-	areFiltersActive,
-	useCourseFiltersData,
-} from "../hooks/useCourseFiltersData";
+import { areFiltersActive } from "../activeFilters";
+import { useCourseFiltersData } from "../hooks/useCourseFiltersData";
 import type {
 	CourseFiltersData,
 	EducationLevelToggle,
