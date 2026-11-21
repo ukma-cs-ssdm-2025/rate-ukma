@@ -4,20 +4,13 @@ import requests
 import structlog
 from pydantic import BaseModel, ValidationError
 
-from rating_app.application_schemas.ukma_data import (
+from rating_app.application_schemas import ukma_data_api as ud
+from rating_app.application_schemas.ukma_data_params import (
     UKMA_DATA_MAX_PAGE_SIZE,
-    UkmaDataDepartment,
-    UkmaDataFaculty,
     UkmaDataKey,
-    UkmaDataOffering,
-    UkmaDataOfferingInstructors,
-    UkmaDataPage,
     UkmaDataPageParams,
-    UkmaDataProgramme,
-    UkmaDataReviewCasePage,
     UkmaDataReviewCaseParams,
     UkmaDataStatus,
-    UkmaDataTerm,
 )
 from rating_app.exception.ukma_data_exceptions import (
     UkmaDataForbiddenError,
@@ -38,43 +31,43 @@ class UkmaDataService:
     `override_settings` reaches them.
     """
 
-    def list_terms(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataTerm]:
-        return self._get_page("/v1/terms", params, UkmaDataPage[UkmaDataTerm])
+    def list_terms(self, params: UkmaDataPageParams) -> ud.TermPage:
+        return self._get_page("/v1/terms", params, ud.TermPage)
 
-    def list_faculties(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataFaculty]:
-        return self._get_page("/v1/faculties", params, UkmaDataPage[UkmaDataFaculty])
+    def list_faculties(self, params: UkmaDataPageParams) -> ud.FacultyPage:
+        return self._get_page("/v1/faculties", params, ud.FacultyPage)
 
-    def list_departments(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataDepartment]:
-        return self._get_page("/v1/departments", params, UkmaDataPage[UkmaDataDepartment])
+    def list_departments(self, params: UkmaDataPageParams) -> ud.DepartmentPage:
+        return self._get_page("/v1/departments", params, ud.DepartmentPage)
 
-    def list_programmes(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataProgramme]:
-        return self._get_page("/v1/programmes", params, UkmaDataPage[UkmaDataProgramme])
+    def list_programmes(self, params: UkmaDataPageParams) -> ud.ProgrammePage:
+        return self._get_page("/v1/programmes", params, ud.ProgrammePage)
 
-    def list_offerings(self, params: UkmaDataPageParams) -> UkmaDataPage[UkmaDataOffering]:
-        return self._get_page("/v1/offerings", params, UkmaDataPage[UkmaDataOffering])
+    def list_offerings(self, params: UkmaDataPageParams) -> ud.OfferingPage:
+        return self._get_page("/v1/offerings", params, ud.OfferingPage)
 
     def list_offering_instructors(
         self, params: UkmaDataPageParams, *, year: int
-    ) -> UkmaDataPage[UkmaDataOfferingInstructors]:
+    ) -> ud.OfferingTeachersPage:
         """One academic year's offerings with their linked teachers; the route
         needs `instructors:read`."""
         return self._get_page(
             "/v1/offerings/instructors",
             params,
-            UkmaDataPage[UkmaDataOfferingInstructors],
+            ud.OfferingTeachersPage,
             extra={"year": year},
         )
 
     def get_key(self) -> UkmaDataKey:
         return self._get("/v1/key", {}, UkmaDataKey)
 
-    def list_review_cases(self, params: UkmaDataReviewCaseParams) -> UkmaDataReviewCasePage:
+    def list_review_cases(self, params: UkmaDataReviewCaseParams) -> ud.ReviewCasePage:
         """Cases of one status and kind, or all, with how many match across pages."""
         filters = {"status": params.status, "kind": params.kind}
         return self._get_page(
             "/v1/review-cases",
             params,
-            UkmaDataReviewCasePage,
+            ud.ReviewCasePage,
             extra={name: value for name, value in filters.items() if value is not None},
         )
 
@@ -83,12 +76,19 @@ class UkmaDataService:
         # Every list carries the same dataUpdatedAt (the latest successful run),
         # so the smallest page of the cheapest list is enough to read it.
         terms = self.list_terms(UkmaDataPageParams(limit=1))
-        return UkmaDataStatus(
-            key_id=key.id,
-            scopes=key.scopes,
-            key_expires_at=key.expires_at,
-            data_updated_at=terms.data_updated_at,
-        )
+        try:
+            return UkmaDataStatus.model_validate(
+                {
+                    "key_id": key.id,
+                    "scopes": key.scopes,
+                    "key_expires_at": key.expires_at,
+                    "data_updated_at": terms.data_updated_at,
+                }
+            )
+        except ValidationError as exc:
+            errors = exc.errors(include_input=False, include_url=False)
+            logger.warning("ukma_data_unexpected_response", path="/v1/key", errors=errors)
+            raise UkmaDataUnavailableError("UKMA Data sent an unexpected response.") from exc
 
     def _get_page[P: BaseModel](
         self,

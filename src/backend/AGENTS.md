@@ -8,6 +8,8 @@ After changing serializers or endpoints, regenerate the spec with:
 .venv/bin/python manage.py spectacular --file ../../docs/api/openapi-generated.yaml
 ```
 
+UKMA Data's models in `rating_app/application_schemas/ukma_data_api.py` are generated from `docs/parser-service/openapi.json`, the parser's checked-in spec, so never edit them by hand. When the parser's API changes, run `scripts/generate_ukma_data_models.sh` from `src/backend` and commit the regenerated file; the backend lint job runs the script and fails when the file is stale.
+
 ## Feature flags
 
 Backend flags are [django-waffle](https://waffle.readthedocs.io/) flags, evaluated per request user. A flag the webapp reads goes in `PUBLIC_FEATURE_FLAGS` (`rateukma/settings/_base.py`); that allowlist is the security boundary, so never put a server-only or sensitive flag there. Check server-only flags with `waffle.flag_is_active(request, name)`. Add, toggle and remove steps: `docs/feature-flags.md`.

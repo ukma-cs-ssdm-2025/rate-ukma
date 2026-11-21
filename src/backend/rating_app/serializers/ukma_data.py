@@ -1,151 +1,116 @@
-from typing import get_args
+"""DRF serializers that describe UKMA Data's generated pydantic models.
+
+drf-spectacular can read pydantic models directly, but it names the components
+after the generated classes (`OfferingPage`, `Kind1`, ...), while the webapp
+imports the `UkmaData*` names the hand-written serializers produced. These
+serializers take their fields from the generated models and only map pydantic
+types to DRF fields, so the API spec keeps its component names and the field
+lists stay in one place: the parser's OpenAPI spec.
+"""
+
+import datetime
+from enum import Enum
+from types import UnionType
+from typing import Any, Union, get_args, get_origin
 
 from rest_framework import serializers
 
-from rating_app.application_schemas.ukma_data import (
-    Control,
-    Level,
-    OfferingStatus,
-    ProgrammeKind,
-    ReviewCaseKind,
-    ReviewCaseStatus,
-    Season,
-)
+from pydantic import BaseModel
+
+from rating_app.application_schemas import ukma_data_api as ud
+from rating_app.application_schemas.ukma_data_params import UkmaDataStatus
+
+_SERIALIZERS: dict[type[BaseModel], type[serializers.Serializer]] = {}
 
 
-class UkmaDataTermSerializer(serializers.Serializer):
-    id = serializers.CharField(read_only=True)
-    code = serializers.CharField(read_only=True)
-    academic_year = serializers.IntegerField(read_only=True)
-    season = serializers.ChoiceField(choices=get_args(Season), read_only=True)
-    change_no = serializers.IntegerField(read_only=True)
+def _optional_parts(annotation: Any) -> tuple[tuple[Any, ...], bool]:
+    origin = get_origin(annotation)
+    if origin is not Union and origin is not UnionType:
+        return (annotation,), False
+    args = get_args(annotation)
+    present = tuple(arg for arg in args if arg is not type(None))
+    return present, len(present) != len(args)
 
 
-class UkmaDataFacultySerializer(serializers.Serializer):
-    id = serializers.CharField(read_only=True)
-    name = serializers.CharField(read_only=True)
-    saz_filter_id = serializers.CharField(read_only=True, allow_null=True)
-    change_no = serializers.IntegerField(read_only=True)
-    removed_at = serializers.DateTimeField(read_only=True, allow_null=True)
+def _enum(annotation: Any) -> type[Enum] | None:
+    if isinstance(annotation, type) and issubclass(annotation, Enum):
+        return annotation
+    return None
 
 
-class UkmaDataDepartmentSerializer(serializers.Serializer):
-    id = serializers.CharField(read_only=True)
-    name = serializers.CharField(read_only=True)
-    saz_filter_id = serializers.CharField(read_only=True, allow_null=True)
-    faculty_id = serializers.CharField(read_only=True, allow_null=True)
-    change_no = serializers.IntegerField(read_only=True)
-    removed_at = serializers.DateTimeField(read_only=True, allow_null=True)
+def _model(annotation: Any) -> type[BaseModel] | None:
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        return annotation
+    return None
 
 
-class UkmaDataProgrammeSerializer(serializers.Serializer):
-    id = serializers.CharField(read_only=True)
-    name = serializers.CharField(read_only=True)
-    level = serializers.ChoiceField(choices=get_args(Level), read_only=True, allow_null=True)
-    saz_filter_id = serializers.CharField(read_only=True, allow_null=True)
-    change_no = serializers.IntegerField(read_only=True)
-    removed_at = serializers.DateTimeField(read_only=True, allow_null=True)
+def _make_field(
+    annotation: Any, description: str | None, *, read_only: bool = True
+) -> serializers.Field:
+    present, optional = _optional_parts(annotation)
+    if len(present) == 1:
+        return _scalar_field(present[0], description, optional, read_only)
+    if all(part is float or _enum(part) for part in present):
+        return serializers.FloatField(
+            help_text=description, allow_null=optional, read_only=read_only
+        )
+    raise TypeError(f"UKMA Data serializer cannot describe {annotation!r}")
 
 
-class UkmaDataOfferingTermSerializer(serializers.Serializer):
-    term_id = serializers.CharField(read_only=True)
-    semesters = serializers.ListField(child=serializers.IntegerField(), read_only=True)
-    credits = serializers.FloatField(read_only=True)
-    hours_per_week = serializers.IntegerField(read_only=True, allow_null=True)
-    lecture_hours = serializers.IntegerField(read_only=True, allow_null=True)
-    seminar_hours = serializers.IntegerField(read_only=True, allow_null=True)
-    practice_hours = serializers.IntegerField(read_only=True, allow_null=True)
-    control = serializers.ChoiceField(choices=get_args(Control), read_only=True, allow_null=True)
+def _scalar_field(
+    annotation: Any, description: str | None, optional: bool, read_only: bool
+) -> serializers.Field:
+    options = {"help_text": description, "allow_null": optional, "read_only": read_only}
+    if annotation is Any:
+        return serializers.JSONField(**options)
+    if annotation is str:
+        return serializers.CharField(**options)
+    if annotation is int:
+        return serializers.IntegerField(**options)
+    if annotation is float:
+        return serializers.FloatField(**options)
+    if annotation is bool:
+        return serializers.BooleanField(**options)
+    if annotation is datetime.datetime:
+        return serializers.DateTimeField(**options)
+    if enum := _enum(annotation):
+        return serializers.ChoiceField(choices=[member.value for member in enum], **options)
+    if get_origin(annotation) is list:
+        (item,) = get_args(annotation)
+        if model := _model(item):
+            return _serializer_for(model)(many=True, allow_null=optional, read_only=read_only)
+        return serializers.ListField(
+            child=_make_field(item, None, read_only=False),
+            allow_null=optional,
+            read_only=read_only,
+        )
+    if model := _model(annotation):
+        return _serializer_for(model)(allow_null=optional, read_only=read_only)
+    raise TypeError(f"UKMA Data serializer cannot describe {annotation!r}")
 
 
-class UkmaDataOfferingProgrammeSerializer(serializers.Serializer):
-    programme_id = serializers.CharField(read_only=True)
-    kind = serializers.ChoiceField(choices=get_args(ProgrammeKind), read_only=True)
-
-
-class UkmaDataOfferingSerializer(serializers.Serializer):
-    id = serializers.CharField(read_only=True)
-    course_id = serializers.CharField(read_only=True, allow_null=True)
-    saz_code = serializers.CharField(read_only=True)
-    academic_year = serializers.IntegerField(read_only=True)
-    title = serializers.CharField(read_only=True)
-    faculty_id = serializers.CharField(read_only=True, allow_null=True)
-    department_id = serializers.CharField(read_only=True, allow_null=True)
-    level = serializers.ChoiceField(choices=get_args(Level), read_only=True)
-    format = serializers.CharField(read_only=True)
-    credits = serializers.FloatField(read_only=True)
-    hours = serializers.IntegerField(read_only=True)
-    study_year = serializers.IntegerField(read_only=True)
-    status = serializers.ChoiceField(choices=get_args(OfferingStatus), read_only=True)
-    is_practical = serializers.BooleanField(read_only=True)
-    annotation = serializers.CharField(read_only=True, allow_null=True)
-    max_students = serializers.IntegerField(read_only=True, allow_null=True)
-    max_groups = serializers.IntegerField(read_only=True, allow_null=True)
-    computed_max_students = serializers.IntegerField(read_only=True, allow_null=True)
-    group_size_min = serializers.IntegerField(read_only=True)
-    group_size_max = serializers.IntegerField(read_only=True)
-    enrolled_active = serializers.IntegerField(read_only=True, allow_null=True)
-    terms = UkmaDataOfferingTermSerializer(many=True, read_only=True)
-    programmes = UkmaDataOfferingProgrammeSerializer(many=True, read_only=True)
-    change_no = serializers.IntegerField(read_only=True)
-    removed_at = serializers.DateTimeField(read_only=True, allow_null=True)
-
-
-class UkmaDataReviewCaseSerializer(serializers.Serializer):
-    id = serializers.CharField(read_only=True)
-    kind = serializers.ChoiceField(choices=get_args(ReviewCaseKind), read_only=True)
-    subject_id = serializers.CharField(read_only=True)
-    candidates = serializers.JSONField(read_only=True, help_text="Ids only")
-    safe_answer = serializers.JSONField(read_only=True, help_text="What was published")
-    status = serializers.ChoiceField(choices=get_args(ReviewCaseStatus), read_only=True)
-    run_id = serializers.CharField(read_only=True, allow_null=True)
-    decision_id = serializers.CharField(read_only=True, allow_null=True)
-    opened_at = serializers.DateTimeField(read_only=True)
-    change_no = serializers.IntegerField(read_only=True)
-
-
-class UkmaDataPageSerializer(serializers.Serializer):
-    cursor = serializers.IntegerField(
-        read_only=True,
-        help_text="Pass as `after` for the next page; the last item's change number",
+def _serializer_for(model: type[BaseModel]) -> type[serializers.Serializer]:
+    cached = _SERIALIZERS.get(model)
+    if cached is not None:
+        return cached
+    fields = {
+        name: _make_field(info.annotation, info.description or None)
+        for name, info in model.model_fields.items()
+    }
+    prefix = "" if model.__name__.startswith("UkmaData") else "UkmaData"
+    serializer = type(
+        f"{prefix}{model.__name__}Serializer",
+        (serializers.Serializer,),
+        fields,
     )
-    has_more = serializers.BooleanField(read_only=True)
-    data_updated_at = serializers.DateTimeField(
-        read_only=True,
-        allow_null=True,
-        help_text="When UKMA Data last finished a successful read of its source",
-    )
+    _SERIALIZERS[model] = serializer
+    return serializer
 
 
-class UkmaDataTermPageSerializer(UkmaDataPageSerializer):
-    items = UkmaDataTermSerializer(many=True, read_only=True)
-
-
-class UkmaDataFacultyPageSerializer(UkmaDataPageSerializer):
-    items = UkmaDataFacultySerializer(many=True, read_only=True)
-
-
-class UkmaDataDepartmentPageSerializer(UkmaDataPageSerializer):
-    items = UkmaDataDepartmentSerializer(many=True, read_only=True)
-
-
-class UkmaDataProgrammePageSerializer(UkmaDataPageSerializer):
-    items = UkmaDataProgrammeSerializer(many=True, read_only=True)
-
-
-class UkmaDataOfferingPageSerializer(UkmaDataPageSerializer):
-    items = UkmaDataOfferingSerializer(many=True, read_only=True)
-
-
-class UkmaDataReviewCasePageSerializer(UkmaDataPageSerializer):
-    items = UkmaDataReviewCaseSerializer(many=True, read_only=True)
-    total = serializers.IntegerField(
-        read_only=True, help_text="Cases that match the filters, across every page"
-    )
-
-
-class UkmaDataStatusSerializer(serializers.Serializer):
-    key_id = serializers.CharField(read_only=True)
-    scopes = serializers.ListField(child=serializers.CharField(), read_only=True)
-    key_expires_at = serializers.DateTimeField(read_only=True)
-    data_updated_at = serializers.DateTimeField(read_only=True, allow_null=True)
+UkmaDataStatusSerializer = _serializer_for(UkmaDataStatus)
+UkmaDataTermPageSerializer = _serializer_for(ud.TermPage)
+UkmaDataFacultyPageSerializer = _serializer_for(ud.FacultyPage)
+UkmaDataDepartmentPageSerializer = _serializer_for(ud.DepartmentPage)
+UkmaDataProgrammePageSerializer = _serializer_for(ud.ProgrammePage)
+UkmaDataOfferingPageSerializer = _serializer_for(ud.OfferingPage)
+UkmaDataReviewCasePageSerializer = _serializer_for(ud.ReviewCasePage)

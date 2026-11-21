@@ -98,13 +98,15 @@ KEY = {
 
 
 def _page(*items, has_more=False, total=None):
-    return {
+    page = {
         "items": list(items),
         "cursor": items[-1]["changeNo"] if items else 0,
         "hasMore": has_more,
         "dataUpdatedAt": DATA_UPDATED_AT,
-        "total": len(items) if total is None else total,
     }
+    if total is not None:
+        page["total"] = total
+    return page
 
 
 def _snake_keys(value):
@@ -214,6 +216,21 @@ def test_offerings_returns_snake_case_page_when_superuser(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_offerings_response_keys_are_snake_case_for_the_webapp(
+    superuser_client, ukma_data, offerings_url
+):
+    ukma_data.reply("/v1/offerings", _page(OFFERING))
+
+    body = superuser_client.get(offerings_url).json()
+
+    assert set(body) == {"items", "cursor", "has_more", "data_updated_at"}
+    assert set(body["items"][0]) == set(_snake_keys(OFFERING))
+    assert set(body["items"][0]["terms"][0]) == set(_snake_keys(OFFERING["terms"][0]))
+    assert set(body["items"][0]["programmes"][0]) == set(_snake_keys(OFFERING["programmes"][0]))
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 @pytest.mark.parametrize(
     ("route", "upstream_path", "item", "field", "value"),
     [
@@ -234,7 +251,10 @@ def test_offerings_returns_snake_case_page_when_superuser(
 def test_list_returns_its_upstream_list_when_superuser(
     superuser_client, ukma_data, route, upstream_path, item, field, value
 ):
-    ukma_data.reply(upstream_path, _page(item))
+    ukma_data.reply(
+        upstream_path,
+        _page(item, total=1) if upstream_path == "/v1/review-cases" else _page(item),
+    )
 
     response = superuser_client.get(reverse(route))
 
@@ -333,7 +353,7 @@ def test_review_cases_forwards_filters_and_returns_the_total(superuser_client, u
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_review_cases_sends_no_filter_when_none_is_given(superuser_client, ukma_data):
-    ukma_data.reply("/v1/review-cases", _page(REVIEW_CASE))
+    ukma_data.reply("/v1/review-cases", _page(REVIEW_CASE, total=1))
 
     superuser_client.get(reverse("ukma-data-review-cases"))
 
@@ -354,9 +374,7 @@ def test_review_cases_returns_400_for_an_unknown_filter(superuser_client, ukma_d
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_review_cases_returns_502_when_the_total_is_missing(superuser_client, ukma_data):
-    page = _page(REVIEW_CASE)
-    del page["total"]
-    ukma_data.reply("/v1/review-cases", page)
+    ukma_data.reply("/v1/review-cases", _page(REVIEW_CASE))
 
     response = superuser_client.get(reverse("ukma-data-review-cases"))
 

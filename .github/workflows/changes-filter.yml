@@ -72,6 +72,8 @@ jobs:
           filters: |
             backend:
               - '${{ env.BACKEND_DIR }}/**'
+              # The backend generates its UKMA Data models from this spec.
+              - 'docs/parser-service/openapi.json'
             webapp:
               - '${{ env.WEBAPP_DIR }}/**'
               - '${{ env.OPENAPI_SCHEMA_FILE }}'
