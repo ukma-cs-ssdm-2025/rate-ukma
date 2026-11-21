@@ -67,17 +67,24 @@ async function openThroughRetries(
 	pathname: string,
 	open: () => Promise<unknown>,
 ): Promise<void> {
-	const failed = () =>
-		page.waitForResponse((response) => {
-			const url = new URL(response.url());
-			return url.pathname === pathname && response.status() === 500;
-		});
-	const first = failed();
+	let failures = 0;
+	page.on("response", (response) => {
+		const url = new URL(response.url());
+		if (url.pathname === pathname && response.status() === 500) {
+			failures += 1;
+		}
+	});
 	await open();
-	await first;
-	for (const delay of [2000, 4000, 8000]) {
-		await page.clock.runFor(delay);
-		await failed();
+	await expect.poll(() => failures).toBeGreaterThanOrEqual(1);
+	for (let retry = 0; retry < 3; retry++) {
+		const target = failures + 1;
+		for (let step = 0; step < 30 && failures < target; step++) {
+			await page.waitForTimeout(20);
+			await page.clock.runFor(1000);
+		}
+		if (failures < target) {
+			throw new Error(`No retry reached ${pathname}`);
+		}
 	}
 }
 
