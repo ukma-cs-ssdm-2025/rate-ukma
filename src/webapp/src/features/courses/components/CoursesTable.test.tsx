@@ -19,7 +19,6 @@ import {
 	USEFULNESS_RANGE,
 } from "../courseFormatting";
 
-// Mock TanStack Router hooks
 const mockNavigate = vi.fn();
 vi.mock("@tanstack/react-router", async () => {
 	const actual = await vi.importActual("@tanstack/react-router");
@@ -46,7 +45,6 @@ vi.mock("@tanstack/react-router", async () => {
 	};
 });
 
-// Mock the filter options API hook
 vi.mock("@/lib/api/generated", async () => {
 	const actual = await vi.importActual("@/lib/api/generated");
 	return {
@@ -174,7 +172,7 @@ describe("Initial Rendering", () => {
 			/>,
 		);
 
-		// Assert — one primary action, not prose
+		// Assert
 		expect(
 			screen.getByText("За цими фільтрами дисциплін немає"),
 		).toBeInTheDocument();
@@ -543,7 +541,7 @@ describe("Accessibility", () => {
 	});
 
 	it("should include the group active count in the filter button name", () => {
-		// Arrange & Act — two terms count once, matching the panel header
+		// Arrange & Act
 		renderWithProviders(
 			<CoursesTable
 				{...defaultProps}

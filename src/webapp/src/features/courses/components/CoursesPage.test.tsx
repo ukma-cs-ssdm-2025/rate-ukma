@@ -28,14 +28,12 @@ vi.mock("@/features/courses/components/CoursesTable", () => {
 	};
 });
 
-// Covered by its own test; stubbed here so this file needs no flags provider.
 vi.mock("@/features/promo/components/PromoBanner", () => {
 	return {
 		PromoBanner: () => null,
 	};
 });
 
-// Covered by its own test; stubbed here so this file needs no flags provider.
 vi.mock("@/features/feed/components/FeedStrip", () => {
 	return {
 		FeedStrip: () => null,

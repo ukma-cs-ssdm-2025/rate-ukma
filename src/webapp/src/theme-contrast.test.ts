@@ -2,22 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-/**
- * Design-token contrast guard.
- *
- * Parses the oklch() tokens from `styles.css` (`:root` = light, `@variant dark` =
- * dark) and asserts WCAG 2.x contrast ratios for every foreground/background
- * token pair plus the rendered alpha-blend pairs (tinted surfaces, `/60`
- * destructive buttons, `ring/50` focus rings, dimmed secondary text).
- *
- * Normal text needs >= 4.5:1, large text and UI chrome >= 3:1. Touching a
- * token in `styles.css` re-runs this math in CI, so a readability regression
- * fails the build instead of shipping unreadable text.
- */
-
 type Rgb = readonly [number, number, number];
 
-/** Linear sRGB channels for an oklch color, unclamped (may leave [0, 1]). */
 function oklchToLinear(l: number, c: number, hDeg: number): Rgb {
 	const h = (hDeg * Math.PI) / 180;
 	const a = c * Math.cos(h);
@@ -35,11 +21,6 @@ function oklchToLinear(l: number, c: number, hDeg: number): Rgb {
 	];
 }
 
-/**
- * CSS Color 4 local-MINDE-style gamut map: binary-search chroma down until
- * the linear sRGB channels land in [0, 1], then apply the sRGB transfer.
- * Matches browser rendering instead of clipping channels (see #689 P2).
- */
 function oklchToRgb(l: number, c: number, hDeg: number): Rgb {
 	let lo = 0;
 	let hi = c;
@@ -75,7 +56,6 @@ function contrast(a: Rgb, b: Rgb): number {
 	return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Source-over blend of a foreground color at `alpha` over an opaque base. */
 function blend(fg: Rgb, base: Rgb, alpha: number): Rgb {
 	return [
 		alpha * fg[0] + (1 - alpha) * base[0],
@@ -88,7 +68,6 @@ function readTokens(block: "light" | "dark"): Map<string, Rgb> {
 	const cssPath = join(import.meta.dirname, "styles.css");
 	const css = readFileSync(cssPath, "utf8");
 	const selector = block === "light" ? ":root" : "@variant dark";
-	// Light tokens sit in `:root` before its nested `@variant dark` block.
 	const body = new RegExp(`${selector}\\s*\\{([^{}]*)`).exec(css)?.[1];
 	expect(body, `missing ${selector} block in styles.css`).toBeDefined();
 	const tokens = new Map<string, Rgb>();
@@ -107,16 +86,13 @@ interface ContrastCase {
 	bg: string;
 	min: number;
 	why: string;
-	/** Alpha of fg composited over bg (Tailwind `/xx` opacity modifiers). */
 	alpha?: number;
-	/** Alpha of bg composited over the page background (tinted surfaces). */
 	bgAlphaOver?: string;
 }
 
 const TEXT = 4.5;
 const CHROME = 3;
 
-/** Canonical `--x-foreground` on `--x` token pairs. */
 const CANONICAL: Array<[string, string]> = [
 	["foreground", "background"],
 	["card-foreground", "card"],
@@ -138,10 +114,6 @@ function casesFor(mode: "light" | "dark"): ContrastCase[] {
 	const cases: ContrastCase[] = CANONICAL.map(([fg, bg]) => ({
 		fg,
 		bg,
-		// No full-strength dark destructive surface carries light text anymore:
-		// destructive buttons, badges and the confirm dialog all render
-		// `bg-destructive/60` (asserted below at >= 4.5), so the raw token pair
-		// only guards large-text/UI-chrome use.
 		min: mode === "dark" && bg === "destructive" ? CHROME : TEXT,
 		why: `canonical ${fg} on ${bg}`,
 	}));
@@ -214,9 +186,6 @@ function casesFor(mode: "light" | "dark"): ContrastCase[] {
 			why: "faculty badges (bg-faculty-*/12 text-faculty-*)",
 		})),
 	);
-	// Destructive buttons/badges render full-strength destructive in light
-	// mode (covered by the canonical pair above) and bg-destructive/60 in
-	// dark mode — one token serving two surfaces, asserted per mode.
 	if (mode === "dark") {
 		cases.push({
 			fg: "destructive-foreground",
@@ -227,9 +196,6 @@ function casesFor(mode: "light" | "dark"): ContrastCase[] {
 			why: "dark destructive buttons/badges render bg-destructive/60",
 		});
 	}
-	// Dimmed secondary text (opacity-70 icons, dialog close): the dark base
-	// token carries enough headroom for the strict target; the light base
-	// cannot without losing its muted look, so light holds a no-worse floor.
 	cases.push({
 		fg: "muted-foreground",
 		bg: "background",

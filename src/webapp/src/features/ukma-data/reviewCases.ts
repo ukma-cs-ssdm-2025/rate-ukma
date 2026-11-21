@@ -31,11 +31,10 @@ export const SAFE_ANSWER_LABELS: Record<UkmaDataReviewCaseKindEnum, string> = {
 	removals_held: "нічого не вилучено",
 };
 
-export const kindLabel = (kind: UkmaDataReviewCaseKindEnum | undefined) =>
-	kind ? CASE_KIND_LABELS[kind] : "—";
-export const statusLabel = (
-	status: UkmaDataReviewCaseStatusEnum | undefined,
-) => (status ? CASE_STATUS_LABELS[status] : "—");
+export const kindLabel = (kind: UkmaDataReviewCaseKindEnum) =>
+	CASE_KIND_LABELS[kind];
+export const statusLabel = (status: UkmaDataReviewCaseStatusEnum) =>
+	CASE_STATUS_LABELS[status];
 
 export interface CaseFilter {
 	readonly kind?: UkmaDataReviewCaseKindEnum;

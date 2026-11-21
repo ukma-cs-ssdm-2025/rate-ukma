@@ -5,22 +5,18 @@ import { testIds } from "@/lib/test-ids";
 
 export class CourseDetailsPage {
 	private readonly page: Page;
-	// Main
 	private readonly pageTitle: Locator;
 	private readonly rateButton: Locator;
 
-	// Stats
 	private readonly statsCardsContainer: Locator;
 	private readonly reviewsCountStat: Locator;
 
-	// Reviews section
 	private readonly reviewsSection: Locator;
 	private readonly reviewCards: Locator;
 	private readonly editUserRatingButton: Locator;
 	private readonly userRatingDeleteButton: Locator;
 	private readonly deleteConfirmButton: Locator;
 
-	// Empty state
 	private readonly noReviewsMessage: Locator;
 	private readonly courseDetailsUrlPattern: RegExp;
 
@@ -93,7 +89,6 @@ export class CourseDetailsPage {
 			return false;
 		}
 
-		// Scores render as one-decimal values (e.g. "4.6"); an unrated course shows "—".
 		const text = await this.statsCardsContainer.innerText();
 		return (text.match(/\b[1-5]\.\d\b/g) ?? []).length >= 2;
 	}

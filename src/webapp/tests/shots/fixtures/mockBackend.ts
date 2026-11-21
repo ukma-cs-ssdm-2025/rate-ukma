@@ -32,17 +32,12 @@ export interface MockOptions {
 	readonly reviews?: "items" | "empty";
 	readonly notifications?: "none" | "items";
 	readonly session?: "student" | "guest" | "superuser";
-	/** `many` gives the first course twenty specialities, like a general course. */
 	readonly specialities?: "one" | "many";
-	/** `long` gives the course a САЗ-length title that wraps in headers and modals. */
 	readonly title?: "short" | "long";
-	/** `none` is a course nobody has named a teacher on yet. */
 	readonly courseInstructors?: "named" | "none";
-	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 	readonly ratingSuggestions?: "items" | "empty" | "error";
 	readonly saveRating?: "success" | "error";
-	/** `fe_rate_flow`: `pending` never answers the flags request, so flags stay unresolved. */
 	readonly rateFlow?: "on" | "off" | "pending";
 }
 
@@ -57,11 +52,6 @@ const courseList = {
 	previous_page: null,
 };
 
-/**
- * Answers every `/api/v1/` request from invented fixtures. A request with no
- * handler is aborted and reported, so a new endpoint shows up as a gap
- * instead of a silently half-rendered screenshot.
- */
 export async function mockBackend(
 	page: Page,
 	{
@@ -241,7 +231,6 @@ export async function mockBackend(
 			/^\/courses\/[^/]+\/ratings\/$/,
 			(path, url) => {
 				const courseId = path.split("/")[2];
-				// Fixtures are newest first; oldest first just reverses them.
 				const oldestFirst = url.searchParams.get("time_order") === "asc";
 				const suggestion =
 					ratingSuggestions === "items"
@@ -452,7 +441,6 @@ export async function mockBackend(
 			});
 			return;
 		}
-		// Left unanswered: the page stays in its loading state for the shot.
 		if (loading && !shell.some((pattern) => pattern.test(path))) {
 			return;
 		}
