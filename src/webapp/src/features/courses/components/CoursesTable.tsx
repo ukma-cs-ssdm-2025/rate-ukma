@@ -1,53 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ComponentProps } from "react";
 
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	getCoreRowModel,
 	getPaginationRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import type {
-	ColumnDef,
-	PaginationState,
-	SortingState,
-} from "@tanstack/react-table";
-import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
+import type { PaginationState, SortingState } from "@tanstack/react-table";
+import { Filter, Search } from "lucide-react";
 
 import { DataTable, DataTableSkeleton } from "@/components/DataTable/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/Collapsible";
 import { Drawer } from "@/components/ui/Drawer";
-import { Input } from "@/components/ui/Input";
-import { Spinner } from "@/components/ui/Spinner";
+import type { CourseList } from "@/lib/api/generated";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/Tooltip";
-import type { CourseList, CoursesListParams } from "@/lib/api/generated";
-import {
-	EducationLevelEnum,
 	useCoursesFilterOptionsRetrieve,
 	useStudentsMeCoursesRetrieve,
 } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { ActiveFilterChips } from "./ActiveFilterChips";
-import { CourseColumnHeader } from "./CourseColumnHeader";
 import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
-import { CourseScoreCell } from "./CourseScoreCell";
-import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
-import { CoursesScatterPlot } from "./CoursesScatterPlot";
-import { CoursesReviewsSortMenu } from "./CoursesReviewsSortMenu";
 import type { CoursesReviewsSortOption } from "./CoursesReviewsSortMenu";
 import {
 	courseFiltersStateToSearchParams,
@@ -57,9 +33,11 @@ import type {
 	CourseFiltersParamsSetter,
 	CourseFiltersParamsState,
 } from "../courseFiltersParams";
-import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { transformFiltersToApiParams } from "../filterTransformations";
 import { useCourseFiltersData } from "../hooks/useCourseFiltersData";
+import { buildCoursesTableColumns } from "./coursesTableColumns";
+import { DebouncedInput } from "./DebouncedInput";
+import { CoursesMapCard } from "./CoursesMapCard";
 
 interface PaginationInfo {
 	page: number;
@@ -75,315 +53,6 @@ interface CoursesTableProps {
 	setParams: CourseFiltersParamsSetter;
 	pagination?: PaginationInfo;
 }
-
-const MAP_COLLAPSED_STORAGE_KEY = "courses-map-collapsed";
-
-function CoursesMapCard({
-	filters,
-	onOpenFullscreen,
-}: Readonly<{
-	filters: CoursesListParams;
-	onOpenFullscreen: () => void;
-}>) {
-	const [collapsed, setCollapsed] = useState<boolean>(
-		() =>
-			localStorageAdapter.getItem<boolean>(MAP_COLLAPSED_STORAGE_KEY) ?? false,
-	);
-	const isDesktop = useMediaQuery("(min-width: 768px)");
-
-	if (!isDesktop) {
-		return (
-			<section
-				aria-label="Карта дисциплін"
-				className="overflow-hidden rounded-xl border bg-card shadow-sm plot-surface-card md:hidden"
-			>
-				<div className="flex items-center justify-between gap-2 px-4 pt-3">
-					<h3 className="text-sm font-semibold">Карта дисциплін</h3>
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-8 gap-2 text-muted-foreground"
-						onClick={onOpenFullscreen}
-						data-testid={testIds.courses.scatterPlotFullscreenButton}
-					>
-						<Maximize2 className="size-4" />
-						Відкрити
-					</Button>
-				</div>
-				<div className="relative mb-2 h-44">
-					<div inert className="pointer-events-none absolute inset-0">
-						<CoursesScatterPlot filters={filters} variant="mini" />
-					</div>
-				</div>
-			</section>
-		);
-	}
-
-	return (
-		<Collapsible
-			open={!collapsed}
-			onOpenChange={(open) => {
-				setCollapsed(!open);
-				localStorageAdapter.setItem(MAP_COLLAPSED_STORAGE_KEY, !open);
-			}}
-			className="hidden overflow-hidden rounded-xl border bg-card shadow-sm plot-surface-card md:block"
-		>
-			<div className="flex min-h-10 items-center justify-between gap-2 px-4 py-1">
-				<h3 className="text-sm font-semibold">Карта дисциплін</h3>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-8 gap-2 text-muted-foreground"
-						onClick={onOpenFullscreen}
-						data-testid={testIds.courses.scatterPlotFullscreenButton}
-					>
-						<Maximize2 className="size-4" />
-						Повний екран
-					</Button>
-					<CollapsibleTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-8 w-8 p-0"
-							aria-label={collapsed ? "Розгорнути карту" : "Згорнути карту"}
-						>
-							<ChevronDown
-								className={cn(
-									"size-4 transition-transform duration-200 motion-reduce:transition-none",
-									!collapsed && "rotate-180",
-								)}
-							/>
-						</Button>
-					</CollapsibleTrigger>
-				</div>
-			</div>
-			<CollapsibleContent>
-				<div className="mb-2 h-64">
-					<CoursesScatterPlot filters={filters} variant="mini" />
-				</div>
-			</CollapsibleContent>
-		</Collapsible>
-	);
-}
-
-function buildCoursesTableColumns({
-	reviewsSortValue,
-	onReviewsSortChange,
-	compact,
-}: {
-	reviewsSortValue: CoursesReviewsSortOption | null;
-	onReviewsSortChange: (value: CoursesReviewsSortOption) => void;
-	compact: boolean;
-}): ColumnDef<CourseList>[] {
-	return [
-		{
-			id: "title",
-			accessorKey: "title",
-			header: ({ column }) => (
-				<CourseColumnHeader column={column} title="Назва дисципліни" />
-			),
-			cell: ({ row }) => {
-				const course = row.original;
-				const courseId = course.id;
-				return (
-					<span className="inline-flex flex-wrap items-center gap-1.5 whitespace-normal break-words">
-						{courseId ? (
-							<Link
-								to="/courses/$courseId"
-								params={{ courseId }}
-								className="line-clamp-2 text-sm font-medium transition-colors motion-reduce:transition-none underline-offset-4 hover:text-primary hover:underline md:text-base"
-								data-testid={testIds.courses.tableTitleLink}
-							>
-								{course.title}
-							</Link>
-						) : (
-							<span className="line-clamp-2 text-sm font-medium md:text-base">
-								{course.title}
-							</span>
-						)}
-						{course.education_level === EducationLevelEnum.MASTER && (
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Badge
-										variant="outline"
-										className="shrink-0 cursor-default px-1.5"
-									>
-										М
-									</Badge>
-								</TooltipTrigger>
-								<TooltipContent side="top">Магістр</TooltipContent>
-							</Tooltip>
-						)}
-						<CourseSpecialityBadges specialities={course.specialities} />
-					</span>
-				);
-			},
-			enableSorting: false,
-			size: compact ? 160 : 300,
-			meta: {
-				label: "Назва дисципліни",
-				placeholder: "Пошук дисциплін...",
-				variant: "text",
-				align: "left",
-			},
-		},
-		{
-			id: "ratings_count",
-			accessorKey: "ratings_count",
-			header: () => (
-				<div className="hidden text-muted-foreground sm:block">
-					<CoursesReviewsSortMenu
-						value={reviewsSortValue}
-						onValueChange={onReviewsSortChange}
-					/>
-				</div>
-			),
-			cell: ({ row }) => {
-				const count = row.original.ratings_count;
-				return (
-					<div className="hidden sm:flex items-center justify-center">
-						<span className="text-sm font-medium tabular-nums text-muted-foreground md:text-base">
-							{count}
-						</span>
-					</div>
-				);
-			},
-			enableSorting: false,
-			meta: {
-				label: "Відгуки",
-				align: "center",
-				hideOnMobile: true,
-			},
-		},
-		{
-			id: "avg_difficulty",
-			accessorKey: "avg_difficulty",
-			header: ({ column }) => (
-				<>
-					<div className="flex justify-center md:hidden">
-						<CourseColumnHeader
-							column={column}
-							title="Склад."
-							initialSortDirection="asc"
-							testId={testIds.courses.difficultySortButtonMobile}
-							align="center"
-							className="h-10 whitespace-nowrap text-xs [&_svg]:size-3.5"
-						/>
-					</div>
-					<div className="hidden justify-center md:flex">
-						<CourseColumnHeader
-							column={column}
-							title="Складність"
-							initialSortDirection="asc"
-							testId={testIds.courses.difficultySortButtonDesktop}
-							align="center"
-						/>
-					</div>
-				</>
-			),
-			cell: ({ row }) => (
-				<CourseScoreCell
-					value={row.original.avg_difficulty}
-					variant="difficulty"
-				/>
-			),
-			enableSorting: true,
-			size: compact ? 80 : 100,
-			meta: {
-				label: "Складність",
-				placeholder: "Фільтр за складністю...",
-				variant: "number",
-				range: DIFFICULTY_RANGE,
-				align: "center",
-			},
-		},
-		{
-			id: "avg_usefulness",
-			accessorKey: "avg_usefulness",
-			header: ({ column }) => (
-				<>
-					<div className="flex justify-center md:hidden">
-						<CourseColumnHeader
-							column={column}
-							title="Корис."
-							initialSortDirection="desc"
-							testId={testIds.courses.usefulnessSortButtonMobile}
-							align="center"
-							className="h-10 whitespace-nowrap text-xs [&_svg]:size-3.5"
-						/>
-					</div>
-					<div className="hidden justify-center md:flex">
-						<CourseColumnHeader
-							column={column}
-							title="Корисність"
-							initialSortDirection="desc"
-							testId={testIds.courses.usefulnessSortButtonDesktop}
-							align="center"
-						/>
-					</div>
-				</>
-			),
-			cell: ({ row }) => (
-				<CourseScoreCell
-					value={row.original.avg_usefulness}
-					variant="usefulness"
-				/>
-			),
-			enableSorting: true,
-			size: compact ? 80 : 100,
-			meta: {
-				label: "Корисність",
-				placeholder: "Фільтр за корисністю...",
-				variant: "number",
-				range: USEFULNESS_RANGE,
-			},
-		},
-	];
-}
-
-function DebouncedInput({
-	value: initialValue,
-	onChange,
-	debounce = 300,
-	isLoading = false,
-	...props
-}: {
-	value: string | number;
-	onChange: (value: string | number) => void;
-	debounce?: number;
-	isLoading?: boolean;
-} & Omit<ComponentProps<typeof Input>, "onChange">) {
-	const [value, setValue] = useState(initialValue);
-
-	useEffect(() => {
-		setValue(initialValue);
-	}, [initialValue]);
-
-	useEffect(() => {
-		const timeout = setTimeout(() => {
-			if (value !== initialValue) {
-				onChange(value);
-			}
-		}, debounce);
-
-		return () => clearTimeout(timeout);
-	}, [value, debounce, onChange, initialValue]);
-
-	return (
-		<div className="relative">
-			<Input
-				{...props}
-				value={value}
-				onChange={(e) => setValue(e.target.value)}
-			/>
-			{isLoading && (
-				<Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-			)}
-		</div>
-	);
-}
-
 export function CoursesTable({
 	data,
 	isLoading,

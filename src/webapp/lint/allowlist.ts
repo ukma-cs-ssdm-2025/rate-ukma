@@ -1,6 +1,3 @@
 export const LINT_ALLOWLIST = {
-	"max-lines": [
-		"src/features/courses/components/CoursesScatterPlot.tsx",
-		"src/features/courses/components/CoursesTable.tsx",
-	],
+	"max-lines": ["src/features/courses/components/CoursesScatterPlot.tsx"],
 } satisfies Record<string, string[]>;
