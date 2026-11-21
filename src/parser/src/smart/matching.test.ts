@@ -148,4 +148,15 @@ describe("matchTeachers", () => {
 		assert.deepStrictEqual(links, []);
 		assert.strictEqual(report.sazDisagrees, 1);
 	});
+
+	it("leaves a tie unlinked when САЗ names a last name two candidates share", () => {
+		const { links, report } = matchTeachers(
+			[offering({ sazTeachers: "доц. Зразковий Т." })],
+			[discipline([lecturer(2)]), discipline([lecturer(4)])],
+			[...teachers, { smartId: 4, lastName: "Зразковий" }],
+		);
+
+		assert.deepStrictEqual(links, []);
+		assert.strictEqual(report.tieLeft, 1);
+	});
 });

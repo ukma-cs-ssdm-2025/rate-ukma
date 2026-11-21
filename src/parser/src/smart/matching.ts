@@ -172,6 +172,13 @@ export const matchTeachers = (
 
 		const sazNamesSmart = [...words].some((word) => allLastNames.has(word));
 
+		// A last name САЗ shares with another candidate cannot say which of
+		// them it means.
+		const namedLastNames = named.map((id) => lastNames.get(id));
+
+		const namesOnePerson =
+			new Set(namedLastNames).size === namedLastNames.length;
+
 		let chosen: ReadonlyArray<number>;
 
 		if (oneSet) {
@@ -182,7 +189,7 @@ export const matchTeachers = (
 
 			chosen = [...roles.keys()];
 			report.linked += 1;
-		} else if (named.length > 0) {
+		} else if (named.length > 0 && namesOnePerson) {
 			chosen = named;
 			report.tieBrokenBySaz += 1;
 		} else {
