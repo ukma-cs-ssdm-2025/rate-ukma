@@ -70,6 +70,8 @@ The container and its anonymous data volume are removed on any exit, success or 
 
 Catalog tables, rating scores, votes, enrollments, planned courses and every count stay.
 
+Speciality, start year, enrollments and plans stay, so in a small cohort a student could still be recognised from them. Treat the staging copy as internal: no screenshots of student lists outside the team.
+
 ## Rollback
 
 The script rolls back a failed health check itself. If staging looks wrong after a successful swap, restore the previous database by hand:
@@ -82,8 +84,10 @@ sudo docker exec -i rate_ukma_postgres psql -U postgres -d postgres -v ON_ERROR_
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname IN ('rateukma', 'rateukma_prev') AND pid <> pg_backend_pid();
+BEGIN;
 ALTER DATABASE rateukma RENAME TO rateukma_new;
 ALTER DATABASE rateukma_prev RENAME TO rateukma;
+COMMIT;
 SQL
 sudo docker compose --profile prod start backend scheduler
 ```

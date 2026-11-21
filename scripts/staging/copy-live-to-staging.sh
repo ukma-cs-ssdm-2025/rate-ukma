@@ -388,10 +388,11 @@ step() {
 }
 
 services_stopped=0
-swapped=0
 cleanup() {
   local status=$?
-  if (( status != 0 && swapped == 0 && services_stopped == 1 )); then
+  # On any failure, leave staging serving whichever database it now has
+  # rather than stopped.
+  if (( status != 0 && services_stopped == 1 )); then
     compose start backend scheduler || true
   fi
   return "$status"
@@ -414,7 +415,6 @@ ALTER DATABASE "$db" RENAME TO "$prev_db";
 ALTER DATABASE "$new_db" RENAME TO "$db";
 COMMIT;
 SQL
-swapped=1
 
 step "Starting backend and scheduler"
 compose start backend scheduler
@@ -424,7 +424,11 @@ health_check() {
   while (( attempt <= max_attempts )); do
     state=$(compose ps -a --format json \
       | jq -rs 'map(select(.Service == "backend")) | first | .State // "missing"')
-    if [[ "$state" == "running" ]] && [[ -f "$static_root/index.html" ]]; then
+    # "running" alone proves nothing: the container reads running before its
+    # entrypoint migrates. migrate --check passes only once the swapped
+    # database is reachable and fully migrated.
+    if [[ "$state" == "running" ]] && [[ -f "$static_root/index.html" ]] \
+      && compose exec -T backend uv run python manage.py migrate --check >/dev/null 2>&1; then
       return 0
     fi
     echo "    health check $attempt/$max_attempts: backend is $state"
