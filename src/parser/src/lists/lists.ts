@@ -228,20 +228,53 @@ export const Course = Schema.Struct({
 	removedAt,
 }).annotate({ identifier: "Course" });
 
+const ReviewCaseKind = Schema.Literals([
+	"course_match",
+	"instructor_match",
+	"student_match",
+	"removals_held",
+]);
+
+const ReviewCaseStatus = Schema.Literals(["open", "decided", "obsolete"]);
+
+/** `PageQuery` plus optional `?status=` and `?kind=`: only matching cases. */
+export const ReviewCaseQuery = {
+	...PageQuery,
+	status: Schema.optionalKey(
+		ReviewCaseStatus.annotate({ description: "Only cases with this status" }),
+	),
+	kind: Schema.optionalKey(
+		ReviewCaseKind.annotate({ description: "Only cases of this kind" }),
+	),
+};
+
+export interface ReviewCaseRequest extends PageRequest {
+	readonly status?: typeof ReviewCaseStatus.Type;
+	readonly kind?: typeof ReviewCaseKind.Type;
+}
+
 export const ReviewCase = Schema.Struct({
 	id: Schema.String,
-	kind: Schema.Literals([
-		"course_match",
-		"instructor_match",
-		"student_match",
-		"removals_held",
-	]),
+	kind: ReviewCaseKind,
 	subjectId: Schema.String,
 	candidates: Schema.Json.annotate({ description: "Ids only" }),
 	safeAnswer: Schema.Json.annotate({ description: "What was published" }),
-	status: Schema.Literals(["open", "decided", "obsolete"]),
+	status: ReviewCaseStatus,
 	runId: Schema.NullOr(Schema.String),
 	decisionId: Schema.NullOr(Schema.String),
 	openedAt: Schema.Date,
 	changeNo,
 }).annotate({ identifier: "ReviewCase" });
+
+/** A review-case page with the number of cases that match its filters. */
+export const ReviewCasePage = Schema.Struct({
+	...Page(ReviewCase, "ReviewCasePage").fields,
+	total: Schema.Int.annotate({
+		description:
+			"Cases numbered above `after` that match the filters, across every page",
+	}),
+}).annotate({ identifier: "ReviewCasePage" });
+
+export interface ReviewCasePageOf extends PageOf<typeof ReviewCase.Type> {
+	readonly total: number;
+}

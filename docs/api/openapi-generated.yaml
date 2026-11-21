@@ -3365,7 +3365,8 @@ paths:
       operationId: ukma_data_review_cases_list
       description: One page of UKMA Data's list in change-number order, removed rows
         included. Pass the response's `cursor` as `after` while `has_more` is true.
-        Superusers only.
+        Superusers only. `status` and `kind` narrow the list; `total` counts every
+        matching case.
       summary: List UKMA Data review cases
       parameters:
       - in: query
@@ -3374,11 +3375,30 @@ paths:
           type: integer
         description: Change number saved after the last sync; omit or 0 for all rows
       - in: query
+        name: kind
+        schema:
+          type: string
+          enum:
+          - course_match
+          - instructor_match
+          - removals_held
+          - student_match
+        description: Only cases of this kind; omit for every kind
+      - in: query
         name: limit
         schema:
           type: integer
         description: Rows per page; UKMA Data's default is 500, values above 1000
           are capped
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - decided
+          - obsolete
+          - open
+        description: Only cases with this status; omit for every status
       tags:
       - ukma-data
       security:
@@ -6253,11 +6273,16 @@ components:
           items:
             $ref: '#/components/schemas/UkmaDataReviewCase'
           readOnly: true
+        total:
+          type: integer
+          readOnly: true
+          description: Cases that match the filters, across every page
       required:
       - cursor
       - data_updated_at
       - has_more
       - items
+      - total
     UkmaDataReviewCaseStatusEnum:
       enum:
       - open

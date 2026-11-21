@@ -37,6 +37,15 @@ class UkmaDataPageParams(BaseModel):
     )
 
 
+class UkmaDataReviewCaseParams(UkmaDataPageParams):
+    status: ReviewCaseStatus | None = Field(
+        default=None, description="Only cases with this status; omit for every status"
+    )
+    kind: ReviewCaseKind | None = Field(
+        default=None, description="Only cases of this kind; omit for every kind"
+    )
+
+
 class UkmaDataModel(BaseModel):
     """A row of UKMA Data's read API, which speaks camelCase."""
 
@@ -177,6 +186,10 @@ class UkmaDataPage[T](UkmaDataModel):
     cursor: int
     has_more: bool
     data_updated_at: datetime.datetime | None
+
+
+class UkmaDataReviewCasePage(UkmaDataPage[UkmaDataReviewCase]):
+    total: int
 
 
 class UkmaDataKey(UkmaDataModel):

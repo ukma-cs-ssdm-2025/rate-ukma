@@ -2,7 +2,6 @@ import {
 	UkmaDataReviewCaseKindEnum,
 	UkmaDataReviewCaseStatusEnum,
 } from "@/lib/api/generated";
-import type { UkmaDataReviewCase } from "@/lib/api/generated";
 
 export const PAGE = { limit: 1000 } as const;
 export const NO_RETRY = { query: { retry: false } } as const;
@@ -35,22 +34,6 @@ export const kindLabel = (kind: UkmaDataReviewCaseKindEnum) =>
 	CASE_KIND_LABELS[kind];
 export const statusLabel = (status: UkmaDataReviewCaseStatusEnum) =>
 	CASE_STATUS_LABELS[status];
-
-export interface CaseFilter {
-	readonly kind?: UkmaDataReviewCaseKindEnum;
-	readonly status?: UkmaDataReviewCaseStatusEnum;
-}
-
-export function filterCases(
-	cases: ReadonlyArray<UkmaDataReviewCase>,
-	{ kind, status }: CaseFilter,
-): UkmaDataReviewCase[] {
-	return cases.filter(
-		(item) =>
-			(kind === undefined || item.kind === kind) &&
-			(status === undefined || item.status === status),
-	);
-}
 
 const dateTime = new Intl.DateTimeFormat("uk-UA", {
 	dateStyle: "medium",
