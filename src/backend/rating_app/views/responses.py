@@ -13,6 +13,7 @@ from rating_app.serializers import (
     FilterOptionsSerializer,
     InstructorListResponseSerializer,
     InstructorSerializer,
+    PersonalPlanSerializer,
     PromoBannerResponseSerializer,
     RatingReadSerializer,
     RatingsWithUserListSerializer,
@@ -320,3 +321,21 @@ R_UKMA_DATA_DEPARTMENTS = ukma_data_responses(UkmaDataDepartmentPageSerializer)
 R_UKMA_DATA_PROGRAMMES = ukma_data_responses(UkmaDataProgrammePageSerializer)
 R_UKMA_DATA_OFFERINGS = ukma_data_responses(UkmaDataOfferingPageSerializer)
 R_UKMA_DATA_REVIEW_CASES = ukma_data_responses(UkmaDataReviewCasePageSerializer)
+
+
+R_PERSONAL_PLAN = {
+    200: OpenApiResponse(PersonalPlanSerializer, "OK"),
+    **common_errors(include_400=False),
+}
+
+R_PERSONAL_PLAN_PLACE = {
+    200: OpenApiResponse(PersonalPlanSerializer, "The plan after the change"),
+    **common_errors(include_404=True),
+    409: OpenApiResponse(Err, "Conflict - the course is taken or mandatory"),
+}
+
+R_PERSONAL_PLAN_REMOVE = {
+    204: OpenApiResponse(description="Removed"),
+    **common_errors(include_404=True),
+    409: OpenApiResponse(Err, "Conflict - the course is taken or mandatory"),
+}
