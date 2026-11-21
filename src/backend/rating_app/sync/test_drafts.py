@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from django.utils import timezone
 
 import pytest
 
-from rating_app.sync.drafts import ChangeDraft, DecisionView, load_decisions, make_before
+from rating_app.sync.drafts import (
+    ChangeDraft,
+    DecisionView,
+    is_stale,
+    load_decisions,
+    make_before,
+)
 from rating_app.sync.snapshot import (
     RateUkmaSnapshot,
     RuCourse,
@@ -195,6 +203,46 @@ def test_make_before_of_a_teacher_link_is_the_whole_link_set():
 
     assert removed == links
     assert added == links
+
+
+def _course_snapshot(*, title: str, description: str = "") -> RateUkmaSnapshot:
+    course = replace(_ru_course("ru-course", title=title), description=description)
+    return _ru_snapshot(
+        departments=[_ru_department("ru-dept", name="Кафедра даних", ukma_data_id="ud-dept")],
+        courses=[course],
+    )
+
+
+def test_a_fresh_partial_change_is_not_stale():
+    ru = _course_snapshot(title="Стара назва")
+    before = make_before("change_course", ru, "ru-course", {"title": "Нова назва"})
+
+    assert not is_stale("change_course", ru, "ru-course", before)
+
+
+def test_an_edit_to_a_field_the_change_does_not_write_keeps_it_fresh():
+    before = make_before(
+        "change_course", _course_snapshot(title="Стара назва"), "ru-course", {"title": "Нова назва"}
+    )
+    edited = _course_snapshot(title="Стара назва", description="Новий опис")
+
+    assert not is_stale("change_course", edited, "ru-course", before)
+
+
+def test_an_edit_to_a_field_the_change_writes_makes_it_stale():
+    before = make_before(
+        "change_course", _course_snapshot(title="Стара назва"), "ru-course", {"title": "Нова назва"}
+    )
+
+    assert is_stale("change_course", _course_snapshot(title="Інша назва"), "ru-course", before)
+
+
+def test_a_change_whose_target_is_gone_is_stale():
+    before = make_before(
+        "change_course", _course_snapshot(title="Стара назва"), "ru-course", {"title": "Нова назва"}
+    )
+
+    assert is_stale("change_course", _ru_snapshot(), "ru-course", before)
 
 
 def test_make_before_is_empty_for_a_new_row():

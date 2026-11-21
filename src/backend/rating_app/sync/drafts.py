@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from rating_app.models import CatalogMappingDecision, SyncChange
-from rating_app.sync.current_values import current_values
+from rating_app.sync.current_values import TargetMissingError, current_values
 from rating_app.sync.kinds import KIND_BY_NAME
 from rating_app.sync.payloads import BEFORE_PAYLOADS
 from rating_app.sync.snapshot import RateUkmaSnapshot
@@ -92,8 +92,28 @@ def make_before(
     after: dict[str, object],
 ) -> dict[str, object]:
     """The current values of the keys ``after`` writes, or all of them for a kind
-    whose `before` has its own shape, so the apply's stale check compares like with like."""
+    whose `before` has its own shape; ``is_stale`` compares the same keys."""
     values = current_values(kind, ru, target_id)
     if kind in BEFORE_PAYLOADS:
         return values
     return {key: value for key, value in values.items() if key in after}
+
+
+def is_stale(
+    kind: str,
+    ru: RateUkmaSnapshot,
+    target_id: str | None,
+    before: dict[str, object],
+) -> bool:
+    """Whether the target is gone or a value ``before`` recorded has changed since.
+
+    Only the keys in ``before`` count, so an edit to a field the change does not
+    write leaves it fresh.
+    """
+    try:
+        values = current_values(kind, ru, target_id)
+    except TargetMissingError:
+        return True
+    if kind in BEFORE_PAYLOADS:
+        return values != before
+    return any(key not in values or values[key] != value for key, value in before.items())
