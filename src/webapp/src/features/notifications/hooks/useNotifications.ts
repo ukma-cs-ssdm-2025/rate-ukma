@@ -71,7 +71,7 @@ export function useNotifications() {
 	const resetPagination = useCallback(() => {
 		setExtra([]);
 		setHasMore(true);
-		queryClient.invalidateQueries({
+		void queryClient.invalidateQueries({
 			queryKey: getNotificationsListQueryKey(),
 		});
 	}, [queryClient]);
@@ -94,10 +94,10 @@ export function useMarkAllRead() {
 	const { mutateAsync, isPending } = useNotificationsMarkReadCreate({
 		mutation: {
 			onSuccess: () => {
-				queryClient.invalidateQueries({
+				void queryClient.invalidateQueries({
 					queryKey: getNotificationsUnreadCountRetrieveQueryKey(),
 				});
-				queryClient.invalidateQueries({
+				void queryClient.invalidateQueries({
 					queryKey: getNotificationsListQueryKey(),
 				});
 			},
@@ -114,10 +114,10 @@ export function useMarkGroupRead() {
 	const { mutate } = useNotificationsMarkGroupReadCreate({
 		mutation: {
 			onSuccess: () => {
-				queryClient.invalidateQueries({
+				void queryClient.invalidateQueries({
 					queryKey: getNotificationsUnreadCountRetrieveQueryKey(),
 				});
-				queryClient.invalidateQueries({
+				void queryClient.invalidateQueries({
 					queryKey: getNotificationsListQueryKey(),
 				});
 			},

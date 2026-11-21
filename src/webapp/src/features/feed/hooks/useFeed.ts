@@ -99,7 +99,9 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 		isError,
 		isFetchingNextPage,
 		isRefetching: isFetching && !isLoading,
-		refetch,
+		refetch: () => {
+			void refetch();
+		},
 		loaderRef,
 	};
 }

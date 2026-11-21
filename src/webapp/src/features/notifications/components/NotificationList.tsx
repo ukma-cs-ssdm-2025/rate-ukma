@@ -166,10 +166,12 @@ export function NotificationList({
 
 // Comment notifications may carry the comment text as a trailing quoted
 // segment of the message; split it off so the headline stays short.
-function splitCommentQuote(message: string): {
+interface CommentQuote {
 	title: string;
 	quote?: string;
-} {
+}
+
+function splitCommentQuote(message: string): CommentQuote {
 	const text = message.trimEnd();
 	const open = text.search(/[«"“]/u);
 	if (open < 0 || open > text.length - 3 || !/[»"”]$/u.test(text)) {

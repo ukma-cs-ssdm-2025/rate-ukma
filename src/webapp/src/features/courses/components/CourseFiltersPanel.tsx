@@ -18,20 +18,19 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Slider } from "@/components/ui/Slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import { InstructorFilterSelect } from "@/features/instructors/components/InstructorFilterSelect";
-import type {
-	CoursesListSemesterTermsItem,
-	CoursesListTypeKind,
-	EducationLevelEnum,
-	FilterOptions,
-} from "@/lib/api/generated";
+import type { FilterOptions } from "@/lib/api/generated";
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
+import {
+	parseEducationLevel,
+	parseSemesterTerms,
+	parseTypeKind,
+} from "../courseFiltersParams";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import { CREDITS_RANGE, formatDecimalValue } from "../courseFormatting";
 import {
 	areFiltersActive,
-	COURSE_TYPE_FILTER_LABELS,
 	useCourseFiltersData,
 } from "../hooks/useCourseFiltersData";
 import type {
@@ -39,6 +38,7 @@ import type {
 	EducationLevelToggle,
 	RangeFilterConfig,
 	SelectFilterConfig,
+	SelectFilterKey,
 	SemesterTermToggle,
 } from "../hooks/useCourseFiltersData";
 
@@ -62,6 +62,14 @@ export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
 }
 
 // --- Primitive filter controls ---
+
+// The slider reports a plain array; a missing thumb keeps its bound.
+function toRange(
+	value: readonly number[],
+	bounds: readonly [number, number],
+): [number, number] {
+	return [value[0] ?? bounds[0], value[1] ?? bounds[1]];
+}
 
 function FilterSlider({
 	label,
@@ -102,8 +110,8 @@ function FilterSlider({
 				max={range[1]}
 				step={step}
 				value={localValue}
-				onValueChange={(val) => setLocalValue(val as [number, number])}
-				onValueCommit={(val) => onValueChange(val as [number, number])}
+				onValueChange={(val) => setLocalValue(toRange(val, range))}
+				onValueCommit={(val) => onValueChange(toRange(val, range))}
 				data-testid={testId}
 				thumbLabels={[`${label}, від`, `${label}, до`]}
 				className="w-full py-2"
@@ -136,20 +144,20 @@ function FilterSection({
 
 // --- Select/Range rendering helpers ---
 
-const RANGE_FILTER_TEST_IDS: Record<string, string> = {
+const RANGE_FILTER_TEST_IDS = {
 	diff: testIds.filters.difficultySlider,
 	use: testIds.filters.usefulnessSlider,
 	credits: testIds.filters.creditsSelect,
-};
+} satisfies Record<RangeFilterConfig["key"], string>;
 
-const SELECT_FILTER_TEST_IDS: Record<string, string> = {
+const SELECT_FILTER_TEST_IDS = {
 	year: testIds.filters.yearSelect,
 	faculty: testIds.filters.facultySelect,
 	dept: testIds.filters.departmentSelect,
 	spec: testIds.filters.specialitySelect,
 	type: testIds.filters.typeSelect,
 	instructor: testIds.filters.instructorSelect,
-};
+} satisfies Record<SelectFilterKey, string>;
 
 function RangeFilters({
 	filters,
@@ -262,7 +270,7 @@ function CourseTypeToggleControl({
 						value={option.value}
 						className="h-auto min-h-9 flex-1 px-1.5 py-1.5 text-xs leading-tight whitespace-normal"
 					>
-						{COURSE_TYPE_FILTER_LABELS[option.value] ?? option.label}
+						{option.label}
 					</ToggleGroupItem>
 				))}
 			</ToggleGroup>
@@ -317,8 +325,8 @@ function SelectFilters({
 	onSelectChange,
 }: Readonly<{
 	filters: SelectFilterConfig[];
-	getSelectValue: (key: string) => string;
-	onSelectChange: (key: string, value: string) => void;
+	getSelectValue: (key: SelectFilterKey) => string;
+	onSelectChange: (key: SelectFilterKey, value: string) => void;
 }>) {
 	return (
 		<>
@@ -452,14 +460,14 @@ function CourseFiltersContent({
 	const handleTermToggle = useCallback(
 		(values: string[]) => {
 			setWithPageReset({
-				term: values as CoursesListSemesterTermsItem[],
+				term: parseSemesterTerms(values),
 			});
 		},
 		[setWithPageReset],
 	);
 
 	const getSelectValue = useCallback(
-		(key: string): string => {
+		(key: SelectFilterKey): string => {
 			switch (key) {
 				case "year":
 					return params.year;
@@ -473,8 +481,6 @@ function CourseFiltersContent({
 					return params.spec;
 				case "type":
 					return params.type ?? "";
-				default:
-					return "";
 			}
 		},
 		[
@@ -488,7 +494,7 @@ function CourseFiltersContent({
 	);
 
 	const handleSelectChange = useCallback(
-		(key: string, value: string) => {
+		(key: SelectFilterKey, value: string) => {
 			switch (key) {
 				case "year":
 					setWithPageReset({
@@ -513,18 +519,18 @@ function CourseFiltersContent({
 					return;
 				case "type":
 					setWithPageReset({
-						type: (value || null) as CoursesListTypeKind | null,
+						type: parseTypeKind(value),
 					});
 					return;
 			}
 		},
-		[setWithPageReset, setParams, params.credits, params.type],
+		[setWithPageReset, params.credits, params.type],
 	);
 
 	const handleEducationLevelToggle = useCallback(
 		(value: string) => {
 			setWithPageReset({
-				eduLevel: (value || null) as EducationLevelEnum | null,
+				eduLevel: parseEducationLevel(value),
 			});
 		},
 		[setWithPageReset],
@@ -587,7 +593,7 @@ function CourseFiltersContent({
 							if (!params.spec && ownSpeciality && value) {
 								setWithPageReset({
 									spec: ownSpeciality.id,
-									type: value as CoursesListTypeKind,
+									type: parseTypeKind(value),
 								});
 								return;
 							}

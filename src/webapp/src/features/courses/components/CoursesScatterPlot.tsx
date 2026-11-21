@@ -11,7 +11,7 @@ import { TooltipWithBounds, useTooltip } from "@visx/tooltip";
 import { Minus, Plus } from "lucide-react";
 import { select } from "d3-selection";
 import { zoom as d3Zoom, zoomIdentity } from "d3-zoom";
-import type { ZoomTransform } from "d3-zoom";
+import type { D3ZoomEvent, ZoomTransform } from "d3-zoom";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -306,7 +306,7 @@ function ScatterPlotContent({
 				[0, 0],
 				[width, height],
 			])
-			.on("zoom", (event) => {
+			.on("zoom", (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
 				setTransform(event.transform);
 			});
 
@@ -359,6 +359,7 @@ function ScatterPlotContent({
 			height,
 			innerHeight,
 			innerWidth,
+			plotMargin,
 			transform,
 			variant,
 			width,
@@ -686,11 +687,11 @@ export function CoursesScatterPlot({
 	const loadingMessage = useMemo(() => getRandomLoadingMessage(), []);
 
 	const filterOptionsQuery = useCoursesFilterOptionsRetrieve();
-	const faculties = filterOptionsQuery.data?.faculties ?? [];
+	const faculties = filterOptionsQuery.data?.faculties;
 
 	const facultyColorMap = useMemo(() => {
 		const map = new Map<string, string>();
-		for (const faculty of faculties) {
+		for (const faculty of faculties ?? []) {
 			map.set(faculty.name, getFacultyHexColor(faculty.name));
 		}
 		return map;
@@ -729,7 +730,7 @@ export function CoursesScatterPlot({
 
 	const handleCourseClick = useCallback(
 		(courseId: string) => {
-			navigate({ to: "/courses/$courseId", params: { courseId } });
+			void navigate({ to: "/courses/$courseId", params: { courseId } });
 		},
 		[navigate],
 	);

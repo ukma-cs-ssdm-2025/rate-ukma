@@ -13,7 +13,7 @@ function ErrorFallback({ resetErrorBoundary }: Readonly<FallbackProps>) {
 
 	const handleGoHome = () => {
 		resetErrorBoundary();
-		navigate({ to: "/" });
+		void navigate({ to: "/" });
 	};
 
 	return (

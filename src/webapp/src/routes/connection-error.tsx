@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import axios from "axios";
 import { AlertTriangle, Loader2, ServerOff, WifiOff } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { AuthShell } from "@/components/AuthShell";
 import { Button } from "@/components/ui/Button";
@@ -279,7 +280,7 @@ export const withBounceCount = (target: string, bounces: number): string => {
 };
 
 const getReasonIcon = (reason: ConnectionIssueReason) => {
-	let Icon = null;
+	let Icon: LucideIcon;
 
 	switch (reason) {
 		case "offline":

@@ -98,5 +98,7 @@ export function renderHookWithProviders<Result, Props>(
 	};
 }
 
+// Our `render` below deliberately shadows the library one.
+// oxlint-disable-next-line import/export
 export * from "@testing-library/react";
 export { renderWithProviders as render };

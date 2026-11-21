@@ -137,7 +137,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await feedStrip(page).getByText("Студентський хакатон").waitFor();
 			const next = page.getByRole("button", { name: "Наступні" });
 			if (await next.isVisible()) {
-				await next.click({ timeout: 5_000 });
+				await next.click({ timeout: 5000 });
 			}
 		},
 	},
@@ -486,12 +486,12 @@ const ALL_STATES: ReadonlyArray<State> = [
 			await page.getByText("Лекції насичені").first().waitFor();
 			const toggle = page.getByTestId("rating-comments-toggle-button").first();
 			if (await toggle.isVisible()) {
-				await toggle.click({ timeout: 5_000 });
+				await toggle.click({ timeout: 5000 });
 			}
 			await page.getByTestId("rating-comments-item").first().waitFor();
 			const replies = page.getByRole("button", { name: /відповідь/ }).first();
 			if (await replies.isVisible()) {
-				await replies.click({ timeout: 5_000 });
+				await replies.click({ timeout: 5000 });
 			}
 			await page
 				.getByText("останні дві домашки обʼємні", { exact: false })
@@ -579,7 +579,7 @@ const ALL_STATES: ReadonlyArray<State> = [
 				.waitFor();
 			const zoomIn = page.getByRole("button", { name: /Збільшити|Наблизити/ });
 			if (await zoomIn.first().isVisible()) {
-				await zoomIn.first().click({ timeout: 5_000 });
+				await zoomIn.first().click({ timeout: 5000 });
 			}
 		},
 	},
@@ -923,7 +923,7 @@ test.afterAll(() => {
 	);
 	const sections = [...new Set(STATES.map((state) => state.section))];
 	const escape = (text: string) =>
-		text.replace(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`);
+		text.replaceAll(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`);
 	const figure = (src: string, caption: string) =>
 		`<figure><img src="${src}" alt="${escape(caption)}" loading="lazy"><figcaption>${caption}</figcaption></figure>`;
 

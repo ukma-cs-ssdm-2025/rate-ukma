@@ -52,7 +52,7 @@ function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
 /** Read the params passed to the most recent useInstructorsListInfinite call */
 function lastCallParams(): InstructorsListParams {
 	const calls = mockedInfinite.mock.calls;
-	return calls[calls.length - 1][0] as InstructorsListParams;
+	return calls.at(-1)?.[0] as InstructorsListParams;
 }
 
 beforeEach(() => {

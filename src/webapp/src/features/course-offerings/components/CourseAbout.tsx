@@ -20,10 +20,14 @@ function firstTerm(
 }
 
 // The load a student weighs first when enrolling, from the latest offering.
-export function offeringLoad(offering: CourseOffering | undefined): {
+interface OfferingLoad {
 	credits: string | null;
 	weeklyHours: string | null;
-} {
+}
+
+export function offeringLoad(
+	offering: CourseOffering | undefined,
+): OfferingLoad {
 	const term = firstTerm(offering);
 	return {
 		credits: factText(formatCredits(term?.credits)),

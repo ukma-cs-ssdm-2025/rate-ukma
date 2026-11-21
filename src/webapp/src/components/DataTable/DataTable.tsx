@@ -6,7 +6,11 @@ import type {
 } from "react";
 
 import { flexRender } from "@tanstack/react-table";
-import type { Column, Table as TanstackTable } from "@tanstack/react-table";
+import type {
+	Column,
+	ColumnMeta,
+	Table as TanstackTable,
+} from "@tanstack/react-table";
 
 import { DataTablePagination } from "@/components/DataTable/DataTablePagination";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -85,7 +89,7 @@ export function getCommonPinningStyles<TData>({
 }
 
 function getAlignmentClass<TData, TValue>(
-	meta?: import("@tanstack/react-table").ColumnMeta<TData, TValue>,
+	meta?: ColumnMeta<TData, TValue>,
 ): string {
 	const align = meta?.align;
 	if (align === "center") {

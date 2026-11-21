@@ -280,9 +280,11 @@ function useTooltipBox() {
 				}
 				const unchanged =
 					current !== null &&
-					Object.entries(next).every(
-						([key, value]) => current[key as keyof TooltipBox] === value,
-					);
+					current.cardWidth === next.cardWidth &&
+					current.cardHeight === next.cardHeight &&
+					current.shellWidth === next.shellWidth &&
+					current.shellHeight === next.shellHeight &&
+					current.rem === next.rem;
 				return unchanged ? current : next;
 			});
 		};

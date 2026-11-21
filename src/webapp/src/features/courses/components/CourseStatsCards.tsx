@@ -58,10 +58,11 @@ function getDetailedDescription(
 	if (value == null) {
 		return "Недостатньо даних";
 	}
-	const roundedValue = Math.round(value);
-	const descriptions =
-		type === "difficulty" ? difficultyDescriptions : usefulnessDescriptions;
-	return descriptions[roundedValue as keyof typeof descriptions] || "";
+	const descriptions = Object.values(
+		type === "difficulty" ? difficultyDescriptions : usefulnessDescriptions,
+	);
+	// Scores run 1–5, so the rounded score picks the matching description.
+	return descriptions[Math.round(value) - 1] ?? "";
 }
 
 function getBarColor(

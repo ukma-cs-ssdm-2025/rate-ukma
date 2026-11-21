@@ -129,6 +129,17 @@ function RatingsContent({
 	);
 }
 
+function getSortParams(option: SortOption) {
+	switch (option) {
+		case "newest":
+			return { timeOrder: "desc" as const, popularityOrder: undefined };
+		case "oldest":
+			return { timeOrder: "asc" as const, popularityOrder: undefined };
+		case "most-popular":
+			return { popularityOrder: true, timeOrder: undefined };
+	}
+}
+
 export function CourseRatingsList({
 	courseId,
 	userRating: userRatingProp,
@@ -147,17 +158,6 @@ export function CourseRatingsList({
 	} else if (!canRate) {
 		voteDisabledReason = CANNOT_VOTE_BEFORE_MIDTERM_TEXT;
 	}
-
-	const getSortParams = (option: SortOption) => {
-		switch (option) {
-			case "newest":
-				return { timeOrder: "desc" as const, popularityOrder: undefined };
-			case "oldest":
-				return { timeOrder: "asc" as const, popularityOrder: undefined };
-			case "most-popular":
-				return { popularityOrder: true, timeOrder: undefined };
-		}
-	};
 
 	const sortParams = getSortParams(sortOption);
 

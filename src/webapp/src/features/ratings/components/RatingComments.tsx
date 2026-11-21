@@ -84,15 +84,15 @@ function invalidateRatingCommentQueries(
 	ratingId: string,
 	courseId?: string,
 ) {
-	queryClient.invalidateQueries({
+	void queryClient.invalidateQueries({
 		queryKey: getRatingsCommentsListQueryKey(ratingId),
 	});
-	queryClient.invalidateQueries({
+	void queryClient.invalidateQueries({
 		queryKey: getFeedListInfiniteQueryKey(),
 	});
 
 	if (courseId) {
-		queryClient.invalidateQueries({
+		void queryClient.invalidateQueries({
 			queryKey: getCoursesRatingsListQueryKey(courseId),
 			refetchType: "none",
 		});
@@ -107,7 +107,7 @@ function invalidateRepliesQuery(
 		return;
 	}
 
-	queryClient.invalidateQueries({
+	void queryClient.invalidateQueries({
 		queryKey: getCommentsRepliesRetrieveQueryKey(commentId),
 	});
 }
@@ -395,7 +395,7 @@ function RepliesPreview({
 
 // Opens a thread only once its first page is cached, so the height animation
 // runs to the real list instead of to a loading row that then jumps.
-function openWhenLoaded(load: () => Promise<unknown>, open: () => void) {
+function openWhenLoaded<T>(load: () => Promise<T>, open: () => void) {
 	load()
 		.catch(() => undefined)
 		.finally(open);
@@ -469,13 +469,13 @@ function RatingCommentItem({
 		});
 
 		setIsEditing(false);
-		queryClient.invalidateQueries({
+		void queryClient.invalidateQueries({
 			queryKey: comment.parent_id
 				? getCommentsRepliesRetrieveQueryKey(comment.parent_id)
 				: getRatingsCommentsListQueryKey(ratingId),
 		});
 		if (comment.parent_id) {
-			queryClient.invalidateQueries({
+			void queryClient.invalidateQueries({
 				queryKey: getRatingsCommentsListQueryKey(ratingId),
 			});
 		}

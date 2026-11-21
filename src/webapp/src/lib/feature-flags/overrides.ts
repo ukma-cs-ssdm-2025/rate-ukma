@@ -29,9 +29,9 @@ export function readFeatureFlagOverrides(): Record<string, boolean> {
 		const parsed: unknown = JSON.parse(raw);
 		if (parsed && typeof parsed === "object") {
 			return Object.fromEntries(
-				Object.entries(parsed as Record<string, unknown>)
-					.filter(([, v]) => typeof v === "boolean")
-					.map(([k, v]) => [k, v as boolean]),
+				Object.entries(parsed).filter(
+					(entry): entry is [string, boolean] => typeof entry[1] === "boolean",
+				),
 			);
 		}
 	} catch {
@@ -76,10 +76,12 @@ export function installFeatureFlagConsoleHelpers(): void {
 	if (!featureFlagOverridesEnabled || typeof window === "undefined") {
 		return;
 	}
-	(window as unknown as { featureFlags?: unknown }).featureFlags = {
-		set: setFeatureFlagOverride,
-		clear: clearFeatureFlagOverride,
-		clearAll: clearFeatureFlagOverrides,
-		list: readFeatureFlagOverrides,
-	};
+	Object.assign(window, {
+		featureFlags: {
+			set: setFeatureFlagOverride,
+			clear: clearFeatureFlagOverride,
+			clearAll: clearFeatureFlagOverrides,
+			list: readFeatureFlagOverrides,
+		},
+	});
 }

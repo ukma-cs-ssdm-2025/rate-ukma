@@ -36,7 +36,7 @@ const getCsrfToken = () => {
 		return null;
 	}
 
-	return cookie.substring(CSRF_COOKIE_NAME.length + 1) || null;
+	return cookie.slice(CSRF_COOKIE_NAME.length + 1) || null;
 };
 
 authorizedHttpClient.interceptors.request.use((config) => {

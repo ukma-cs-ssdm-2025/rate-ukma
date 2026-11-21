@@ -240,7 +240,7 @@ function buildCoursesTableColumns({
 				</div>
 			),
 			cell: ({ row }) => {
-				const count = row.getValue("ratings_count") as number;
+				const count = row.original.ratings_count;
 				return (
 					<div className="hidden sm:flex items-center justify-center">
 						<span className="text-sm font-medium tabular-nums text-muted-foreground md:text-base">
@@ -285,7 +285,7 @@ function buildCoursesTableColumns({
 			),
 			cell: ({ row }) => (
 				<CourseScoreCell
-					value={row.getValue("avg_difficulty") as number}
+					value={row.original.avg_difficulty}
 					variant="difficulty"
 				/>
 			),
@@ -327,7 +327,7 @@ function buildCoursesTableColumns({
 			),
 			cell: ({ row }) => (
 				<CourseScoreCell
-					value={row.getValue("avg_usefulness") as number}
+					value={row.original.avg_usefulness}
 					variant="usefulness"
 				/>
 			),
@@ -433,7 +433,7 @@ export function CoursesTable({
 				useOrder = useSort.desc ? "desc" : "asc";
 			}
 
-			setParams({
+			void setParams({
 				diffOrder,
 				useOrder,
 				reviewSort: null,
@@ -452,7 +452,7 @@ export function CoursesTable({
 
 	const handleReviewsSortChange = useCallback(
 		(value: CoursesReviewsSortOption) => {
-			setParams({
+			void setParams({
 				reviewSort: value,
 				diffOrder: null,
 				useOrder: null,
@@ -503,7 +503,7 @@ export function CoursesTable({
 			if (!course.id) {
 				return;
 			}
-			navigate({
+			void navigate({
 				to: "/courses/$courseId",
 				params: { courseId: course.id },
 			});
@@ -530,7 +530,7 @@ export function CoursesTable({
 	);
 
 	const openExplore = useCallback(() => {
-		navigate({
+		void navigate({
 			to: "/explore",
 			search: courseFiltersStateToSearchParams(params),
 		});
@@ -558,7 +558,7 @@ export function CoursesTable({
 
 			const nextSize = newPagination.pageSize;
 			const nextPage = newPagination.pageIndex + 1;
-			setParams({
+			void setParams({
 				size: nextSize,
 				page: nextSize !== params.size ? 1 : nextPage,
 			});
@@ -573,7 +573,7 @@ export function CoursesTable({
 	});
 
 	const handleResetFilters = useCallback(() => {
-		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
+		void setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
 	const hasActiveFilters = activeFilterCount > 0 || params.q !== "";
@@ -655,7 +655,7 @@ export function CoursesTable({
 							placeholder="Пошук дисциплін за назвою..."
 							value={params.q}
 							onChange={(value) => {
-								setParams({ q: String(value), page: 1 });
+								void setParams({ q: String(value), page: 1 });
 							}}
 							className="h-10 pl-10 text-sm"
 							disabled={isInitialLoading}

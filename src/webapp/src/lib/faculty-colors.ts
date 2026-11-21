@@ -42,7 +42,7 @@ type ColorConfig = { bg: string; text: string; border: string; hex: string };
 
 // Explicit token classes (prevents purging in production); light and dark
 // values come from the faculty tokens in styles.css.
-const COLOR_CLASS_MAP: Record<string, Omit<ColorConfig, "hex">> = {
+const COLOR_CLASS_MAP = {
 	purple: {
 		bg: "bg-faculty-purple/12",
 		text: "text-faculty-purple",
@@ -83,42 +83,22 @@ const COLOR_CLASS_MAP: Record<string, Omit<ColorConfig, "hex">> = {
 		text: "text-faculty-gray",
 		border: "border-transparent",
 	},
-};
+} satisfies Record<string, Omit<ColorConfig, "hex">>;
 
-function createColorConfig(color: string, hex: string): ColorConfig {
-	const classes = COLOR_CLASS_MAP[color] ?? COLOR_CLASS_MAP.gray;
-	return {
-		...classes,
-		hex,
-	};
-}
-
-// Build the full faculty colors object
-export const FACULTY_COLORS = Object.entries(FACULTY_COLOR_MAP).reduce(
-	(acc, [faculty, { color, hex }]) => {
-		acc[faculty] = createColorConfig(color, hex);
-		return acc;
-	},
-	{} as Record<string, ColorConfig>,
+const FACULTY_COLORS = new Map<string, ColorConfig>(
+	Object.entries(FACULTY_COLOR_MAP).map(([faculty, { color, hex }]) => [
+		faculty,
+		{ ...COLOR_CLASS_MAP[color], hex },
+	]),
 );
 
-export type FacultyName = keyof typeof FACULTY_COLOR_MAP;
-export function getFacultyColors(facultyName: string) {
-	// hasOwn: inherited props (__proto__, toString, …) must fall back to gray.
-	const colors = Object.hasOwn(FACULTY_COLORS, facultyName)
-		? FACULTY_COLORS[facultyName as FacultyName]
-		: undefined;
+const FALLBACK_COLORS: ColorConfig = {
+	...COLOR_CLASS_MAP.gray,
+	hex: "#6b7280",
+};
 
-	if (!colors) {
-		return {
-			bg: "bg-faculty-gray/12",
-			text: "text-faculty-gray",
-			border: "border-transparent",
-			hex: "#6b7280",
-		};
-	}
-
-	return colors;
+export function getFacultyColors(facultyName: string): ColorConfig {
+	return FACULTY_COLORS.get(facultyName) ?? FALLBACK_COLORS;
 }
 
 /** Get hex color for a faculty (useful for charts/graphs). */
@@ -143,8 +123,8 @@ export function getFacultyContrastTextColor(
 			: ((channel + 0.055) / 1.055) ** 2.4;
 	});
 
-	const luminance =
-		0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+	const [red = 0, green = 0, blue = 0] = channels;
+	const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 	return luminance > 0.179 ? "#1a1a1a" : "#ffffff";
 }
 

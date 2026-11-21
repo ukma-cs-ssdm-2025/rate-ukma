@@ -37,7 +37,7 @@ function LoginPage() {
 		if (status === "authenticated" && !hasRedirected.current) {
 			hasRedirected.current = true;
 			const redirectTo = search.redirect || "/";
-			navigate({ to: redirectTo, replace: true });
+			void navigate({ to: redirectTo, replace: true });
 		}
 	}, [status, search.redirect, navigate]);
 

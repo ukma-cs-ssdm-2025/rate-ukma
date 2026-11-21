@@ -10,7 +10,11 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import { toast } from "@/components/ui/Toaster";
-import type { Instructor, RatingInstructor } from "@/lib/api/generated";
+import type {
+	Instructor,
+	RatingCreateRequest,
+	RatingInstructor,
+} from "@/lib/api/generated";
 import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
@@ -86,10 +90,13 @@ export function RatingModal({
 	const handleSubmit = async (data: RatingFormData) => {
 		// A non-empty selection supersedes the legacy text; an empty one leaves it,
 		// rather than dropping the rating's only instructor.
-		const instructorPayload = {
-			instructor_ids: data.instructor_ids,
-			...(data.instructor_ids.length > 0 ? { instructor: "" } : {}),
-		};
+		const instructorPayload: Pick<
+			RatingCreateRequest,
+			"instructor" | "instructor_ids"
+		> = { instructor_ids: data.instructor_ids };
+		if (data.instructor_ids.length > 0) {
+			instructorPayload.instructor = "";
+		}
 		try {
 			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
@@ -213,5 +220,3 @@ export function RatingModal({
 		</Dialog>
 	);
 }
-
-export type { RatingFormData } from "./RatingForm";
