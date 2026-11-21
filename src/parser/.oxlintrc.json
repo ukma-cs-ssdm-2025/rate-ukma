@@ -35,7 +35,8 @@
 		"anti-slop-effect/no-manual-tag-comparison": "error",
 		"anti-slop-effect/no-manual-tagged-construction": "error",
 		"anti-slop-effect/no-service-constructor-imports": "error",
-		"anti-slop-effect/prefer-effect-match": "error"
+		"anti-slop-effect/prefer-effect-match": "error",
+		"anti-slop-effect/require-named-effect-fn": "error"
 	},
 	"ignorePatterns": [
 		".agent/**",

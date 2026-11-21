@@ -178,25 +178,26 @@ export class SazClient extends Context.Service<
 				Effect.andThen(Effect.logInfo("Signed in to САЗ")),
 			);
 
-			const fetchPage = (path: string) =>
-				Effect.gen(function* () {
-					const response = yield* send(
-						HttpClientRequest.get(`${SAZ_URL}${path}`),
-						path,
-					);
+			const fetchPage = Effect.fn("SazClient.fetchPage")(function* (
+				path: string,
+			) {
+				const response = yield* send(
+					HttpClientRequest.get(`${SAZ_URL}${path}`),
+					path,
+				);
 
-					if (isSignInPage(response)) {
-						return yield* new SignedOut({ path });
-					}
+				if (isSignInPage(response)) {
+					return yield* new SignedOut({ path });
+				}
 
-					if (response.status !== 200) {
-						return yield* failureOf(path, response);
-					}
+				if (response.status !== 200) {
+					return yield* failureOf(path, response);
+				}
 
-					return yield* response.text.pipe(
-						Effect.mapError(() => new SazRequestFailed({ path, status: 0 })),
-					);
-				});
+				return yield* response.text.pipe(
+					Effect.mapError(() => new SazRequestFailed({ path, status: 0 })),
+				);
+			});
 
 			const get = (path: string) =>
 				withSignIn(retryStep(fetchPage(path)), retryStep(signIn)).pipe(

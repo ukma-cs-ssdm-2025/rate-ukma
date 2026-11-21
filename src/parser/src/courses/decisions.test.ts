@@ -33,36 +33,37 @@ const otherTitle = { title: "Вигадана логіка" };
 const otherDepartment = { department: "Кафедра вигаданої логіки" };
 
 /** Two grouped courses of one level, and a key to decide with. */
-const setUp = (second: Partial<ParsedOffering> = otherTitle) =>
-	Effect.gen(function* () {
-		yield* reset;
+const setUp = Effect.fnUntraced(function* (
+	second: Partial<ParsedOffering> = otherTitle,
+) {
+	yield* reset;
 
-		yield* write([
-			offering("900061"),
-			offering("900062", { academicYear: 2032 }),
-			offering("900063", second),
-			offering("900064", { level: "master" }),
-		]);
-		yield* groupCourses({});
+	yield* write([
+		offering("900061"),
+		offering("900062", { academicYear: 2032 }),
+		offering("900063", second),
+		offering("900064", { level: "master" }),
+	]);
+	yield* groupCourses({});
 
-		const courseOf = new Map(
-			(yield* groups).map((row) => [row.sazCode, row.courseId]),
-		);
+	const courseOf = new Map(
+		(yield* groups).map((row) => [row.sazCode, row.courseId]),
+	);
 
-		const key = yield* (yield* Keys).create({
-			name: "test staff",
-			scopes: ["review:decide"],
-			expiresInDays: 30,
-			createdBy: null,
-		});
-
-		return {
-			keyId: key.id,
-			first: courseOf.get("900061") ?? "",
-			second: courseOf.get("900063") ?? "",
-			master: courseOf.get("900064") ?? "",
-		};
+	const key = yield* (yield* Keys).create({
+		name: "test staff",
+		scopes: ["review:decide"],
+		expiresInDays: 30,
+		createdBy: null,
 	});
+
+	return {
+		keyId: key.id,
+		first: courseOf.get("900061") ?? "",
+		second: courseOf.get("900063") ?? "",
+		master: courseOf.get("900064") ?? "",
+	};
+});
 
 describe("course decisions", () => {
 	layer(TestLive, { timeout: 30_000, excludeTestServices: true })((it) => {

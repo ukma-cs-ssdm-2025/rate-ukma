@@ -26,7 +26,7 @@ export interface StudentParseReport extends Omit<ParseReport, "missing"> {
 /** Parses the latest students page of each offering into students and
  *  enrollments (spec rule 6, per list). A crawl skips a list whose latest
  *  snapshot is already applied; a reparse applies every list again. */
-export const parseStudents = Effect.fn("parseStudents")(function* (
+export const parseStudents = Effect.fn("Students.parseStudents")(function* (
 	trigger: ParseTrigger,
 ) {
 	const parses = yield* OfferingStore;

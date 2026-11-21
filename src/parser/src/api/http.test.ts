@@ -172,29 +172,26 @@ const TestLive = Layer.mergeAll(
 	),
 );
 
-const clientAs = (scopes: ReadonlyArray<Scope>) =>
-	Effect.gen(function* () {
-		const keys = yield* Keys;
+const clientAs = Effect.fnUntraced(function* (scopes: ReadonlyArray<Scope>) {
+	const keys = yield* Keys;
 
-		const key = yield* keys.create({
-			name: "test reader",
-			scopes,
-			expiresInDays: 30,
-			createdBy: null,
-		});
-
-		const client = yield* HttpApiTest.groups(Api, ["catalog", "review"]).pipe(
-			Effect.provide(
-				HttpApiMiddleware.layerClient(ApiKeyAuth, ({ next, request }) =>
-					next(
-						HttpClientRequest.bearerToken(request, Redacted.value(key.token)),
-					),
-				),
-			),
-		);
-
-		return { client, keyId: key.id, token: key.token };
+	const key = yield* keys.create({
+		name: "test reader",
+		scopes,
+		expiresInDays: 30,
+		createdBy: null,
 	});
+
+	const client = yield* HttpApiTest.groups(Api, ["catalog", "review"]).pipe(
+		Effect.provide(
+			HttpApiMiddleware.layerClient(ApiKeyAuth, ({ next, request }) =>
+				next(HttpClientRequest.bearerToken(request, Redacted.value(key.token))),
+			),
+		),
+	);
+
+	return { client, keyId: key.id, token: key.token };
+});
 
 layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 	"list endpoints",

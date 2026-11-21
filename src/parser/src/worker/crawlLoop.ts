@@ -14,6 +14,7 @@ export interface CrawlSteps<RWait, RCrawl, RParse> {
 
 /** Crawls whenever `nextWait` says one is due and parses after each, until a
  *  sign-in fails: another try would send the password again. */
+// oxlint-disable-next-line anti-slop-effect/require-named-effect-fn -- the loop runs until shutdown, so a span would stay open for the whole process.
 export const crawlLoop = Effect.fnUntraced(function* <RWait, RCrawl, RParse>({
 	source,
 	nextWait,

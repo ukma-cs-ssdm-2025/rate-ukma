@@ -6,22 +6,23 @@ import { NO_FILTERS, snapshot } from "../offerings/testing.ts";
 import type { ParsedOffering } from "../saz/coursePage.ts";
 
 /** Writes these offerings as a parse would, each from a new snapshot. */
-export const write = (offerings: ReadonlyArray<ParsedOffering>) =>
-	Effect.gen(function* () {
-		const store = yield* OfferingStore;
+export const write = Effect.fnUntraced(function* (
+	offerings: ReadonlyArray<ParsedOffering>,
+) {
+	const store = yield* OfferingStore;
 
-		const pages = yield* Effect.forEach(offerings, (parsed) =>
-			snapshot(
-				`/course/${parsed.sazCode}`,
-				`${parsed.title} ${parsed.department}`,
-			).pipe(Effect.map((snapshotId) => ({ snapshotId, offering: parsed }))),
-		);
+	const pages = yield* Effect.forEach(offerings, (parsed) =>
+		snapshot(
+			`/course/${parsed.sazCode}`,
+			`${parsed.title} ${parsed.department}`,
+		).pipe(Effect.map((snapshotId) => ({ snapshotId, offering: parsed }))),
+	);
 
-		yield* store.write(
-			offeringRowsOf(pages, NO_FILTERS, yield* store.programmes),
-			yield* store.startParse("crawl"),
-		);
-	});
+	yield* store.write(
+		offeringRowsOf(pages, NO_FILTERS, yield* store.programmes),
+		yield* store.startParse("crawl"),
+	);
+});
 
 /** Each offering's course, by САЗ code. */
 export interface Grouped {

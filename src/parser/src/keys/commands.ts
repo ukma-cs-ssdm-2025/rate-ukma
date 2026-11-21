@@ -100,7 +100,7 @@ const createKey = Command.make(
 			// Printed once to stdout, not through the logger, whose lines go to
 			// Sentry. A Job's stdout is a pod log too, so this runs by `kubectl exec`.
 			yield* Console.log(Redacted.value(key.token));
-		}),
+		}).pipe(Effect.withSpan("Keys.create")),
 ).pipe(Command.withDescription("Make an API key and print its token once"));
 
 const revokeKey = Command.make(
@@ -115,7 +115,7 @@ const revokeKey = Command.make(
 			}
 
 			yield* Console.log(`Revoked ${id}`);
-		}),
+		}).pipe(Effect.withSpan("Keys.revoke")),
 ).pipe(Command.withDescription("Revoke an API key"));
 
 const listKeys = Command.make("list-keys", {}, () =>
@@ -126,7 +126,7 @@ const listKeys = Command.make("list-keys", {}, () =>
 		for (const key of yield* keys.list) {
 			yield* Console.log(describeKey(key, now));
 		}
-	}),
+	}).pipe(Effect.withSpan("Keys.list")),
 ).pipe(Command.withDescription("List API keys with their scopes and status"));
 
 /** The key commands with `Keys` from `keys`: `KeysLive` in the container, a
