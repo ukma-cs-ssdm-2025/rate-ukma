@@ -22,6 +22,7 @@ uv run --quiet --extra codegen --extra linting datamodel-codegen \
   --target-python-version 3.12 \
   --openapi-scopes schemas paths \
   --openapi-include-paths /v1/key \
+  --extra-fields ignore \
   --disable-timestamp \
   --no-formatters
 

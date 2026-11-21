@@ -17,7 +17,7 @@ class FieldTag(StrEnum):
 
 class EffectHttpApiErrorForbiddenEncoded(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     field_tag: Annotated[FieldTag, Field(alias="_tag")]
 
@@ -28,7 +28,7 @@ class FieldTag1(StrEnum):
 
 class EffectHttpApiErrorUnauthorizedEncoded(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     field_tag: Annotated[FieldTag1, Field(alias="_tag")]
 
@@ -47,7 +47,7 @@ class Reason(StrEnum):
 
 class CourseDecisionRefusedEncoded(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     field_tag: Annotated[FieldTag2, Field(alias="_tag")]
     reason: Reason
@@ -59,7 +59,7 @@ class FieldTag3(StrEnum):
 
 class CourseNotFoundEncoded(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     field_tag: Annotated[FieldTag3, Field(alias="_tag")]
     course_id: Annotated[str, Field(alias="courseId")]
@@ -76,7 +76,7 @@ class Reason1(StrEnum):
 
 class ReviewCaseRefusedEncoded(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     field_tag: Annotated[FieldTag4, Field(alias="_tag")]
     reason: Reason1
@@ -88,7 +88,7 @@ class FieldTag5(StrEnum):
 
 class ReviewCaseNotFoundEncoded(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     field_tag: Annotated[FieldTag5, Field(alias="_tag")]
     case_id: Annotated[str, Field(alias="caseId")]
@@ -111,7 +111,7 @@ class Status1(StrEnum):
 
 class CasePerson1(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     student_id: Annotated[str, Field(alias="studentId")]
     record_id: Annotated[
@@ -127,7 +127,7 @@ class CasePerson1(UkmaDataModel):
 
 class CasePerson(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     student_id: Annotated[str, Field(alias="studentId")]
     record_id: Annotated[
@@ -156,7 +156,7 @@ class Status3(StrEnum):
 
 class ReviewCase(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     kind: Kind1
@@ -178,7 +178,7 @@ class Role(StrEnum):
 
 class OfferingInstructor(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     last_name: Annotated[str, Field(alias="lastName")]
@@ -190,7 +190,7 @@ class OfferingInstructor(UkmaDataModel):
 
 class MergedCourses(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     rule: Annotated[int, Field(description="Merged by a department handoff", ge=0)]
     decision: Annotated[int, Field(description="Merged by staff", ge=0)]
@@ -203,7 +203,7 @@ class Status4(StrEnum):
 
 class LastCrawl(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     finished_at: Annotated[str, Field(alias="finishedAt")]
     status: Status4
@@ -211,7 +211,7 @@ class LastCrawl(UkmaDataModel):
 
 class ReviewCaseCounts(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     course_match: Annotated[int, Field(alias="courseMatch", ge=0)]
     instructor_match: Annotated[int, Field(alias="instructorMatch", ge=0)]
@@ -227,7 +227,7 @@ class TeacherShare(StrEnum):
 
 class YearStats(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     academic_year: Annotated[
         int, Field(alias="academicYear", description="`2025` is the academic year 2025-26")
@@ -269,7 +269,7 @@ class Kind2(StrEnum):
 
 class OfferingProgramme(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     programme_id: Annotated[str, Field(alias="programmeId")]
     kind: Kind2
@@ -285,7 +285,7 @@ class Control(StrEnum):
 
 class OfferingTerm(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     term_id: Annotated[str, Field(alias="termId")]
     semesters: list[int]
@@ -304,7 +304,7 @@ class MergeSource(StrEnum):
 
 class Course(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     title: Annotated[str, Field(description="The title its offerings share")]
@@ -336,7 +336,7 @@ class Course(UkmaDataModel):
 
 class Programme(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     name: str
@@ -354,7 +354,7 @@ class Programme(UkmaDataModel):
 
 class Department(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     name: str
@@ -372,7 +372,7 @@ class Department(UkmaDataModel):
 
 class Faculty(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     name: str
@@ -395,7 +395,7 @@ class Season(StrEnum):
 
 class Term(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     code: str
@@ -412,7 +412,7 @@ class Scope(StrEnum):
 
 class V1KeyGetResponse(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     scopes: list[Scope]
@@ -421,7 +421,7 @@ class V1KeyGetResponse(UkmaDataModel):
 
 class StudentCase(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     kind: Kind
@@ -442,7 +442,7 @@ class StudentCase(UkmaDataModel):
 
 class ReviewCasePage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[ReviewCase]
     cursor: Annotated[
@@ -464,7 +464,7 @@ class ReviewCasePage(UkmaDataModel):
 
 class OfferingTeachers(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     saz_code: Annotated[str, Field(alias="sazCode")]
@@ -482,7 +482,7 @@ class OfferingTeachers(UkmaDataModel):
 
 class Stats(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     years: Annotated[
         list[YearStats], Field(description="Every academic year with offerings, latest first")
@@ -501,7 +501,7 @@ class Stats(UkmaDataModel):
 
 class Offering(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     id: str
     saz_code: Annotated[str, Field(alias="sazCode")]
@@ -541,7 +541,7 @@ class Offering(UkmaDataModel):
 
 class CoursePage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[Course]
     cursor: Annotated[
@@ -559,7 +559,7 @@ class CoursePage(UkmaDataModel):
 
 class ProgrammePage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[Programme]
     cursor: Annotated[
@@ -577,7 +577,7 @@ class ProgrammePage(UkmaDataModel):
 
 class DepartmentPage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[Department]
     cursor: Annotated[
@@ -595,7 +595,7 @@ class DepartmentPage(UkmaDataModel):
 
 class FacultyPage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[Faculty]
     cursor: Annotated[
@@ -613,7 +613,7 @@ class FacultyPage(UkmaDataModel):
 
 class TermPage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[Term]
     cursor: Annotated[
@@ -631,7 +631,7 @@ class TermPage(UkmaDataModel):
 
 class OfferingTeachersPage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[OfferingTeachers]
     cursor: Annotated[
@@ -649,7 +649,7 @@ class OfferingTeachersPage(UkmaDataModel):
 
 class OfferingPage(UkmaDataModel):
     model_config = ConfigDict(
-        extra="forbid",
+        extra="ignore",
     )
     items: list[Offering]
     cursor: Annotated[

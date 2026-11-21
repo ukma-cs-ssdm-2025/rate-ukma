@@ -63,3 +63,14 @@ def test_reads_generated_models_by_snake_case_field_names():
         "season": "FALL",
         "changeNo": 1,
     }
+
+
+def test_ignores_a_field_ukma_data_adds_later():
+    # UKMA Data deploys on its own pipeline; a field it adds must not break
+    # Rate UKMA's syncs or the /data proxy before the models are regenerated.
+    offering = ud.Offering.model_validate(
+        {**OFFERING, "addedLater": 1, "terms": [{**OFFERING["terms"][0], "addedLater": 1}]}
+    )
+
+    assert offering.saz_code == "TST-0001"
+    assert "addedLater" not in offering.model_dump(by_alias=True)
