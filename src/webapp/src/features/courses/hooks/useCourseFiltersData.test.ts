@@ -113,8 +113,10 @@ function allSelectFilters(data: ReturnType<typeof useCourseFiltersData>) {
 describe("useCourseFiltersData", () => {
 	describe("Range Filters", () => {
 		it("should return difficulty, usefulness, and credits range configurations", () => {
+			// Act
 			const { result } = renderFiltersHook();
 
+			// Assert
 			const ranges = allRangeFilters(result.current);
 			expect(ranges).toHaveLength(3);
 			expect(ranges[0].key).toBe("diff");
@@ -126,26 +128,32 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should include current filter values in range configs", () => {
+			// Act
 			const { result } = renderFiltersHook({
 				diff: [2, 4] as [number, number],
 			});
 
+			// Assert
 			const ranges = allRangeFilters(result.current);
 			const difficultyFilter = ranges.find((f) => f.key === "diff");
 			expect(difficultyFilter?.value).toEqual([2, 4]);
 		});
 
 		it("should include range bounds in configurations", () => {
+			// Act
 			const { result } = renderFiltersHook();
 
+			// Assert
 			const ranges = allRangeFilters(result.current);
 			const difficultyFilter = ranges.find((f) => f.key === "diff");
 			expect(difficultyFilter?.range).toEqual([1, 5]);
 		});
 
 		it("should use half-step increments for the credits slider", () => {
+			// Act
 			const { result } = renderFiltersHook();
 
+			// Assert
 			const ranges = allRangeFilters(result.current);
 			const creditsFilter = ranges.find((f) => f.key === "credits");
 			expect(creditsFilter?.step).toBe(0.5);
@@ -154,8 +162,10 @@ describe("useCourseFiltersData", () => {
 
 	describe("Select Filters", () => {
 		it("should return all select filter configurations", () => {
+			// Act
 			const { result } = renderFiltersHook();
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			expect(selects).toHaveLength(6);
 			const filterKeys = selects.map((f) => f.key);
@@ -170,12 +180,15 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should map filter options to select options", () => {
+			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [MOCK_FACULTIES.FI, MOCK_FACULTIES.FEN],
 			});
 
+			// Act
 			const { result } = renderFiltersHook({}, filterOptions);
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			const facultyFilter = selects.find((f) => f.key === "faculty");
 			expect(facultyFilter?.options).toHaveLength(3);
@@ -190,16 +203,20 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should include current filter values in select configs", () => {
+			// Act
 			const { result } = renderFiltersHook({ faculty: "fac-1" });
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			const facultyFilter = selects.find((f) => f.key === "faculty");
 			expect(facultyFilter?.value).toBe("fac-1");
 		});
 
 		it("should handle empty filter options gracefully", () => {
+			// Act
 			const { result } = renderFiltersHookWithoutOptions();
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			selects.forEach((filter) => {
 				if (filter.key === "instructor") {
@@ -220,6 +237,7 @@ describe("useCourseFiltersData", () => {
 
 	describe("Department Filtering by Faculty", () => {
 		it("should show all departments when no faculty is selected", () => {
+			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -240,13 +258,16 @@ describe("useCourseFiltersData", () => {
 				],
 			});
 
+			// Act
 			const { result } = renderFiltersHook({}, filterOptions);
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			const departmentFilter = selects.find((f) => f.key === "dept");
 			expect(departmentFilter?.options).toHaveLength(4);
 		});
 		it("should filter departments by selected faculty", () => {
+			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -267,8 +288,10 @@ describe("useCourseFiltersData", () => {
 				],
 			});
 
+			// Act
 			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			const departmentFilter = selects.find((f) => f.key === "dept");
 			expect(departmentFilter?.options).toHaveLength(3);
@@ -280,6 +303,7 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should show department name without faculty when faculty is selected", () => {
+			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -291,8 +315,10 @@ describe("useCourseFiltersData", () => {
 				],
 			});
 
+			// Act
 			const { result } = renderFiltersHook({ faculty: "fac-1" }, filterOptions);
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			const departmentFilter = selects.find((f) => f.key === "dept");
 			expect(departmentFilter?.options[1].label).toBe(
@@ -301,6 +327,7 @@ describe("useCourseFiltersData", () => {
 		});
 
 		it("should show department with faculty name when no faculty selected", () => {
+			// Arrange
 			const filterOptions = createMockFilterOptions({
 				faculties: [
 					{
@@ -312,8 +339,10 @@ describe("useCourseFiltersData", () => {
 				],
 			});
 
+			// Act
 			const { result } = renderFiltersHook({}, filterOptions);
 
+			// Assert
 			const selects = allSelectFilters(result.current);
 			const departmentFilter = selects.find((f) => f.key === "dept");
 			expect(departmentFilter?.options[1].label).toBe(
@@ -324,45 +353,55 @@ describe("useCourseFiltersData", () => {
 
 	describe("Filter Groups", () => {
 		it("should group filters into rating, semester, and structure", () => {
+			// Act
 			const { result } = renderFiltersHook();
 
+			// Assert
 			expect(result.current.groups.rating.config.id).toBe("rating");
 			expect(result.current.groups.semester.config.id).toBe("semester");
 			expect(result.current.groups.structure.config.id).toBe("structure");
 		});
 
 		it("should count active rating filters", () => {
+			// Act
 			const { result } = renderFiltersHook({
 				diff: [2, 4] as [number, number],
 				use: [3, 5] as [number, number],
 			});
 
+			// Assert
 			expect(result.current.groups.rating.config.activeCount).toBe(2);
 		});
 
 		it("should count active semester filters", () => {
+			// Act
 			const { result } = renderFiltersHook({
 				year: "2024",
 				term: ["FALL"],
 			});
 
+			// Assert
 			expect(result.current.groups.semester.config.activeCount).toBe(2);
 		});
 
 		it("should count active structure filters", () => {
+			// Act
 			const { result } = renderFiltersHook({
 				faculty: "fac-1",
 				spec: "spec-1",
 			});
 
+			// Assert
 			expect(result.current.groups.structure.config.activeCount).toBe(2);
 		});
 
 		it("should count one term selection once in the semester group", () => {
+			// Arrange & Act
 			const { result } = renderFiltersHook({
 				term: ["FALL", "SPRING"],
 			});
 
+			// Assert
 			expect(result.current.groups.semester.config.activeCount).toBe(1);
 		});
 	});

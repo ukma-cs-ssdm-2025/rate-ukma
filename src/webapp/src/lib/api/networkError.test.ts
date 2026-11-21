@@ -65,113 +65,141 @@ describe("networkError", () => {
 
 	describe("handleConnectionIssue", () => {
 		it("redirects with offline reason when navigator reports offline", () => {
+			// Arrange
 			stubNavigatorOnline(false);
 			const axiosError = createAxiosError({ response: undefined });
 
+			// Act
 			const handled = handleConnectionIssue(axiosError);
 
+			// Assert
 			expect(handled).toBe(true);
 			expectConnectionErrorRedirect("offline");
 		});
 
 		it("does not treat 5xx responses as connection issues", () => {
+			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({
 				response: { status: 503 } as AxiosError["response"],
 			});
 
+			// Act
 			const handled = handleConnectionIssue(axiosError);
 
+			// Assert
 			expect(handled).toBe(false);
 			expect(mockWindowReplace).not.toHaveBeenCalled();
 		});
 
 		it("redirects with offline reason when ERR_NETWORK occurs and user is offline", () => {
+			// Arrange
 			stubNavigatorOnline(false);
 			const axiosError = createAxiosError({
 				code: "ERR_NETWORK",
 				response: undefined,
 			});
 
+			// Act
 			const handled = handleConnectionIssue(axiosError);
 
+			// Assert
 			expect(handled).toBe(true);
 			expectConnectionErrorRedirect("offline");
 		});
 
 		it("returns false when the error is not an axios error", () => {
+			// Arrange
 			stubNavigatorOnline();
 
+			// Act
 			const handled = handleConnectionIssue(new Error("boom"));
 
+			// Assert
 			expect(handled).toBe(false);
 			expect(mockWindowReplace).not.toHaveBeenCalled();
 		});
 
 		it("ignores canceled axios requests identified by code", () => {
+			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({ code: "ERR_CANCELED" });
 			const cancelSpy = vi.spyOn(axios, "isCancel").mockReturnValue(true);
 
+			// Act
 			const handled = handleConnectionIssue(axiosError);
 			cancelSpy.mockRestore();
 
+			// Assert
 			expect(handled).toBe(false);
 			expect(mockWindowReplace).not.toHaveBeenCalled();
 		});
 
 		it("ignores axios cancel instances even without a specific code", () => {
+			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({});
 			const cancelSpy = vi.spyOn(axios, "isCancel").mockReturnValue(true);
 
+			// Act
 			const handled = handleConnectionIssue(axiosError);
 			cancelSpy.mockRestore();
 
+			// Assert
 			expect(handled).toBe(false);
 			expect(mockWindowReplace).not.toHaveBeenCalled();
 		});
 
 		it("returns false when response status is 4xx", () => {
+			// Arrange
 			stubNavigatorOnline();
 			const axiosError = createAxiosError({
 				response: { status: 404 } as AxiosError["response"],
 			});
 
+			// Act
 			const handled = handleConnectionIssue(axiosError);
 
+			// Assert
 			expect(handled).toBe(false);
 			expect(mockWindowReplace).not.toHaveBeenCalled();
 		});
 
 		it("redirects with server reason when ERR_NETWORK happens but user is online", () => {
+			// Arrange
 			stubNavigatorOnline(true);
 			const axiosError = createAxiosError({
 				code: "ERR_NETWORK",
 				response: undefined,
 			});
 
+			// Act
 			const handled = handleConnectionIssue(axiosError);
 
+			// Assert
 			expect(handled).toBe(true);
 			expectConnectionErrorRedirect("server");
 		});
 
 		describe("redirect behavior", () => {
 			it("actually redirects using window.location.replace when using default redirect", () => {
+				// Arrange
 				stubNavigatorOnline();
 				const axiosError = createAxiosError({
 					code: "ERR_NETWORK",
 					response: undefined,
 				});
 
+				// Act
 				handleConnectionIssue(axiosError);
 
+				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledOnce();
 				expectConnectionErrorRedirect("server");
 			});
 
 			it("prevents multiple redirects from race conditions", () => {
+				// Arrange
 				stubNavigatorOnline();
 				const error1 = createAxiosError({
 					code: "ERR_NETWORK",
@@ -182,13 +210,16 @@ describe("networkError", () => {
 					response: undefined,
 				});
 
+				// Act
 				handleConnectionIssue(error1);
 				handleConnectionIssue(error2);
 
+				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledOnce();
 			});
 
 			it("does not redirect if already on connection error page", () => {
+				// Arrange
 				const { replace } = stubBrowserLocation({
 					pathname: CONNECTION_ERROR_PATH,
 					search: "",
@@ -202,12 +233,15 @@ describe("networkError", () => {
 					response: undefined,
 				});
 
+				// Act
 				handleConnectionIssue(axiosError);
 
+				// Assert
 				expect(mockWindowReplace).not.toHaveBeenCalled();
 			});
 
 			it("allows redirect after resetRedirectFlag is called", () => {
+				// Arrange
 				stubNavigatorOnline();
 				const error1 = createAxiosError({
 					code: "ERR_NETWORK",
@@ -218,11 +252,13 @@ describe("networkError", () => {
 					response: undefined,
 				});
 
+				// Act
 				handleConnectionIssue(error1);
 				handleConnectionIssue(error2);
 				resetRedirectFlag();
 				handleConnectionIssue(error2);
 
+				// Assert
 				expect(mockWindowReplace).toHaveBeenCalledTimes(2);
 			});
 		});

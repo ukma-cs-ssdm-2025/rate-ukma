@@ -17,7 +17,7 @@ Lint enforces these (ADR-0017, `lint/layers.ts`, `pnpm lint:ratchet`):
 - **Features own pages, components and hooks.** A feature imports another only as declared in `FEATURE_DEPENDENCIES` (`lint/layers.ts`), and that graph stays acyclic.
 - **`components/` and `lib/` are shared:** they never import `features/` or `routes/`. Pass feature content in as a prop or slot.
 - **Files stay under 400 lines; no barrel `index.ts` files.**
-- **No comments in `src/`** except lint and type directives with their reason (`rate-ukma/no-comments`). Say it with a name, a type or a test; a decision goes into an ADR (ADR-0018 holds the earlier ones), a hack into an issue. `/delete-comments <path>` (`.claude/skills/delete-comments`) reviews a path.
+- **No comments in `src/`** except lint and type directives with their reason (`rate-ukma/no-comments`), and in tests the bare markers `// Arrange`, `// Act`, `// Assert` (or combined, `// Arrange & Act`). Say it with a name, a type or a test; a decision goes into an ADR (ADR-0018 holds the earlier ones), a hack into an issue. `/delete-comments <path>` (`.claude/skills/delete-comments`) reviews a path.
 - **The allowlist only shrinks:** `lint/allowlist.ts` lists today's offenders. Remove an entry in the change that fixes it (the ratchet fails until you do); never add one.
 
 - **The generated type is the type.** Use `@/lib/api/generated` types as they are: no camelCase copies, no `Extended*` interfaces, no `?? ""` to paper over optional fields. If a type is wrong (optional when it's always sent, `string` instead of an enum), fix the serializer and regenerate.

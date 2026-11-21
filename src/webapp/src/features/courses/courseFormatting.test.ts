@@ -21,10 +21,12 @@ import {
 describe("courseFormatting", () => {
 	describe("Constants", () => {
 		it("should have correct difficulty range", () => {
+			// Assert
 			expect(DIFFICULTY_RANGE).toEqual([1, 5]);
 		});
 
 		it("should have correct usefulness range", () => {
+			// Assert
 			expect(USEFULNESS_RANGE).toEqual([1, 5]);
 		});
 	});
@@ -126,65 +128,86 @@ describe("courseFormatting", () => {
 
 	describe("getSemesterDisplay", () => {
 		it("should combine term and year into display string", () => {
+			// Arrange
 			const year = 2024;
 			const term = "FALL";
 
+			// Act
 			const result = getSemesterDisplay(year, term);
 
+			// Assert
 			expect(result).toBe("Осінь 2024");
 		});
 
 		it("should use fallback when term is unknown", () => {
+			// Arrange
 			const year = 2024;
 			const unknownTerm = "UNKNOWN";
 			const fallback = "Невідомо";
 
+			// Act
 			const result = getSemesterDisplay(year, unknownTerm, fallback);
 
+			// Assert
 			expect(result).toBe("Невідомо 2024");
 		});
 	});
 
 	describe("formatDate", () => {
 		it("should format valid date string in Ukrainian locale", () => {
+			// Arrange
 			const dateString = "2025-10-26";
 
+			// Act
 			const result = formatDate(dateString);
 
+			// Assert
 			expect(result).toBe("26 жовтня 2025 р.");
 		});
 
 		it("should format ISO 8601 datetime string", () => {
+			// Arrange
 			const dateString = "2025-10-26T14:30:00Z";
 
+			// Act
 			const result = formatDate(dateString);
 
+			// Assert
 			expect(result).toContain("26");
 			expect(result).toContain("жовтня");
 			expect(result).toContain("2025");
 		});
 
 		it("should return em dash for invalid date string", () => {
+			// Arrange
 			const invalidDate = "not-a-date";
 
+			// Act
 			const result = formatDate(invalidDate);
 
+			// Assert
 			expect(result).toBe("—");
 		});
 
 		it("should return em dash for empty string", () => {
+			// Arrange
 			const emptyString = "";
 
+			// Act
 			const result = formatDate(emptyString);
 
+			// Assert
 			expect(result).toBe("—");
 		});
 
 		it("should handle different months correctly", () => {
+			// Arrange
 			const januaryDate = "2025-01-15";
 
+			// Act
 			const result = formatDate(januaryDate);
 
+			// Assert
 			expect(result).toContain("січня");
 		});
 	});

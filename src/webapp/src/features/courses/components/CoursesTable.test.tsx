@@ -110,45 +110,56 @@ beforeEach(() => {
 
 describe("Initial Rendering", () => {
 	it("should render search input", () => {
+		// Arrange & Act
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
+		// Assert
 		expect(
 			screen.getByPlaceholderText("Пошук дисциплін за назвою..."),
 		).toBeInTheDocument();
 	});
 
 	it("should render filter panel on desktop", () => {
+		// Arrange & Act
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
+		// Assert
 		const panel = screen.getByTestId(testIds.filters.panel);
 		expect(panel).toBeInTheDocument();
 		expect(within(panel).getByText("Фільтри")).toBeInTheDocument();
 	});
 
 	it("should render mobile filter button", () => {
+		// Arrange & Act
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
+		// Assert
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
 		expect(filterButton).toBeInTheDocument();
 	});
 
 	it("should render skeleton when initial loading", () => {
+		// Arrange & Act
 		renderWithProviders(<CoursesTable {...defaultProps} isLoading={true} />);
 
+		// Assert
 		expect(screen.getByRole("table")).toBeInTheDocument();
 	});
 
 	it("should render empty state when no data and not loading", () => {
+		// Arrange & Act
 		renderWithProviders(
 			<CoursesTable {...defaultProps} data={[]} isLoading={false} />,
 		);
 
+		// Assert
 		expect(
 			screen.getByText("Дисциплін не знайдено за вашим запитом"),
 		).toBeInTheDocument();
 	});
 
 	it("should offer a reset action when filters hide every course", async () => {
+		// Arrange
 		const user = userEvent.setup();
 		const setParams = vi.fn();
 		renderWithProviders(
@@ -161,23 +172,29 @@ describe("Initial Rendering", () => {
 			/>,
 		);
 
+		// Assert
 		expect(
 			screen.getByText("За цими фільтрами дисциплін немає"),
 		).toBeInTheDocument();
 
+		// Act
 		await user.click(screen.getByRole("button", { name: "Скинути фільтри" }));
 
+		// Assert
 		expect(setParams).toHaveBeenCalledWith(DEFAULT_COURSE_FILTERS_PARAMS);
 	});
 
 	it("should render data table when data is present", () => {
+		// Arrange
 		const courses = [
 			createMockCourse({ title: "React Programming" }),
 			createMockCourse({ title: "Database Systems" }),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		expect(screen.getByText("React Programming")).toBeInTheDocument();
 		expect(screen.getByText("Database Systems")).toBeInTheDocument();
 	});
@@ -185,14 +202,17 @@ describe("Initial Rendering", () => {
 
 describe("Search Filter", () => {
 	it("should update search query when typing in search input", async () => {
+		// Arrange
 		const user = userEvent.setup();
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
+		// Act
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук дисциплін за назвою...",
 		);
 		await user.type(searchInput, "React");
 
+		// Assert
 		expect(searchInput).toHaveValue("React");
 	});
 
@@ -216,8 +236,10 @@ describe("Search Filter", () => {
 	});
 
 	it("should disable search input when initial loading", () => {
+		// Arrange & Act
 		renderWithProviders(<CoursesTable {...defaultProps} isLoading={true} />);
 
+		// Assert
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук дисциплін за назвою...",
 		);
@@ -227,6 +249,7 @@ describe("Search Filter", () => {
 
 describe("Pagination", () => {
 	it("should initialize pagination with server pagination values", () => {
+		// Arrange
 		const pagination = {
 			page: 2,
 			pageSize: 20,
@@ -234,6 +257,7 @@ describe("Pagination", () => {
 			totalPages: 5,
 		};
 
+		// Act
 		renderWithProviders(
 			<CoursesTable
 				{...defaultProps}
@@ -242,6 +266,7 @@ describe("Pagination", () => {
 			/>,
 		);
 
+		// Assert
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(
 			screen.queryByText("Дисципліни не знайдено"),
@@ -316,16 +341,19 @@ describe("Pagination", () => {
 
 describe("Filter Options Loading", () => {
 	it("should show filter panel title regardless of loading state", () => {
+		// Arrange
 		const queryClient = new QueryClient({
 			defaultOptions: {
 				queries: { retry: false },
 			},
 		});
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} />, {
 			queryClient,
 		});
 
+		// Assert
 		const panel = screen.getByTestId(testIds.filters.panel);
 		expect(panel).toBeInTheDocument();
 		expect(within(panel).getByText("Фільтри")).toBeInTheDocument();
@@ -373,12 +401,15 @@ describe("Reset Filters", () => {
 
 describe("Mobile Filter Drawer", () => {
 	it("should open drawer when filter button is clicked", async () => {
+		// Arrange
 		const user = userEvent.setup();
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
+		// Act
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
 		await user.click(filterButton);
 
+		// Assert
 		await waitFor(() => {
 			const allFilterTexts = screen.getAllByText("Фільтри");
 			expect(allFilterTexts.length).toBeGreaterThan(1);
@@ -388,12 +419,14 @@ describe("Mobile Filter Drawer", () => {
 
 describe("Row Click Handling", () => {
 	it("should render course title as a link", () => {
+		// Arrange
 		const course = createMockCourse({
 			id: "test-course-id",
 			title: "React Programming",
 		});
 		renderWithProviders(<CoursesTable {...defaultProps} data={[course]} />);
 
+		// Assert
 		const link = screen.getByRole("link", { name: "React Programming" });
 		expect(link).toBeInTheDocument();
 		expect(link).toHaveAttribute("href", "/courses/$courseId");
@@ -406,13 +439,16 @@ describe("Row Click Handling", () => {
 
 describe("Course Display", () => {
 	it("should display course titles", () => {
+		// Arrange
 		const courses = [
 			createMockCourse({ title: "Algorithms and Data Structures" }),
 			createMockCourse({ title: "Web Development" }),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		expect(
 			screen.getByText("Algorithms and Data Structures"),
 		).toBeInTheDocument();
@@ -420,38 +456,48 @@ describe("Course Display", () => {
 	});
 
 	it("should display course ratings count", () => {
+		// Arrange
 		const courses = [
 			createMockCourse({ title: "Test Course", ratings_count: 42 }),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		expect(screen.getByText("42")).toBeInTheDocument();
 	});
 
 	it("should display average difficulty", () => {
+		// Arrange
 		const courses = [
 			createMockCourse({ title: "Test Course", avg_difficulty: 3.5 }),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		const difficultyElements = screen.getAllByText("3.5");
 		expect(difficultyElements.length).toBeGreaterThan(0);
 	});
 
 	it("should display average usefulness", () => {
+		// Arrange
 		const courses = [
 			createMockCourse({ title: "Test Course", avg_usefulness: 4.2 }),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		const usefulnessElements = screen.getAllByText("4.2");
 		expect(usefulnessElements.length).toBeGreaterThan(0);
 	});
 
 	it("should display speciality badge", () => {
+		// Arrange
 		const courses = [
 			createMockCourse({
 				title: "Test Course",
@@ -464,16 +510,20 @@ describe("Course Display", () => {
 			}),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		expect(screen.getByText("ІПЗ")).toBeInTheDocument();
 	});
 });
 
 describe("Accessibility", () => {
 	it("should have accessible search input", () => {
+		// Arrange & Act
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
+		// Assert
 		const searchInput = screen.getByPlaceholderText(
 			"Пошук дисциплін за назвою...",
 		);
@@ -482,13 +532,16 @@ describe("Accessibility", () => {
 	});
 
 	it("should have accessible filter button with aria-label", () => {
+		// Arrange & Act
 		renderWithProviders(<CoursesTable {...defaultProps} />);
 
+		// Assert
 		const filterButton = screen.getByRole("button", { name: /фільтри/i });
 		expect(filterButton).toHaveAttribute("aria-label", "Фільтри");
 	});
 
 	it("should include the group active count in the filter button name", () => {
+		// Arrange & Act
 		renderWithProviders(
 			<CoursesTable
 				{...defaultProps}
@@ -496,6 +549,7 @@ describe("Accessibility", () => {
 			/>,
 		);
 
+		// Assert
 		expect(
 			screen.getByRole("button", { name: "Фільтри (1 активних)" }),
 		).toBeInTheDocument();
@@ -504,6 +558,7 @@ describe("Accessibility", () => {
 
 describe("Attended Courses Highlighting", () => {
 	it("should highlight attended course rows", async () => {
+		// Arrange
 		const { useStudentsMeCoursesRetrieve } =
 			await import("@/lib/api/generated");
 		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
@@ -524,8 +579,10 @@ describe("Attended Courses Highlighting", () => {
 			}),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		const attendedRow = screen.getByText("Attended Course").closest("tr");
 		const nonAttendedRow = screen
 			.getByText("Non-Attended Course")
@@ -536,6 +593,7 @@ describe("Attended Courses Highlighting", () => {
 	});
 
 	it("should not highlight any rows when no attended courses", async () => {
+		// Arrange
 		const { useStudentsMeCoursesRetrieve } =
 			await import("@/lib/api/generated");
 		const mockedHook = vi.mocked(useStudentsMeCoursesRetrieve);
@@ -551,8 +609,10 @@ describe("Attended Courses Highlighting", () => {
 			createMockCourse({ id: "course-2", title: "Course Two" }),
 		];
 
+		// Act
 		renderWithProviders(<CoursesTable {...defaultProps} data={courses} />);
 
+		// Assert
 		const rows = screen.getAllByRole("row").filter((row) => {
 			return row.closest("tbody");
 		});

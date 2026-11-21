@@ -14,7 +14,7 @@ Accepted
 
 ## Decision
 
-We will keep tests free of comments like the app code: a test title, a `test.step` name or a helper's name says what a step does. The decisions the removed test comments carried are recorded below.
+We will keep tests free of comments like the app code: a test title, a `test.step` name or a helper's name says what a step does. One exception: the bare `// Arrange`, `// Act` and `// Assert` markers (and combined forms like `// Arrange & Act`) stay in test files, because they show a test's shape at a glance; the lint rule allows exactly those markers in `*.test.*` and `tests/**` files and nothing else. The decisions the removed test comments carried are recorded below.
 
 ### Unit tests (`src/webapp/src`)
 
