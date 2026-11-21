@@ -99,7 +99,7 @@ services:
     profiles:
       - prod
 
-  # Periodic jobs (rating_app/scheduler/jobs.py, ADR 0019). The image's
+  # Periodic jobs (rating_app/scheduler/jobs.py, ADR 0020). The image's
   # entrypoint always starts gunicorn, so the scheduler replaces it.
   scheduler:
     image: ghcr.io/ukma-cs-ssdm-2025/rate-ukma/backend:${BACKEND_IMAGE_TAG:-latest}

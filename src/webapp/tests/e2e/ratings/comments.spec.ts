@@ -44,8 +44,6 @@ interface CommentPayload {
 	[key: string]: unknown;
 }
 
-// Each test starts on a course with a fresh rating of ours to comment under;
-// teardown deletes that rating.
 const test = base.extend<{ seeded: SeededRatingContext }>({
 	seeded: async ({ page }, use, testInfo) => {
 		const context = await seedRating(page, testInfo);
@@ -116,7 +114,6 @@ test.describe("Rating comments workflow", () => {
 		const comment = uniqueText(test.info(), "non-owner");
 
 		await comments.createComment(comment);
-		// The route lives only as long as this test's page, so no unroute.
 		await mockCommentAsNonOwner(page, comment);
 		await page.reload();
 		await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();

@@ -10,8 +10,6 @@ import { act, renderWithProviders, waitFor } from "@/test-utils/render";
 import type { UseFeedReturn } from "./useFeed";
 import { useFeed } from "./useFeed";
 
-// Mocked at the HTTP mutator rather than at the generated hook, so the cursor
-// threading orval generates (`useFeedListInfinite`) stays under test.
 vi.mock("@/lib/api/apiClient", async () => ({
 	...(await vi.importActual("@/lib/api/apiClient")),
 	authorizedFetcher: vi.fn(),
@@ -20,12 +18,10 @@ vi.mock("@/lib/api/apiClient", async () => ({
 const { authorizedFetcher } = await import("@/lib/api/apiClient");
 const mockedFetcher = vi.mocked(authorizedFetcher);
 
-/** The query params of the nth (0-based) request the hook issued. */
 function requestParams(call: number): FeedListParams {
 	return mockedFetcher.mock.calls[call][0].params as FeedListParams;
 }
 
-/** The generated (snake_case) shape the endpoint returns, not the domain one. */
 function apiPromo(overrides: Partial<ApiFeedItem> = {}): ApiFeedItem {
 	return {
 		kind: "promo",
@@ -37,10 +33,6 @@ function apiPromo(overrides: Partial<ApiFeedItem> = {}): ApiFeedItem {
 	} as ApiFeedItem;
 }
 
-/**
- * `useFeed` only exposes `loaderRef`, so paging is driven the way the real UI
- * drives it: attach the ref to a node and fire the intersection callback.
- */
 let observerCallback: IntersectionObserverCallback | undefined;
 const realIntersectionObserver = globalThis.IntersectionObserver;
 

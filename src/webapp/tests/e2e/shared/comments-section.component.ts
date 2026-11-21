@@ -109,8 +109,6 @@ export class CommentsSection {
 			.getByTestId(testIds.comments.textarea)
 			.last();
 		await expect(editTextarea).toHaveValue(currentContent);
-		// Use root-scoped form so the locator stays valid after fill() changes
-		// the textarea value (which would break the commentItem text filter).
 		const editForm = this.root.getByTestId(testIds.comments.form).last();
 		await this.submitForm(editForm, updatedContent, options);
 		await this.expectCommentVisible(updatedContent);

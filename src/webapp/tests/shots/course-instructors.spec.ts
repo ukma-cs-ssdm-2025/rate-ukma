@@ -17,8 +17,6 @@ async function open(page: Page, flag: boolean, width: number) {
 	await expect(page.getByTestId(testIds.courseDetails.title)).toBeVisible();
 }
 
-/** Opens the course and waits until its teachers have arrived and rendered,
- *  so an absent row means the empty result, not a request still in flight. */
 async function openWithTeachers(page: Page, width: number) {
 	const teachers = page.waitForResponse((response) =>
 		/\/courses\/[^/]+\/instructors\/$/.test(new URL(response.url()).pathname),

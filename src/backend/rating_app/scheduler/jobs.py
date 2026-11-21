@@ -1,4 +1,4 @@
-"""Periodic jobs run by ``manage.py run_scheduler`` (ADR 0019).
+"""Periodic jobs run by ``manage.py run_scheduler`` (ADR 0020).
 
 Each job is a management command run once a day at a UTC wall-clock time,
 the time zone Django, the logs and Grafana use. ``lock_key`` is the job's
