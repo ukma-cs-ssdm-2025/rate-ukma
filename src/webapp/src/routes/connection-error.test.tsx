@@ -62,10 +62,6 @@ const renderPage = (props: Parameters<typeof ConnectionErrorPage>[0] = {}) => {
 	return { ...location, view: render(<ConnectionErrorPage {...props} />) };
 };
 
-const settle = async () => {
-	await new Promise<void>((resolve) => setTimeout(resolve, 50));
-};
-
 beforeEach(() => {
 	sessionRetrieveMock.mockReset();
 	sessionRetrieveMock.mockResolvedValue({});
@@ -160,9 +156,8 @@ describe("ConnectionErrorPage auto-return", () => {
 		act(() => {
 			globalThis.dispatchEvent(new Event("online"));
 		});
-		await settle();
 
-		expect(sessionRetrieveMock).not.toHaveBeenCalled();
+		await waitFor(() => expect(sessionRetrieveMock).not.toHaveBeenCalled());
 	});
 
 	it("stops auto-return past the bounce cap", async () => {
@@ -175,9 +170,8 @@ describe("ConnectionErrorPage auto-return", () => {
 		act(() => {
 			globalThis.dispatchEvent(new Event("online"));
 		});
-		await settle();
 
-		expect(sessionRetrieveMock).not.toHaveBeenCalled();
+		await waitFor(() => expect(sessionRetrieveMock).not.toHaveBeenCalled());
 	});
 
 	it("removes the online listener on unmount", async () => {
@@ -189,9 +183,8 @@ describe("ConnectionErrorPage auto-return", () => {
 		act(() => {
 			globalThis.dispatchEvent(new Event("online"));
 		});
-		await settle();
 
-		expect(sessionRetrieveMock).not.toHaveBeenCalled();
+		await waitFor(() => expect(sessionRetrieveMock).not.toHaveBeenCalled());
 	});
 });
 
