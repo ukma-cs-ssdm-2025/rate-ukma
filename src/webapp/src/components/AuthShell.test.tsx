@@ -64,10 +64,8 @@ function renderShell(viewport: Viewport = WIDE_SCREEN) {
 	);
 }
 
-function advance(ms: number) {
-	act(() => {
-		vi.advanceTimersByTime(ms);
-	});
+async function advance(ms: number) {
+	await act(() => vi.advanceTimersByTimeAsync(ms));
 }
 
 function shownCourses() {
@@ -93,60 +91,54 @@ describe("AuthShell course carousel", () => {
 		vi.useRealTimers();
 	});
 
-	it("shows one course at a time with a rest in between", () => {
+	it("shows one course at a time with a rest in between", async () => {
 		renderShell();
 		expect(shownCourses()).toEqual([]);
 
-		advance(SPOTLIGHT_START_MS);
+		await advance(SPOTLIGHT_START_MS);
 		expect(shownCourses()).toEqual([FIRST_COURSE]);
 
-		advance(SPOTLIGHT_SHOW_MS);
+		await advance(SPOTLIGHT_SHOW_MS);
 		expect(shownCourses()).toEqual([]);
 
-		advance(SPOTLIGHT_REST_MS - 1);
+		await advance(SPOTLIGHT_REST_MS - 1);
 		expect(shownCourses()).toEqual([]);
 
-		advance(1);
+		await advance(1);
 		expect(shownCourses()).toEqual([SECOND_COURSE]);
 	});
 
-	it("replaces the shown course with the hovered one and holds while hovering", () => {
+	it("replaces the shown course with the hovered one and holds while hovering", async () => {
 		renderShell();
-		advance(SPOTLIGHT_START_MS);
+		await advance(SPOTLIGHT_START_MS);
 
 		fireEvent.mouseEnter(dotOf(HOVERED_COURSE));
 		expect(shownCourses()).toEqual([HOVERED_COURSE]);
 
-		for (const step of [
-			SPOTLIGHT_SHOW_MS,
-			SPOTLIGHT_REST_MS,
-			SPOTLIGHT_SHOW_MS,
-		]) {
-			advance(step);
-			expect(shownCourses()).toEqual([HOVERED_COURSE]);
-		}
+		await advance(SPOTLIGHT_SHOW_MS + SPOTLIGHT_REST_MS + SPOTLIGHT_SHOW_MS);
+		expect(shownCourses()).toEqual([HOVERED_COURSE]);
 	});
 
-	it("moves on to the next course two seconds after a hover that interrupted a shown one", () => {
+	it("moves on to the next course two seconds after a hover that interrupted a shown one", async () => {
 		renderShell();
-		advance(SPOTLIGHT_START_MS);
+		await advance(SPOTLIGHT_START_MS);
 
 		const dot = dotOf(HOVERED_COURSE);
 		fireEvent.mouseEnter(dot);
 		fireEvent.mouseLeave(dot);
 		expect(shownCourses()).toEqual([]);
 
-		advance(SPOTLIGHT_RESUME_MS - 1);
+		await advance(SPOTLIGHT_RESUME_MS - 1);
 		expect(shownCourses()).toEqual([]);
 
-		advance(1);
+		await advance(1);
 		expect(shownCourses()).toEqual([SECOND_COURSE]);
 	});
 
-	it("does not skip a course when the hover happens during a rest", () => {
+	it("does not skip a course when the hover happens during a rest", async () => {
 		renderShell();
-		advance(SPOTLIGHT_START_MS);
-		advance(SPOTLIGHT_SHOW_MS);
+		await advance(SPOTLIGHT_START_MS);
+		await advance(SPOTLIGHT_SHOW_MS);
 		expect(shownCourses()).toEqual([]);
 
 		const dot = dotOf(HOVERED_COURSE);
@@ -154,16 +146,16 @@ describe("AuthShell course carousel", () => {
 		expect(shownCourses()).toEqual([HOVERED_COURSE]);
 
 		fireEvent.mouseLeave(dot);
-		advance(SPOTLIGHT_RESUME_MS - 1);
+		await advance(SPOTLIGHT_RESUME_MS - 1);
 		expect(shownCourses()).toEqual([]);
 
-		advance(1);
+		await advance(1);
 		expect(shownCourses()).toEqual([SECOND_COURSE]);
 	});
 
-	it("carries on from its own dot after that dot was hovered", () => {
+	it("carries on from its own dot after that dot was hovered", async () => {
 		renderShell();
-		advance(SPOTLIGHT_START_MS);
+		await advance(SPOTLIGHT_START_MS);
 
 		const dot = dotOf(FIRST_COURSE);
 		fireEvent.mouseEnter(dot);
@@ -172,7 +164,7 @@ describe("AuthShell course carousel", () => {
 		fireEvent.mouseLeave(dot);
 		expect(shownCourses()).toEqual([]);
 
-		advance(SPOTLIGHT_RESUME_MS);
+		await advance(SPOTLIGHT_RESUME_MS);
 		expect(shownCourses()).toEqual([SECOND_COURSE]);
 	});
 
@@ -180,17 +172,11 @@ describe("AuthShell course carousel", () => {
 		["below the width limit", { ...WIDE_SCREEN, width: 1279 }],
 		["in a window too short for the tooltips", { ...WIDE_SCREEN, height: 600 }],
 		["with reduced motion", { ...WIDE_SCREEN, reducedMotion: true }],
-	])("stays off %s", (_, viewport) => {
+	])("stays off %s", async (_, viewport) => {
 		renderShell(viewport);
 
-		for (const step of [
-			SPOTLIGHT_START_MS,
-			SPOTLIGHT_SHOW_MS,
-			SPOTLIGHT_REST_MS,
-		]) {
-			advance(step);
-			expect(shownCourses()).toEqual([]);
-		}
+		await advance(SPOTLIGHT_START_MS + SPOTLIGHT_SHOW_MS + SPOTLIGHT_REST_MS);
+		expect(shownCourses()).toEqual([]);
 	});
 
 	it("still shows a hovered course with reduced motion", () => {
