@@ -14,6 +14,7 @@ import { StudentStore } from "../students/StudentStore.ts";
 import { crawlSmart, untilNextSmartCrawl } from "../smart/crawl.ts";
 import { parseSmart } from "../smart/parse.ts";
 import { SmartClient } from "../smart/SmartClient.ts";
+import { OfferingTeacherStore } from "../smart/OfferingTeacherStore.ts";
 import { SmartStore } from "../smart/SmartStore.ts";
 import { crawlLoop } from "./crawlLoop.ts";
 
@@ -146,6 +147,7 @@ export const WorkerLive = Layer.effectDiscard(
 		OfferingStore.layer,
 		RemovalStore.layer,
 		SazClient.layer,
+		OfferingTeacherStore.layer,
 		SmartClient.layer,
 		SmartStore.layer,
 		StudentStore.layer,

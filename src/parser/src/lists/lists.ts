@@ -137,8 +137,22 @@ const OfferingProgramme = Schema.Struct({
 	kind: Schema.Literals(["compulsory", "prof_oriented", "elective"]),
 }).annotate({ identifier: "OfferingProgramme" });
 
-/** One САЗ card. The card's teacher cell is left out: teacher data needs
- *  `instructors:read`. */
+/** A smart.ukma teacher the matching rule linked to an offering. */
+const OfferingInstructor = Schema.Struct({
+	id: Schema.String,
+	lastName: Schema.String,
+	firstName: Schema.String,
+	middleName: Schema.NullOr(Schema.String),
+	email: Schema.NullOr(Schema.String),
+	role: Schema.Literals([
+		"lecturer",
+		"practice_teacher",
+		"lecturer_and_practice_teacher",
+	]),
+}).annotate({ identifier: "OfferingInstructor" });
+
+/** One САЗ card. The card's teacher cell is left out; the smart.ukma
+ *  teachers linked to it come only to a key with `instructors:read`. */
 export const Offering = Schema.Struct({
 	id: Schema.String,
 	sazCode: Schema.String,
@@ -165,6 +179,10 @@ export const Offering = Schema.Struct({
 	}),
 	terms: Schema.Array(OfferingTerm),
 	programmes: Schema.Array(OfferingProgramme),
+	instructors: Schema.optionalKey(Schema.Array(OfferingInstructor)).annotate({
+		description:
+			"smart.ukma teachers linked by the matching rule; present only for a key with `instructors:read`",
+	}),
 	changeNo,
 	removedAt,
 }).annotate({ identifier: "Offering" });

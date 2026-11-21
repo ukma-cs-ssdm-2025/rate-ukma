@@ -55,7 +55,8 @@
 												"type": "string",
 												"enum": [
 													"catalog:read",
-													"review:decide"
+													"review:decide",
+													"instructors:read"
 												]
 											}
 										},
@@ -1703,6 +1704,13 @@
 							"$ref": "#/components/schemas/OfferingProgramme"
 						}
 					},
+					"instructors": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OfferingInstructor"
+						},
+						"description": "smart.ukma teachers linked by the matching rule; present only for a key with `instructors:read`"
+					},
 					"changeNo": {
 						"type": "integer"
 					},
@@ -1744,6 +1752,57 @@
 					"programmes",
 					"changeNo",
 					"removedAt"
+				],
+				"additionalProperties": false
+			},
+			"OfferingInstructor": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"middleName": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"email": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"role": {
+						"type": "string",
+						"enum": [
+							"lecturer",
+							"practice_teacher",
+							"lecturer_and_practice_teacher"
+						]
+					}
+				},
+				"required": [
+					"id",
+					"lastName",
+					"firstName",
+					"middleName",
+					"email",
+					"role"
 				],
 				"additionalProperties": false
 			},

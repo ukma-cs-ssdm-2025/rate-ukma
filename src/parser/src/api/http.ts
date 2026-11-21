@@ -61,7 +61,11 @@ export const CatalogApiHandlers = HttpApiBuilder.group(
 				.handle("departments", ({ query }) => served(lists.departments(query)))
 				.handle("programmes", ({ query }) => served(lists.programmes(query)))
 				.handle("courses", ({ query }) => served(lists.courses(query)))
-				.handle("offerings", ({ query }) => served(lists.offerings(query)))
+				.handle("offerings", ({ query }) =>
+					Caller.use(({ scopes }) =>
+						served(lists.offerings(query, scopes.includes("instructors:read"))),
+					),
+				)
 				.handle("stats", () => stats.stats());
 		}),
 );

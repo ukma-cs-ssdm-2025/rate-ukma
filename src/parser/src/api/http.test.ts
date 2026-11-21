@@ -261,6 +261,81 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 				}),
 		);
 
+		it.effect(
+			"adds linked teachers to offerings only for a key with instructors:read",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
+
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							const [snapshot] = yield* sql<{ readonly id: bigint }>`
+								SELECT id FROM page_snapshots LIMIT 1
+							`;
+
+							yield* sql`
+								INSERT INTO instructors (
+									id, smart_id, last_name, first_name, email, row_hash,
+									snapshot_id, change_no
+								)
+								VALUES (
+									'ins_one', 7101, 'Вигаданенко', 'Марта', 'm.v@example.edu',
+									'hash', ${snapshot?.id ?? 0n}, nextval('change_no_seq')
+								)
+							`;
+							yield* sql`
+								INSERT INTO offering_instructors (offering_id, instructor_id, role)
+								VALUES ('off_930001', 'ins_one', 'LECTURER_AND_PRACTICE_TEACHER')
+							`;
+						}),
+					);
+
+					const reader = yield* clientAs(["catalog:read"]);
+
+					const plain = yield* reader.client.catalog.offerings({
+						query: FROM_START,
+					});
+
+					assert.isTrue(plain.items.every((item) => !("instructors" in item)));
+
+					const staff = yield* clientAs(["catalog:read", "instructors:read"]);
+
+					const page = yield* staff.client.catalog.offerings({
+						query: FROM_START,
+					});
+
+					assert.deepStrictEqual(
+						page.items.map(({ id, instructors }) => [id, instructors]),
+						[
+							[
+								"off_930001",
+								[
+									{
+										id: "ins_one",
+										lastName: "Вигаданенко",
+										firstName: "Марта",
+										middleName: null,
+										email: "m.v@example.edu",
+										role: "lecturer_and_practice_teacher",
+									},
+								],
+							],
+							["off_930003", []],
+							["off_930002", []],
+						],
+					);
+
+					const teachersOnly = yield* clientAs(["instructors:read"]);
+
+					const denied = yield* Effect.flip(
+						teachersOnly.client.catalog.offerings({ query: FROM_START }),
+					);
+
+					assert.strictEqual(denied._tag, "Forbidden");
+				}),
+		);
+
 		it.effect("serves each reference list above the saved number", () =>
 			Effect.gen(function* () {
 				const { client } = yield* clientAs(["catalog:read"]);
