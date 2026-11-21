@@ -48,7 +48,7 @@ export const Stats = Schema.Struct({
 	}),
 	nextCrawlAt: Schema.Date.annotate({
 		description:
-			"When the worker starts the next САЗ crawl; now while one is running",
+			"When the worker should start the next САЗ crawl, from the last run and `CRAWL_INTERVAL`; now when one is due or running",
 	}),
 }).annotate({ identifier: "Stats" });
 
