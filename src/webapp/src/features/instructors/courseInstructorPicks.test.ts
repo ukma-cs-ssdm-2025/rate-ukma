@@ -7,6 +7,7 @@ function mention(
 	id: string,
 	ratings_count: number,
 	offering_ratings_count = 0,
+	planned = false,
 ): CourseInstructorMentions {
 	return {
 		instructor: { id, first_name: "Ім'я", last_name: id },
@@ -14,7 +15,7 @@ function mention(
 		offering_ratings_count,
 		students_count: ratings_count,
 		recent_students_count: ratings_count,
-		planned: false,
+		planned,
 	};
 }
 
@@ -44,5 +45,21 @@ describe("pickCourseInstructors", () => {
 
 	it("offers nothing when nobody named anyone", () => {
 		expect(pickCourseInstructors([], [])).toEqual([]);
+	});
+
+	it("adds teachers planned for the offering after students' picks", () => {
+		const items = [
+			mention("a", 5, 2),
+			mention("b", 4, 0, true),
+			mention("c", 3),
+			mention("d", 0, 0, true),
+			mention("e", 0, 0, true),
+		];
+		expect(ids(pickCourseInstructors(items, []))).toEqual(["a", "b", "d"]);
+	});
+
+	it("offers planned teachers alone when nobody was named", () => {
+		const items = [mention("a", 0, 0, true), mention("b", 1)];
+		expect(ids(pickCourseInstructors(items, ["x"]))).toEqual(["a"]);
 	});
 });

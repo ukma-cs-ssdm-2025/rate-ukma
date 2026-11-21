@@ -26,6 +26,8 @@ const respond = (studentsCounts: ReadonlyArray<number>) =>
 				ratings_count: students_count,
 				offering_ratings_count: 0,
 				students_count,
+				recent_students_count: students_count,
+				planned: false,
 			})),
 		},
 	} as unknown as ReturnType<typeof useCoursesInstructorsRetrieve>);

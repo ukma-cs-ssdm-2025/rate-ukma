@@ -171,6 +171,41 @@ export const COURSE_INSTRUCTORS = {
 	],
 } satisfies CourseInstructorList;
 
+export const COURSE_INSTRUCTORS_PLANNED = {
+	items: [
+		{
+			...COURSE_INSTRUCTORS.items[0],
+			recent_students_count: 1,
+		},
+		{
+			instructor: {
+				id: "i-4",
+				first_name: "Ірина",
+				patronymic: "Василівна",
+				last_name: "Савчук",
+			},
+			ratings_count: 0,
+			offering_ratings_count: 0,
+			students_count: 0,
+			recent_students_count: 0,
+			planned: true,
+		},
+		{
+			instructor: {
+				id: "i-5",
+				first_name: "Тарас",
+				patronymic: "Ігорович",
+				last_name: "Мельничук",
+			},
+			ratings_count: 0,
+			offering_ratings_count: 0,
+			students_count: 0,
+			recent_students_count: 0,
+			planned: true,
+		},
+	],
+} satisfies CourseInstructorList;
+
 export const FILTER_OPTIONS = {
 	instructors: [{ id: "i-1", name: "Олена Демченко", department: null }],
 	faculties: FACULTIES.map((faculty) => ({

@@ -9,6 +9,8 @@ export interface CourseTeacher {
 
 const MIN_STUDENTS = 2;
 
+const PLANNED_NOTE = "за планом";
+
 const UK_PLURAL = new Intl.PluralRules("uk");
 const STUDENT_FORMS: Record<Intl.LDMLPluralRule, string> = {
 	zero: "студентів",
@@ -25,21 +27,30 @@ export function chosenByNote(count: number): string {
 	return `${verb} ${count} ${STUDENT_FORMS[form]}`;
 }
 
-export function namedCourseTeachers(
+function teacherOf(
+	{ instructor }: CourseInstructorMentions,
+	note: string,
+): CourseTeacher[] {
+	return instructor.id === undefined
+		? []
+		: [{ id: instructor.id, name: formatInstructorName(instructor), note }];
+}
+
+export function courseTeachers(
 	items: ReadonlyArray<CourseInstructorMentions>,
 ): CourseTeacher[] {
-	return items
-		.filter((item) => item.students_count >= MIN_STUDENTS)
-		.sort((a, b) => b.students_count - a.students_count)
-		.flatMap(({ instructor, students_count }) =>
-			instructor.id === undefined
-				? []
-				: [
-						{
-							id: instructor.id,
-							name: formatInstructorName(instructor),
-							note: chosenByNote(students_count),
-						},
-					],
+	const named = items
+		.filter((item) => item.recent_students_count >= MIN_STUDENTS)
+		.sort((a, b) => b.recent_students_count - a.recent_students_count)
+		.flatMap((item) =>
+			teacherOf(item, chosenByNote(item.recent_students_count)),
 		);
+
+	if (named.length > 0) {
+		return named;
+	}
+
+	return items
+		.filter((item) => item.planned)
+		.flatMap((item) => teacherOf(item, PLANNED_NOTE));
 }
