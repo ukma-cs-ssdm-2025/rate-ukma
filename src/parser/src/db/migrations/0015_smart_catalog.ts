@@ -14,7 +14,7 @@ export default Effect.gen(function* () {
 			last_name text NOT NULL,
 			first_name text NOT NULL,
 			middle_name text,
-			email text CHECK (email = lower(email)),
+			email text,
 			smart_department_id integer,
 			department_name text,
 			row_hash text NOT NULL,

@@ -137,6 +137,13 @@ const hashOf = (
 	row: Omit<InstructorRow, "rowHash"> | Omit<DisciplineRow, "rowHash">,
 ): string => createHash("sha256").update(JSON.stringify(row)).digest("hex");
 
+/** The last item of each id: an upsert cannot touch one row twice. */
+const uniqueById = <T extends { readonly id: number }>(
+	items: ReadonlyArray<T>,
+): ReadonlyArray<T> => [
+	...new Map(items.map((item) => [item.id, item])).values(),
+];
+
 const decode = <S extends Schema.Top & { readonly DecodingServices: never }>(
 	schema: S,
 	list: string,
@@ -176,20 +183,29 @@ export const smartRowsOf = (
 
 		const links = yield* decode(ListOf(Link), "links", lists.links);
 
+		// No links beside a full discipline list is a broken reply: parsing it
+		// would strip every discipline's teachers, then add them back next time.
+		if (links.items.length === 0 && disciplines.items.length > 0) {
+			return yield* Result.fail(new SmartListError({ reason: "empty links" }));
+		}
+
 		const departmentName = new Map(
 			departments.items.map(({ id, nameUa }) => [id, nameUa]),
 		);
 
-		const teachersOf = new Map<number, Array<DisciplineTeacher>>();
+		const teachersOf = new Map<number, Map<string, DisciplineTeacher>>();
 
 		for (const { id } of links.items) {
-			const teachers = teachersOf.get(id.disciplineId) ?? [];
+			const teachers = teachersOf.get(id.disciplineId) ?? new Map();
 
-			teachers.push({ smartId: id.teacherId, role: id.teacherRole });
+			teachers.set(`${id.teacherId}:${id.teacherRole}`, {
+				smartId: id.teacherId,
+				role: id.teacherRole,
+			});
 			teachersOf.set(id.disciplineId, teachers);
 		}
 
-		const instructors = teachers.items.map((teacher) => {
+		const instructors = uniqueById(teachers.items).map((teacher) => {
 			const row = {
 				smartId: teacher.id,
 				lastName: teacher.lastName.trim(),
@@ -205,7 +221,7 @@ export const smartRowsOf = (
 
 		return {
 			instructors,
-			disciplines: disciplines.items.map((discipline) => {
+			disciplines: uniqueById(disciplines.items).map((discipline) => {
 				const curriculum = discipline.curriculums[0]?.curriculum;
 				const entranceYear = curriculum?.yearOfEntrance.start ?? null;
 
@@ -224,7 +240,7 @@ export const smartRowsOf = (
 					entranceYear,
 					...termOf(discipline.semesterOfTeaching, entranceYear),
 					level: levelOf(curriculum?.educationProgram?.programLevel),
-					teachers: [...(teachersOf.get(discipline.id) ?? [])].sort(
+					teachers: [...(teachersOf.get(discipline.id)?.values() ?? [])].sort(
 						(a, b) => a.smartId - b.smartId || a.role.localeCompare(b.role),
 					),
 				};

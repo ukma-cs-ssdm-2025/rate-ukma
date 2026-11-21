@@ -97,6 +97,37 @@ describe("smartRowsOf", () => {
 		assert.deepStrictEqual(first, second);
 	});
 
+	it("refuses an empty link list beside disciplines", () => {
+		const result = smartRowsOf(
+			smartLists({ links: JSON.stringify({ items: [], total: 0 }) }),
+		);
+
+		assert.strictEqual(
+			Result.isFailure(result) ? result.failure.reason : "",
+			"empty links",
+		);
+	});
+
+	it("keeps one row per id and one link per teacher and role", () => {
+		const lists = smartLists();
+		const teachers = JSON.parse(lists.teachers);
+		const links = JSON.parse(lists.links);
+
+		teachers.items.push(teachers.items[0]);
+		links.items.push(links.items[0]);
+
+		const rows = Result.getOrThrow(
+			smartRowsOf({
+				...lists,
+				teachers: JSON.stringify(teachers),
+				links: JSON.stringify(links),
+			}),
+		);
+
+		assert.strictEqual(rows.instructors.length, 2);
+		assert.strictEqual(rows.disciplines[0]?.teachers.length, 2);
+	});
+
 	it("names the list that did not decode, never a value", () => {
 		const result = smartRowsOf(
 			smartLists({ teachers: JSON.stringify({ items: [{ id: "x" }] }) }),

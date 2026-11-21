@@ -30,7 +30,9 @@ const PART = 2_000_000;
 export class SmartStore extends Context.Service<
 	SmartStore,
 	{
-		/** None until every list has been stored once. */
+		/** None until every list has been stored once. The newest copy of
+		 *  each list may come from different runs when a crawl failed after
+		 *  storing some; the next full crawl brings them in line. */
 		latest(): Effect.Effect<Option.Option<StoredLists>>;
 		/** Upserts teachers and disciplines in one writers' turn; only a row
 		 *  whose hash changed, or that comes back, takes a number, and rows gone from a list that
@@ -219,7 +221,7 @@ export class SmartStore extends Context.Service<
 						if (changed.length > 0) {
 							yield* sql`
 								DELETE FROM smart_discipline_instructors
-								WHERE discipline_id IN ${sql.in(changed)}
+								WHERE discipline_id IN (SELECT jsonb_array_elements_text(${JSON.stringify(changed)}::jsonb))
 							`;
 							yield* sql`
 								INSERT INTO smart_discipline_instructors (
@@ -242,7 +244,7 @@ export class SmartStore extends Context.Service<
 									"t",
 								)}
 								JOIN smart_disciplines d ON d.smart_id = t."disciplineSmartId"
-								WHERE d.id IN ${sql.in(changed)}
+								WHERE d.id IN (SELECT jsonb_array_elements_text(${JSON.stringify(changed)}::jsonb))
 							`;
 						}
 
@@ -260,7 +262,9 @@ export class SmartStore extends Context.Service<
 										sql`
 											UPDATE ${sql(table)}
 											SET removed_at = now(), change_no = nextval('change_no_seq')
-											WHERE removed_at IS NULL AND smart_id NOT IN ${sql.in(ids)}
+											WHERE removed_at IS NULL AND smart_id NOT IN (
+												SELECT jsonb_array_elements_text(${JSON.stringify(ids)}::jsonb)::integer
+											)
 											RETURNING id, change_no, 'remove' AS action
 										`,
 									);
