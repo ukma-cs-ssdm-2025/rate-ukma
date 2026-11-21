@@ -10,7 +10,6 @@ interface DrawerProps {
 	children: React.ReactNode;
 	ariaLabel: string;
 	side?: "right" | "bottom";
-	closeButtonLabel?: string;
 	"data-testid"?: string;
 }
 
