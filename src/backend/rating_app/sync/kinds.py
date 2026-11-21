@@ -45,10 +45,12 @@ KINDS: tuple[SyncKind, ...] = (
     SyncKind("teacher_created", TEACHERS, NEW, 50),
     SyncKind("teacher_link_added", TEACHERS, CHANGE, 51),
     SyncKind("teacher_link_removed", TEACHERS, CHANGE, 52),
-    SyncKind("merge_courses", CATALOG, MAPPING, 60, moves_ratings=True),
-    SyncKind("move_offering", CATALOG, MAPPING, 61, moves_ratings=True),
-    SyncKind("place_offering", CATALOG, MAPPING, 62),
-    SyncKind("relink_course", CATALOG, MAPPING, 63),
+    # Relink before place and move, so a move sees the course's new link;
+    # merge last, once every offering is where it belongs.
+    SyncKind("relink_course", CATALOG, MAPPING, 60),
+    SyncKind("place_offering", CATALOG, MAPPING, 61),
+    SyncKind("move_offering", CATALOG, MAPPING, 62, moves_ratings=True),
+    SyncKind("merge_courses", CATALOG, MAPPING, 63, moves_ratings=True),
     SyncKind("removed_course", CATALOG, REMOVED, 70),
     SyncKind("removed_offering", CATALOG, REMOVED, 71),
 )

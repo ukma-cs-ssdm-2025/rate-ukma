@@ -240,29 +240,39 @@ class CatalogMappingDecision(models.Model):
     decided_by_id: int
 
     kind = models.CharField(max_length=32)
+    # The SyncChange.key of the question this answers, so two answers about
+    # one UKMA Data course (two offerings placed on one course) stay apart.
+    question_key = models.CharField(max_length=255)
     ukma_course_id = models.CharField(max_length=64)
+    saz_code = models.CharField(max_length=16, blank=True, default="")
+    # SET_NULL with the ids copied: a merge must be able to delete the course
+    # it emptied, and admin deletes keep working. A decision whose row is gone
+    # is ignored by the builder and asked again.
     course = models.ForeignKey(
         "rating_app.Course",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="sync_decisions",
     )
+    course_ref = models.CharField(max_length=64, blank=True, default="")
     offering = models.ForeignKey(
         "rating_app.CourseOffering",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="sync_decisions",
     )
+    offering_ref = models.CharField(max_length=64, blank=True, default="")
     answer = models.CharField(max_length=16, choices=MappingAnswer.choices)
     into = models.ForeignKey(
         "rating_app.Course",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="sync_decisions_into",
     )
+    into_ref = models.CharField(max_length=64, blank=True, default="")
     premise = models.JSONField(default=dict)
     decided_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="sync_decisions"
@@ -274,10 +284,9 @@ class CatalogMappingDecision(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["kind", "ukma_course_id", "course", "offering"],
+                fields=["kind", "question_key"],
                 condition=Q(superseded_at__isnull=True),
                 name="sync_decision_live_unique",
-                nulls_distinct=False,
             ),
         ]
 

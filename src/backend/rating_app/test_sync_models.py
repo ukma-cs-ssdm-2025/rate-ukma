@@ -1,14 +1,9 @@
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, transaction
 
 import pytest
 
-from rating_app.models import CatalogMappingDecision, SyncPolicy, SyncPolicyMode
+from rating_app.models import SyncPolicy, SyncPolicyMode
 from rating_app.sync.kinds import NEVER_AUTO_KINDS
-
-POSTGRES_ONLY = pytest.mark.skipif(
-    connection.vendor != "postgresql",
-    reason="NULLS NOT DISTINCT is only created on PostgreSQL",
-)
 
 NEVER_AUTO_MUST_INCLUDE = {
     "merge_courses",
@@ -61,27 +56,11 @@ def test_sync_change_key_is_unique_per_run_and_kind(sync_change_factory):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_mapping_decision_partial_unique_constraint_keeps_nulls_not_distinct():
-    constraint = next(
-        constraint
-        for constraint in CatalogMappingDecision._meta.constraints
-        if constraint.name == "sync_decision_live_unique"
-    )
-
-    assert constraint.nulls_distinct is False
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-@POSTGRES_ONLY
-def test_mapping_decision_is_unique_only_among_live_rows(catalog_mapping_decision_factory):
+def test_mapping_decision_is_unique_per_question_only_among_live_rows(
+    catalog_mapping_decision_factory,
+):
     first = catalog_mapping_decision_factory()
-    duplicate = {
-        "kind": first.kind,
-        "ukma_course_id": first.ukma_course_id,
-        "course": first.course,
-        "offering": None,
-    }
+    duplicate = {"kind": first.kind, "question_key": first.question_key}
 
     with pytest.raises(IntegrityError), transaction.atomic():
         catalog_mapping_decision_factory(**duplicate)
@@ -91,3 +70,37 @@ def test_mapping_decision_is_unique_only_among_live_rows(catalog_mapping_decisio
     second = catalog_mapping_decision_factory(**duplicate)
 
     assert second.pk != first.pk
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_two_place_answers_about_one_ukma_data_course_stay_apart(
+    catalog_mapping_decision_factory, course_factory
+):
+    target = course_factory()
+    common = {"kind": "place_offering", "ukma_course_id": "ud_course_x", "into": target}
+
+    catalog_mapping_decision_factory(question_key="place:100001", saz_code="100001", **common)
+    second = catalog_mapping_decision_factory(
+        question_key="place:100002", saz_code="100002", **common
+    )
+
+    assert second.pk is not None
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_deleting_a_decided_course_keeps_the_decision_and_its_id(
+    catalog_mapping_decision_factory,
+):
+    decision = catalog_mapping_decision_factory()
+    course = decision.course
+    course_id = str(course.pk)
+    decision.course_ref = course_id
+    decision.save(update_fields=["course_ref"])
+
+    course.delete()
+    decision.refresh_from_db()
+
+    assert decision.course is None
+    assert decision.course_ref == course_id

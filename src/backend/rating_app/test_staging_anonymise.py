@@ -289,6 +289,9 @@ HANDLED_BY_ANONYMISE = {
     "socialaccount_socialapp_sites",
     "socialaccount_socialtoken",
     "waffle_flag_users",
+    "rating_app_syncapproval",
+    "rating_app_syncchange",
+    "rating_app_syncrun",
 }
 NO_PERSONAL_DATA = {
     "auth_group",
@@ -316,6 +319,10 @@ NO_PERSONAL_DATA = {
     "rating_app_rating_instructors",
     "rating_app_ratingvote",
     "rating_app_semester",
+    "rating_app_catalogmappingdecision",
+    "rating_app_synccursor",
+    "rating_app_syncpolicy",
+    "rating_app_syncpolicychange",
     "rating_app_speciality",
     "waffle_flag",
     "waffle_flag_groups",

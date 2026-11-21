@@ -88,6 +88,13 @@ BEGIN
     -- Notifications and feed events carry no text or JSON with a name; they point
     -- at the anonymised users above and stay.
 
+    -- Sync runs, changes and approvals can carry teacher names and emails from
+    -- UKMA Data (ADR-0022); staging's next run rebuilds them. Policies, their
+    -- audit, mapping decisions and cursors hold no personal data and stay.
+    DELETE FROM rating_app_syncchange;
+    DELETE FROM rating_app_syncapproval;
+    DELETE FROM rating_app_syncrun;
+
     -- Self-check: raises, and so undoes everything above, if anything was missed.
     IF EXISTS (SELECT 1 FROM auth_user WHERE email NOT LIKE '%@example.invalid') THEN
         RAISE EXCEPTION 'auth_user still holds a real email';

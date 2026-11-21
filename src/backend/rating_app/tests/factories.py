@@ -369,6 +369,7 @@ class CatalogMappingDecisionFactory(DjangoModelFactory):
         model = CatalogMappingDecision
 
     kind = "merge_courses"
+    question_key = factory.Sequence(lambda n: f"merge:ud_course_{n}")
     ukma_course_id = factory.Sequence(lambda n: f"ud_course_{n}")
     course = factory.SubFactory(CourseFactory)
     offering = None
