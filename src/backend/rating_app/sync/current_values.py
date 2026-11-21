@@ -1,8 +1,9 @@
 """The Rate UKMA side of every key a sync kind writes.
 
-A builder fills a change's `before` with it; an apply calls it again and
-compares for equality. Ids are strings, decimals are strings with one decimal,
-terms are sorted by (year, term) and specialities by name.
+A builder fills a change's `before` with it (`drafts.make_before`); an apply
+calls it again and compares the keys `before` holds (`drafts.is_stale`). Ids are
+strings, decimals are strings with one decimal, terms are sorted by (year, term)
+and specialities by name.
 """
 
 from __future__ import annotations
