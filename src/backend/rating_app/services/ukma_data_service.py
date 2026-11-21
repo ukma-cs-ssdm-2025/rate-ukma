@@ -53,10 +53,16 @@ class UkmaDataService:
         return self._get_page("/v1/offerings", params, UkmaDataPage[UkmaDataOffering])
 
     def list_offering_instructors(
-        self, params: UkmaDataPageParams
+        self, params: UkmaDataPageParams, *, year: int
     ) -> UkmaDataPage[UkmaDataOfferingInstructors]:
-        """Offerings with their linked teachers; needs `instructors:read`."""
-        return self._get_page("/v1/offerings", params, UkmaDataPage[UkmaDataOfferingInstructors])
+        """One academic year's offerings with their linked teachers; the route
+        needs `instructors:read`."""
+        return self._get_page(
+            "/v1/offerings/instructors",
+            params,
+            UkmaDataPage[UkmaDataOfferingInstructors],
+            extra={"year": year},
+        )
 
     def get_key(self) -> UkmaDataKey:
         return self._get("/v1/key", {}, UkmaDataKey)
@@ -76,8 +82,14 @@ class UkmaDataService:
             data_updated_at=terms.data_updated_at,
         )
 
-    def _get_page[P: BaseModel](self, path: str, params: UkmaDataPageParams, page: type[P]) -> P:
-        query: dict[str, int] = {}
+    def _get_page[P: BaseModel](
+        self,
+        path: str,
+        params: UkmaDataPageParams,
+        page: type[P],
+        extra: dict[str, int] | None = None,
+    ) -> P:
+        query: dict[str, int] = dict(extra or {})
         if params.after is not None:
             query["after"] = params.after
         if params.limit is not None:

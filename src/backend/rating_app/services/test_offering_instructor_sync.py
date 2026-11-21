@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,6 +14,7 @@ from rating_app.repositories.instructor_repository import current_academic_year_
 from rating_app.services.offering_instructor_sync import OfferingInstructorSync
 
 YEAR = current_academic_year_start()
+SYNC = "rating_app.services.offering_instructor_sync"
 
 
 def teacher(email: str | None, role: str = "lecturer", last_name: str = "Вигадана"):
@@ -47,20 +48,32 @@ def key(*scopes: str) -> UkmaDataKey:
     )
 
 
-def service_with(*pages: list[UkmaDataOfferingInstructors]) -> MagicMock:
+def pages_of(pages: tuple[list[UkmaDataOfferingInstructors], ...]):
+    return iter(
+        [
+            UkmaDataPage[UkmaDataOfferingInstructors].model_validate(
+                {
+                    "items": [item.model_dump(by_alias=True) for item in items],
+                    "cursor": n + 1,
+                    "hasMore": n + 1 < len(pages),
+                    "dataUpdatedAt": None,
+                }
+            )
+            for n, items in enumerate(pages)
+        ]
+    )
+
+
+def service_with(
+    *pages: list[UkmaDataOfferingInstructors],
+    previous: tuple[list[UkmaDataOfferingInstructors], ...] = ([],),
+) -> MagicMock:
+    """UKMA Data serving ``pages`` for the current academic year and
+    ``previous`` for the one before."""
     service = MagicMock()
     service.get_key.return_value = key("catalog:read")
-    service.list_offering_instructors.side_effect = [
-        UkmaDataPage[UkmaDataOfferingInstructors].model_validate(
-            {
-                "items": [item.model_dump(by_alias=True) for item in items],
-                "cursor": n + 1,
-                "hasMore": n + 1 < len(pages),
-                "dataUpdatedAt": None,
-            }
-        )
-        for n, items in enumerate(pages)
-    ]
+    by_year = {YEAR: pages_of(pages), YEAR - 1: pages_of(previous)}
+    service.list_offering_instructors.side_effect = lambda params, *, year: next(by_year[year])
     return service
 
 
@@ -77,6 +90,7 @@ def links_of(offering_code: str) -> set[tuple[str, str]]:
 def test_mirrors_teachers_by_code_and_email(course_offering_factory, instructor_factory):
     course_offering_factory(code="990001")
     course_offering_factory(code="990002")
+    course_offering_factory(code="990003")
     instructor_factory(email="known@example.edu")
     service = service_with(
         [
@@ -85,13 +99,14 @@ def test_mirrors_teachers_by_code_and_email(course_offering_factory, instructor_
         ],
         [
             offering("990002", [teacher("new@example.edu", "lecturer_and_practice_teacher")]),
-            offering("990001", [teacher(None)], year=YEAR - 2),
         ],
+        previous=([offering("990003", [teacher("known@example.edu")], year=YEAR - 1)],),
     )
 
     report = OfferingInstructorSync(service).run()
 
-    assert (report.matched, report.skipped, report.created, report.linked) == (2, 1, 1, 3)
+    assert (report.matched, report.skipped, report.created, report.linked) == (3, 1, 1, 4)
+    assert links_of("990003") == {("known@example.edu", InstructorRole.LECTURE_INSTRUCTOR)}
     assert links_of("990001") == {("known@example.edu", InstructorRole.LECTURE_INSTRUCTOR)}
     assert links_of("990002") == {
         ("new@example.edu", InstructorRole.LECTURE_INSTRUCTOR),
@@ -99,7 +114,12 @@ def test_mirrors_teachers_by_code_and_email(course_offering_factory, instructor_
     }
     new = Instructor.objects.get(email="new@example.edu")
     assert (new.last_name, new.first_name, new.patronymic) == ("Вигадана", "Марта", "")
-    assert service.list_offering_instructors.call_args_list[1].args[0].after == 1
+    calls = service.list_offering_instructors.call_args_list
+    assert [(call.kwargs["year"], call.args[0].after) for call in calls] == [
+        (YEAR - 1, 0),
+        (YEAR, 0),
+        (YEAR, 1),
+    ]
 
 
 @pytest.mark.django_db
@@ -143,15 +163,19 @@ def test_has_scope_reads_the_key():
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_an_offering_without_the_instructors_key_keeps_its_links(
-    course_offering_factory, course_instructor_factory
-):
-    kept = course_instructor_factory(course_offering=course_offering_factory(code="990001"))
-    absent = UkmaDataOfferingInstructors.model_validate(
-        {"sazCode": "990001", "academicYear": YEAR, "changeNo": 1, "removedAt": None}
+def test_a_teacher_another_writer_created_meanwhile_is_reused(course_offering_factory):
+    course_offering_factory(code="990001")
+    created_meanwhile = Instructor.objects.create(
+        email="race@example.edu", last_name="Інша", first_name="Ольга"
     )
+    missed = MagicMock()
+    missed.first.return_value = None
 
-    report = OfferingInstructorSync(service_with([absent])).run()
+    with patch(f"{SYNC}.Instructor.objects.filter", return_value=missed):
+        report = OfferingInstructorSync(
+            service_with([offering("990001", [teacher("race@example.edu")])])
+        ).run()
 
-    assert (report.matched, report.skipped, report.removed) == (0, 1, 0)
-    assert CourseInstructor.objects.filter(id=kept.id).exists()
+    assert report.created == 0
+    assert Instructor.objects.filter(email="race@example.edu").count() == 1
+    assert CourseInstructor.objects.get().instructor_id == created_meanwhile.id

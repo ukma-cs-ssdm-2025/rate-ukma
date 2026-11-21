@@ -50,9 +50,11 @@ def test_logs_one_event_and_exits_without_the_scope(refusal):
     ):
         call_command("sync_offering_instructors")
 
-    assert [(log["event"], log.get("reason")) for log in logs] == [
-        ("offering_instructors_sync_skipped", "missing_scope")
-    ]
+    # A 403 is logged once, by UkmaDataService (`ukma_data_forbidden`).
+    expected = (
+        [("offering_instructors_sync_skipped", "missing_scope")] if refusal == "scope" else []
+    )
+    assert [(log["event"], log.get("reason")) for log in logs] == expected
 
 
 DSN = os.environ.get("ADVISORY_LOCK_TEST_POSTGRES")

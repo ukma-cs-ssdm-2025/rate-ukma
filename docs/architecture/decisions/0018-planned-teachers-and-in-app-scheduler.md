@@ -12,7 +12,7 @@ Proposed
 
 The course page and the rating form want to show who teaches a course before anyone has rated it. Rate UKMA itself only knows the teachers students named in ratings.
 
-- **UKMA Data has the plan.** It crawls smart.ukma daily and links its teachers to САЗ offerings by a matching rule (`src/parser/src/smart/matching.ts`). `GET /v1/offerings` serves each offering's teachers (names, email, role) to a key with `instructors:read`.
+- **UKMA Data has the plan.** It crawls smart.ukma daily and links its teachers to САЗ offerings by a matching rule (`src/parser/src/smart/matching.ts`). `GET /v1/offerings/instructors` serves each offering's teachers (names, email, role); the route needs `instructors:read`.
 - **`CourseInstructor` already models it.** It links an `Instructor` to a `CourseOffering` with a role, and is empty on live: the old scraper never filled it. Issue #687 proposed removing it.
 - **Rate UKMA has no scheduler.** There is no Celery, cron or other periodic runner; one-off jobs run as `manage.py` commands through `docker exec` from CI (`warmup` in `deploy.yml`).
 - **A job must not run twice at once.** Two scheduler containers during a deploy, or a manual run beside the scheduled one, must not interleave writes.

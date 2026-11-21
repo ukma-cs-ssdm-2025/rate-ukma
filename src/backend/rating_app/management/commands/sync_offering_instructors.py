@@ -33,7 +33,7 @@ class Command(BaseCommand):
                     return
                 report = sync.run()
             except UkmaDataForbiddenError:
-                logger.warning("offering_instructors_sync_skipped", reason="missing_scope")
+                # UkmaDataService already logged `ukma_data_forbidden`: one event.
                 return
             except UkmaDataNotConfiguredError:
                 logger.warning("offering_instructors_sync_skipped", reason="not_configured")

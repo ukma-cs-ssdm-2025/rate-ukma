@@ -43,10 +43,11 @@ class SyncReport:
 class OfferingInstructorSync:
     """Mirrors UKMA Data's planned teachers into ``CourseInstructor`` (ADR 0018).
 
-    Reads every offering page, keeps the current and previous academic year,
-    finds the offering by САЗ code and the teacher by email, and makes the
-    offering's ``CourseInstructor`` rows exactly what UKMA Data lists. Safe to
-    run again: a second run with the same data changes nothing.
+    Reads the current and previous academic year's offerings with their
+    teachers from ``/v1/offerings/instructors``, finds the offering by САЗ code
+    and the teacher by email, and makes the offering's ``CourseInstructor``
+    rows exactly what UKMA Data lists. Safe to run again: a second run with the
+    same data changes nothing.
     """
 
     def __init__(self, ukma_data: UkmaDataService) -> None:
@@ -58,17 +59,18 @@ class OfferingInstructorSync:
     def run(self) -> SyncReport:
         current = current_academic_year_start()
         report = SyncReport(years=[current - 1, current])
-        after = 0
-        while True:
-            page = self.ukma_data.list_offering_instructors(
-                UkmaDataPageParams(after=after, limit=UKMA_DATA_MAX_PAGE_SIZE)
-            )
-            rows = [row for row in page.items if row.academic_year in report.years]
-            with transaction.atomic():
-                self._apply_page(rows, report)
-            after = page.cursor
-            if not page.has_more:
-                return report
+        for year in report.years:
+            after = 0
+            while True:
+                page = self.ukma_data.list_offering_instructors(
+                    UkmaDataPageParams(after=after, limit=UKMA_DATA_MAX_PAGE_SIZE), year=year
+                )
+                with transaction.atomic():
+                    self._apply_page(page.items, report)
+                after = page.cursor
+                if not page.has_more:
+                    break
+        return report
 
     def _apply_page(self, rows: list[UkmaDataOfferingInstructors], report: SyncReport) -> None:
         offerings = CourseOffering.objects.in_bulk(
@@ -79,12 +81,8 @@ class OfferingInstructorSync:
             if offering is None:
                 report.skipped += 1
                 continue
-            if row.instructors is None and row.removed_at is None:
-                # No `instructors` key at all: not an empty list, so delete nothing.
-                report.skipped += 1
-                continue
             report.matched += 1
-            listed = [] if row.removed_at is not None else (row.instructors or [])
+            listed = [] if row.removed_at is not None else row.instructors
             wanted = self._wanted_links(listed, report)
             current = {
                 (link.instructor_id, link.role): link.id
@@ -113,13 +111,17 @@ class OfferingInstructorSync:
                 continue
             instructor = Instructor.objects.filter(email__iexact=email).first()
             if instructor is None:
-                instructor = Instructor.objects.create(
+                # get_or_create, not create: the CSV import writes the same
+                # table without this job's lock.
+                instructor, created = Instructor.objects.get_or_create(
                     email=email,
-                    last_name=teacher.last_name,
-                    first_name=teacher.first_name,
-                    patronymic=teacher.middle_name or "",
+                    defaults={
+                        "last_name": teacher.last_name,
+                        "first_name": teacher.first_name,
+                        "patronymic": teacher.middle_name or "",
+                    },
                 )
-                report.created += 1
+                report.created += int(created)
             for role in ROLES[teacher.role]:
                 wanted.add((instructor.id, role.value))
         return wanted

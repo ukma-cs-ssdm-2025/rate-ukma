@@ -136,12 +136,11 @@ class UkmaDataOfferingInstructor(UkmaDataModel):
 
 
 class UkmaDataOfferingInstructors(UkmaDataModel):
-    """The part of an offering the teacher sync reads. `instructors` is absent
-    when the key lacks `instructors:read`."""
+    """One row of `/v1/offerings/instructors`: an offering and its teachers."""
 
     saz_code: str
     academic_year: int
-    instructors: list[UkmaDataOfferingInstructor] | None = None
+    instructors: list[UkmaDataOfferingInstructor]
     change_no: int
     removed_at: datetime.datetime | None
 
