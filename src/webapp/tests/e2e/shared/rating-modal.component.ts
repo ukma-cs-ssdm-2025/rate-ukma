@@ -55,9 +55,7 @@ export class RatingModal {
 		await expect
 			.poll(() =>
 				this.page.evaluate(
-					() =>
-						(document.activeElement?.closest('[role="dialog"]') ?? null) !==
-						null,
+					() => !!document.activeElement?.closest('[role="dialog"]'),
 				),
 			)
 			.toBe(true);
