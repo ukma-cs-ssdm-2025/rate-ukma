@@ -314,8 +314,52 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 								VALUES ('off_930001', 'spr_one', 'elective', 'enrolled',
 									true, false, 2, ${next})
 							`;
+							// Neither an unenrolled nor a removed enrollment counts.
+							yield* sql`
+								INSERT INTO student_programmes (
+									id, saz_cdoc, student_id, spec_name, snapshot_id, change_no
+								)
+								SELECT 'spr_two', '990002', 'stu_one', 'Уявна інженерія',
+									snapshot_id, ${next}
+								FROM offerings WHERE id = 'off_930001'
+							`;
+							yield* sql`
+								INSERT INTO enrollments (
+									offering_id, student_programme_id, kind, status,
+									is_student_active, is_forced, grade, change_no
+								)
+								VALUES ('off_930003', 'spr_one', 'elective', 'unenrolled',
+									true, false, 2, ${next}),
+									('off_930001', 'spr_two', 'elective', 'enrolled',
+									true, false, 2, ${next})
+							`;
+							yield* sql`
+								UPDATE enrollments SET removed_at = now(), change_no = ${next}
+								WHERE student_programme_id = 'spr_two'
+							`;
+							yield* sql`
+								INSERT INTO courses (
+									id, title, department_id, level, merged_into, merge_source,
+									change_no
+								)
+								VALUES ('crs_rule', 'Вигаданий курс 930009', 'dep_one',
+									'bachelor', 'crs_b', 'rule', ${next})
+							`;
+							yield* sql`
+								INSERT INTO review_cases (
+									kind, subject_id, candidates, safe_answer, status, change_no
+								)
+								VALUES
+									('student_match', 'stu_one', '[]', '{}', 'open', ${next}),
+									('course_match', 'crs_b', '[]', '{}', 'obsolete', ${next})
+							`;
 						}),
 					);
+					// A later smart.ukma run is not a САЗ crawl.
+					yield* sql`
+						INSERT INTO runs (source_part, status, finished_at)
+						VALUES ('smart-ukma:teachers', 'failed', ${new Date("2031-09-03T00:00:00Z")})
+					`;
 					yield* sql`
 						UPDATE offerings SET saz_teachers = ' ' WHERE id = 'off_930003'
 					`;
@@ -335,13 +379,13 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 						},
 					]);
 					assert.deepStrictEqual(stats.mergedCourses, {
-						rule: 0,
+						rule: 1,
 						decision: 1,
 					});
 					assert.deepStrictEqual(stats.openReviewCases, {
 						courseMatch: 0,
 						instructorMatch: 0,
-						studentMatch: 0,
+						studentMatch: 1,
 						removalsHeld: 0,
 					});
 					assert.deepStrictEqual(stats.lastCrawl, {
@@ -354,6 +398,11 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					const day = 24 * 60 * 60 * 1000;
 
 					assert.isTrue(nextIn > day - 60_000 && nextIn <= day, `${nextIn}`);
+
+					// The later tests read the courses, review cases and runs.
+					yield* sql`DELETE FROM review_cases`;
+					yield* sql`DELETE FROM courses WHERE id = 'crs_rule'`;
+					yield* sql`DELETE FROM runs WHERE source_part LIKE 'smart-ukma:%'`;
 				}),
 		);
 
