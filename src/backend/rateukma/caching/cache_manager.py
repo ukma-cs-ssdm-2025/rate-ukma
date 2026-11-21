@@ -196,7 +196,7 @@ class RedisCacheManager(ICacheManager):
         return json.loads(value)
 
     def _handle_error(self, operation: str, error: Exception) -> None:
-        logger.error(f"Cache {operation} failed: {str(error)}")
+        logger.error("cache_operation_failed", operation=operation, error=str(error))
         if not self.ignore_exceptions:
             raise
 

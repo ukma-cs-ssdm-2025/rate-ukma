@@ -16,7 +16,7 @@ class QuerysetPaginator[T: Model]:
             PaginationMetadata(
                 page=page.number,
                 page_size=page.paginator.per_page,
-                total=paginator.count,  # type: ignore
-                total_pages=paginator.num_pages,  # type: ignore
+                total=paginator.count,
+                total_pages=paginator.num_pages,
             ),
         )

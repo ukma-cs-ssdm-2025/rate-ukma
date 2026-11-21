@@ -65,8 +65,7 @@ class StudentLinkingMixin:
     """Mixin that provides student linking functionality for auth adapters."""
 
     def save_user(self, request: HttpRequest, *args, **kwargs) -> User:
-        # save_user comes from the allauth adapter this mixin is combined with
-        user: User = super().save_user(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]
+        user: User = super().save_user(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # save_user comes from the allauth adapter this mixin is combined with
 
         commit = kwargs.get("commit", True)
         if commit and user.email:
@@ -178,8 +177,7 @@ class MicrosoftSocialAccountAdapter(StudentLinkingMixin, DefaultSocialAccountAda
 
 class MicrosoftAccountAdapter(StudentLinkingMixin, DefaultAccountAdapter):
     @override
-    # allauth's base method is untyped and inferred as returning Literal[True]
-    def is_open_for_signup(self, request: HttpRequest) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def is_open_for_signup(self, request: HttpRequest) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]  # allauth's base is untyped, inferred as Literal[True]
         return bool(settings.ACCOUNT_ALLOW_REGISTRATION)
 
     @override

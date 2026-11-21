@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.middleware.csrf import (
     _get_new_csrf_string,
-    _mask_cipher_secret,  # pyright: ignore[reportAttributeAccessIssue]
+    _mask_cipher_secret,  # pyright: ignore[reportAttributeAccessIssue]  # private Django helper, not in the stubs
 )
 
 import structlog
