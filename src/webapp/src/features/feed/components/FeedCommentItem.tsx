@@ -2,11 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { MessageCircle } from "lucide-react";
 
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
-import type { FeedCommentItem as FeedCommentItemType } from "../feedTypes";
+import type { FeedCommentItem as FeedCommentItemData } from "@/lib/api/generated";
 import { FeedCard } from "./FeedCard";
 
 interface FeedCommentItemProps {
-	readonly item: FeedCommentItemType;
+	readonly item: FeedCommentItemData;
 	readonly variant?: "card" | "banner";
 }
 
@@ -20,19 +20,20 @@ export function FeedCommentItem({
 		<FeedCard
 			variant={variant}
 			kind={{ label: "Коментар", icon: MessageCircle, tone: "muted" }}
-			pinned={item.pinned}
 			title={
 				<Link
 					to="/courses/$courseId"
-					params={{ courseId: item.courseId }}
+					params={{ courseId: item.course_id }}
 					className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 				>
-					{item.courseTitle}
+					{item.course_title}
 				</Link>
 			}
 			footer={
 				<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-					<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+					<time className="truncate">
+						{formatRelativeTime(item.occurred_at)}
+					</time>
 				</div>
 			}
 		>

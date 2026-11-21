@@ -2,7 +2,7 @@ import { formatRelativeTime } from "@/features/notifications/notificationFormatt
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
+import type { FeedReviewItem as FeedReviewItemType } from "@/lib/api/generated";
 import { FeedReviewItem } from "./FeedReviewItem";
 
 vi.mock("@tanstack/react-router", async () => ({
@@ -13,16 +13,16 @@ vi.mock("@tanstack/react-router", async () => ({
 const baseItem: FeedReviewItemType = {
 	kind: "review",
 	id: "r1",
-	createdAt: new Date().toISOString(),
-	courseId: "course-1",
-	courseTitle: "Алгоритми та структури даних",
+	occurred_at: new Date().toISOString(),
+	course_id: "course-1",
+	course_title: "Алгоритми та структури даних",
 	difficulty: 4.2,
 	usefulness: 4.8,
 	comment: "Складно, але корисно.",
-	courseAvgDifficulty: 4.2,
-	courseAvgUsefulness: 4.8,
-	semesterYear: 2025,
-	semesterTerm: "FALL",
+	course_avg_difficulty: 4.2,
+	course_avg_usefulness: 4.8,
+	semester_year: 2025,
+	semester_term: "FALL",
 };
 
 describe("FeedReviewItem", () => {
@@ -43,7 +43,7 @@ describe("FeedReviewItem", () => {
 	it("shows an arrow when the score differs from the course average", () => {
 		render(
 			<FeedReviewItem
-				item={{ ...baseItem, difficulty: 5, courseAvgDifficulty: 3 }}
+				item={{ ...baseItem, difficulty: 5, course_avg_difficulty: 3 }}
 			/>,
 		);
 
@@ -59,8 +59,8 @@ describe("FeedReviewItem", () => {
 					...baseItem,
 					difficulty: 4,
 					usefulness: 4,
-					courseAvgDifficulty: 4,
-					courseAvgUsefulness: 4,
+					course_avg_difficulty: 4,
+					course_avg_usefulness: 4,
 				}}
 			/>,
 		);
@@ -89,7 +89,7 @@ describe("FeedReviewItem", () => {
 
 		expect(screen.getByText("4.2")).toBeInTheDocument();
 		expect(
-			screen.getByText(formatRelativeTime(baseItem.createdAt)),
+			screen.getByText(formatRelativeTime(baseItem.occurred_at)),
 		).toBeInTheDocument();
 	});
 });

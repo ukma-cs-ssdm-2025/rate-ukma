@@ -1,15 +1,8 @@
 import type { RefObject } from "react";
 import { useEffect, useMemo, useRef } from "react";
 
-import type { FeedItem as ApiFeedItem } from "@/lib/api/generated";
+import type { FeedItem } from "@/lib/api/generated";
 import { useFeedListInfinite } from "@/lib/api/generated";
-import type {
-	FeedCommentItem,
-	FeedItem,
-	FeedPromoItem,
-	FeedReviewItem,
-} from "../feedTypes";
-import { orderFeedItems } from "../feedTypes";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -62,11 +55,9 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 		},
 	});
 
+	// The server leads the first page with pinned items, so pages concatenate.
 	const items = useMemo(
-		() =>
-			orderFeedItems(
-				data?.pages.flatMap((page) => page.items?.map(toFeedItem) ?? []) ?? [],
-			),
+		() => data?.pages.flatMap((page) => page.items) ?? [],
 		[data],
 	);
 
@@ -111,62 +102,4 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 		refetch,
 		loaderRef,
 	};
-}
-
-// Every field but `kind` generates as optional, since DRF marks read-only
-// fields as not required. Defaults keep the render path total.
-function toFeedItem(item: ApiFeedItem): FeedItem {
-	switch (item.kind) {
-		case "promo":
-			return toPromoItem(item);
-		case "comment":
-			return toCommentItem(item);
-		default:
-			return toReviewItem(item);
-	}
-}
-
-function toCommentItem(item: Extract<ApiFeedItem, { kind: "comment" }>) {
-	return {
-		kind: "comment",
-		id: item.id ?? "",
-		createdAt: item.occurred_at ?? "",
-		ratingId: item.rating_id ?? "",
-		courseId: item.course_id ?? "",
-		courseTitle: item.course_title ?? "",
-		content: item.content ?? "",
-	} satisfies FeedCommentItem;
-}
-
-function toReviewItem(item: Extract<ApiFeedItem, { kind: "review" }>) {
-	return {
-		kind: "review",
-		id: item.id ?? "",
-		createdAt: item.occurred_at ?? "",
-		courseId: item.course_id ?? "",
-		courseTitle: item.course_title ?? "",
-		difficulty: item.difficulty ?? 0,
-		usefulness: item.usefulness ?? 0,
-		comment: item.comment ?? "",
-		courseAvgDifficulty: item.course_avg_difficulty ?? 0,
-		courseAvgUsefulness: item.course_avg_usefulness ?? 0,
-		semesterYear: item.semester_year,
-		semesterTerm: item.semester_term,
-	} satisfies FeedReviewItem;
-}
-
-function toPromoItem(item: Extract<ApiFeedItem, { kind: "promo" }>) {
-	return {
-		kind: "promo",
-		id: item.id ?? "",
-		createdAt: item.occurred_at ?? "",
-		pinned: item.pinned,
-		title: item.title ?? "",
-		body: item.body ?? "",
-		label: item.label || undefined,
-		ctaLabel: item.cta_label || undefined,
-		ctaHref: item.cta_href || undefined,
-		imageUrl: item.image_url,
-		accent: item.accent,
-	} satisfies FeedPromoItem;
 }

@@ -1,10 +1,5 @@
 import { faker } from "@faker-js/faker";
 
-import type {
-	FeedCommentItem,
-	FeedPromoItem,
-	FeedReviewItem,
-} from "@/features/feed/feedTypes";
 import type { UseFeedReturn } from "@/features/feed/hooks/useFeed";
 import type {
 	CourseList,
@@ -14,6 +9,9 @@ import type {
 	CourseOfferingTerm,
 	CourseTypeOption,
 	DepartmentOption,
+	FeedCommentItem,
+	FeedPromoItem,
+	FeedReviewItem,
 	FacultyOption,
 	FilterOptions,
 	InlineRatingDetailed,
@@ -237,45 +235,45 @@ export function createMockFilterOptions(
 	};
 }
 
-/**
- * Factory for creating a mock promo feed item (the domain shape `useFeed`
- * returns, not the generated API shape)
- */
 export function createMockFeedPromoItem(
 	overrides?: Partial<FeedPromoItem>,
 ): FeedPromoItem {
 	return {
 		kind: "promo",
 		id: faker.string.uuid(),
-		createdAt: faker.date.recent().toISOString(),
+		occurred_at: faker.date.recent().toISOString(),
+		pinned: false,
 		title: faker.lorem.words(4),
 		body: faker.lorem.sentence(),
+		accent: "BRAND",
+		label: "",
+		cta_label: "",
+		cta_href: "",
+		image_url: null,
 		...overrides,
 	};
 }
 
-/**
- * Factory for creating a mock review feed item (the domain shape `useFeed`
- * returns, not the generated API shape)
- */
 export function createMockFeedReviewItem(
 	overrides?: Partial<FeedReviewItem>,
 ): FeedReviewItem {
 	return {
 		kind: "review",
 		id: faker.string.uuid(),
-		createdAt: faker.date.recent().toISOString(),
-		courseId: faker.string.uuid(),
-		courseTitle: faker.lorem.words(3),
+		occurred_at: faker.date.recent().toISOString(),
+		course_id: faker.string.uuid(),
+		course_title: faker.lorem.words(3),
 		difficulty: faker.number.int({ min: 1, max: 5 }),
 		usefulness: faker.number.int({ min: 1, max: 5 }),
 		comment: faker.lorem.sentence(),
-		courseAvgDifficulty: faker.number.float({
+		semester_year: 2025,
+		semester_term: "FALL",
+		course_avg_difficulty: faker.number.float({
 			min: 1,
 			max: 5,
 			fractionDigits: 2,
 		}),
-		courseAvgUsefulness: faker.number.float({
+		course_avg_usefulness: faker.number.float({
 			min: 1,
 			max: 5,
 			fractionDigits: 2,
@@ -284,20 +282,16 @@ export function createMockFeedReviewItem(
 	};
 }
 
-/**
- * Factory for creating a mock comment feed item (the domain shape `useFeed`
- * returns, not the generated API shape)
- */
 export function createMockFeedCommentItem(
 	overrides?: Partial<FeedCommentItem>,
 ): FeedCommentItem {
 	return {
 		kind: "comment",
 		id: faker.string.uuid(),
-		createdAt: faker.date.recent().toISOString(),
-		ratingId: faker.string.uuid(),
-		courseId: faker.string.uuid(),
-		courseTitle: faker.lorem.words(3),
+		occurred_at: faker.date.recent().toISOString(),
+		rating_id: faker.string.uuid(),
+		course_id: faker.string.uuid(),
+		course_title: faker.lorem.words(3),
 		content: faker.lorem.sentence(),
 		...overrides,
 	};

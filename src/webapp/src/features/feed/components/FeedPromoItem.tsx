@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/Button";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import { cn } from "@/lib/utils";
 import type {
-	FeedPromoAccent,
-	FeedPromoItem as FeedPromoItemType,
-} from "../feedTypes";
+	AccentEnum,
+	FeedPromoItem as FeedPromoItemData,
+} from "@/lib/api/generated";
 import { FeedCard, type FeedTone } from "./FeedCard";
 
 interface AccentStyle {
@@ -15,7 +15,7 @@ interface AccentStyle {
 	cta?: string;
 }
 
-const ACCENT: Record<FeedPromoAccent, AccentStyle> = {
+const ACCENT: Record<AccentEnum, AccentStyle> = {
 	BRAND: { tone: "primary", button: "default" },
 	// The secondary fill is too pale to read as a button on the tinted card.
 	INFO: {
@@ -27,7 +27,7 @@ const ACCENT: Record<FeedPromoAccent, AccentStyle> = {
 };
 
 interface FeedPromoItemProps {
-	readonly item: FeedPromoItemType;
+	readonly item: FeedPromoItemData;
 	/** `banner` is wider for top-of-page placement and may carry an image. */
 	readonly variant?: "card" | "banner";
 }
@@ -36,23 +36,25 @@ export function FeedPromoItem({
 	item,
 	variant = "card",
 }: Readonly<FeedPromoItemProps>) {
-	const accent = ACCENT[item.accent ?? "BRAND"] ?? ACCENT.BRAND;
+	// A bundle older than the server can meet an accent it doesn't know yet.
+	const known: AccentStyle | undefined = ACCENT[item.accent];
+	const accent = known ?? ACCENT.BRAND;
 	const kind = {
-		label: item.label ?? "Оголошення",
+		label: item.label || "Оголошення",
 		icon: Megaphone,
 		tone: accent.tone,
 	};
 	const isBanner = variant === "banner";
 	// A label without an href goes nowhere, so the CTA needs both halves.
-	const cta = item.ctaLabel && item.ctaHref && (
+	const cta = item.cta_label && item.cta_href && (
 		<Button
 			asChild
 			size="sm"
 			variant={accent.button}
 			className={cn("gap-1.5", accent.cta)}
 		>
-			<a href={item.ctaHref} target="_blank" rel="noopener noreferrer">
-				{item.ctaLabel}
+			<a href={item.cta_href} target="_blank" rel="noopener noreferrer">
+				{item.cta_label}
 				<ArrowRight className="size-4" aria-hidden />
 			</a>
 		</Button>
@@ -66,18 +68,18 @@ export function FeedPromoItem({
 				kind={kind}
 				pinned={item.pinned}
 				title={item.title}
-				avatarUrl={item.imageUrl}
+				avatarUrl={item.image_url}
 				footer={
 					<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-						<time>{formatRelativeTime(item.createdAt)}</time>
-						{item.ctaLabel && item.ctaHref ? (
+						<time>{formatRelativeTime(item.occurred_at)}</time>
+						{item.cta_label && item.cta_href ? (
 							<a
-								href={item.ctaHref}
+								href={item.cta_href}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
 							>
-								<span className="truncate">{item.ctaLabel}</span>
+								<span className="truncate">{item.cta_label}</span>
 								<ArrowRight className="size-3.5 shrink-0" aria-hidden />
 							</a>
 						) : null}
@@ -96,11 +98,11 @@ export function FeedPromoItem({
 			kind={kind}
 			pinned={item.pinned}
 			title={item.title}
-			avatarUrl={item.imageUrl}
+			avatarUrl={item.image_url}
 			footer={
 				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
 					<time className="text-xs text-muted-foreground">
-						{formatRelativeTime(item.createdAt)}
+						{formatRelativeTime(item.occurred_at)}
 					</time>
 					{cta}
 				</div>

@@ -8,11 +8,11 @@ import {
 } from "@/features/courses/courseFormatting";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import { cn } from "@/lib/utils";
-import type { FeedReviewItem as FeedReviewItemType } from "../feedTypes";
+import type { FeedReviewItem as FeedReviewItemData } from "@/lib/api/generated";
 import { FeedCard } from "./FeedCard";
 
 interface FeedReviewItemProps {
-	readonly item: FeedReviewItemType;
+	readonly item: FeedReviewItemData;
 	readonly variant?: "card" | "banner";
 }
 
@@ -48,10 +48,10 @@ export function FeedReviewItem({
 	item,
 	variant = "card",
 }: Readonly<FeedReviewItemProps>) {
-	const semesterLabel =
-		item.semesterYear != null && item.semesterTerm
-			? getSemesterDisplay(item.semesterYear, item.semesterTerm)
-			: undefined;
+	const semesterLabel = getSemesterDisplay(
+		item.semester_year,
+		item.semester_term,
+	);
 	const isBanner = variant === "banner";
 	// The strip tile has one text line: the review text wins it when there is
 	// one, and the scores drop to the meta line in place of the time.
@@ -75,7 +75,7 @@ export function FeedReviewItem({
 				</span>{" "}
 				<ComparisonArrow
 					score={item.difficulty}
-					average={item.courseAvgDifficulty}
+					average={item.course_avg_difficulty}
 				/>
 			</span>
 			<span className="flex items-center gap-1.5 whitespace-nowrap">
@@ -90,14 +90,14 @@ export function FeedReviewItem({
 				</span>{" "}
 				<ComparisonArrow
 					score={item.usefulness}
-					average={item.courseAvgUsefulness}
+					average={item.course_avg_usefulness}
 				/>
 			</span>
 		</p>
 	);
 	const meta = (
 		<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-			<time className="truncate">{formatRelativeTime(item.createdAt)}</time>
+			<time className="truncate">{formatRelativeTime(item.occurred_at)}</time>
 			{semesterLabel && (
 				<span className="ml-auto shrink-0">{semesterLabel}</span>
 			)}
@@ -108,14 +108,13 @@ export function FeedReviewItem({
 		<FeedCard
 			variant={variant}
 			kind={{ label: "Відгук", icon: MessageSquareText, tone: "primary" }}
-			pinned={item.pinned}
 			title={
 				<Link
 					to="/courses/$courseId"
-					params={{ courseId: item.courseId }}
+					params={{ courseId: item.course_id }}
 					className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 				>
-					{item.courseTitle}
+					{item.course_title}
 				</Link>
 			}
 			footer={tileText ? scores : meta}
