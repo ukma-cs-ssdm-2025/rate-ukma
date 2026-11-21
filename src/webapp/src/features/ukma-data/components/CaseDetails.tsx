@@ -2,7 +2,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
 import { formatDateTime } from "../reviewCases";
 
-/** `candidates` and `safe_answer` are free JSON: ids only, as UKMA Data sent them. */
 function JsonValue({ value }: Readonly<{ value: unknown }>) {
 	if (value == null) {
 		return <>—</>;

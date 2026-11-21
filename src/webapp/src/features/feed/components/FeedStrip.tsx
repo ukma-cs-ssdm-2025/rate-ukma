@@ -52,14 +52,10 @@ export function FeedStrip() {
 	const scrollId = useId();
 	const edge = scrollEdge(canScrollPrev, canScrollNext);
 
-	// Gate on the flag, and stay hidden until it resolves so the feed never
-	// flashes in before a disabled flag lands.
 	if (!isReady || !enabled) {
 		return null;
 	}
 
-	// The strip is secondary to the courses table below it: an empty or failed
-	// feed should leave no gap rather than announce itself.
 	if (!isLoading && items.length === 0) {
 		return null;
 	}
@@ -105,8 +101,6 @@ export function FeedStrip() {
 				</div>
 			</div>
 
-			{/* relative: the tiles' sr-only labels are absolute; without a positioned
-			    scroller they resolve against the page and widen it horizontally. */}
 			<div
 				ref={ref}
 				id={scrollId}
@@ -137,8 +131,6 @@ export function FeedStrip() {
 					</div>
 				))}
 
-				{/* Rendered only with items: a lone tile becomes the snap target
-				    while loading, and the browser keeps it in view once cards arrive. */}
 				{items.length > 0 && (
 					<Link
 						to="/feed"

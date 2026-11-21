@@ -12,7 +12,6 @@ export interface UseFeedReturn {
 	isLoading: boolean;
 	isError: boolean;
 	isFetchingNextPage: boolean;
-	/** True only while a retry is in flight, so the first load stays a skeleton. */
 	isRefetching: boolean;
 	refetch: () => void;
 	loaderRef: RefObject<HTMLDivElement | null>;
@@ -20,9 +19,7 @@ export interface UseFeedReturn {
 
 interface UseFeedOptions {
 	limit?: number;
-	/** Off for the homepage strip, which shows the first page only. */
 	infinite?: boolean;
-	/** Off keeps the query idle, so a gated feed issues no request. */
 	enabled?: boolean;
 }
 
@@ -45,17 +42,12 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
 		refetch,
 	} = useFeedListInfinite(params, {
 		query: {
-			// The first page carries no cursor; orval threads each subsequent
-			// page param back in as `cursor`.
 			initialPageParam: undefined,
-			// The cursor is opaque: pass back whatever the server issued, and
-			// stop when it stops issuing one.
 			getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
 			enabled,
 		},
 	});
 
-	// The server leads the first page with pinned items, so pages concatenate.
 	const items = useMemo(
 		() => data?.pages.flatMap((page) => page.items) ?? [],
 		[data],

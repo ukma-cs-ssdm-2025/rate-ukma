@@ -93,10 +93,6 @@ export function getExamTypeDisplay(value: ExamTypeEnum): string {
 	return EXAM_TYPE_LABELS[value];
 }
 
-/**
- * Course offerings send the term's label ("Spring") while every other
- * endpoint sends the value ("SPRING"); read both as the enum.
- */
 export function parseSemesterTerm(
 	value: string | null | undefined,
 ): SemesterTermEnum | null {
@@ -129,7 +125,7 @@ export function formatDate(dateString: string): string {
 		year: "numeric",
 		month: "long",
 		day: "numeric",
-	}).format(date); // e.g. "26 жовтня 2025"
+	}).format(date);
 }
 
 export function formatCredits(credits?: string | null): string | null {

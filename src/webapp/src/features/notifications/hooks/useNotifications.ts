@@ -39,7 +39,6 @@ export function useNotifications() {
 
 	const firstPage = data ?? [];
 
-	// reset buffer when server data changes
 	useEffect(() => {
 		setExtra([]);
 		setHasMore(true);

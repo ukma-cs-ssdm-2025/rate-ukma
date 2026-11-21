@@ -54,7 +54,6 @@ function MyRatings() {
 	);
 
 	const [onlyUnrated, setOnlyUnrated] = useState(false);
-	// Rating the last pending course empties the filter, so it lets go by itself.
 	const showOnlyUnrated = onlyUnrated && rateableLeft > 0;
 	const visibleGroups = useMemo(
 		() =>

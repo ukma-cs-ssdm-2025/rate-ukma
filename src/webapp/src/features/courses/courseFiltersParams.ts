@@ -110,7 +110,6 @@ export const courseFiltersParams = {
 	reviewSort: parseAsStringEnum(VALID_REVIEW_SORTS),
 };
 
-// UI controls hand back plain strings; these read them as URL-param values.
 export function parseTypeKind(value: string): CoursesListTypeKind | null {
 	return VALID_TYPE_KINDS.find((kind) => kind === value) ?? null;
 }
@@ -161,7 +160,6 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	reviewSort: null,
 };
 
-/** URL search params for the courses page, with defaults left out. */
 export type CourseSearchParams = Partial<
 	Record<keyof CourseFiltersParamsState, string | number>
 >;

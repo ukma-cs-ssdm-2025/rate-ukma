@@ -38,7 +38,6 @@ function knownTerms(terms: readonly TermSummary[]): SemesterTermEnum[] {
 	});
 }
 
-// Older offerings carry no term rows; the offering's own term stands in.
 type TermSummary = Pick<CourseOfferingTerm, "semester_year" | "semester_term"> &
 	Partial<Pick<CourseOfferingTerm, "credits" | "weekly_hours">>;
 
@@ -79,7 +78,6 @@ export function getLatestOffering(
 	return sortOfferings(offerings)[0];
 }
 
-// The header names the terms only; credits and hours live in the rail.
 export function getLatestOfferingTerms(
 	offerings: readonly CourseOffering[],
 ): SemesterTermEnum[] {
@@ -105,7 +103,6 @@ function loadSignature(offering: CourseOffering): string {
 	return formatLoad(offeringTerms(offering)[0]);
 }
 
-// One САЗ page can span several terms (e.g. fall and spring on one code).
 function termsLabel(offering: CourseOffering): string {
 	const seasons = new Set(knownTerms(offeringTerms(offering)));
 	return [...seasons]
@@ -130,8 +127,6 @@ interface YearGroup {
 	records: CourseOffering[];
 }
 
-// САЗ lists a course once per stream, so one academic year can hold several
-// records (up to nine in prod), mostly split by speciality.
 function groupByYear(sorted: readonly CourseOffering[]): YearGroup[] {
 	const groups = new Map<string, YearGroup>();
 	for (const offering of sorted) {
@@ -151,9 +146,6 @@ function groupByYear(sorted: readonly CourseOffering[]): YearGroup[] {
 	return [...groups.values()];
 }
 
-// Labels for one year's records: speciality when the course serves several,
-// study year where it tells streams apart, then the load that year. The code is
-// the last resort for otherwise identical streams.
 export function recordLabels(
 	records: readonly CourseOffering[],
 	bySpeciality: boolean,
@@ -197,7 +189,6 @@ function RecordLink({
 		"aria-label": `${ariaLabel}, відкрити запис у САЗ`,
 	};
 	if (!label) {
-		// The badges carry the meaning; a padded icon keeps a usable tap target.
 		return (
 			<a
 				{...linkProps}
@@ -212,11 +203,8 @@ function RecordLink({
 			{...linkProps}
 			className="underline-offset-4 transition-colors hover:text-primary hover:underline"
 		>
-			{/* Break only between facts, so "5 ECTS" never splits, and keep the
-			    icon on the last one. */}
 			{label.split(", ").map((part, index, parts) => (
 				<Fragment key={part}>
-					{/* The space sits outside the nowrap span, or nothing could break. */}
 					{index > 0 ? " " : null}
 					<span className="whitespace-nowrap">
 						{part}
@@ -234,8 +222,6 @@ function RecordLink({
 	);
 }
 
-// The badges already name the speciality, so the link keeps only what else
-// tells the streams apart.
 function withoutSpeciality(label: string, offering: CourseOffering): string {
 	const speciality = specialitiesLabel(offering);
 	if (!speciality || !label.startsWith(speciality)) {
@@ -257,8 +243,6 @@ function YearRow({
 	const termLabel = showTerm || group.terms.includes(",") ? group.terms : "";
 	const labels = recordLabels(group.records, bySpeciality);
 	const hidden = group.records.length - MAX_RECORDS_PER_YEAR;
-	// A general course can split one year into twenty streams; past a few
-	// they stop telling the reader anything new.
 	const shown =
 		expanded || hidden <= 1
 			? group.records
@@ -356,7 +340,6 @@ export function CourseCazRecords({
 
 	return (
 		<div>
-			{/* One grid for every year, so badges and links line up down the list. */}
 			<Collapsible open={expanded} asChild>
 				<ul className="grid grid-cols-[5.5rem_fit-content(6rem)_minmax(min-content,1fr)] gap-x-3 gap-y-3 text-sm">
 					{groups.slice(0, initialVisible).map(renderGroup)}

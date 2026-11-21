@@ -204,8 +204,6 @@ export function getActiveFilterChips(
 	return chips;
 }
 
-// Read as the answer to "which courses of my speciality": ELECTIVE covers
-// everything that is neither compulsory nor profession-oriented for it.
 const COURSE_TYPE_FILTER_LABELS = {
 	COMPULSORY: "Обов'язкові",
 	PROF_ORIENTED: "Професійно-орієнтовані",
@@ -260,7 +258,6 @@ export function useCourseFiltersData({
 		course_types: courseTypes = [],
 	} = filterOptions ?? {};
 
-	// Extract all departments and specialities from nested faculty structure
 	const allDepartments = React.useMemo(
 		() => faculties.flatMap((faculty) => faculty.departments || []),
 		[faculties],
@@ -413,8 +410,6 @@ export function useCourseFiltersData({
 					: "Спочатку оберіть спеціальність",
 			},
 			{
-				// Rendered by a dedicated InstructorFilterSelect (server search +
-				// infinite scroll); options are fetched inside that component.
 				key: "instructor",
 				label: "Викладач",
 				placeholder: "Усі викладачі",

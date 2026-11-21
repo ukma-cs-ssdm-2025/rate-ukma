@@ -34,7 +34,6 @@ export function useInfiniteInstructors({
 	pageSize = DEFAULT_PAGE_SIZE,
 	enabled = true,
 }: UseInfiniteInstructorsOptions = {}): UseInfiniteInstructorsReturn {
-	// Unset filters stay off the URL, so the query key matches across callers.
 	const params = useMemo(() => {
 		const next: InstructorsListParams = { page_size: pageSize };
 		if (search) {

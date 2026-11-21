@@ -16,7 +16,6 @@ interface FeedReviewItemProps {
 	readonly variant?: "card" | "banner";
 }
 
-/** Ties render nothing; the epsilon keeps float noise from reading as a difference. */
 const TIE_EPSILON = 0.05;
 
 function ComparisonArrow({
@@ -42,10 +41,6 @@ function ComparisonArrow({
 	);
 }
 
-/**
- * A recent rating; anonymous in the feed. Scans as course → scores → text →
- * meta, mirroring the course page review cards (RatingStats + RatingComment).
- */
 export function FeedReviewItem({
 	item,
 	variant = "card",
@@ -55,8 +50,6 @@ export function FeedReviewItem({
 		item.semester_term,
 	);
 	const isBanner = variant === "banner";
-	// The strip tile has one text line: the review text wins it when there is
-	// one, and the scores drop to the meta line in place of the time.
 	const tileText = !isBanner && item.comment ? item.comment : undefined;
 	const scores = (
 		<p

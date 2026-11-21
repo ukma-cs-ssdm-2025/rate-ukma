@@ -15,7 +15,6 @@ interface RatingSavedProps {
 	readonly isError: boolean;
 	readonly onSelect: (item: RatingSuggestion) => void;
 	readonly onClose: () => void;
-	/** Set when the rated course is not the page the user is on. */
 	readonly openCourse?: {
 		readonly courseId: string;
 		readonly name?: string;
@@ -59,7 +58,6 @@ function SavedCourse({
 				)}
 				aria-label={`Відкрити ${label}`}
 				onClick={(event) => {
-					// A new-tab click leaves this tab, and the thanks, where they are.
 					if (
 						event.button !== 0 ||
 						event.metaKey ||
@@ -90,7 +88,6 @@ export function RatingSaved(props: RatingSavedProps) {
 				)}
 			</div>
 			{props.openCourse && <SavedCourse {...props.openCourse} />}
-			{/* With the saved line above, the question opens its own block. */}
 			{(props.openCourse || hasNext) && (
 				<div className="space-y-3">
 					{props.openCourse && (

@@ -4,8 +4,6 @@ export interface PersistentStorage {
 	removeItem(key: string): void;
 }
 
-// Reading `window.localStorage` itself can throw (SecurityError when the
-// browser blocks site data), so every access stays inside a try.
 function storage(): Storage | undefined {
 	return globalThis.window?.localStorage;
 }
@@ -17,7 +15,6 @@ export class LocalStorageAdapter implements PersistentStorage {
 			if (rawValue === null) {
 				return null;
 			}
-			// Callers read back the shape they wrote; a corrupt value throws above.
 			// oxlint-disable-next-line typescript/no-unsafe-type-assertion
 			return JSON.parse(rawValue) as T;
 		} catch {
@@ -29,7 +26,7 @@ export class LocalStorageAdapter implements PersistentStorage {
 		try {
 			storage()?.setItem(key, JSON.stringify(value));
 		} catch {
-			// Swallow write errors to avoid breaking the UI when storage is unavailable.
+			return;
 		}
 	}
 
@@ -37,7 +34,7 @@ export class LocalStorageAdapter implements PersistentStorage {
 		try {
 			storage()?.removeItem(key);
 		} catch {
-			// Ignore removal errors (e.g., storage disabled).
+			return;
 		}
 	}
 }

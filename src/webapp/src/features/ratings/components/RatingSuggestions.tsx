@@ -8,7 +8,6 @@ import type { RatingSuggestion } from "@/lib/api/generated";
 interface RatingSuggestionsProps {
 	readonly items: readonly RatingSuggestion[];
 	readonly onSelect: (item: RatingSuggestion) => void;
-	/** Tints the cards so a suggestion stands out on a busy page; the modal needs no help. */
 	readonly highlight?: boolean;
 	readonly className?: string;
 }

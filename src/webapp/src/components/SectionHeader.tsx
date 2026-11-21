@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 
 interface SectionHeaderProps {
 	readonly title: ReactNode;
-	/** Rendered right after the title, e.g. a count Badge. */
 	readonly meta?: ReactNode;
 	readonly actions?: ReactNode;
 	readonly className?: string;

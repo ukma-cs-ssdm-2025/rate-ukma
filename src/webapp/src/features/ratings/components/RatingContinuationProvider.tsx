@@ -32,7 +32,6 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 			return;
 		}
 		if (!flowEnabled || completion.pathname !== pathname) {
-			// The rating is saved either way; only the invitation is dropped.
 			void refreshRatingQueries(queryClient, completion.courseId);
 			setCompletion(null);
 			setVisible(false);
@@ -45,7 +44,6 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 				return;
 			}
 			timer = setTimeout(() => {
-				// Do not interrupt another action started during the pause.
 				if (!document.querySelector('[role="dialog"], [role="alertdialog"]')) {
 					setVisible(true);
 				}
@@ -66,8 +64,6 @@ export function RatingContinuationProvider({ children }: PropsWithChildren) {
 		}
 	}, [followUp, flowEnabled, pathname]);
 
-	// Rated another course from a course page (the «Що оцінити далі» block):
-	// offer a way there instead of moving the user off the page they read.
 	const ratedElsewhere =
 		completion?.pathname.startsWith("/courses/") &&
 		completion.pathname !== `/courses/${completion.courseId}`

@@ -28,7 +28,6 @@ import { RatingContinuationContext } from "../RatingContinuationContext";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { refreshRatingQueries } from "../refreshRatingQueries";
 
-// Module-level so the form isn't reset on every render.
 const ANONYMOUS_DEFAULTS: RatingFormData = {
 	difficulty: 0,
 	usefulness: 0,
@@ -76,7 +75,6 @@ export function RatingModal({
 	const flowEnabled = useRatingFlowEnabled();
 	const queryClient = useQueryClient();
 	const { user } = useAuth();
-	// Matches the backend byline, which is "last first".
 	const author = user
 		? {
 				name: [user.lastName, user.firstName].filter(Boolean).join(" "),
@@ -88,8 +86,6 @@ export function RatingModal({
 	const updateMutation = useCoursesRatingsPartialUpdate();
 
 	const handleSubmit = async (data: RatingFormData) => {
-		// A non-empty selection supersedes the legacy text; an empty one leaves it,
-		// rather than dropping the rating's only instructor.
 		const instructorPayload: Pick<
 			RatingCreateRequest,
 			"instructor" | "instructor_ids"
@@ -185,7 +181,6 @@ export function RatingModal({
 			<DialogContent
 				className={cn(
 					"group/rating-modal flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]",
-					// Phones get the whole screen, rising as a sheet instead of zooming.
 					"max-sm:inset-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=closed]:zoom-out-100 max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=open]:zoom-in-100 motion-reduce:animate-none!",
 				)}
 				data-testid={testIds.rating.modal}

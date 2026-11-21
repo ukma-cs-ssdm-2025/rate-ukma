@@ -25,7 +25,6 @@ const SEARCH_DEBOUNCE_MS = 200;
 interface InstructorMultiSelectProps {
 	readonly value: readonly string[];
 	readonly onChange: (next: string[]) => void;
-	/** Called with the full record whenever a teacher is added from the list. */
 	readonly onOptionPicked?: (instructor: Instructor) => void;
 	readonly initialOptions?: readonly Instructor[];
 	readonly courseOfferingId?: string;
@@ -162,15 +161,8 @@ function InstructorMultiSelect({
 		);
 
 	return (
-		<Popover
-			open={open}
-			onOpenChange={setOpen}
-			// The portalled list lands outside the rating dialog's scroll lock,
-			// which swallows wheel events over it.
-			modal
-		>
+		<Popover open={open} onOpenChange={setOpen} modal>
 			<PopoverTrigger asChild>
-				{/* A div, not a button — the chip remove controls are buttons. */}
 				<div
 					role="combobox"
 					tabIndex={disabled ? -1 : 0}
@@ -199,16 +191,12 @@ function InstructorMultiSelect({
 						</span>
 					) : (
 						selectedInstructors.map((instr) => (
-							// The whole chip removes the teacher: a bigger target than
-							// the × alone, which stays as the visual cue.
 							<button
 								key={instr.id}
 								type="button"
 								aria-label={`Видалити ${formatInstructorName(instr)}`}
 								className="group/chip bg-secondary text-secondary-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-ring/50 inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-0.5 text-left text-xs transition-colors outline-none focus-visible:ring-[3px] motion-reduce:transition-none"
 								onClick={(e) => removeValue(e, instr.id)}
-								// Enter and Space belong to the chip, not the trigger that
-								// would open the list instead.
 								onKeyDown={(e) => e.stopPropagation()}
 							>
 								<span className="break-words">
@@ -221,7 +209,6 @@ function InstructorMultiSelect({
 							</button>
 						))
 					)}
-					{/* Stable open target: chips cover the rest of the trigger. */}
 					<ChevronDownIcon
 						className="ml-auto size-4 shrink-0 opacity-50"
 						data-testid={testId ? `${testId}-toggle` : undefined}

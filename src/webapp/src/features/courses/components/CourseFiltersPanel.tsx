@@ -61,9 +61,6 @@ export interface CourseFiltersDrawerProps extends CourseFiltersBaseProps {
 	readonly className?: string;
 }
 
-// --- Primitive filter controls ---
-
-// The slider reports a plain array; a missing thumb keeps its bound.
 function toRange(
 	value: readonly number[],
 	bounds: readonly [number, number],
@@ -120,7 +117,6 @@ function FilterSlider({
 	);
 }
 
-// No visible heading: the field labels inside already say what the group is.
 function FilterSection({
 	label,
 	testId,
@@ -141,8 +137,6 @@ function FilterSection({
 		</div>
 	);
 }
-
-// --- Select/Range rendering helpers ---
 
 const RANGE_FILTER_TEST_IDS = {
 	diff: testIds.filters.difficultySlider,
@@ -344,7 +338,6 @@ function SelectFilters({
 					const currentValue = getSelectValue(key);
 					const testId = SELECT_FILTER_TEST_IDS[key];
 					const isDisabled = disabled || options.length === 0;
-					// Named in place, so enabling the field moves nothing below it.
 					const shownPlaceholder = disabledMessage ?? placeholder;
 
 					if (key === "instructor") {
@@ -414,8 +407,6 @@ function SelectFilters({
 	);
 }
 
-// --- Main content ---
-
 function CourseFiltersContent({
 	params,
 	setParams,
@@ -432,8 +423,6 @@ function CourseFiltersContent({
 		[setParams],
 	);
 
-	// Credits are stored per academic year, so the API needs one; the newest
-	// is what a student choosing a course by load means.
 	const latestYear = data.groups.semester.selectFilters
 		.find((filter) => filter.key === "year")
 		?.options.map((option) => option.value)
@@ -557,8 +546,6 @@ function CourseFiltersContent({
 
 	return (
 		<div className="space-y-6">
-			{/* Students filter by their own programme far more than by faculty or
-			    department, so speciality and course type lead. */}
 			<FilterSection
 				label="Спеціальність і тип дисципліни"
 				testId={testIds.filters.groupStructure}
@@ -589,7 +576,6 @@ function CourseFiltersContent({
 						value={params.type ?? ""}
 						disabled={!params.spec && !ownSpeciality}
 						onChange={(value) => {
-							// With no speciality picked, a type means "of my speciality".
 							if (!params.spec && ownSpeciality && value) {
 								setWithPageReset({
 									spec: ownSpeciality.id,
@@ -605,8 +591,6 @@ function CourseFiltersContent({
 
 			<Separator />
 
-			{/* Year, term and credits describe one offering, so they stay
-			    together, above the scores. */}
 			<FilterSection label="Семестр" testId={testIds.filters.groupSemester}>
 				{semesterSelect && (
 					<SelectFilters
@@ -823,8 +807,6 @@ function SliderSkeleton() {
 	);
 }
 
-// Mirrors CourseFiltersContent: speciality and type, semester, scores,
-// then faculty, department, level and instructor.
 function CourseFiltersPanelSkeleton() {
 	return (
 		<div className="sticky top-22 space-y-6" aria-hidden="true">

@@ -28,7 +28,6 @@ export function withAuth<P extends object>(
 		}, [checkAuth]);
 
 		useEffect(() => {
-			// Redirect to login if unauthenticated
 			if (status === "unauthenticated") {
 				if (!hasShownToast.current) {
 					hasShownToast.current = true;
@@ -47,7 +46,6 @@ export function withAuth<P extends object>(
 			}
 		}, [status, navigate, sessionExpired]);
 
-		// Show loading state while checking auth
 		if (status === "loading") {
 			return (
 				<div className="flex min-h-screen flex-col items-center justify-center space-y-6">
@@ -59,12 +57,10 @@ export function withAuth<P extends object>(
 			);
 		}
 
-		// Don't render anything if unauthenticated (redirecting)
 		if (status === "unauthenticated") {
 			return null;
 		}
 
-		// Render component only when authenticated
 		return <Component {...props} />;
 	};
 }

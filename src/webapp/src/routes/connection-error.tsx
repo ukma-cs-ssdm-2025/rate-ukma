@@ -23,14 +23,6 @@ export type ConnectionErrorSearch = {
 	bounces?: number;
 };
 
-/**
- * Silent auto-return is only trustworthy for a real offline→online
- * transition (the browser fires `online`, and a session probe success means
- * the API is reachable again). A `server` probe can succeed while the heavy
- * page that bounced still times out, which ping-pongs the user between the
- * page and this error screen — so server reasons always wait for a manual
- * retry. Past the cap even offline returns stay manual.
- */
 export const MAX_AUTO_RETURN_BOUNCES = 2;
 
 export const shouldAutoReturn = (
@@ -265,11 +257,6 @@ export const getSafeRedirectTarget = (from?: string, bounces = 0) => {
 	}
 };
 
-/**
- * Stamps the current bounce count onto the return target, so the next
- * failure can count one higher instead of restarting at one. Zero leaves
- * the URL untouched.
- */
 export const withBounceCount = (target: string, bounces: number): string => {
 	if (bounces <= 0) {
 		return target;

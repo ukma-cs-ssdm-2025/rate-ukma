@@ -253,7 +253,6 @@ function buildCoursesTableColumns({
 			meta: {
 				label: "Відгуки",
 				align: "center",
-				// Low value on a narrow screen; the sort menu is desktop-only anyway.
 				hideOnMobile: true,
 			},
 		},
@@ -471,7 +470,6 @@ export function CoursesTable({
 	);
 
 	const [isFiltersDrawerOpen, setIsFiltersDrawerOpen] = useState(false);
-	// Compact score columns on phones so both fit at 390px without clipping.
 	const isCompactTable = !useMediaQuery("(min-width: 640px)");
 
 	const { data: studentCourses } = useStudentsMeCoursesRetrieve({
@@ -597,7 +595,6 @@ export function CoursesTable({
 		if (isInitialLoading) {
 			return (
 				<DataTableSkeleton
-					// Phones hide the reviews column.
 					columnCount={isCompactTable ? 3 : 4}
 					cellWidths={
 						isCompactTable
@@ -615,8 +612,6 @@ export function CoursesTable({
 				serverPageCount={serverPagination?.totalPages}
 				isRowHighlighted={isRowHighlighted}
 				onRowClick={handleRowClick}
-				// Previous results stay on screen while new ones load; dimming
-				// them shows the filter took effect.
 				className={cn(
 					"transition-opacity duration-200 motion-reduce:transition-none",
 					isLoading && "opacity-60",
@@ -664,7 +659,6 @@ export function CoursesTable({
 						/>
 					</div>
 
-					{/* Phones only: the drawer covers the page while this row appears. */}
 					<ActiveFilterChips
 						params={params}
 						setParams={setParams}
@@ -688,8 +682,6 @@ export function CoursesTable({
 				</div>
 			</div>
 
-			{/* Sticky, not fixed: the pill floats while the list scrolls, then
-			    parks below the pagination so it never covers the footer links. */}
 			<div className="sticky bottom-6 z-40 mx-auto flex w-fit pb-[env(safe-area-inset-bottom)] lg:hidden">
 				<Button
 					type="button"

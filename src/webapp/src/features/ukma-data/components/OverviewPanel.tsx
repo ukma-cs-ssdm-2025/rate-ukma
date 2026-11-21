@@ -126,7 +126,6 @@ function OpenCasesCard() {
 	const { data, error, isLoading, refetch, isRefetching } =
 		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
 	const open = data?.items?.filter((item) => item.status === "open") ?? [];
-	// The API sends no totals, so a count is true only when the first page is everything.
 	const complete = data !== undefined && !error && !data.has_more;
 	const oldest = open.reduce<string | undefined>(
 		(min, item) =>
