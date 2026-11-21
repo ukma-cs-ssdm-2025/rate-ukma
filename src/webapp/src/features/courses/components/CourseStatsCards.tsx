@@ -2,12 +2,12 @@ import { useLayoutEffect, useRef } from "react";
 
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { testIds } from "@/lib/test-ids";
-import { cn } from "@/lib/utils";
 import {
 	difficultyDescriptions,
 	usefulnessDescriptions,
-} from "../../ratings/definitions/ratingDefinitions";
+} from "@/lib/score-descriptions";
+import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
 

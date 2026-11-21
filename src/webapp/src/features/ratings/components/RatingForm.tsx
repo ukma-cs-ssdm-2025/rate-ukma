@@ -23,12 +23,14 @@ import { InstructorQuickPicks } from "@/features/instructors/components/Instruct
 import { pickCourseInstructors } from "@/features/instructors/courseInstructorPicks";
 import type { Instructor } from "@/lib/api/generated";
 import { useCoursesInstructorsRetrieve } from "@/lib/api/generated";
+import {
+	difficultyDescriptions,
+	usefulnessDescriptions,
+} from "@/lib/score-descriptions";
 import { testIds } from "@/lib/test-ids";
 import {
 	ANONYMOUS_REVIEW_NAME,
 	DEFAULT_STUDENT_NAME,
-	difficultyDescriptions,
-	usefulnessDescriptions,
 } from "../definitions/ratingDefinitions";
 import { RatingCardBody } from "./RatingCardBody";
 
