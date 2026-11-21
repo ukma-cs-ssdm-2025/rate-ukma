@@ -315,8 +315,8 @@ function YearRow({
 				{teachers.length > 0 ? (
 					<li className="col-span-2 text-xs text-muted-foreground">
 						Викладачі:{" "}
-						{teachers.map((name, index) => (
-							<Fragment key={name}>
+						{teachers.map(({ id, name }, index) => (
+							<Fragment key={id}>
 								{index > 0 ? ", " : null}
 								<span className="whitespace-nowrap">{name}</span>
 							</Fragment>

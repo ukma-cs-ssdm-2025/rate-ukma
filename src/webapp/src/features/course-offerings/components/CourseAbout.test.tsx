@@ -279,7 +279,10 @@ describe("per-year teachers", () => {
 	];
 
 	it("lists each teacher of a year once, in short form", () => {
-		expect(yearTeachers(records)).toEqual(["Вигадана О.", "Зразкова О."]);
+		expect(yearTeachers(records)).toEqual([
+			{ id: "t-1", name: "Вигадана О." },
+			{ id: "t-2", name: "Зразкова О." },
+		]);
 	});
 
 	it("shows the teachers under the year when the flag is on", () => {
