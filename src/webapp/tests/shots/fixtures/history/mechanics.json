@@ -1,0 +1,564 @@
+{
+	"course": {
+		"id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+		"title": "Практикум з механіки (початок вивчення)",
+		"description": "",
+		"status": "FINISHED",
+		"education_level": "BACHELOR",
+		"department": "381a415b-c1e5-4e2d-8473-592489845895",
+		"department_name": "Кафедра фізико-математичних наук",
+		"faculty": "67db5509-b30f-4baa-aafd-a19515a424e4",
+		"faculty_name": "Факультет природничих наук",
+		"faculty_custom_abbreviation": "ФПрН",
+		"specialities": [
+			{
+				"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+				"speciality_title": "Комп`ютерна фізика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+				"speciality_title": "Фізика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+				"speciality_title": "Фізика біологічних систем",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "592631b2-909e-4d82-b0c0-f0057e8cdcc6",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "e371a484-e406-4eae-a5a4-1afb9333ceaf",
+			"semester_year": 2026,
+			"semester_term": "Fall",
+			"code": "363078",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": 2,
+			"group_size_min": 3,
+			"group_size_max": 8,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "7ca768dc-8fc2-4b02-93fd-d9fccbd875b0",
+					"offering_id": "592631b2-909e-4d82-b0c0-f0057e8cdcc6",
+					"semester_id": "e371a484-e406-4eae-a5a4-1afb9333ceaf",
+					"semester_year": 2026,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "58d3edae-eeee-411c-998d-16ab924c2307",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+			"semester_year": 2025,
+			"semester_term": "Fall",
+			"code": "341052",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": 2,
+			"group_size_min": 3,
+			"group_size_max": 8,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "6029d76f-7aa9-47de-9bc8-1bc4bb53a6f8",
+					"offering_id": "58d3edae-eeee-411c-998d-16ab924c2307",
+					"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+					"semester_year": 2025,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "5da17f75-ccf5-43d1-b963-62d1fd0cca7e",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "294763",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": 2,
+			"group_size_min": 3,
+			"group_size_max": 8,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "743e71b5-0eb6-4359-a60b-3f79f3823dc3",
+					"offering_id": "5da17f75-ccf5-43d1-b963-62d1fd0cca7e",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "5eac1fbd-0ecd-4471-8f01-056e13e9363a",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+			"semester_year": 2024,
+			"semester_term": "Fall",
+			"code": "315390",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": 2,
+			"group_size_min": 3,
+			"group_size_max": 8,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "e5585b42-e205-460d-91f2-e5eb77611ccf",
+					"offering_id": "5eac1fbd-0ecd-4471-8f01-056e13e9363a",
+					"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+					"semester_year": 2024,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "9af06852-dc23-4dcc-8687-6e5034f899a6",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+			"semester_year": 2023,
+			"semester_term": "Spring",
+			"code": "276072",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": 3,
+			"group_size_min": 5,
+			"group_size_max": 9,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "5029edea-6404-47cb-8fd5-935858699b01",
+					"offering_id": "9af06852-dc23-4dcc-8687-6e5034f899a6",
+					"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+					"semester_year": 2023,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "a13d76c6-784b-4878-9f58-c70229695159",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+			"semester_year": 2022,
+			"semester_term": "Spring",
+			"code": "258744",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": 3,
+			"group_size_min": 5,
+			"group_size_max": 9,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "27dfccec-a9b2-43c4-b695-d20ee1efd872",
+					"offering_id": "a13d76c6-784b-4878-9f58-c70229695159",
+					"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+					"semester_year": 2022,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "f2b76dd5-0ae5-4af2-8064-e82df263ee4f",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+			"semester_year": 2021,
+			"semester_term": "Spring",
+			"code": "242366",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 5,
+			"group_size_max": 9,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "e1911768-463f-4f53-9436-c13f9386c5be",
+					"offering_id": "f2b76dd5-0ae5-4af2-8064-e82df263ee4f",
+					"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+					"semester_year": 2021,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "42bc8284-8b8e-4e32-97a3-f4476d18515d",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+			"semester_year": 2020,
+			"semester_term": "Spring",
+			"code": "226265",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 5,
+			"group_size_max": 9,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "58c81b41-1356-479b-b33a-b8dbc61051c7",
+					"offering_id": "42bc8284-8b8e-4e32-97a3-f4476d18515d",
+					"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+					"semester_year": 2020,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		},
+		{
+			"id": "7dd531fa-a3ef-4c37-917c-b229ad51e744",
+			"course_id": "ed61c140-9cb9-4eae-b7c1-086260078568",
+			"course_title": "Практикум з механіки (початок вивчення)",
+			"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+			"semester_year": 2018,
+			"semester_term": "Fall",
+			"code": "210373",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "0b645e73-9026-44ab-8736-cc77dcddc9e1",
+					"offering_id": "7dd531fa-a3ef-4c37-917c-b229ad51e744",
+					"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+					"semester_year": 2018,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "2.0",
+					"weekly_hours": 2,
+					"total_hours": 60,
+					"lecture_count": null,
+					"practice_count": 30
+				}
+			]
+		}
+	]
+}

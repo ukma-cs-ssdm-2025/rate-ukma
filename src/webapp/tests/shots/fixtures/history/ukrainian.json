@@ -1,0 +1,2570 @@
+{
+	"course": {
+		"id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+		"title": "Українська мова за професійним спрямуванням",
+		"description": "Курс спрямований на ознайомлення студентів з основами та засобами професійного спілкування, підвищення рівня їхньої мовної компетенції шляхом поглиблення знань про норми сучасної української мови, функціональні стилі, наукову термінологію, специфіку мовно-виражальних засобів української мови; формування навичок комунікативно виправданого користування засобами мови в різних ситуаціях, під час професійного спілкування, створення документів з дотриманням мовного етикету; вироблення навичок редагування та аналізу фахових текстів; сприяння становленню національно свідомої особистості.",
+		"status": "FINISHED",
+		"education_level": "BACHELOR",
+		"department": "88b17a31-f524-4670-a0a9-b7abc1539a4a",
+		"department_name": "Кафедра української мови",
+		"faculty": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+		"faculty_name": "Факультет гуманітарних наук",
+		"faculty_custom_abbreviation": null,
+		"specialities": [
+			{
+				"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+				"speciality_title": "Екологія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+				"speciality_title": "Економіка",
+				"speciality_alias": null,
+				"faculty_name": "Факультет економічних наук",
+				"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+				"speciality_title": "Інженерія програмного забезпечення",
+				"speciality_alias": null,
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+				"speciality_title": "Історія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+				"speciality_title": "Комп`ютерні науки",
+				"speciality_alias": null,
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+				"speciality_title": "Культурологія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+				"speciality_title": "Маркетинг",
+				"speciality_alias": null,
+				"faculty_name": "Факультет економічних наук",
+				"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+				"speciality_title": "Менеджмент",
+				"speciality_alias": null,
+				"faculty_name": "Факультет економічних наук",
+				"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+				"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+				"speciality_alias": "Міжнар",
+				"faculty_name": "Факультет соціальних наук і соціальних технологій",
+				"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+				"speciality_title": "Політологія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет соціальних наук і соціальних технологій",
+				"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+				"speciality_title": "Право",
+				"speciality_alias": null,
+				"faculty_name": "Факультет правничих наук",
+				"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+				"speciality_title": "Прикладна математика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+				"speciality_title": "Психологія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+				"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+				"speciality_title": "Соціальна робота",
+				"speciality_alias": "СоцРобота",
+				"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+				"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+				"speciality_title": "Соціологія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет соціальних наук і соціальних технологій",
+				"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+				"speciality_title": "Фізика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+				"speciality_title": "Фізика та астрономія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+				"speciality_title": "Філософія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+				"speciality_title": "Фінанси, банківська справа та страхування",
+				"speciality_alias": "Фінанси",
+				"faculty_name": "Факультет економічних наук",
+				"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+				"speciality_title": "Хімія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+				"speciality_title": "Комп`ютерна фізика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+				"speciality_title": "Фізика біологічних систем",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+				"speciality_title": "Біологія та біотехнологія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+				"speciality_title": "Зв`язки з громадськістю",
+				"speciality_alias": null,
+				"faculty_name": "Факультет соціальних наук і соціальних технологій",
+				"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "32e0a378-af81-4466-bc47-2554cb4a9ac5",
+				"speciality_title": "Суспільне і приватне врядування",
+				"speciality_alias": null,
+				"faculty_name": "Факультет правничих наук",
+				"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "a35c5cba-7e28-4406-9ce3-d4ac2a1a511f",
+				"speciality_title": "Аналіз вразливостей інформаційних систем",
+				"speciality_alias": null,
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "4375ecc5-d35c-4a2a-af5d-71836b94df73",
+				"speciality_title": "Автоматизація, комп`ютерно-інтегровані технології та робототехніка",
+				"speciality_alias": "Робототехніка",
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "2f82d810-8af7-4b81-9122-24ebd0c1fd39",
+				"speciality_title": "Громадське здоров`я",
+				"speciality_alias": null,
+				"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+				"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "7441b24f-a25c-49a5-a936-8f4b53421f1e",
+				"speciality_title": "Археологія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "fd057950-0931-48ef-8a4e-648fc479972f",
+				"speciality_title": "Аналітика великих даних",
+				"speciality_alias": null,
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "81f21b83-d0e5-4cbf-b9a4-ec08f67bf1ce",
+				"speciality_title": "Фізика ракетних та аерокосмічних систем",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "e26c4ff4-183b-4cc7-8c52-9af4e43be439",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+			"semester_year": 2027,
+			"semester_term": "Spring",
+			"code": "362858",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+					"speciality_title": "Біологія та біотехнологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "32e0a378-af81-4466-bc47-2554cb4a9ac5",
+					"speciality_title": "Суспільне і приватне врядування",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a35c5cba-7e28-4406-9ce3-d4ac2a1a511f",
+					"speciality_title": "Аналіз вразливостей інформаційних систем",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4375ecc5-d35c-4a2a-af5d-71836b94df73",
+					"speciality_title": "Автоматизація, комп`ютерно-інтегровані технології та робототехніка",
+					"speciality_alias": "Робототехніка",
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "2f82d810-8af7-4b81-9122-24ebd0c1fd39",
+					"speciality_title": "Громадське здоров`я",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "7441b24f-a25c-49a5-a936-8f4b53421f1e",
+					"speciality_title": "Археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "fd057950-0931-48ef-8a4e-648fc479972f",
+					"speciality_title": "Аналітика великих даних",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "81f21b83-d0e5-4cbf-b9a4-ec08f67bf1ce",
+					"speciality_title": "Фізика ракетних та аерокосмічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "74780729-e361-41a4-ac38-ef393f51b594",
+					"offering_id": "e26c4ff4-183b-4cc7-8c52-9af4e43be439",
+					"semester_id": "e371a484-e406-4eae-a5a4-1afb9333ceaf",
+					"semester_year": 2026,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "69a78805-fdb8-47e2-a8b1-1ab18ea1cb49",
+					"offering_id": "e26c4ff4-183b-4cc7-8c52-9af4e43be439",
+					"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+					"semester_year": 2027,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "249cfe7c-098e-400c-a92b-ce512e42fef7",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+			"semester_year": 2026,
+			"semester_term": "Spring",
+			"code": "340216",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a35c5cba-7e28-4406-9ce3-d4ac2a1a511f",
+					"speciality_title": "Аналіз вразливостей інформаційних систем",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4375ecc5-d35c-4a2a-af5d-71836b94df73",
+					"speciality_title": "Автоматизація, комп`ютерно-інтегровані технології та робототехніка",
+					"speciality_alias": "Робототехніка",
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "2f82d810-8af7-4b81-9122-24ebd0c1fd39",
+					"speciality_title": "Громадське здоров`я",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+					"speciality_title": "Біологія та біотехнологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "32e0a378-af81-4466-bc47-2554cb4a9ac5",
+					"speciality_title": "Суспільне і приватне врядування",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "dc9c3215-4743-41be-9717-4e9254f77485",
+					"offering_id": "249cfe7c-098e-400c-a92b-ce512e42fef7",
+					"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+					"semester_year": 2025,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "56166a3b-d99d-4f70-bc51-483d9b902850",
+					"offering_id": "249cfe7c-098e-400c-a92b-ce512e42fef7",
+					"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+					"semester_year": 2026,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "a26335df-9526-4b63-a1d9-4238022e493f",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+			"semester_year": 2025,
+			"semester_term": "Spring",
+			"code": "314810",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+					"speciality_title": "Біологія та біотехнологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "32e0a378-af81-4466-bc47-2554cb4a9ac5",
+					"speciality_title": "Суспільне і приватне врядування",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a35c5cba-7e28-4406-9ce3-d4ac2a1a511f",
+					"speciality_title": "Аналіз вразливостей інформаційних систем",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4375ecc5-d35c-4a2a-af5d-71836b94df73",
+					"speciality_title": "Автоматизація, комп`ютерно-інтегровані технології та робототехніка",
+					"speciality_alias": "Робототехніка",
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "2f82d810-8af7-4b81-9122-24ebd0c1fd39",
+					"speciality_title": "Громадське здоров`я",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "5a7ddb1e-38d5-4054-ace8-810d5f2c72e0",
+					"offering_id": "a26335df-9526-4b63-a1d9-4238022e493f",
+					"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+					"semester_year": 2024,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "967357f1-01ca-4600-b462-af7a7db435b3",
+					"offering_id": "a26335df-9526-4b63-a1d9-4238022e493f",
+					"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+					"semester_year": 2025,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "381d9fe1-f41f-4837-ab37-6d6df807ba41",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "294238",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+					"speciality_title": "Біологія та біотехнологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "32e0a378-af81-4466-bc47-2554cb4a9ac5",
+					"speciality_title": "Суспільне і приватне врядування",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a35c5cba-7e28-4406-9ce3-d4ac2a1a511f",
+					"speciality_title": "Аналіз вразливостей інформаційних систем",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "2958bcc3-a61e-4163-9e65-539fac5a136c",
+					"offering_id": "381d9fe1-f41f-4837-ab37-6d6df807ba41",
+					"semester_id": "397824a4-7636-4de2-8439-3f0f18159ba6",
+					"semester_year": 2023,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "d01e3c3a-fc9f-4ea9-b177-fc1c22890550",
+					"offering_id": "381d9fe1-f41f-4837-ab37-6d6df807ba41",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "6b90515a-f187-4573-82ce-b8ff66eefdee",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+			"semester_year": 2023,
+			"semester_term": "Spring",
+			"code": "275576",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+					"speciality_title": "Біологія та біотехнологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "32e0a378-af81-4466-bc47-2554cb4a9ac5",
+					"speciality_title": "Суспільне і приватне врядування",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "ecdc7b49-4e24-4791-bbf8-06fd537d02da",
+					"offering_id": "6b90515a-f187-4573-82ce-b8ff66eefdee",
+					"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+					"semester_year": 2022,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "e3907454-4ebd-43c1-8206-54ef00214434",
+					"offering_id": "6b90515a-f187-4573-82ce-b8ff66eefdee",
+					"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+					"semester_year": 2023,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "dc9a3413-f859-4afa-9112-bc0651c11bb2",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+			"semester_year": 2022,
+			"semester_term": "Spring",
+			"code": "258254",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+					"speciality_title": "Біологія та біотехнологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "32e0a378-af81-4466-bc47-2554cb4a9ac5",
+					"speciality_title": "Суспільне і приватне врядування",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "7551e6c5-5327-42ae-b217-11b1505e28c5",
+					"offering_id": "dc9a3413-f859-4afa-9112-bc0651c11bb2",
+					"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+					"semester_year": 2021,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "a030e612-c317-48d2-9f33-e693d079f99f",
+					"offering_id": "dc9a3413-f859-4afa-9112-bc0651c11bb2",
+					"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+					"semester_year": 2022,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "b6b64633-6b73-4fae-9adf-eb4220008d0b",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+			"semester_year": 2021,
+			"semester_term": "Spring",
+			"code": "241830",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "5b556a1b-be3f-40bd-a5eb-df57fcad143d",
+					"speciality_title": "Біологія та біотехнологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "4501e384-8465-41a8-87d7-1f60adf14fcc",
+					"offering_id": "b6b64633-6b73-4fae-9adf-eb4220008d0b",
+					"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+					"semester_year": 2020,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "7e961709-9601-47f4-82a4-4e4113df2881",
+					"offering_id": "b6b64633-6b73-4fae-9adf-eb4220008d0b",
+					"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+					"semester_year": 2021,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "fa912c62-07d7-443d-bbf2-7e8746d42e67",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+			"semester_year": 2020,
+			"semester_term": "Spring",
+			"code": "224843",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f3cd48f8-b832-4c5f-80f5-e8a3e1c99921",
+					"speciality_title": "Комп`ютерна фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "22d9eadc-6c2a-43d9-a8e0-42894d7f41a8",
+					"speciality_title": "Фізика біологічних систем",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "1f8957b1-9bfc-43a1-bdc6-5d825f6b9910",
+					"offering_id": "fa912c62-07d7-443d-bbf2-7e8746d42e67",
+					"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+					"semester_year": 2019,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "c0625578-88a6-482c-9d28-7651736397ef",
+					"offering_id": "fa912c62-07d7-443d-bbf2-7e8746d42e67",
+					"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+					"semester_year": 2020,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "45e8aa4d-49b6-4401-ba90-df7bccc020c9",
+			"course_id": "463c64e3-2840-4215-a1ca-52c6e9ffd303",
+			"course_title": "Українська мова за професійним спрямуванням",
+			"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+			"semester_year": 2019,
+			"semester_term": "Spring",
+			"code": "209026",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 12,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4f2070d5-fc4a-4a9e-ad18-c7c8abeba6a2",
+					"speciality_title": "Екологія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "28c7ffac-5681-49b9-8b5d-235d42cd82a9",
+					"speciality_title": "Економіка",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e78d5745-3afe-4758-b502-ee50cabe29e3",
+					"speciality_title": "Інженерія програмного забезпечення",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453f09ef-1eab-4c9c-88df-f0c9d45ade3b",
+					"speciality_title": "Інформатика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "452b6d91-597b-48ad-94d1-d39463dfab5a",
+					"speciality_title": "Комп`ютерні науки",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "c17264e2-e122-48df-ad0c-f38320eb7cf4",
+					"speciality_title": "Культурологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "05a8e87d-91b3-4557-a377-13d65adf1937",
+					"speciality_title": "Маркетинг",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "348875b5-2af4-4192-ba17-a32b84fd1c1b",
+					"speciality_title": "Менеджмент",
+					"speciality_alias": null,
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0ba11b56-9ffa-4e1f-9d6b-e02e249500cc",
+					"speciality_title": "Міжнародні відносини, суспільні комунікації та регіональні студії",
+					"speciality_alias": "Міжнар",
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4e9e30f8-2ffa-49ea-91e5-b3b0a3d3d772",
+					"speciality_title": "Політологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "fe0612d1-b9b3-4e66-9061-c0c3f22a0c09",
+					"speciality_title": "Правознавство",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "3c1eedde-622f-4712-ab77-d846cf4520e6",
+					"speciality_title": "Соціальна робота",
+					"speciality_alias": "СоцРобота",
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f0ac0e91-9c14-4a12-825c-8caf888f98c5",
+					"speciality_title": "Фізика",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "e80159f3-9977-44fa-98ee-576b25d3772c",
+					"speciality_title": "Фізика та астрономія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "13ec6bd7-4f10-4f3b-9bed-4df7e7c60cc9",
+					"speciality_title": "Філософія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "d443d999-de4f-4775-a3df-f75ef05c02da",
+					"speciality_title": "Фінанси, банківська справа та страхування",
+					"speciality_alias": "Фінанси",
+					"faculty_id": "83d46c0a-5898-445e-88f2-35fa36e903e0",
+					"faculty_name": "Факультет економічних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "f2dd3ff5-5595-4a64-b90a-df4389b06052",
+					"speciality_title": "Хімія",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "5678660b-5a03-4865-92f6-947cbeb1426f",
+					"offering_id": "45e8aa4d-49b6-4401-ba90-df7bccc020c9",
+					"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+					"semester_year": 2018,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": 10,
+					"practice_count": 16
+				},
+				{
+					"id": "475595e3-108c-4bcf-ac95-34f906f91b97",
+					"offering_id": "45e8aa4d-49b6-4401-ba90-df7bccc020c9",
+					"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+					"semester_year": 2019,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "2.5",
+					"weekly_hours": 2,
+					"total_hours": 75,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		}
+	]
+}

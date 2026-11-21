@@ -1,0 +1,530 @@
+{
+	"course": {
+		"id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+		"title": "Математичний аналіз (початок вивчення)",
+		"description": "Базова математична дисципліна. Містить основи координатного методу, диференціальне та інтегральне числення, теорію рядів. Крім класичних застосувань до геометричних і фізичних задач (знаходження екстремумів, обчислення площ, об'ємів, довжин дуг, роботи сил різної природи і т.п.) має на меті забезпечити студентів необхідним математичним апаратом для оволодіння такими курсами як диференціальні рівняння, теорія ймовірностей, теорія функцій комплексної змінної, математичні методи дослідження операцій, математична фізика, комплексний аналіз і його застосування.",
+		"status": "FINISHED",
+		"education_level": "BACHELOR",
+		"department": "1346af63-9c2d-462b-a416-9b69fab55b74",
+		"department_name": "Кафедра математики",
+		"faculty": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+		"faculty_name": "Факультет інформатики",
+		"faculty_custom_abbreviation": null,
+		"specialities": [
+			{
+				"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+				"speciality_title": "Прикладна математика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "ecefc236-de4d-43f3-97c8-0fa161b12fc9",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+			"semester_year": 2027,
+			"semester_term": "Spring",
+			"code": "365262",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 18,
+			"group_size_max": 23,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "88ecae08-5a3f-4b7f-9be8-7d2e5d79a2a9",
+					"offering_id": "ecefc236-de4d-43f3-97c8-0fa161b12fc9",
+					"semester_id": "e371a484-e406-4eae-a5a4-1afb9333ceaf",
+					"semester_year": 2026,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.0",
+					"weekly_hours": 4,
+					"total_hours": 150,
+					"lecture_count": 24,
+					"practice_count": 26
+				},
+				{
+					"id": "45534a60-a032-4b74-872f-6df4edfddc94",
+					"offering_id": "ecefc236-de4d-43f3-97c8-0fa161b12fc9",
+					"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+					"semester_year": 2027,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.0",
+					"weekly_hours": 4,
+					"total_hours": 150,
+					"lecture_count": 24,
+					"practice_count": 26
+				}
+			]
+		},
+		{
+			"id": "4d4541ee-f4b1-4f06-98dc-08e92428401f",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+			"semester_year": 2026,
+			"semester_term": "Spring",
+			"code": "344093",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 18,
+			"group_size_max": 23,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "354ff24b-ab53-4bf7-85fc-a3a8d6a22d45",
+					"offering_id": "4d4541ee-f4b1-4f06-98dc-08e92428401f",
+					"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+					"semester_year": 2025,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "7.5",
+					"weekly_hours": 5,
+					"total_hours": 225,
+					"lecture_count": 38,
+					"practice_count": 38
+				},
+				{
+					"id": "67ade2d5-ded5-450f-a552-16baa070e28c",
+					"offering_id": "4d4541ee-f4b1-4f06-98dc-08e92428401f",
+					"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+					"semester_year": 2026,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "7.5",
+					"weekly_hours": 5,
+					"total_hours": 225,
+					"lecture_count": 38,
+					"practice_count": 38
+				}
+			]
+		},
+		{
+			"id": "acc985cc-ab52-4217-ac19-82d746e938b3",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+			"semester_year": 2025,
+			"semester_term": "Spring",
+			"code": "316166",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 18,
+			"group_size_max": 23,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "df32f7bb-3930-4ad2-acff-e15f42388066",
+					"offering_id": "acc985cc-ab52-4217-ac19-82d746e938b3",
+					"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+					"semester_year": 2024,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				},
+				{
+					"id": "f6f76108-c590-4c7e-ba35-1320198e785c",
+					"offering_id": "acc985cc-ab52-4217-ac19-82d746e938b3",
+					"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+					"semester_year": 2025,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "2b44c0ad-2812-4c51-b8cc-7490d1972233",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "295492",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 18,
+			"group_size_max": 23,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "0597dd4f-cc42-486a-b262-ee60f7c57311",
+					"offering_id": "2b44c0ad-2812-4c51-b8cc-7490d1972233",
+					"semester_id": "397824a4-7636-4de2-8439-3f0f18159ba6",
+					"semester_year": 2023,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				},
+				{
+					"id": "a25149e2-5664-4a18-aa3b-4237788add08",
+					"offering_id": "2b44c0ad-2812-4c51-b8cc-7490d1972233",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "45a573d9-5581-4a08-842a-6d3975635bf3",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+			"semester_year": 2023,
+			"semester_term": "Spring",
+			"code": "276765",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 18,
+			"group_size_max": 23,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "7bbf2543-39a7-40a3-ba4a-6ac174fbfd23",
+					"offering_id": "45a573d9-5581-4a08-842a-6d3975635bf3",
+					"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+					"semester_year": 2022,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				},
+				{
+					"id": "bb66f4ca-93f8-437a-ab93-05f8ccfff3af",
+					"offering_id": "45a573d9-5581-4a08-842a-6d3975635bf3",
+					"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+					"semester_year": 2023,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "9bada305-8037-43dd-bc1b-c39d8b9ef978",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+			"semester_year": 2022,
+			"semester_term": "Spring",
+			"code": "259471",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "94de4b2f-0eec-4691-a9a9-81b6a9568eb5",
+					"offering_id": "9bada305-8037-43dd-bc1b-c39d8b9ef978",
+					"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+					"semester_year": 2021,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				},
+				{
+					"id": "33c07521-7aae-439d-b6c6-313e17066527",
+					"offering_id": "9bada305-8037-43dd-bc1b-c39d8b9ef978",
+					"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+					"semester_year": 2022,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "6e4af335-9da5-4c59-ac50-c84a4917f890",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+			"semester_year": 2021,
+			"semester_term": "Spring",
+			"code": "243165",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "48de7bd6-ca63-4611-9928-74e1c8d9e326",
+					"offering_id": "6e4af335-9da5-4c59-ac50-c84a4917f890",
+					"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+					"semester_year": 2020,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				},
+				{
+					"id": "237a7b70-d75c-45f0-8d1c-cbb70236a11d",
+					"offering_id": "6e4af335-9da5-4c59-ac50-c84a4917f890",
+					"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+					"semester_year": 2021,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "4f8ee465-71ba-422f-ab33-62d82f53dfc7",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+			"semester_year": 2020,
+			"semester_term": "Spring",
+			"code": "225920",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "c72397cc-6003-434e-b057-970b85fbaf02",
+					"offering_id": "4f8ee465-71ba-422f-ab33-62d82f53dfc7",
+					"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+					"semester_year": 2019,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				},
+				{
+					"id": "dd8119c9-0630-4a4d-a45e-b397d7397e5b",
+					"offering_id": "4f8ee465-71ba-422f-ab33-62d82f53dfc7",
+					"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+					"semester_year": 2020,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "236b12fc-ea82-4d5d-871c-e99be276f381",
+			"course_id": "75bfa86c-b4ae-4449-9eea-66f36b8dbede",
+			"course_title": "Математичний аналіз (початок вивчення)",
+			"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+			"semester_year": 2019,
+			"semester_term": "Spring",
+			"code": "210076",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "cb50d272-035d-4d26-889d-93f9ccdf4473",
+					"offering_id": "236b12fc-ea82-4d5d-871c-e99be276f381",
+					"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+					"semester_year": 2018,
+					"semester_term": "Fall",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				},
+				{
+					"id": "a64fb612-1df2-4ae7-92dc-49874c88d00d",
+					"offering_id": "236b12fc-ea82-4d5d-871c-e99be276f381",
+					"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+					"semester_year": 2019,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "5.5",
+					"weekly_hours": 4,
+					"total_hours": 165,
+					"lecture_count": 28,
+					"practice_count": 28
+				}
+			]
+		}
+	]
+}

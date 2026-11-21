@@ -1,0 +1,698 @@
+{
+	"course": {
+		"id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+		"title": "Математична статистика",
+		"description": "Дисципліна є базовим нормативним навчальним курсом для студентів освітньої програми \"Прикладна математика\". Метою даного курсу є вивчення основ математичної статистики: побудова точкових та інтервальних оцінок параметрів ймовірнісних розподілів та вивчення їх властивостей для побудови та аналізу математичних моделей стохастичних систем і явищ; прогнозування поведінки стохастичних систем; виявлення закономірностей у даних великого обсягу. Завданням курсу \"Математична статистика\" є навчити студентів наступним навичкам: строгим формальним методам роботи з випадковими величинами; використанню законів теорії ймовірностей для побудови статистик і вивчення їх властивостей; використання методу моментів та методу максимальної правдоподібності для побудови оцінок параметрів ймовірнісних розподілів; побудові ймовірнісних критеріїв перевірки гіпотез.",
+		"status": "FINISHED",
+		"education_level": "BACHELOR",
+		"department": "1346af63-9c2d-462b-a416-9b69fab55b74",
+		"department_name": "Кафедра математики",
+		"faculty": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+		"faculty_name": "Факультет інформатики",
+		"faculty_custom_abbreviation": null,
+		"specialities": [
+			{
+				"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+				"speciality_title": "Прикладна математика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет інформатики",
+				"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+				"type_kind": "COMPULSORY"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "b51b775e-b797-453d-8703-1df362b0953a",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+			"semester_year": 2027,
+			"semester_term": "Spring",
+			"code": "365261",
+			"exam_type": "EXAM",
+			"study_year": 3,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 25,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "b8cd9f96-edbf-48c6-b463-3274e2c1068f",
+					"offering_id": "b51b775e-b797-453d-8703-1df362b0953a",
+					"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+					"semester_year": 2027,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "PRACTICE",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 22,
+					"practice_count": 22
+				}
+			]
+		},
+		{
+			"id": "42c74319-24b9-4de0-8778-3cdc65e10451",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+			"semester_year": 2026,
+			"semester_term": "Spring",
+			"code": "344092",
+			"exam_type": "EXAM",
+			"study_year": 3,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 25,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "758bfc13-fbdd-43bc-b5d5-40a29c74a077",
+					"offering_id": "42c74319-24b9-4de0-8778-3cdc65e10451",
+					"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+					"semester_year": 2026,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "PRACTICE",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 22,
+					"practice_count": 22
+				}
+			]
+		},
+		{
+			"id": "9af9154c-d7b4-4446-a351-38cf11353ead",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "e371a484-e406-4eae-a5a4-1afb9333ceaf",
+			"semester_year": 2026,
+			"semester_term": "Fall",
+			"code": "365623",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 29,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "7cb49a84-b305-476d-b5f6-355b4f9b0a01",
+					"offering_id": "9af9154c-d7b4-4446-a351-38cf11353ead",
+					"semester_id": "e371a484-e406-4eae-a5a4-1afb9333ceaf",
+					"semester_year": 2026,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "a3c27991-aca4-4ae5-9307-97bfa445fde4",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+			"semester_year": 2025,
+			"semester_term": "Spring",
+			"code": "316165",
+			"exam_type": "EXAM",
+			"study_year": 3,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 25,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "3a2563bf-fe95-4e04-8193-0539e1d7ab52",
+					"offering_id": "a3c27991-aca4-4ae5-9307-97bfa445fde4",
+					"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+					"semester_year": 2025,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "PRACTICE",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 22,
+					"practice_count": 22
+				}
+			]
+		},
+		{
+			"id": "c37f9b27-de48-4016-9226-9e3546970248",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+			"semester_year": 2025,
+			"semester_term": "Fall",
+			"code": "341683",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 29,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "f418604a-4fb4-4da2-8e92-ad9a315be5cb",
+					"offering_id": "c37f9b27-de48-4016-9226-9e3546970248",
+					"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+					"semester_year": 2025,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "1bf83378-dc6f-4913-9f16-feee41607c04",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "297274",
+			"exam_type": "EXAM",
+			"study_year": 3,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 10,
+			"group_size_max": 16,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "7c49820a-96fe-4b4a-a0fc-fd48e22eb81b",
+					"offering_id": "1bf83378-dc6f-4913-9f16-feee41607c04",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 18,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "d177df78-1e57-4356-a137-ebefe878fb72",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "295491",
+			"exam_type": "EXAM",
+			"study_year": 3,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "bc066b70-f297-4ab0-8ba9-0c7c9635a44f",
+					"offering_id": "d177df78-1e57-4356-a137-ebefe878fb72",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "PRACTICE",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 22,
+					"practice_count": 22
+				}
+			]
+		},
+		{
+			"id": "a161ac40-428d-48a2-b30f-85fb4169991e",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+			"semester_year": 2024,
+			"semester_term": "Fall",
+			"code": "316244",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 26,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "67db13bd-114d-4ab1-945d-4bbcda54dcf4",
+					"offering_id": "a161ac40-428d-48a2-b30f-85fb4169991e",
+					"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+					"semester_year": 2024,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "81667731-60ec-4850-a319-5eb4e82c75e5",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+			"semester_year": 2023,
+			"semester_term": "Spring",
+			"code": "276764",
+			"exam_type": "EXAM",
+			"study_year": 3,
+			"max_students": null,
+			"max_groups": 2,
+			"group_size_min": 11,
+			"group_size_max": 13,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "faaf1b4d-2695-4df0-91e9-35f8783ee843",
+					"offering_id": "81667731-60ec-4850-a319-5eb4e82c75e5",
+					"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+					"semester_year": 2023,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 18,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "e9e2ffb9-5f80-41e7-a0bb-1d594505805a",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "397824a4-7636-4de2-8439-3f0f18159ba6",
+			"semester_year": 2023,
+			"semester_term": "Fall",
+			"code": "295546",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 26,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "1704a8b2-713d-4f79-a553-fc47577240f2",
+					"offering_id": "e9e2ffb9-5f80-41e7-a0bb-1d594505805a",
+					"semester_id": "397824a4-7636-4de2-8439-3f0f18159ba6",
+					"semester_year": 2023,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "cfe51b82-a69d-4765-b4fd-bc67d76ae268",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+			"semester_year": 2022,
+			"semester_term": "Spring",
+			"code": "259470",
+			"exam_type": "EXAM",
+			"study_year": 3,
+			"max_students": null,
+			"max_groups": 2,
+			"group_size_min": 17,
+			"group_size_max": 19,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "77cbbcd1-ff17-422f-97d3-abfc7c76233a",
+					"speciality_title": "Прикладна математика",
+					"speciality_alias": null,
+					"faculty_id": "1238e786-c7c4-479e-beb8-86c4ccbccabe",
+					"faculty_name": "Факультет інформатики",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "6e7d8ca8-bca8-40e6-a6e1-46e8141a8459",
+					"offering_id": "cfe51b82-a69d-4765-b4fd-bc67d76ae268",
+					"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+					"semester_year": 2022,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 18,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "1b664c45-8c43-43f1-abaf-12b596075fff",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+			"semester_year": 2022,
+			"semester_term": "Fall",
+			"code": "276816",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": 1,
+			"group_size_min": 20,
+			"group_size_max": 26,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "c1f882af-bbad-493e-896e-4346a1e115b1",
+					"offering_id": "1b664c45-8c43-43f1-abaf-12b596075fff",
+					"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+					"semester_year": 2022,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "71eb670e-b8f2-42ce-84ad-8b21eef54324",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+			"semester_year": 2021,
+			"semester_term": "Fall",
+			"code": "259519",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": 1,
+			"group_size_min": 20,
+			"group_size_max": 26,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "15ce001c-3e70-4848-a743-eba5e44b7390",
+					"offering_id": "71eb670e-b8f2-42ce-84ad-8b21eef54324",
+					"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+					"semester_year": 2021,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "fc812f55-8ad2-4689-b614-a1aea709f033",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+			"semester_year": 2020,
+			"semester_term": "Fall",
+			"code": "243208",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": 1,
+			"group_size_min": 20,
+			"group_size_max": 26,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "aaf0d939-c12d-44c8-91c1-a4bc3c4a2447",
+					"offering_id": "fc812f55-8ad2-4689-b614-a1aea709f033",
+					"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+					"semester_year": 2020,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "572c6b21-0d8c-4139-bb6e-663835e30d9a",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+			"semester_year": 2019,
+			"semester_term": "Fall",
+			"code": "225969",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 26,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "8fd35485-f7af-4f9e-9155-f39aea284e64",
+					"offering_id": "572c6b21-0d8c-4139-bb6e-663835e30d9a",
+					"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+					"semester_year": 2019,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "eea9f233-327d-49bd-9f44-792987e88ba8",
+			"course_id": "966f852c-2592-48e9-a936-c0999cb4e0b5",
+			"course_title": "Математична статистика",
+			"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+			"semester_year": 2018,
+			"semester_term": "Fall",
+			"code": "210109",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 20,
+			"group_size_max": 25,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "4cbced8a-2ab2-4a21-ad45-d79eed456b65",
+					"speciality_title": "Психологія",
+					"speciality_alias": null,
+					"faculty_id": "c1c516fa-4e06-4618-8864-d7252c2db253",
+					"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "28ec4686-0f88-4669-a1b6-bf484f4e173f",
+					"offering_id": "eea9f233-327d-49bd-9f44-792987e88ba8",
+					"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+					"semester_year": 2018,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 16,
+					"practice_count": 12
+				}
+			]
+		}
+	]
+}

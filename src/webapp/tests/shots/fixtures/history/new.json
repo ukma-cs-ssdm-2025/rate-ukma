@@ -1,0 +1,68 @@
+{
+	"course": {
+		"id": "a0bb1bf3-653d-4e09-bcda-6d4ccec89bab",
+		"title": "Медичне право",
+		"description": "Конституційний і законодавчий рівні регламентації прав пацієнта, механізми захисту цих прав. Правове регулювання якості, доступу до охорони здоров’я як конституційне право кожного, біотичної політики, проблематики із судових справ законодавства та медичної практики. Завдання курсу – ознайомити студентів із ключовими питаннями сучасної системи охорони здоров’я.",
+		"status": "FINISHED",
+		"education_level": "BACHELOR",
+		"department": "0497169f-57cb-4f68-8d25-7ac85fdd5816",
+		"department_name": "Кафедра \"Школа громадського здоров`я\"",
+		"faculty": "c1c516fa-4e06-4618-8864-d7252c2db253",
+		"faculty_name": "Факультет охорони здоров`я, соціальної роботи і психології",
+		"faculty_custom_abbreviation": "ФОЗ",
+		"specialities": [
+			{
+				"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+				"speciality_title": "Право",
+				"speciality_alias": null,
+				"faculty_name": "Факультет правничих наук",
+				"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+				"type_kind": "PROF_ORIENTED"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "87ae92bc-1994-40bf-b8a8-49fa91a5331e",
+			"course_id": "a0bb1bf3-653d-4e09-bcda-6d4ccec89bab",
+			"course_title": "Медичне право",
+			"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+			"semester_year": 2027,
+			"semester_term": "Spring",
+			"code": "365991",
+			"exam_type": "CREDIT",
+			"study_year": 4,
+			"max_students": 31,
+			"max_groups": 1,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "62249f23-1adb-4214-bbb9-73ce426a6c1d",
+					"speciality_title": "Право",
+					"speciality_alias": null,
+					"faculty_id": "0c67c4b7-6ee9-4baa-ac22-4ebf0da4503d",
+					"faculty_name": "Факультет правничих наук",
+					"type_kind": "PROF_ORIENTED"
+				}
+			],
+			"terms": [
+				{
+					"id": "a0c309ce-c842-4dbf-a095-55f579b21b28",
+					"offering_id": "87ae92bc-1994-40bf-b8a8-49fa91a5331e",
+					"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+					"semester_year": 2027,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": 12,
+					"practice_count": 18
+				}
+			]
+		}
+	]
+}

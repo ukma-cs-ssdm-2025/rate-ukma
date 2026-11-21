@@ -1,0 +1,504 @@
+{
+	"course": {
+		"id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+		"title": "Лінгвістичний аналіз тексту",
+		"description": "Курс подає відомості про текст як унікальну і складну словесну цілісність, у якій зосереджені процес і результати пізнання дійсності. Впровадження отриманих знань в практиці лінгвістичних досліджень спрямоване на всебічну підготовку кваліфікованих науковців. Набуті навички застосовуються при здійсненні лінгвістичного аналізу текстів, самостійної роботи з науковою літературою, застосуванні різних підходів щодо текстового аналізу, оволодінні навичками інтерпретації текстів, дослідженні їх структури, категорій, взаємодії, класифікації різних видів текстової інформації. Презентація доповідей розвиває комунікативну компетенцію, зокрема навички спілкування з аудиторією, вміння давати аргументовані відповіді на запитання. Виконання індивідуального навчально-дослідного завдання впорядковує отримані знання, ілюструє здатність до подальшого наукового пошуку.",
+		"status": "FINISHED",
+		"education_level": "MASTER",
+		"department": "c103894e-6cfc-4bf7-bb35-050278574fe0",
+		"department_name": "Кафедра загального і слов`янського мовознавства",
+		"faculty": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+		"faculty_name": "Факультет гуманітарних наук",
+		"faculty_custom_abbreviation": null,
+		"specialities": [
+			{
+				"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+				"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "13857da8-cadf-45aa-a521-5083fd7c4f4a",
+				"speciality_title": "Українська мова, компаративістика і психолінгвістика",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "35bf3f21-1379-4015-b6b9-c9466a4af62e",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+			"semester_year": 2027,
+			"semester_term": "Spring",
+			"code": "364315",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "13857da8-cadf-45aa-a521-5083fd7c4f4a",
+					"speciality_title": "Українська мова, компаративістика і психолінгвістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "73a9b097-cf71-42cf-a700-6e94da669c1b",
+					"offering_id": "35bf3f21-1379-4015-b6b9-c9466a4af62e",
+					"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+					"semester_year": 2027,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 28,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "3caf5423-8141-497d-94a7-f10d3097da3e",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+			"semester_year": 2026,
+			"semester_term": "Spring",
+			"code": "343852",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "60971697-2d23-4fd0-8077-b33b549d0796",
+					"offering_id": "3caf5423-8141-497d-94a7-f10d3097da3e",
+					"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+					"semester_year": 2026,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 28,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "90627979-4bca-494b-bd73-b2ebedfb2249",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+			"semester_year": 2025,
+			"semester_term": "Spring",
+			"code": "318726",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "14d54138-42fb-4cc2-9605-5275839a2dfe",
+					"offering_id": "90627979-4bca-494b-bd73-b2ebedfb2249",
+					"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+					"semester_year": 2025,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 28,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "818a1dc2-5039-40b3-937a-d134ed735167",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "297900",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "df306231-6474-4b1d-8f80-01aec11dea68",
+					"offering_id": "818a1dc2-5039-40b3-937a-d134ed735167",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 28,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "97b5ec78-9d78-4376-b432-11be6c16e97a",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+			"semester_year": 2023,
+			"semester_term": "Spring",
+			"code": "279274",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 7,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "7bf5bae4-70bc-44f8-99cf-24df9ae78449",
+					"offering_id": "97b5ec78-9d78-4376-b432-11be6c16e97a",
+					"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+					"semester_year": 2023,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 28,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "4fe1dec9-1bb2-4f82-8334-b0ab7d39d43e",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+			"semester_year": 2022,
+			"semester_term": "Spring",
+			"code": "259862",
+			"exam_type": "EXAM",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "bbda7d9f-aab2-47c9-a8ee-44a0628afe04",
+					"offering_id": "4fe1dec9-1bb2-4f82-8334-b0ab7d39d43e",
+					"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+					"semester_year": 2022,
+					"semester_term": "Spring",
+					"exam_type": "EXAM",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 28,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "650959b7-c3a1-4515-b302-3c1df160936a",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+			"semester_year": 2022,
+			"semester_term": "Fall",
+			"code": "279297",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "PROF_ORIENTED"
+				}
+			],
+			"terms": [
+				{
+					"id": "972b6017-fed1-47b6-9a8a-518f6143fbe1",
+					"offering_id": "650959b7-c3a1-4515-b302-3c1df160936a",
+					"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+					"semester_year": 2022,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 26,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "fed050f3-2edc-427a-8294-ce04c217d169",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+			"semester_year": 2021,
+			"semester_term": "Fall",
+			"code": "261508",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "PROF_ORIENTED"
+				}
+			],
+			"terms": [
+				{
+					"id": "4e0bfd05-b314-49db-9157-e457e6cf25fa",
+					"offering_id": "fed050f3-2edc-427a-8294-ce04c217d169",
+					"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+					"semester_year": 2021,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 26,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "7b307612-18f2-44b6-b3fc-bb1d9bc9bc30",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+			"semester_year": 2020,
+			"semester_term": "Fall",
+			"code": "245323",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 7,
+			"group_size_max": 17,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "PROF_ORIENTED"
+				}
+			],
+			"terms": [
+				{
+					"id": "76da45ae-dcee-4e2e-b6b8-46617d7741e7",
+					"offering_id": "7b307612-18f2-44b6-b3fc-bb1d9bc9bc30",
+					"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+					"semester_year": 2020,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 26,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "a02aa632-7cbc-492a-8d2e-8fda84835428",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+			"semester_year": 2019,
+			"semester_term": "Fall",
+			"code": "227956",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 4,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "PROF_ORIENTED"
+				}
+			],
+			"terms": [
+				{
+					"id": "194e661a-a2d5-419e-a435-f5eb96061dbb",
+					"offering_id": "a02aa632-7cbc-492a-8d2e-8fda84835428",
+					"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+					"semester_year": 2019,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 26,
+					"practice_count": 14
+				}
+			]
+		},
+		{
+			"id": "58d525dd-994c-4226-9d1a-d47e5fe9a9d8",
+			"course_id": "0896ea3c-4dce-4277-9324-94c88a9c1f7f",
+			"course_title": "Лінгвістичний аналіз тексту",
+			"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+			"semester_year": 2018,
+			"semester_term": "Fall",
+			"code": "211859",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "148e58b6-eb36-4157-81ef-4023bf3c43b9",
+					"speciality_title": "Філологія. Теорія, історія української мови та компаративістика",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "PROF_ORIENTED"
+				}
+			],
+			"terms": [
+				{
+					"id": "3424f83c-e374-4e52-8620-96ab2b4c2996",
+					"offering_id": "58d525dd-994c-4226-9d1a-d47e5fe9a9d8",
+					"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+					"semester_year": 2018,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 26,
+					"practice_count": 14
+				}
+			]
+		}
+	]
+}

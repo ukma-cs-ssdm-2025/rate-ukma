@@ -2,35 +2,26 @@ import { useId, useMemo, useState } from "react";
 
 import { ChevronDown, ExternalLink } from "lucide-react";
 
-import type { CourseOffering } from "@/lib/api/generated";
+import {
+	formatAcademicYearLabel,
+	getSemesterTermDisplay,
+	parseSemesterTerm,
+} from "@/features/courses/courseFormatting";
+import { getSpecialityAlias } from "@/features/courses/components/CourseSpecialityBadges";
+import type {
+	CourseOffering,
+	CourseOfferingSpeciality,
+	SemesterTermEnum,
+} from "@/lib/api/generated";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
-import {
-	BASE_CAZ_URL,
-	groupByYear,
-	loadSignature,
-	sortOfferings,
-	specialitiesLabel,
-} from "./CourseCazRecords";
-import type { YearGroup } from "./CourseCazRecords";
+import { BASE_CAZ_URL, loadSignature, sortOfferings } from "./CourseCazRecords";
 
 const VISIBLE_YEARS = 3;
+const TERM_ORDER: readonly SemesterTermEnum[] = ["FALL", "SPRING", "SUMMER"];
 
 function cazUrl(code: string): string {
 	return `${BASE_CAZ_URL}${encodeURIComponent(code)}`;
-}
-
-// What a past year adds on top of the header: only the facts that differ
-// from the current run, so a steady course shows bare years.
-function yearNote(group: YearGroup, current: YearGroup | undefined): string {
-	const load = loadSignature(group.records[0]);
-	const currentLoad = current ? loadSignature(current.records[0]) : "";
-	return [
-		group.terms && group.terms !== current?.terms ? group.terms : null,
-		load && load !== currentLoad ? load : null,
-	]
-		.filter(Boolean)
-		.join(", ");
 }
 
 function plural(count: number, one: string, few: string, many: string) {
@@ -45,152 +36,222 @@ function plural(count: number, one: string, few: string, many: string) {
 	return many;
 }
 
-// САЗ keeps one record per group of students; within a year they usually
-// differ by speciality, sometimes by study year.
-interface Split {
-	bySpeciality: boolean;
-	byStudyYear: boolean;
-	summary: string;
+// The facts a САЗ record can differ in, in reading order.
+const FACTS = ["terms", "course", "load"] as const;
+type Fact = (typeof FACTS)[number];
+
+interface Run {
+	record: CourseOffering;
+	specialities: CourseOfferingSpeciality[];
+	facts: Record<Fact, string>;
+	specialityKey: string;
 }
 
-function splitOf(records: readonly CourseOffering[]): Split {
-	const differ = (
-		pick: (record: CourseOffering) => string | number | null | undefined,
-	) => new Set(records.map(pick)).size > 1;
-	const bySpeciality = differ(specialitiesLabel);
-	const byStudyYear = differ((record) => record.study_year);
-	if (bySpeciality) {
-		const count = new Set(
-			records.flatMap((record) =>
-				record.specialities.map((speciality) => speciality.speciality_id),
-			),
-		).size;
-		return {
-			bySpeciality,
-			byStudyYear,
-			summary: `${count} ${plural(count, "спеціальність", "спеціальності", "спеціальностей")}`,
-		};
-	}
-	if (byStudyYear) {
-		const years = [
-			...new Set(records.flatMap((record) => record.study_year ?? [])),
-		].sort((a, b) => a - b);
-		return {
-			bySpeciality,
-			byStudyYear,
-			summary: `${years.slice(0, -1).join(", ")} і ${years.at(-1)} курс`,
-		};
-	}
+function termsLabel(record: CourseOffering): string {
+	const raw =
+		record.terms.length > 0
+			? record.terms.map((term) => term.semester_term)
+			: [record.semester_term];
+	const seasons = new Set(raw.map((term) => parseSemesterTerm(term)));
+	return TERM_ORDER.flatMap((term) =>
+		seasons.has(term) ? [getSemesterTermDisplay(term)] : [],
+	).join(", ");
+}
+
+function facultyOrder(speciality: CourseOfferingSpeciality | undefined) {
+	return `${speciality?.faculty_name ?? ""}|${speciality?.speciality_title ?? ""}`;
+}
+
+function toRun(record: CourseOffering): Run {
+	const specialities = [...record.specialities].sort((a, b) =>
+		facultyOrder(a).localeCompare(facultyOrder(b), "uk"),
+	);
 	return {
-		bySpeciality,
-		byStudyYear,
-		summary: `${records.length} ${plural(records.length, "запис", "записи", "записів")}`,
+		record,
+		specialities,
+		facts: {
+			terms: termsLabel(record),
+			course: record.study_year ? `${record.study_year} курс` : "",
+			load: loadSignature(record),
+		},
+		specialityKey: specialities
+			.map((speciality) => speciality.speciality_id)
+			.join(","),
 	};
 }
 
-// Same-faculty specialities sit together, so the colours read as groups.
-function facultyKey(record: CourseOffering): string {
-	return `${record.specialities[0]?.faculty_name ?? ""}|${specialitiesLabel(record)}`;
+interface Year {
+	label: string;
+	runs: Run[];
 }
 
-function byFaculty(records: readonly CourseOffering[]): CourseOffering[] {
-	return [...records].sort((a, b) =>
-		facultyKey(a).localeCompare(facultyKey(b), "uk"),
-	);
+// One row per academic year, however many САЗ records it holds.
+function groupYears(offerings: readonly CourseOffering[]): Year[] {
+	const years = new Map<string, Run[]>();
+	for (const record of sortOfferings(offerings)) {
+		const label = formatAcademicYearLabel(
+			record.semester_year,
+			record.semester_term,
+		);
+		years.set(label, [...(years.get(label) ?? []), toRun(record)]);
+	}
+	return [...years].map(([label, runs]) => ({
+		label,
+		runs: runs.sort((a, b) =>
+			facultyOrder(a.specialities[0]).localeCompare(
+				facultyOrder(b.specialities[0]),
+				"uk",
+			),
+		),
+	}));
+}
+
+/** The value every record of the year shares, or null when they differ. */
+function shared(year: Year, fact: Fact): string | null {
+	const values = new Set(year.runs.map((run) => run.facts[fact]));
+	return values.size === 1 ? [...values][0] : null;
+}
+
+// What a past year says on its collapsed row: only what it shares across its
+// records and what differs from the current run in the header.
+function yearNote(year: Year, current: Year): string[] {
+	if (year === current) {
+		return [];
+	}
+	return FACTS.flatMap((fact) => {
+		const value = shared(year, fact);
+		return value && value !== shared(current, fact) ? [value] : [];
+	});
+}
+
+function splitSummary(year: Year): string {
+	const { runs } = year;
+	const bySpeciality = new Set(runs.map((run) => run.specialityKey)).size > 1;
+	const oneEach = runs.every((run) => run.specialities.length === 1);
+	if (bySpeciality && oneEach) {
+		return `${runs.length} ${plural(runs.length, "спеціальність", "спеціальності", "спеціальностей")}`;
+	}
+	// Same students' programme in different years of study: the курс says it.
+	if (!bySpeciality && shared(year, "course") === null) {
+		const courses = runs.map((run) => run.record.study_year ?? 0);
+		const unique = [...new Set(courses)].sort((a, b) => a - b);
+		return `${unique.slice(0, -1).join(", ")} і ${unique.at(-1)} курс`;
+	}
+	return `${runs.length} ${plural(runs.length, "запис", "записи", "записів")}`;
 }
 
 const pill =
-	"inline-flex max-w-full items-baseline gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-[box-shadow,color] hover:ring-1 hover:ring-current/30";
+	"inline-flex max-w-full items-center rounded-md px-2 py-0.5 text-xs font-medium";
+const MAX_ALIASES = 4;
+const LONG_TITLE = 32;
 
-function RecordPills({
-	records,
-	split,
-}: Readonly<{ records: readonly CourseOffering[]; split: Split }>) {
+// САЗ titles run up to «Філологія (германські мови та літератури (переклад
+// включно))»; past a line the curated alias reads better.
+function fullName(speciality: CourseOfferingSpeciality): string {
+	const title = speciality.speciality_title ?? "";
+	return title.length > LONG_TITLE && speciality.speciality_alias
+		? speciality.speciality_alias
+		: title;
+}
+
+function SpecialityPills({
+	specialities,
+}: Readonly<{ specialities: readonly CourseOfferingSpeciality[] }>) {
+	// One speciality reads in full; a list falls back to the header's aliases.
+	const full = specialities.length === 1;
+	const shown = full ? specialities : specialities.slice(0, MAX_ALIASES);
+	const hidden = specialities.length - shown.length;
 	return (
-		<div className="flex flex-wrap gap-1.5">
-			{byFaculty(records).flatMap((record) => {
-				const href = record.code ? cazUrl(record.code) : undefined;
-				const year =
-					split.byStudyYear && record.study_year
-						? `${record.study_year} курс`
-						: null;
-				const icon = href ? (
-					<ExternalLink
-						className="size-3 shrink-0 self-center opacity-60"
-						aria-hidden="true"
-					/>
-				) : null;
-				if (!split.bySpeciality) {
-					return [
-						<a
-							key={record.id ?? record.code}
-							href={href}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={cn(pill, "bg-muted text-foreground/80")}
-						>
-							{year ?? `код ${record.code}`}
-							{icon}
-						</a>,
-					];
-				}
-				return record.specialities.map((speciality) => {
-					const colors = getFacultyColors(speciality.faculty_name || "");
-					return (
-						<a
-							key={`${record.id}-${speciality.speciality_id}`}
-							href={href}
-							target="_blank"
-							rel="noopener noreferrer"
-							title={speciality.faculty_name ?? undefined}
-							className={cn(pill, colors.bg, colors.text)}
-						>
-							<span>
-								{speciality.speciality_title}
-								{year ? `, ${year}` : null}
-							</span>
-							{icon}
-						</a>
-					);
-				});
+		<>
+			{shown.map((speciality) => {
+				const colors = getFacultyColors(speciality.faculty_name || "");
+				return (
+					<span
+						key={speciality.speciality_id}
+						title={
+							full ? undefined : (speciality.speciality_title ?? undefined)
+						}
+						className={cn(pill, colors.bg, colors.text)}
+					>
+						{full
+							? fullName(speciality)
+							: getSpecialityAlias(
+									speciality.speciality_title || "",
+									speciality.speciality_alias,
+								)}
+					</span>
+				);
 			})}
-		</div>
+			{hidden > 0 ? (
+				<span
+					className="text-xs text-muted-foreground"
+					title={specialities
+						.slice(MAX_ALIASES)
+						.map((speciality) => speciality.speciality_title)
+						.join(", ")}
+				>
+					+{hidden}
+				</span>
+			) : null}
+		</>
 	);
 }
 
-function YearLine({
-	group,
-	note,
-}: Readonly<{ group: YearGroup; note: string }>) {
+function CazLink({
+	code,
+	label,
+	children,
+	className,
+}: Readonly<{
+	code?: string;
+	label: string;
+	children?: React.ReactNode;
+	className?: string;
+}>) {
+	if (!code) {
+		return null;
+	}
+	return (
+		<a
+			href={cazUrl(code)}
+			target="_blank"
+			rel="noopener noreferrer"
+			aria-label={`${label}, відкрити запис у САЗ`}
+			className={cn(
+				"inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-primary",
+				className,
+			)}
+		>
+			{children}
+			<ExternalLink className="size-3" aria-hidden="true" />
+		</a>
+	);
+}
+
+function YearRow({ year, current }: Readonly<{ year: Year; current: Year }>) {
 	const [open, setOpen] = useState(false);
 	const listId = useId();
-	const single = group.records.length === 1 ? group.records[0] : null;
-	const split = single ? null : splitOf(group.records);
+	const single = year.runs.length === 1 ? year.runs[0] : null;
+	const note = yearNote(year, current);
+	const varying = FACTS.filter((fact) => shared(year, fact) === null);
 
 	return (
 		<li className="py-2">
 			<div className="flex items-baseline justify-between gap-3">
 				{/* The note drops under the year as a whole rather than splitting. */}
 				<div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-					<span className="font-medium tabular-nums">{group.year}</span>
-					{note ? (
+					<span className="font-medium tabular-nums">{year.label}</span>
+					{note.length > 0 ? (
 						<span className="whitespace-nowrap text-muted-foreground">
-							{note}
+							{note.join(", ")}
 						</span>
 					) : null}
 				</div>
-				{single?.code ? (
-					<a
-						href={cazUrl(single.code)}
-						target="_blank"
-						rel="noopener noreferrer"
-						aria-label={`${group.year}, відкрити запис у САЗ`}
-						className="inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-primary"
-					>
+				{single ? (
+					<CazLink code={single.record.code} label={year.label}>
 						САЗ
-						<ExternalLink className="size-3" aria-hidden="true" />
-					</a>
-				) : single ? null : (
+					</CazLink>
+				) : (
 					<button
 						type="button"
 						aria-expanded={open}
@@ -198,7 +259,7 @@ function YearLine({
 						onClick={() => setOpen((value) => !value)}
 						className="inline-flex shrink-0 items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
 					>
-						{split?.summary}
+						{splitSummary(year)}
 						<ChevronDown
 							className={cn(
 								"size-3.5 transition-transform",
@@ -209,43 +270,56 @@ function YearLine({
 					</button>
 				)}
 			</div>
-			{open && split ? (
-				<div id={listId} className="mt-2.5 mb-1">
-					<RecordPills records={group.records} split={split} />
-				</div>
+			{open && !single ? (
+				<ul id={listId} className="mt-2 space-y-2">
+					{year.runs.map((run) => {
+						const facts = varying.flatMap((fact) =>
+							run.facts[fact] ? [run.facts[fact]] : [],
+						);
+						return (
+							<li key={run.record.id ?? run.record.code}>
+								<div className="flex items-start justify-between gap-3">
+									<div className="flex min-w-0 flex-wrap items-center gap-1.5">
+										<SpecialityPills specialities={run.specialities} />
+									</div>
+									<CazLink
+										code={run.record.code}
+										label={[year.label, ...facts].join(", ")}
+										className="mt-1"
+									/>
+								</div>
+								{facts.length > 0 ? (
+									<p className="mt-0.5 text-xs text-muted-foreground">
+										{facts.join(", ")}
+									</p>
+								) : null}
+							</li>
+						);
+					})}
+				</ul>
 			) : null}
 		</li>
 	);
-}
-
-function useHistory(courseOfferings: readonly CourseOffering[]) {
-	return useMemo(() => {
-		const groups = groupByYear(sortOfferings(courseOfferings));
-		return { groups, current: groups[0] };
-	}, [courseOfferings]);
 }
 
 /** One line per year: the year, what changed since, and the САЗ record. */
 export function CourseHistoryRows({
 	courseOfferings,
 }: Readonly<{ courseOfferings: readonly CourseOffering[] }>) {
-	const { groups, current } = useHistory(courseOfferings);
+	const years = useMemo(() => groupYears(courseOfferings), [courseOfferings]);
 	const [all, setAll] = useState(false);
-	if (groups.length === 0) {
+	const current = years[0];
+	if (!current) {
 		return null;
 	}
-	const shown = all ? groups : groups.slice(0, VISIBLE_YEARS);
-	const rest = groups.length - shown.length;
+	const shown = all ? years : years.slice(0, VISIBLE_YEARS);
+	const rest = years.length - shown.length;
 
 	return (
 		<div className="text-sm">
 			<ul className="divide-y divide-border/60">
-				{shown.map((group) => (
-					<YearLine
-						key={group.key}
-						group={group}
-						note={yearNote(group, current)}
-					/>
+				{shown.map((year) => (
+					<YearRow key={year.label} year={year} current={current} />
 				))}
 			</ul>
 			{rest > 0 || all ? (
@@ -256,149 +330,6 @@ export function CourseHistoryRows({
 				>
 					{all ? "Згорнути" : `ще ${rest}`}
 				</button>
-			) : null}
-		</div>
-	);
-}
-
-function yearsWord(count: number): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
-	if (mod10 === 1 && mod100 !== 11) {
-		return "рік";
-	}
-	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-		return "роки";
-	}
-	return "років";
-}
-
-/** The whole history folded into one line until asked for. */
-export function CourseHistoryDisclosure({
-	courseOfferings,
-	defaultOpen = false,
-}: Readonly<{
-	courseOfferings: readonly CourseOffering[];
-	defaultOpen?: boolean;
-}>) {
-	const { groups } = useHistory(courseOfferings);
-	const [open, setOpen] = useState(defaultOpen);
-	const panelId = useId();
-	if (groups.length === 0) {
-		return null;
-	}
-	const oldest = groups.at(-1)?.year.split("–")[0];
-
-	return (
-		<section aria-label="Історія дисципліни" className="rounded-xl border">
-			<button
-				type="button"
-				aria-expanded={open}
-				aria-controls={panelId}
-				onClick={() => setOpen((value) => !value)}
-				className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-			>
-				<span>
-					<span className="block text-sm font-semibold">
-						Історія дисципліни
-					</span>
-					<span className="block text-xs text-muted-foreground">
-						Викладається з {oldest}, {groups.length} {yearsWord(groups.length)}{" "}
-						у САЗ
-					</span>
-				</span>
-				<ChevronDown
-					className={cn(
-						"size-4 shrink-0 text-muted-foreground transition-transform",
-						open && "rotate-180",
-					)}
-					aria-hidden="true"
-				/>
-			</button>
-			{open ? (
-				<div id={panelId} className="border-t px-4 pb-2 pt-1">
-					<CourseHistoryRows courseOfferings={courseOfferings} />
-				</div>
-			) : null}
-		</section>
-	);
-}
-
-/** Years as small links in one wrapping row; split years expand underneath. */
-export function CourseHistoryChips({
-	courseOfferings,
-}: Readonly<{ courseOfferings: readonly CourseOffering[] }>) {
-	const { groups, current } = useHistory(courseOfferings);
-	const [openKey, setOpenKey] = useState<string | null>(null);
-	if (groups.length === 0) {
-		return null;
-	}
-	const openGroup = groups.find((group) => group.key === openKey);
-	const chip =
-		"inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium tabular-nums transition-colors hover:bg-muted/70 hover:text-primary";
-
-	return (
-		<div className="space-y-2 text-sm">
-			<div className="flex flex-wrap gap-1.5">
-				{groups.map((group) => {
-					const note = yearNote(group, current);
-					const label = `${group.year}${note ? `, ${note}` : ""}`;
-					const single = group.records.length === 1 ? group.records[0] : null;
-					return single?.code ? (
-						<a
-							key={group.key}
-							href={cazUrl(single.code)}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={chip}
-						>
-							{label}
-							<ExternalLink className="size-3" aria-hidden="true" />
-						</a>
-					) : (
-						<button
-							key={group.key}
-							type="button"
-							aria-expanded={openKey === group.key}
-							onClick={() =>
-								setOpenKey((key) => (key === group.key ? null : group.key))
-							}
-							className={cn(chip, openKey === group.key && "bg-primary/10")}
-						>
-							{label}
-							<span className="text-muted-foreground">
-								{group.records.length}
-							</span>
-							<ChevronDown
-								className={cn(
-									"size-3 transition-transform",
-									openKey === group.key && "rotate-180",
-								)}
-								aria-hidden="true"
-							/>
-						</button>
-					);
-				})}
-			</div>
-			{openGroup ? (
-				<ul className="space-y-1.5 border-l pl-3">
-					{openGroup.records.map((record) => (
-						<li key={record.id ?? record.code}>
-							<a
-								href={record.code ? cazUrl(record.code) : undefined}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-primary"
-							>
-								{specialitiesLabel(record) || `код ${record.code}`}
-								<ExternalLink
-									className="ml-1 inline size-3 align-baseline"
-									aria-hidden="true"
-								/>
-							</a>
-						</li>
-					))}
-				</ul>
 			) : null}
 		</div>
 	);

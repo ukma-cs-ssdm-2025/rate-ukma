@@ -19,7 +19,7 @@ interface CourseSpecialityBadgesProps {
 	includeElective?: boolean;
 }
 
-function getSpecialityAlias(
+export function getSpecialityAlias(
 	name: string,
 	customAbbreviation?: string | null,
 ): string {

@@ -4,39 +4,41 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { COURSE } from "./fixtures/data";
 import { mockBackend } from "./fixtures/mockBackend";
-import type { MockOptions } from "./fixtures/mockBackend";
+import type { HistorySample } from "./fixtures/mockBackend";
 import { testIds } from "../../src/lib/test-ids";
 
-// Variant A of the side panel: every shape the course history can take.
+// Variant A of the side panel on real course histories from prod.
 const out = resolve(process.env.SHOT_DIR ?? "shots/course-history");
 
 type State = {
 	name: string;
-	history: NonNullable<MockOptions["history"]>;
+	history: HistorySample;
 	open?: (RegExp | string)[];
 };
 
 const STATES: State[] = [
-	{ name: "1-new", history: "new" },
-	{ name: "2-steady", history: "steady" },
-	{ name: "3-steady-all", history: "steady", open: ["ще 2"] },
-	{ name: "4-changes", history: "changes" },
-	{ name: "5-changes-all", history: "changes", open: ["ще 2"] },
-	{ name: "6-streams", history: "streams" },
+	{ name: "01-new", history: "new" },
+	{ name: "02-steady", history: "steady" },
+	{ name: "03-steady-all", history: "steady", open: [/^ще \d/] },
+	{ name: "04-general", history: "ukrainian" },
+	{ name: "05-fall-spring", history: "practicum" },
+	{ name: "06-term-moves", history: "mechanics", open: [/^ще \d/] },
+	{ name: "07-credits", history: "calculus", open: [/^ще \d/] },
+	{ name: "08-elective", history: "elective", open: [/^ще \d/] },
+	{ name: "09-master", history: "master", open: [/^ще \d/] },
+	{ name: "10-by-course", history: "statistics" },
 	{
-		name: "7-streams-open",
-		history: "streams",
-		open: [/3 спеціальності/, /2 і 3 курс/],
+		name: "11-by-course-open",
+		history: "statistics",
+		open: [/курс|запис|спеціальн/],
 	},
-	{
-		name: "8-many-streams-open",
-		history: "mixed",
-		open: ["ще 3", /20 спеціальностей/],
-	},
+	{ name: "12-many", history: "culture" },
+	{ name: "13-many-open", history: "culture", open: [/курс|запис|спеціальн/] },
+	{ name: "14-many-open-2", history: "culture", open: [/^5 записів/] },
 ];
 
 async function open(page: Page, state: State, width: number, theme: string) {
-	await page.setViewportSize({ width, height: 2200 });
+	await page.setViewportSize({ width, height: 2400 });
 	await page.addInitScript((value) => {
 		localStorage.setItem("rate-ukma-theme", value);
 	}, theme);
@@ -48,7 +50,7 @@ async function open(page: Page, state: State, width: number, theme: string) {
 		.filter({ visible: true });
 	await expect(history).toBeVisible();
 	for (const label of state.open ?? []) {
-		await history.getByRole("button", { name: label }).click();
+		await history.getByRole("button", { name: label }).first().click();
 	}
 	await page.mouse.move(0, 0);
 	await page.waitForTimeout(250);

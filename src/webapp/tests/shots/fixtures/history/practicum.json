@@ -1,0 +1,666 @@
+{
+	"course": {
+		"id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+		"title": "Методологічний практикум (закінчення вивчення)",
+		"description": "Методологічний практикум розраховано на студентів ОНП \"Історія\" першого та другого років навчання. Основною метою навчально-дослідного се мінару є практичне сприяння студентам у написанні кваліфікаційної дипломної роботи.",
+		"status": "FINISHED",
+		"education_level": "MASTER",
+		"department": "b16c7c8a-c454-4dc7-81ae-49da01678f55",
+		"department_name": "Кафедра історії",
+		"faculty": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+		"faculty_name": "Факультет гуманітарних наук",
+		"faculty_custom_abbreviation": null,
+		"specialities": [
+			{
+				"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+				"speciality_title": "Юдаїка",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			},
+			{
+				"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+				"speciality_title": "Історія",
+				"speciality_alias": null,
+				"faculty_name": "Факультет гуманітарних наук",
+				"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+				"type_kind": "COMPULSORY"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "d155d8de-9346-40f3-84dc-7b1015e0c04a",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+			"semester_year": 2027,
+			"semester_term": "Spring",
+			"code": "364157",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 10,
+			"max_groups": 1,
+			"group_size_min": 6,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "d50f7919-82a1-4c1c-bffc-b61ea745d3bd",
+					"offering_id": "d155d8de-9346-40f3-84dc-7b1015e0c04a",
+					"semester_id": "e371a484-e406-4eae-a5a4-1afb9333ceaf",
+					"semester_year": 2026,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "3aa324ca-2601-49f6-9d53-c2a63db7329f",
+					"offering_id": "d155d8de-9346-40f3-84dc-7b1015e0c04a",
+					"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+					"semester_year": 2027,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "c8937128-adb6-4672-9518-5941af172a1a",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+			"semester_year": 2026,
+			"semester_term": "Spring",
+			"code": "344018",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 2,
+			"group_size_min": 9,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "be572ff2-7466-42e8-9903-11ed073b43c3",
+					"offering_id": "c8937128-adb6-4672-9518-5941af172a1a",
+					"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+					"semester_year": 2025,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "d2b18fe8-e7d1-44d8-b261-0ab3c25e90dd",
+					"offering_id": "c8937128-adb6-4672-9518-5941af172a1a",
+					"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+					"semester_year": 2026,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "8b354e7b-07d5-47bb-b7f0-a2e6a5f101b9",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+			"semester_year": 2025,
+			"semester_term": "Spring",
+			"code": "317665",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 2,
+			"group_size_min": 9,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "fdbd3c7d-23ff-47ed-8c7b-740819ca6627",
+					"offering_id": "8b354e7b-07d5-47bb-b7f0-a2e6a5f101b9",
+					"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+					"semester_year": 2024,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "a3e6bafe-c894-469b-92e1-051c7ef7bb64",
+					"offering_id": "8b354e7b-07d5-47bb-b7f0-a2e6a5f101b9",
+					"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+					"semester_year": 2025,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "08081cd5-83c4-4370-8c83-0de289aac666",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "296717",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 2,
+			"group_size_min": 9,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "443f4972-f03b-419d-bc86-3a93a6703ab0",
+					"offering_id": "08081cd5-83c4-4370-8c83-0de289aac666",
+					"semester_id": "397824a4-7636-4de2-8439-3f0f18159ba6",
+					"semester_year": 2023,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "014e52c1-d512-4674-a346-ec7951768bc8",
+					"offering_id": "08081cd5-83c4-4370-8c83-0de289aac666",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "a63691fe-7b0f-4bfb-b1b0-77984716e6c5",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+			"semester_year": 2023,
+			"semester_term": "Spring",
+			"code": "278080",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 2,
+			"group_size_min": 9,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "d7a22ed4-4b33-464f-b843-324f8f8bac6b",
+					"offering_id": "a63691fe-7b0f-4bfb-b1b0-77984716e6c5",
+					"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+					"semester_year": 2022,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "f6c33329-a43f-4b23-8b3e-f1c0abd877af",
+					"offering_id": "a63691fe-7b0f-4bfb-b1b0-77984716e6c5",
+					"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+					"semester_year": 2023,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "bdde5677-e72d-4f54-9f41-4cb8c02dfe2b",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+			"semester_year": 2022,
+			"semester_term": "Spring",
+			"code": "260538",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 2,
+			"group_size_min": 9,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "751a77b0-e674-4de5-bc27-a25e729a9032",
+					"offering_id": "bdde5677-e72d-4f54-9f41-4cb8c02dfe2b",
+					"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+					"semester_year": 2021,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "4f8cc9b9-9adb-40aa-bbd0-3993a0893fa8",
+					"offering_id": "bdde5677-e72d-4f54-9f41-4cb8c02dfe2b",
+					"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+					"semester_year": 2022,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "48cd52bc-f639-45fb-9c05-0b213accea4b",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+			"semester_year": 2021,
+			"semester_term": "Spring",
+			"code": "244394",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 2,
+			"group_size_min": 9,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "d78cc46e-d473-4b93-80c9-22cc21dcb9ea",
+					"offering_id": "48cd52bc-f639-45fb-9c05-0b213accea4b",
+					"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+					"semester_year": 2020,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "5480c74b-1d91-4ffa-833a-c60231643854",
+					"offering_id": "48cd52bc-f639-45fb-9c05-0b213accea4b",
+					"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+					"semester_year": 2021,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "7c7ec12b-8839-4065-b77d-8d6289f94172",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+			"semester_year": 2020,
+			"semester_term": "Spring",
+			"code": "227020",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 1,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "6ef33fd1-2abd-42e5-8463-6e7faeabe216",
+					"offering_id": "7c7ec12b-8839-4065-b77d-8d6289f94172",
+					"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+					"semester_year": 2019,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "16c5f0db-3dc1-4729-8abc-4e1470fb5906",
+					"offering_id": "7c7ec12b-8839-4065-b77d-8d6289f94172",
+					"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+					"semester_year": 2020,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		},
+		{
+			"id": "2d36e6dc-1b75-4e30-ab40-224c9154e8ae",
+			"course_id": "1fea32e7-94bf-4cc3-86c6-461151dc87c7",
+			"course_title": "Методологічний практикум (закінчення вивчення)",
+			"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+			"semester_year": 2019,
+			"semester_term": "Spring",
+			"code": "211104",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 16,
+			"max_groups": 1,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "cbb233be-1a31-4776-8a31-67e589d5af6d",
+					"speciality_title": "Історія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "0dae3723-7d73-463e-a000-03c297f6484a",
+					"speciality_title": "Історія та археологія",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				},
+				{
+					"speciality_id": "a816724d-8961-4766-9f59-270a7847c24b",
+					"speciality_title": "Юдаїка",
+					"speciality_alias": null,
+					"faculty_id": "cfebfcf8-3666-440d-b7bf-c89687de702e",
+					"faculty_name": "Факультет гуманітарних наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "01fb1929-dcc4-41e0-a62d-f3e69a0b6a6c",
+					"offering_id": "2d36e6dc-1b75-4e30-ab40-224c9154e8ae",
+					"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+					"semester_year": 2018,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				},
+				{
+					"id": "556ca813-d093-4d3d-8429-ff00ca5a70cc",
+					"offering_id": "2d36e6dc-1b75-4e30-ab40-224c9154e8ae",
+					"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+					"semester_year": 2019,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.0",
+					"weekly_hours": 2,
+					"total_hours": 90,
+					"lecture_count": null,
+					"practice_count": 28
+				}
+			]
+		}
+	]
+}

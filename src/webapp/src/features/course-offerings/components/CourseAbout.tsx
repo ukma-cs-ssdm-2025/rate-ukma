@@ -8,13 +8,9 @@ import {
 import type { CourseOffering, CourseOfferingTerm } from "@/lib/api/generated";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { CourseCazRecords } from "./CourseCazRecords";
-import {
-	CourseHistoryChips,
-	CourseHistoryDisclosure,
-	CourseHistoryRows,
-} from "./CourseHistoryCompact";
+import { CourseHistoryRows } from "./CourseHistoryCompact";
 
-export type PanelVariant = "before" | "a" | "b" | "c";
+export type PanelVariant = "before" | "a";
 
 function factText(value: string | null): string | null {
 	return value && value !== "—" ? value : null;
@@ -81,17 +77,10 @@ export function CourseAbout({
 						</ExpandableText>
 					</section>
 				) : null}
-				{courseOfferings.length > 0 && variant === "b" ? (
-					<CourseHistoryDisclosure courseOfferings={courseOfferings} />
-				) : null}
-				{courseOfferings.length > 0 && variant !== "b" ? (
+				{courseOfferings.length > 0 ? (
 					<section aria-label="Історія дисципліни" className="space-y-2">
 						<h3 className="text-sm font-semibold">Історія дисципліни</h3>
-						{variant === "a" ? (
-							<CourseHistoryRows courseOfferings={courseOfferings} />
-						) : (
-							<CourseHistoryChips courseOfferings={courseOfferings} />
-						)}
+						<CourseHistoryRows courseOfferings={courseOfferings} />
 					</section>
 				) : null}
 			</div>

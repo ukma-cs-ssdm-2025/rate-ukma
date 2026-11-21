@@ -1,0 +1,404 @@
+{
+	"course": {
+		"id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+		"title": "Методика наукових досліджень в екології",
+		"description": "Навчальний курс спрямований на засвоєння студентами методології організації та проведення наукових досліджень, а саме вивчення та використання сучасних методів та підходів у галузі екології та природокористування. Опанування курсу забезпечує можливості отримання теоретичних знань і практичних навичок щодо методологічних основ наукових досліджень, методів організації наукових досліджень, планування та організація наукових досліджень у галузі екології та захисту довкілля, організації впровадження наукових досліджень у галузі. По завершенню вивчення курсу магістри зможуть проводити науково-дослідну діяльність для отримання наукових результатів та формування на їх основі висновків й рекомендацій, формування завдань аналізу та синтезу управлінської структури в галузі екології та захисту довкілля та приймати управлінські рішення на основі системного підходу.",
+		"status": "FINISHED",
+		"education_level": "MASTER",
+		"department": "f4767ae9-eb02-4c31-975d-a1c521c15741",
+		"department_name": "Кафедра екології",
+		"faculty": "67db5509-b30f-4baa-aafd-a19515a424e4",
+		"faculty_name": "Факультет природничих наук",
+		"faculty_custom_abbreviation": "ФПрН",
+		"specialities": [
+			{
+				"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+				"speciality_title": "Екологія та охорона навколишнього середовища",
+				"speciality_alias": null,
+				"faculty_name": "Факультет природничих наук",
+				"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+				"type_kind": "COMPULSORY"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "78170e79-1301-4ae1-bd50-6b5f59f60e7a",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+			"semester_year": 2027,
+			"semester_term": "Spring",
+			"code": "363214",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 5,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "06188142-51c2-433b-a972-931388eb5f16",
+					"offering_id": "78170e79-1301-4ae1-bd50-6b5f59f60e7a",
+					"semester_id": "e1084705-929a-4648-bb20-63d6ea962beb",
+					"semester_year": 2027,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 20,
+					"practice_count": 20
+				}
+			]
+		},
+		{
+			"id": "2a45526d-cda5-482e-aee3-d57d308dda63",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+			"semester_year": 2026,
+			"semester_term": "Spring",
+			"code": "342661",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 6,
+			"group_size_max": 12,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "b301f2b1-294e-45fc-b6d2-48c0c1293a22",
+					"offering_id": "2a45526d-cda5-482e-aee3-d57d308dda63",
+					"semester_id": "16be0af1-d362-47e9-9e9c-6b6ad4978dec",
+					"semester_year": 2026,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "PRACTICE",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 20,
+					"practice_count": 20
+				}
+			]
+		},
+		{
+			"id": "fe5bd069-78ee-41ab-a526-756d74517dd1",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+			"semester_year": 2025,
+			"semester_term": "Spring",
+			"code": "317409",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "3335f9f8-3d66-4065-a919-092d6ec30871",
+					"offering_id": "fe5bd069-78ee-41ab-a526-756d74517dd1",
+					"semester_id": "39ead331-5356-4bcd-ac0d-a5377e5d9772",
+					"semester_year": 2025,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 6,
+					"practice_count": 34
+				}
+			]
+		},
+		{
+			"id": "18f7a526-7ed4-4fee-a569-0a89b9dae0d6",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+			"semester_year": 2024,
+			"semester_term": "Spring",
+			"code": "296485",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "fbdeeb01-8ca5-4c94-9856-86bc792e4e59",
+					"offering_id": "18f7a526-7ed4-4fee-a569-0a89b9dae0d6",
+					"semester_id": "d9c61c2d-74bc-482d-9c24-ced4e7e8ff1b",
+					"semester_year": 2024,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 6,
+					"practice_count": 34
+				}
+			]
+		},
+		{
+			"id": "a7155984-a141-40d8-a241-1cf0b546396c",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+			"semester_year": 2023,
+			"semester_term": "Spring",
+			"code": "277858",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "2d249d5f-df04-40c3-9539-c0278f3b4451",
+					"offering_id": "a7155984-a141-40d8-a241-1cf0b546396c",
+					"semester_id": "b9e210cd-f091-43a7-a752-d19da3e3a2c8",
+					"semester_year": 2023,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 6,
+					"practice_count": 34
+				}
+			]
+		},
+		{
+			"id": "c0ef4095-cb09-411e-9c61-399189059b2f",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+			"semester_year": 2022,
+			"semester_term": "Spring",
+			"code": "260287",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "dba838dd-5b75-4ce5-ba70-a2e090cac375",
+					"offering_id": "c0ef4095-cb09-411e-9c61-399189059b2f",
+					"semester_id": "dda8faa7-aaf5-4cf6-8adc-b79ca88dd638",
+					"semester_year": 2022,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 6,
+					"practice_count": 34
+				}
+			]
+		},
+		{
+			"id": "3bdb7c38-b38b-48ae-b0f7-0ac4a68600bd",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+			"semester_year": 2021,
+			"semester_term": "Spring",
+			"code": "244148",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "5d2a4967-f526-434f-9ee6-7c94700d12a5",
+					"offering_id": "3bdb7c38-b38b-48ae-b0f7-0ac4a68600bd",
+					"semester_id": "2cb6a097-aa1b-4172-9e41-cfe7f9baef4f",
+					"semester_year": 2021,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 6,
+					"practice_count": 34
+				}
+			]
+		},
+		{
+			"id": "c44c099f-b37f-490d-b2e9-339660306a96",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+			"semester_year": 2020,
+			"semester_term": "Spring",
+			"code": "226735",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "57dbba16-f823-468f-86f0-816ef51a9180",
+					"offering_id": "c44c099f-b37f-490d-b2e9-339660306a96",
+					"semester_id": "813ee760-02fa-4776-8d21-6c5e2f8d3628",
+					"semester_year": 2020,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 6,
+					"practice_count": 34
+				}
+			]
+		},
+		{
+			"id": "d2ffc211-cedf-4e50-98bb-152f00b37395",
+			"course_id": "c1172e58-8a71-4545-8106-6b564ed6f226",
+			"course_title": "Методика наукових досліджень в екології",
+			"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+			"semester_year": 2019,
+			"semester_term": "Spring",
+			"code": "210808",
+			"exam_type": "CREDIT",
+			"study_year": 1,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 15,
+			"group_size_max": 27,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "db70f903-74e2-4363-9773-5d2ffe5675a4",
+					"speciality_title": "Екологія та охорона навколишнього середовища",
+					"speciality_alias": null,
+					"faculty_id": "67db5509-b30f-4baa-aafd-a19515a424e4",
+					"faculty_name": "Факультет природничих наук",
+					"type_kind": "COMPULSORY"
+				}
+			],
+			"terms": [
+				{
+					"id": "4b4ed74f-e0ff-4cd3-bafb-e835241f81a2",
+					"offering_id": "d2ffc211-cedf-4e50-98bb-152f00b37395",
+					"semester_id": "92b05ba5-1bc0-433e-b134-310e1e520afb",
+					"semester_year": 2019,
+					"semester_term": "Spring",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "4.0",
+					"weekly_hours": 3,
+					"total_hours": 120,
+					"lecture_count": 6,
+					"practice_count": 34
+				}
+			]
+		}
+	]
+}

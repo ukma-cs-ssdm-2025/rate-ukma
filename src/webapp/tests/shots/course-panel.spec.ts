@@ -9,7 +9,7 @@ import { testIds } from "../../src/lib/test-ids";
 // Prototype shots for the course page side panel redesign.
 const out = resolve(process.env.SHOT_DIR ?? "shots/course-panel");
 
-for (const VARIANT of ["before", "a", "b", "c"]) {
+for (const VARIANT of ["before", "a"]) {
 	for (const theme of ["light", "dark"] as const) {
 		for (const width of [1440, 390]) {
 			test(`${VARIANT} ${theme} ${width}`, async ({ page }) => {
@@ -24,7 +24,7 @@ for (const VARIANT of ["before", "a", "b", "c"]) {
 				await mockBackend(page, {
 					ratingSuggestions: "items",
 					myCourses: "rated",
-					specialities: "many",
+					history: "culture",
 				});
 				await page.goto(`/courses/${COURSE.id}?panel=${VARIANT}`);
 				await expect(
@@ -53,12 +53,11 @@ test("a expanded 1440", async ({ page }) => {
 	await mockBackend(page, {
 		ratingSuggestions: "items",
 		myCourses: "rated",
-		specialities: "many",
+		history: "culture",
 	});
 	await page.goto(`/courses/${COURSE.id}?panel=a`);
 	await expect(page.getByText("Що оцінити далі")).toBeVisible();
-	await page.getByRole("button", { name: "ще 2" }).click();
-	await page.getByRole("button", { name: /20 спеціальностей/ }).click();
+	await page.getByRole("button", { name: /4 спеціальності/ }).click();
 	await page.waitForTimeout(300);
 	mkdirSync(out, { recursive: true });
 	await page.screenshot({ path: resolve(out, "a-desktop-light-expanded.png") });

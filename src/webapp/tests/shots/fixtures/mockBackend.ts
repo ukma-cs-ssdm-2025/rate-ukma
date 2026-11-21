@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 import {
 	ANALYTICS,
@@ -7,7 +8,6 @@ import {
 	COURSE_INSTRUCTORS,
 	COURSE_OFFERINGS,
 	COURSE_OFFERINGS_MANY,
-	COURSE_HISTORIES,
 	COURSE_RATINGS,
 	COURSES,
 	EMPTY_COMMENT_LIST,
@@ -24,6 +24,26 @@ import {
 } from "./data";
 import type { MyCourseState } from "./data";
 
+export const HISTORY_SAMPLES = [
+	"culture",
+	"ukrainian",
+	"steady",
+	"practicum",
+	"mechanics",
+	"calculus",
+	"new",
+	"statistics",
+	"elective",
+	"master",
+] as const;
+export type HistorySample = (typeof HISTORY_SAMPLES)[number];
+
+function readHistory(name: HistorySample) {
+	return JSON.parse(
+		readFileSync(new URL(`history/${name}.json`, import.meta.url), "utf8"),
+	) as { course: Record<string, unknown>; offerings: unknown[] };
+}
+
 export interface MockOptions {
 	readonly feed?: "items" | "empty" | "error";
 	readonly courses?: "items" | "error";
@@ -39,8 +59,8 @@ export interface MockOptions {
 	readonly title?: "short" | "long";
 	/** `none` is a course nobody has named a teacher on yet. */
 	readonly courseInstructors?: "named" | "none";
-	/** Course history shape for the side panel prototype; overrides `specialities` for offerings. */
-	readonly history?: keyof typeof COURSE_HISTORIES;
+	/** A real course from prod (fixtures/history/<name>.json): its detail and offerings. */
+	readonly history?: HistorySample;
 	/** Only session, flags and counters answer; content requests never do, so pages hold their skeletons. */
 	readonly loading?: boolean;
 	readonly ratingSuggestions?: "items" | "empty" | "error";
@@ -147,8 +167,10 @@ export async function mockBackend(
 						: course;
 				})
 			: courseItems;
+	const sample = history ? readHistory(history) : null;
 	const courseDetail = {
 		...COURSE_DETAIL,
+		...(sample ? { ...sample.course, id: COURSE_DETAIL.id } : {}),
 		...(many ? { specialities: MANY_SPECIALITIES } : {}),
 		...(title === "long" ? { title: LONG_COURSE_TITLE } : {}),
 	};
@@ -241,8 +263,8 @@ export async function mockBackend(
 		[
 			/^\/courses\/[^/]+\/offerings\/$/,
 			() =>
-				history
-					? { course_offerings: COURSE_HISTORIES[history] }
+				sample
+					? { course_offerings: sample.offerings }
 					: many
 						? COURSE_OFFERINGS_MANY
 						: COURSE_OFFERINGS,
@@ -299,6 +321,7 @@ export async function mockBackend(
 								description: `Курс «${suggested.title}» для студентів бакалаврату.`,
 							}
 						: {}),
+					...(sample ? { ...sample.course, id: courseId } : {}),
 				};
 				const rating = savedRatings.get(courseId);
 				if (rating) {

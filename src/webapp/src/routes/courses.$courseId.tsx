@@ -171,12 +171,9 @@ function CourseDetailsRoute() {
 		ratedOffering && arrival?.courseId === courseId && arrival.rated ? (
 			<RatingSuggestionPrompt excludeCourse={courseId} />
 		) : null;
-	// Prototype switch for the side panel redesign: ?panel=a|b|c.
+	// Prototype switch for the side panel redesign: ?panel=a.
 	const panelParam = new URLSearchParams(window.location.search).get("panel");
-	const variant: PanelVariant =
-		panelParam === "a" || panelParam === "b" || panelParam === "c"
-			? panelParam
-			: "before";
+	const variant: PanelVariant = panelParam === "a" ? "a" : "before";
 	const redesigned = variant !== "before";
 	const about = (
 		<CourseAbout

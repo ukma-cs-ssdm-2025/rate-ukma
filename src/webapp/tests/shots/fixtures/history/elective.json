@@ -1,0 +1,362 @@
+{
+	"course": {
+		"id": "298f945a-9878-4186-9fc2-3cdce383d998",
+		"title": "Медіа комунікації",
+		"description": "Дисципліна є частиною сертифікатної бакалаврської програми \"Діджитал комунікації\". На курсі розглядаються питання сучасних теорій та концепцій діяльності засобів масової інформації, загальні принципи виробництво новин в мас медіа, організація виробництва новин на телебаченні. Акцентується увага на проблемі сприйняття аудиторією інформаційних повідомлень та впливу засобів масової інформації на аудиторію, життєвої необхідності дотримання етики та професіоналізму журналістів.",
+		"status": "FINISHED",
+		"education_level": "BACHELOR",
+		"department": "5a2480ab-2bd5-43d2-99f9-2916dcb7462f",
+		"department_name": "Кафедра зв`язків з громадськістю",
+		"faculty": "0dd020ea-77af-467e-a079-8475a3626689",
+		"faculty_name": "Факультет соціальних наук і соціальних технологій",
+		"faculty_custom_abbreviation": null,
+		"specialities": [
+			{
+				"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+				"speciality_title": "Зв`язки з громадськістю",
+				"speciality_alias": null,
+				"faculty_name": "Факультет соціальних наук і соціальних технологій",
+				"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+				"type_kind": "ELECTIVE"
+			}
+		]
+	},
+	"offerings": [
+		{
+			"id": "99053aff-2344-44a8-ac98-d242f36e0133",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+			"semester_year": 2025,
+			"semester_term": "Fall",
+			"code": "340880",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "d21f90ed-9960-45e9-975f-8a96a55110bb",
+					"offering_id": "99053aff-2344-44a8-ac98-d242f36e0133",
+					"semester_id": "02794d25-a6a6-4961-959d-0575ca7af371",
+					"semester_year": 2025,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "18d4c6bc-11f0-4fc8-a650-78a9c793f693",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+			"semester_year": 2024,
+			"semester_term": "Fall",
+			"code": "315133",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 31,
+			"max_groups": 1,
+			"group_size_min": 25,
+			"group_size_max": 31,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "893a3db3-572a-4cf6-b7e7-e75e3cba472a",
+					"offering_id": "18d4c6bc-11f0-4fc8-a650-78a9c793f693",
+					"semester_id": "16cb0a27-5cfd-474a-8c42-2629503f7296",
+					"semester_year": 2024,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "5a0f3a5b-07e7-4f10-a403-573936acd242",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "397824a4-7636-4de2-8439-3f0f18159ba6",
+			"semester_year": 2023,
+			"semester_term": "Fall",
+			"code": "294489",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 32,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "fb709cdf-8b2c-4ea9-9a71-7c2624d10444",
+					"offering_id": "5a0f3a5b-07e7-4f10-a403-573936acd242",
+					"semester_id": "397824a4-7636-4de2-8439-3f0f18159ba6",
+					"semester_year": 2023,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "45c5595d-5aa6-4271-b443-c358dfe5e9bd",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+			"semester_year": 2022,
+			"semester_term": "Fall",
+			"code": "275814",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 32,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "25171996-8a21-4df2-8d3d-b132c775a8b6",
+					"offering_id": "45c5595d-5aa6-4271-b443-c358dfe5e9bd",
+					"semester_id": "d8dc58c7-b116-464e-81f0-f3a8cd0f38c2",
+					"semester_year": 2022,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "d3ea44cd-3242-453b-aaf3-b2f349fa918e",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+			"semester_year": 2021,
+			"semester_term": "Fall",
+			"code": "259202",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": null,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 32,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "e4c28878-2850-46a3-bf81-58292895d466",
+					"speciality_title": "Зв`язки з громадськістю",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "6a10bd87-6fa8-4b82-b2a7-1d5259f71c4f",
+					"offering_id": "d3ea44cd-3242-453b-aaf3-b2f349fa918e",
+					"semester_id": "a27cbd34-29ba-4acc-9dec-4615c5c67bf9",
+					"semester_year": 2021,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "b33e3f8b-d866-4c71-be00-4b2fdb3cb209",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+			"semester_year": 2020,
+			"semester_term": "Fall",
+			"code": "242827",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 100,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 37,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "8162e216-d33a-469d-948c-bbe867a217c9",
+					"offering_id": "b33e3f8b-d866-4c71-be00-4b2fdb3cb209",
+					"semester_id": "1838b06f-37bd-467e-a296-8d4138e507d2",
+					"semester_year": 2020,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "3902334e-44c3-475e-b79e-e794496cb6fd",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+			"semester_year": 2019,
+			"semester_term": "Fall",
+			"code": "225652",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 66,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 33,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "5ee597e5-9762-499e-853a-d25a0cd8214d",
+					"offering_id": "3902334e-44c3-475e-b79e-e794496cb6fd",
+					"semester_id": "0f80b016-49c2-4f87-8c41-6fb777ba5d53",
+					"semester_year": 2019,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		},
+		{
+			"id": "a8875fce-1b14-49ca-a30f-d119d62987bd",
+			"course_id": "298f945a-9878-4186-9fc2-3cdce383d998",
+			"course_title": "Медіа комунікації",
+			"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+			"semester_year": 2018,
+			"semester_term": "Fall",
+			"code": "209364",
+			"exam_type": "CREDIT",
+			"study_year": 2,
+			"max_students": 37,
+			"max_groups": null,
+			"group_size_min": 25,
+			"group_size_max": 37,
+			"instructors": [],
+			"specialities": [
+				{
+					"speciality_id": "453c8e2c-1a13-4485-81a9-863fcdcd14d8",
+					"speciality_title": "Соціологія",
+					"speciality_alias": null,
+					"faculty_id": "0dd020ea-77af-467e-a079-8475a3626689",
+					"faculty_name": "Факультет соціальних наук і соціальних технологій",
+					"type_kind": "ELECTIVE"
+				}
+			],
+			"terms": [
+				{
+					"id": "51886fe3-d01e-4940-8096-6e18ca4229d1",
+					"offering_id": "a8875fce-1b14-49ca-a30f-d119d62987bd",
+					"semester_id": "08b9e70b-30c2-4358-988e-d16fb1386836",
+					"semester_year": 2018,
+					"semester_term": "Fall",
+					"exam_type": "CREDIT",
+					"practice_type": "SEMINAR",
+					"credits": "3.5",
+					"weekly_hours": 3,
+					"total_hours": 105,
+					"lecture_count": 24,
+					"practice_count": 12
+				}
+			]
+		}
+	]
+}
