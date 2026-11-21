@@ -12,6 +12,7 @@ export const ApiKeyAuthLive = Layer.effect(
 		const audit = yield* Audit;
 
 		return ApiKeyAuth.of({
+			// oxlint-disable-next-line anti-slop-effect/require-named-effect-fn -- the server span covers the request and the check has ApiKeyAuth.check.
 			bearer: Effect.fnUntraced(function* (
 				httpEffect,
 				{ credential, endpoint },

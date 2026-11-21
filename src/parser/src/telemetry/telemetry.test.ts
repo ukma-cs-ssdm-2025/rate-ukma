@@ -95,7 +95,7 @@ describe("redactingTracer", () => {
 				"url.full": "https://smart.ukma.edu.ua",
 			});
 			assert.deepStrictEqual(leaksIn(spans), []);
-		}).pipe(Effect.withSpan("event test"), Effect.withTracer(tracer));
+		}).pipe(Effect.withSpan("Telemetry.eventTest"), Effect.withTracer(tracer));
 	});
 });
 
@@ -124,7 +124,7 @@ describe("OTLP export", () => {
 				new Error(
 					"GET https://smart.ukma.edu.ua/get-user?accessToken=a failed",
 				),
-			).pipe(Effect.withSpan("failing request"), Effect.ignore);
+			).pipe(Effect.withSpan("Telemetry.failingRequest"), Effect.ignore);
 		}).pipe(
 			Effect.provide(
 				otlpTracer("parser-worker", "http://collector.test/v1/traces").pipe(
@@ -135,7 +135,7 @@ describe("OTLP export", () => {
 				Effect.sync(() => {
 					const exported = bodies.join("\n");
 
-					assert.include(exported, "failing request");
+					assert.include(exported, "Telemetry.failingRequest");
 					assert.include(exported, "https://smart.ukma.edu.ua/get-user failed");
 					assert.notInclude(exported, "accessToken");
 				}),

@@ -70,7 +70,7 @@ Tests:
 Logs and PRs:
 
 - Log annotation keys and fields are snake_case (`run_id`, `source_part`), the same as the columns, so one key finds a run across records. Log a report object under one key instead of spreading its fields.
-- Span names are fixed strings, such as `MicrosoftSession.signIn` or `GET /v1/courses/:id`; span attributes hold only ids, counts, routes, hosts and outcomes, never names, emails or full URLs. A named function that only returns `Effect.gen` is `Effect.fn("name")` (`Effect.fnUntraced` in a store, whose SQL spans cover it); the `require-named-effect-fn` lint rule enforces both.
+- Span names are `<Module>.<function>` (PascalCase module, then the camelCase name the code uses, equal to the variable for `const x = Effect.fn("Module.x")`), such as `Crawl.finishRun` or `MicrosoftSession.signIn`; server spans keep their route, as `GET /v1/courses/:id`. They are fixed strings; span attributes hold only ids, counts, routes, hosts and outcomes, never names, emails or full URLs. A named function that only returns `Effect.gen` is `Effect.fn("name")` (`Effect.fnUntraced` only in a `*Store.ts` or test file, whose SQL spans cover it; elsewhere it needs an `oxlint-disable-next-line` with a reason); the `require-named-effect-fn` lint rule enforces the names and this.
 - Errors and logs carry ids, keys and counts, never personal data. A `CoursePageError` has a short stable `reason` to group by and the page label in `detail`.
 - One feature per PR, about 400 changed lines of code at most, not counting tests, fixtures and generated files. Tests ship in the same PR. Split a larger change by layer, such as the pure parser before its persistence.
 

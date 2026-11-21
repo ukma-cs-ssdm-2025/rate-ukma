@@ -112,6 +112,7 @@ export interface Session {
 }
 
 /** Opens a browser-like session for an app that signs in through Microsoft. */
+// oxlint-disable-next-line anti-slop-effect/require-named-effect-fn -- it only builds the session; its requests carry the MicrosoftSession spans.
 const open = Effect.fnUntraced(function* (
 	http: HttpClient.HttpClient,
 	account: Account,

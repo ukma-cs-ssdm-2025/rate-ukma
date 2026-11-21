@@ -56,16 +56,63 @@ const isNamed = (node: Node): boolean => {
 	);
 };
 
+/** `<Module>.<function>`: PascalCase module, camelCase function. */
+const SPAN_NAME = /^[A-Z][A-Za-z]+\.[a-z][A-Za-z]+$/;
+
+/** Files where `Effect.fnUntraced` is fine: stores, whose SQL spans cover the
+ *  work, and tests with their helpers. */
+const UNTRACED_FILE = /(?:Store\.ts|\.test\.ts|(?:^|\/)testing\.ts)$/;
+
+const stringLiteral = (node: unknown): string | undefined =>
+	isNode(node) && node.type === "Literal" && typeof node["value"] === "string"
+		? node["value"]
+		: undefined;
+
+/** The name `const <name> = Effect.fn("…")(…)` binds, when that is the shape. */
+const boundName = (fnCall: Node): string | undefined => {
+	const outer = fnCall["parent"];
+
+	if (
+		!isNode(outer) ||
+		outer.type !== "CallExpression" ||
+		outer["callee"] !== fnCall
+	) {
+		return undefined;
+	}
+
+	const declarator = outer["parent"];
+
+	if (
+		!isNode(declarator) ||
+		declarator.type !== "VariableDeclarator" ||
+		declarator["init"] !== outer
+	) {
+		return undefined;
+	}
+
+	const id = declarator["id"];
+
+	return isNode(id) && id.type === "Identifier"
+		? (id["name"] as string)
+		: undefined;
+};
+
 export const requireNamedEffectFnRule = defineRule({
 	meta: {
 		type: "suggestion",
 		docs: {
 			description:
-				'Name every `Effect.fn` span, and write a named function that only returns `Effect.gen` as `Effect.fn("name")`.',
+				'Name every `Effect.fn` span `<Module>.<function>`, and write a named function that only returns `Effect.gen` as `Effect.fn("Module.name")`.',
 		},
 		messages: {
 			unnamedFn:
 				'Pass the span name first: `Effect.fn("name")(function* () { ... })`.',
+			spanName:
+				'Span name "{{name}}" must be `<Module>.<function>`: a PascalCase module, a dot, then a camelCase function, such as `Crawl.finishRun`.',
+			spanMismatch:
+				'Span name "{{name}}" must end in the name it is bound to: `{{expected}}`.',
+			untraced:
+				"`Effect.fnUntraced` is for `*Store.ts` and test files; use `Effect.fn(\"Module.name\")` here, or disable this line with a reason.",
 			genWrapper:
 				'This function only returns `Effect.gen`; write it as `Effect.fn("name")(function* (...) { ... })` so it gets a named span, or `Effect.fnUntraced` in a store or test helper.',
 		},
@@ -79,16 +126,55 @@ export const requireNamedEffectFnRule = defineRule({
 
 		return {
 			CallExpression(node) {
+				if (isEffectMember(node.callee, "fnUntraced")) {
+					if (!UNTRACED_FILE.test(context.filename)) {
+						context.report({ node, messageId: "untraced" });
+					}
+
+					return;
+				}
+
+				if (isEffectMember(node.callee, "withSpan")) {
+					const name = node.arguments
+						.slice(0, 2)
+						.map(stringLiteral)
+						.find((value) => value !== undefined);
+
+					if (name !== undefined && !SPAN_NAME.test(name)) {
+						context.report({
+							node,
+							messageId: "spanName",
+							data: { name },
+						});
+					}
+
+					return;
+				}
+
 				if (!isEffectMember(node.callee, "fn")) return;
 
-				const [first] = node.arguments;
+				const name = stringLiteral(node.arguments[0]);
 
-				if (
-					!isNode(first) ||
-					first.type !== "Literal" ||
-					typeof first["value"] !== "string"
-				) {
+				if (name === undefined) {
 					context.report({ node, messageId: "unnamedFn" });
+
+					return;
+				}
+
+				if (!SPAN_NAME.test(name)) {
+					context.report({ node, messageId: "spanName", data: { name } });
+
+					return;
+				}
+
+				const bound = boundName(node);
+
+				if (bound !== undefined && name.split(".")[1] !== bound) {
+					context.report({
+						node,
+						messageId: "spanMismatch",
+						data: { name, expected: bound },
+					});
 				}
 			},
 			ArrowFunctionExpression: checkFunction,
