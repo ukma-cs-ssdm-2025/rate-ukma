@@ -1,5 +1,5 @@
 const DIRECTIVE =
-	/^\s*(oxlint-|eslint-|@ts-expect-error|@ts-ignore|prettier-ignore)|^\/\s*<reference /;
+	/^\s*((oxlint|eslint)-(disable|enable)|@ts-expect-error|@ts-ignore|prettier-ignore)|^\/\s*<reference /;
 const DISABLE_WITH_REASON = /^\s*(oxlint|eslint)-disable\S*\s+\S.*\s--\s+\S/;
 const TS_DIRECTIVE_WITH_REASON = /^\s*@ts-(expect-error|ignore)\s+\S/;
 
