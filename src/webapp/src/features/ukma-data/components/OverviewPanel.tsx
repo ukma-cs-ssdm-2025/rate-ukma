@@ -124,8 +124,9 @@ function OldestCase({ openedAt }: Readonly<{ openedAt: string }>) {
 
 function OpenCasesCard() {
 	const { data, error, isLoading, refetch, isRefetching } =
-		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
-	const open = data?.items.filter((item) => item.status === "open") ?? [];
+		useUkmaDataReviewCasesList({ ...PAGE, status: "open" }, NO_RETRY);
+	const open = data?.items ?? [];
+	const total = data && !error ? data.total : undefined;
 	const complete = data !== undefined && !error && !data.has_more;
 	const oldest = open.reduce<string | undefined>(
 		(min, item) => (!min || item.opened_at < min ? item.opened_at : min),
@@ -136,16 +137,18 @@ function OpenCasesCard() {
 			<CardHeader className="flex flex-row items-baseline justify-between">
 				<CardTitle className="text-base">
 					Відкриті справи
-					{complete ? <span className="sr-only">: {open.length}</span> : null}
+					{total === undefined ? null : (
+						<span className="sr-only">: {total}</span>
+					)}
 				</CardTitle>
-				{complete ? (
+				{total === undefined ? null : (
 					<span
 						aria-hidden
 						className="text-4xl font-bold leading-none text-primary tabular-nums"
 					>
-						{open.length}
+						{total}
 					</span>
-				) : null}
+				)}
 			</CardHeader>
 			<CardContent className="space-y-1 text-sm">
 				{isLoading ? <Skeleton className="h-20" /> : null}

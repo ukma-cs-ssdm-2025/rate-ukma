@@ -640,6 +640,35 @@
 							"description": "Rows per page, 1 to 1000, default 500"
 						},
 						"required": false
+					},
+					{
+						"name": "status",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"enum": [
+								"open",
+								"decided",
+								"obsolete"
+							],
+							"description": "Only cases with this status"
+						},
+						"required": false
+					},
+					{
+						"name": "kind",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"enum": [
+								"course_match",
+								"instructor_match",
+								"student_match",
+								"removals_held"
+							],
+							"description": "Only cases of this kind"
+						},
+						"required": false
 					}
 				],
 				"security": [
@@ -679,7 +708,7 @@
 						}
 					}
 				},
-				"summary": "Review cases with their safe answers"
+				"summary": "Review cases with their safe answers, optionally of one status and kind, with how many match"
 			}
 		},
 		"/v1/review-cases/{id}": {
@@ -1348,13 +1377,18 @@
 							}
 						],
 						"description": "When САЗ was last read: the latest successful run finished"
+					},
+					"total": {
+						"type": "integer",
+						"description": "Cases numbered above `after` that match the filters, across every page"
 					}
 				},
 				"required": [
 					"items",
 					"cursor",
 					"hasMore",
-					"dataUpdatedAt"
+					"dataUpdatedAt",
+					"total"
 				],
 				"additionalProperties": false
 			},

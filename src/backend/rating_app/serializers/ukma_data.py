@@ -139,6 +139,9 @@ class UkmaDataOfferingPageSerializer(UkmaDataPageSerializer):
 
 class UkmaDataReviewCasePageSerializer(UkmaDataPageSerializer):
     items = UkmaDataReviewCaseSerializer(many=True, read_only=True)
+    total = serializers.IntegerField(
+        read_only=True, help_text="Cases that match the filters, across every page"
+    )
 
 
 class UkmaDataStatusSerializer(serializers.Serializer):

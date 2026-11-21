@@ -97,12 +97,13 @@ KEY = {
 }
 
 
-def _page(*items, has_more=False):
+def _page(*items, has_more=False, total=None):
     return {
         "items": list(items),
         "cursor": items[-1]["changeNo"] if items else 0,
         "hasMore": has_more,
         "dataUpdatedAt": DATA_UPDATED_AT,
+        "total": len(items) if total is None else total,
     }
 
 
@@ -308,6 +309,58 @@ def test_offerings_returns_400_when_page_param_invalid(
     assert body["status"] == 400
     assert list(body["fields"]) == [param]
     assert ukma_data.received == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_review_cases_forwards_filters_and_returns_the_total(superuser_client, ukma_data):
+    ukma_data.reply("/v1/review-cases", _page(REVIEW_CASE, has_more=True, total=7))
+
+    response = superuser_client.get(
+        reverse("ukma-data-review-cases"),
+        {"status": "open", "kind": "course_match", "limit": 1},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 7
+    assert ukma_data.received[0]["query"] == {
+        "status": ["open"],
+        "kind": ["course_match"],
+        "limit": ["1"],
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_review_cases_sends_no_filter_when_none_is_given(superuser_client, ukma_data):
+    ukma_data.reply("/v1/review-cases", _page(REVIEW_CASE))
+
+    superuser_client.get(reverse("ukma-data-review-cases"))
+
+    assert ukma_data.received[0]["query"] == {}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(("param", "value"), [("status", "closed"), ("kind", "teacher")])
+def test_review_cases_returns_400_for_an_unknown_filter(superuser_client, ukma_data, param, value):
+    response = superuser_client.get(reverse("ukma-data-review-cases"), {param: value})
+
+    assert response.status_code == 400
+    assert list(response.json()["fields"]) == [param]
+    assert ukma_data.received == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_review_cases_returns_502_when_the_total_is_missing(superuser_client, ukma_data):
+    page = _page(REVIEW_CASE)
+    del page["total"]
+    ukma_data.reply("/v1/review-cases", page)
+
+    response = superuser_client.get(reverse("ukma-data-review-cases"))
+
+    assert response.status_code == 502
 
 
 @pytest.mark.django_db

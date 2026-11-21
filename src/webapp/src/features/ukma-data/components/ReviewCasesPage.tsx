@@ -5,13 +5,20 @@ import {
 	useCaseFilterParams,
 } from "./ReviewCaseList";
 import { UkmaDataError } from "./UkmaDataError";
-import { filterCases, NO_RETRY, PAGE } from "../reviewCases";
+import { NO_RETRY, PAGE } from "../reviewCases";
 import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
 
 export function ReviewCasesPage() {
 	const [{ kind, status }] = useCaseFilterParams();
 	const { data, isLoading, error, refetch, isRefetching } =
-		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
+		useUkmaDataReviewCasesList(
+			{
+				...PAGE,
+				kind: kind === "all" ? undefined : kind,
+				status: status === "all" ? undefined : status,
+			},
+			NO_RETRY,
+		);
 	return (
 		<div className="space-y-4">
 			<ReviewCaseFilters />
@@ -19,15 +26,10 @@ export function ReviewCasesPage() {
 				<Skeleton className="h-64 rounded-xl" />
 			) : data && !error ? (
 				<>
-					<ReviewCaseList
-						cases={filterCases(data.items ?? [], {
-							kind: kind === "all" ? undefined : kind,
-							status: status === "all" ? undefined : status,
-						})}
-					/>
+					<ReviewCaseList cases={data.items} />
 					{data.has_more ? (
 						<p className="text-sm text-muted-foreground">
-							Показано перші {PAGE.limit} справ.
+							Показано перші {data.items.length} з {data.total} справ.
 						</p>
 					) : null}
 				</>

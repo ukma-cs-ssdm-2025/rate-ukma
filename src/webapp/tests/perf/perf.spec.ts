@@ -91,6 +91,28 @@ function observe() {
 	);
 }
 
+async function waitForLayoutSettled(page: Page): Promise<void> {
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve) => {
+				let quietTimer: number | undefined;
+				const finish = () => {
+					observer.disconnect();
+					window.clearTimeout(quietTimer);
+					window.clearTimeout(capTimer);
+					resolve();
+				};
+				const observer = new PerformanceObserver(() => {
+					window.clearTimeout(quietTimer);
+					quietTimer = window.setTimeout(finish, 1000);
+				});
+				observer.observe({ type: "layout-shift", buffered: true });
+				quietTimer = window.setTimeout(finish, 1000);
+				const capTimer = window.setTimeout(finish, 5000);
+			}),
+	);
+}
+
 async function measure(page: Page, scenario: Scenario): Promise<Sample> {
 	await page.setViewportSize({ width: scenario.width, height: 900 });
 	const cdp = await page.context().newCDPSession(page);
@@ -121,10 +143,10 @@ async function measure(page: Page, scenario: Scenario): Promise<Sample> {
 	if (!response?.ok()) {
 		throw new Error(`${scenario.path} answered ${response?.status()}`);
 	}
-	await page.waitForTimeout(1500);
+	await waitForLayoutSettled(page);
 	if (scenario.interact) {
 		await scenario.interact(page);
-		await page.waitForTimeout(1000);
+		await waitForLayoutSettled(page);
 	}
 
 	const vitals = await page.evaluate(() => {

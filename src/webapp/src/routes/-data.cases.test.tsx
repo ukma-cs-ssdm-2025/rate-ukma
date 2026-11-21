@@ -54,6 +54,7 @@ const PAGE: UkmaDataReviewCasePage = {
 	cursor: 12,
 	has_more: false,
 	data_updated_at: "2030-09-01T09:00:00Z",
+	total: 2,
 };
 
 const ReviewCases = (Route as unknown as { component: ComponentType })
@@ -102,7 +103,7 @@ describe("/data/cases", () => {
 	it("shows a student_match case with its own label", async () => {
 		mockAxios.onGet(URL).reply(200, {
 			...PAGE,
-			items: [{ ...PAGE.items?.[0], kind: "student_match" }],
+			items: [{ ...PAGE.items[0], kind: "student_match" }],
 		});
 
 		renderCases();
@@ -110,14 +111,31 @@ describe("/data/cases", () => {
 		expect(await screen.findByRole("listitem")).toHaveTextContent("Студент");
 	});
 
-	it("filters the page by status in the URL", async () => {
-		mockAxios.onGet(URL).reply(200, PAGE);
+	it("asks the proxy for the status and kind in the URL", async () => {
+		mockAxios
+			.onGet(URL)
+			.reply(200, { ...PAGE, items: [PAGE.items[0]], total: 1 });
 
-		renderCases("?status=open");
+		renderCases("?status=open&kind=course_match");
 
 		const items = await screen.findAllByRole("listitem");
 		expect(items).toHaveLength(1);
 		expect(items[0]).toHaveTextContent("off-test-1");
+		expect(mockAxios.history.get[0].params).toEqual({
+			limit: 1000,
+			status: "open",
+			kind: "course_match",
+		});
+	});
+
+	it("says how many of the matching cases it shows", async () => {
+		mockAxios.onGet(URL).reply(200, { ...PAGE, has_more: true, total: 1500 });
+
+		renderCases();
+
+		expect(
+			await screen.findByText("Показано перші 2 з 1500 справ."),
+		).toBeInTheDocument();
 	});
 
 	it("says UKMA Data is down on 502", async () => {

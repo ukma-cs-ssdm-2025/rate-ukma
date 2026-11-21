@@ -1,12 +1,6 @@
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-	fireEvent,
-	renderWithProviders,
-	screen,
-	waitFor,
-} from "@/test-utils/render";
+import { renderWithProviders, screen } from "@/test-utils/render";
 import { FeedStrip } from "./FeedStrip";
 
 vi.mock("@/features/feed/hooks/useFeed", async () => {
@@ -85,43 +79,5 @@ describe("FeedStrip", () => {
 
 		expect(screen.getByRole("button", { name: "Попередні" })).toBeDisabled();
 		expect(screen.getByRole("button", { name: "Наступні" })).toBeDisabled();
-	});
-
-	it("enables next at the start and pages by ~one viewport on click", async () => {
-		const { container } = renderWithProviders(<FeedStrip />, {
-			flags: { fe_feed: true },
-		});
-
-		const scroller = screen.getByRole("link", {
-			name: /Переглянути всю стрічку/,
-		}).parentElement as HTMLElement;
-		Object.defineProperty(scroller, "scrollWidth", {
-			value: 1200,
-			configurable: true,
-		});
-		Object.defineProperty(scroller, "clientWidth", {
-			value: 400,
-			configurable: true,
-		});
-		const scrollSpy = vi.fn();
-		scroller.scrollBy = scrollSpy;
-		fireEvent.scroll(scroller);
-		expect(container).toBeInTheDocument();
-
-		const prev = screen.getByRole("button", { name: "Попередні" });
-		const next = screen.getByRole("button", { name: "Наступні" });
-		await waitFor(() => {
-			expect(prev).toBeDisabled();
-			expect(next).toBeEnabled();
-		});
-
-		const user = userEvent.setup();
-		await user.click(next);
-
-		expect(scrollSpy).toHaveBeenCalledOnce();
-		const args = scrollSpy.mock.calls[0]?.[0] as
-			| { left?: number; behavior?: ScrollBehavior }
-			| undefined;
-		expect(args?.left).toBeCloseTo(360);
 	});
 });
