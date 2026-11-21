@@ -7,20 +7,13 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
-import type { TypeKindEnum } from "@/lib/api/generated";
+import type { CourseOfferingSpeciality } from "@/lib/api/generated";
 import { getFacultyColors } from "@/lib/faculty-colors";
 import { cn } from "@/lib/utils";
 import { getCourseTypeDisplay } from "../courseFormatting";
 
 interface CourseSpecialityBadgesProps {
-	specialities?: ReadonlyArray<{
-		readonly speciality_id?: string;
-		readonly speciality_title?: string;
-		readonly speciality_alias?: string | null;
-		readonly faculty_id?: string;
-		readonly faculty_name?: string;
-		readonly type_kind?: TypeKindEnum;
-	}> | null;
+	specialities?: readonly CourseOfferingSpeciality[];
 	size?: "default" | "sm";
 	/** САЗ records keep elective streams; the course header hides them. */
 	includeElective?: boolean;
@@ -88,7 +81,7 @@ export function CourseSpecialityBadges({
 					speciality.speciality_alias,
 				);
 				const colors = getFacultyColors(speciality.faculty_name || "");
-				const kind = getCourseTypeDisplay(speciality.type_kind ?? "", "");
+				const kind = getCourseTypeDisplay(speciality.type_kind);
 
 				return (
 					<Tooltip key={speciality.speciality_id}>

@@ -243,10 +243,18 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
-    "COMPONENT_NO_READ_ONLY_REQUIRED": True,
+    "COMPONENT_NO_READ_ONLY_REQUIRED": False,
     "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
     # UKMA Data rows have their own `status` fields; keep the course one's name
-    "ENUM_NAME_OVERRIDES": {"StatusEnum": "rating_app.models.choices.CourseStatus"},
+    "ENUM_NAME_OVERRIDES": {
+        "StatusEnum": "rating_app.models.choices.CourseStatus",
+        # One name per choice set, so the webapp gets one TS type per concept
+        # instead of numbered duplicates (Value283Enum, TimeOrderEnum, ...).
+        "SemesterTermEnum": "rating_app.models.choices.SemesterTerm",
+        "CourseTypeKindEnum": "rating_app.models.choices.CourseTypeKind",
+        "VoteTypeEnum": "rating_app.models.choices.RatingVoteStrType",
+        "SortOrderEnum": [("asc", "asc"), ("desc", "desc")],
+    },
 }
 
 

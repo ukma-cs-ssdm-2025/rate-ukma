@@ -9,7 +9,8 @@ import {
 	EmptyTitle,
 } from "@/components/ui/Empty";
 import { Spinner } from "@/components/ui/Spinner";
-import { EventTypeEnum, type NotificationGroup } from "@/lib/api/generated";
+import { EventTypeEnum } from "@/lib/api/generated";
+import type { NotificationGroup } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "../notificationFormatting";
@@ -165,10 +166,12 @@ export function NotificationList({
 
 // Comment notifications may carry the comment text as a trailing quoted
 // segment of the message; split it off so the headline stays short.
-function splitCommentQuote(message: string): {
+interface CommentQuote {
 	title: string;
 	quote?: string;
-} {
+}
+
+function splitCommentQuote(message: string): CommentQuote {
 	const text = message.trimEnd();
 	const open = text.search(/[«"“]/u);
 	if (open < 0 || open > text.length - 3 || !/[»"”]$/u.test(text)) {
@@ -252,7 +255,9 @@ function NotificationItem({
 					params={{ courseId }}
 					className={itemClass}
 					onClick={() => {
-						if (notification.group_key) onClick?.(notification.group_key);
+						if (notification.group_key) {
+							onClick?.(notification.group_key);
+						}
 					}}
 				>
 					{content}

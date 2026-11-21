@@ -61,7 +61,7 @@ export function CoursesPage() {
 	});
 
 	const handleRetry = useCallback(() => {
-		refetch();
+		void refetch();
 	}, [refetch]);
 
 	return (

@@ -11,7 +11,9 @@ import { useUkmaDataStatusRetrieve } from "@/lib/api/generated";
 function DataOverview() {
 	const { data, isLoading, error, refetch, isRefetching } =
 		useUkmaDataStatusRetrieve(NO_RETRY);
-	if (isLoading) return <OverviewPanelSkeleton />;
+	if (isLoading) {
+		return <OverviewPanelSkeleton />;
+	}
 	if (error || !data) {
 		return (
 			<UkmaDataError

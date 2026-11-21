@@ -11,6 +11,7 @@ import type {
 	CoursesListSemesterTermsItem,
 	CoursesListTypeKind,
 	EducationLevelEnum,
+	SortOrderEnum,
 } from "@/lib/api/generated";
 import {
 	CREDITS_RANGE,
@@ -18,56 +19,71 @@ import {
 	USEFULNESS_RANGE,
 } from "./courseFormatting";
 
-const VALID_SEMESTER_TERMS: readonly CoursesListSemesterTermsItem[] = [
+const VALID_SEMESTER_TERMS = [
 	"FALL",
 	"SPRING",
 	"SUMMER",
-];
-const VALID_TYPE_KINDS: readonly CoursesListTypeKind[] = [
+] satisfies CoursesListSemesterTermsItem[];
+const VALID_TYPE_KINDS = [
 	"COMPULSORY",
 	"ELECTIVE",
 	"PROF_ORIENTED",
-];
-
-const VALID_EDUCATION_LEVELS: readonly EducationLevelEnum[] = [
+] satisfies CoursesListTypeKind[];
+const VALID_EDUCATION_LEVELS = [
 	"BACHELOR",
 	"MASTER",
-];
-
-type SortOrder = "asc" | "desc";
-const VALID_SORT_ORDERS: readonly SortOrder[] = ["asc", "desc"];
-const VALID_REVIEW_SORTS: Array<"by-count" | "newest"> = ["by-count", "newest"];
+] satisfies EducationLevelEnum[];
+const VALID_SORT_ORDERS = ["asc", "desc"] satisfies SortOrderEnum[];
+const VALID_REVIEW_SORTS: ("by-count" | "newest")[] = ["by-count", "newest"];
 
 function createRangeParser(bounds: [number, number], step?: number) {
 	const [minBound, maxBound] = bounds;
 	const hasValidStep = (value: number) => {
-		if (!step) return true;
+		if (!step) {
+			return true;
+		}
 		const stepsFromMin = (value - minBound) / step;
 		return Math.abs(stepsFromMin - Math.round(stepsFromMin)) < 0.000001;
 	};
 
 	return createParser({
 		parse: (value: string): [number, number] | null => {
-			if (!value) return null;
+			if (!value) {
+				return null;
+			}
 
 			const [minRaw, maxRaw] = value.split("-");
-			if (!minRaw || !maxRaw) return null;
+			if (!minRaw || !maxRaw) {
+				return null;
+			}
 
 			const min = Number.parseFloat(minRaw);
 			const max = Number.parseFloat(maxRaw);
-			if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+			if (!Number.isFinite(min) || !Number.isFinite(max)) {
+				return null;
+			}
 
-			if (min < minBound || max > maxBound || min > max) return null;
-			if (!hasValidStep(min) || !hasValidStep(max)) return null;
+			if (min < minBound || max > maxBound || min > max) {
+				return null;
+			}
+			if (!hasValidStep(min) || !hasValidStep(max)) {
+				return null;
+			}
 
 			return [min, max];
 		},
 		serialize: (value: [number, number] | null): string => {
-			if (!value) return "";
+			if (!value) {
+				return "";
+			}
 
 			const [min, max] = value;
-			if (!Number.isFinite(min) || !Number.isFinite(max)) return "";
-			if (min === minBound && max === maxBound) return "";
+			if (!Number.isFinite(min) || !Number.isFinite(max)) {
+				return "";
+			}
+			if (min === minBound && max === maxBound) {
+				return "";
+			}
 
 			return `${min}-${max}`;
 		},
@@ -81,30 +97,33 @@ export const courseFiltersParams = {
 	faculty: parseAsString.withDefault(""),
 	dept: parseAsString.withDefault(""),
 	instructor: parseAsString.withDefault(""),
-	term: parseAsArrayOf(
-		parseAsStringEnum<CoursesListSemesterTermsItem>(
-			VALID_SEMESTER_TERMS as unknown as CoursesListSemesterTermsItem[],
-		),
-	).withDefault([]),
+	term: parseAsArrayOf(parseAsStringEnum(VALID_SEMESTER_TERMS)).withDefault([]),
 	year: parseAsString.withDefault(""),
 	credits: createRangeParser(CREDITS_RANGE, 0.5),
-	type: parseAsStringEnum<CoursesListTypeKind>(
-		VALID_TYPE_KINDS as unknown as CoursesListTypeKind[],
-	),
+	type: parseAsStringEnum(VALID_TYPE_KINDS),
 	spec: parseAsString.withDefault(""),
-	eduLevel: parseAsStringEnum<EducationLevelEnum>(
-		VALID_EDUCATION_LEVELS as unknown as EducationLevelEnum[],
-	),
+	eduLevel: parseAsStringEnum(VALID_EDUCATION_LEVELS),
 	page: parseAsInteger.withDefault(1),
 	size: parseAsInteger.withDefault(10),
-	diffOrder: parseAsStringEnum<SortOrder>(
-		VALID_SORT_ORDERS as unknown as SortOrder[],
-	),
-	useOrder: parseAsStringEnum<SortOrder>(
-		VALID_SORT_ORDERS as unknown as SortOrder[],
-	),
-	reviewSort: parseAsStringEnum<"by-count" | "newest">(VALID_REVIEW_SORTS),
+	diffOrder: parseAsStringEnum(VALID_SORT_ORDERS),
+	useOrder: parseAsStringEnum(VALID_SORT_ORDERS),
+	reviewSort: parseAsStringEnum(VALID_REVIEW_SORTS),
 };
+
+// UI controls hand back plain strings; these read them as URL-param values.
+export function parseTypeKind(value: string): CoursesListTypeKind | null {
+	return VALID_TYPE_KINDS.find((kind) => kind === value) ?? null;
+}
+
+export function parseEducationLevel(value: string): EducationLevelEnum | null {
+	return VALID_EDUCATION_LEVELS.find((level) => level === value) ?? null;
+}
+
+export function parseSemesterTerms(
+	values: readonly string[],
+): CoursesListSemesterTermsItem[] {
+	return VALID_SEMESTER_TERMS.filter((term) => values.includes(term));
+}
 
 export function useCourseFiltersParams() {
 	return useQueryStates(courseFiltersParams, {
@@ -142,12 +161,19 @@ export const DEFAULT_COURSE_FILTERS_PARAMS: CourseFiltersParamsState = {
 	reviewSort: null,
 };
 
+/** URL search params for the courses page, with defaults left out. */
+export type CourseSearchParams = Partial<
+	Record<keyof CourseFiltersParamsState, string | number>
+>;
+
 export function courseFiltersStateToSearchParams(
 	state: CourseFiltersParamsState,
-): Record<string, string | number> {
-	const params: Record<string, string | number> = {};
+): CourseSearchParams {
+	const params: CourseSearchParams = {};
 
-	if (state.q) params.q = state.q;
+	if (state.q) {
+		params.q = state.q;
+	}
 	if (
 		state.diff[0] !== DIFFICULTY_RANGE[0] ||
 		state.diff[1] !== DIFFICULTY_RANGE[1]
@@ -160,11 +186,21 @@ export function courseFiltersStateToSearchParams(
 	) {
 		params.use = `${state.use[0]}-${state.use[1]}`;
 	}
-	if (state.faculty) params.faculty = state.faculty;
-	if (state.dept) params.dept = state.dept;
-	if (state.instructor) params.instructor = state.instructor;
-	if (state.term.length > 0) params.term = state.term.join(",");
-	if (state.year) params.year = state.year;
+	if (state.faculty) {
+		params.faculty = state.faculty;
+	}
+	if (state.dept) {
+		params.dept = state.dept;
+	}
+	if (state.instructor) {
+		params.instructor = state.instructor;
+	}
+	if (state.term.length > 0) {
+		params.term = state.term.join(",");
+	}
+	if (state.year) {
+		params.year = state.year;
+	}
 	if (
 		state.year &&
 		(state.credits[0] !== CREDITS_RANGE[0] ||
@@ -172,14 +208,30 @@ export function courseFiltersStateToSearchParams(
 	) {
 		params.credits = `${state.credits[0]}-${state.credits[1]}`;
 	}
-	if (state.type) params.type = state.type;
-	if (state.spec) params.spec = state.spec;
-	if (state.eduLevel) params.eduLevel = state.eduLevel;
-	if (state.page !== 1) params.page = state.page;
-	if (state.size !== 10) params.size = state.size;
-	if (state.diffOrder) params.diffOrder = state.diffOrder;
-	if (state.useOrder) params.useOrder = state.useOrder;
-	if (state.reviewSort) params.reviewSort = state.reviewSort;
+	if (state.type) {
+		params.type = state.type;
+	}
+	if (state.spec) {
+		params.spec = state.spec;
+	}
+	if (state.eduLevel) {
+		params.eduLevel = state.eduLevel;
+	}
+	if (state.page !== 1) {
+		params.page = state.page;
+	}
+	if (state.size !== 10) {
+		params.size = state.size;
+	}
+	if (state.diffOrder) {
+		params.diffOrder = state.diffOrder;
+	}
+	if (state.useOrder) {
+		params.useOrder = state.useOrder;
+	}
+	if (state.reviewSort) {
+		params.reviewSort = state.reviewSort;
+	}
 
 	return params;
 }

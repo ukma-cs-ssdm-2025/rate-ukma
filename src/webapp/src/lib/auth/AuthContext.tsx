@@ -191,7 +191,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		setIsLoggingOut(true);
 		queryClient.removeQueries({ queryKey: sessionQuery.queryKey });
 
-		navigate({ to: "/login", search: (s) => s });
+		void navigate({ to: "/login", search: (s) => s });
 		try {
 			await logoutMutation.mutateAsync();
 		} catch (error) {
@@ -215,7 +215,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			setSessionExpired(true);
 			// Invalidate the session query to trigger re-evaluation of auth state
 			queryClient.setQueryData(sessionQuery.queryKey, undefined);
-			queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
+			void queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
 		};
 
 		setSessionExpiryListener(handleSessionExpired);

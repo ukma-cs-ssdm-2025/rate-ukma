@@ -1,8 +1,8 @@
 import {
-	type UkmaDataReviewCase,
 	UkmaDataReviewCaseKindEnum,
 	UkmaDataReviewCaseStatusEnum,
 } from "@/lib/api/generated";
+import type { UkmaDataReviewCase } from "@/lib/api/generated";
 
 // UKMA Data's largest page; the proxy caps a bigger limit to it anyway.
 export const PAGE = { limit: 1000 } as const;

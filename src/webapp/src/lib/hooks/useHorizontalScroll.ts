@@ -9,7 +9,9 @@ export function useHorizontalScroll(contentLength = 0) {
 	const [canScrollNext, setCanScrollNext] = useState(false);
 
 	useEffect(() => {
-		if (!el) return;
+		if (!el) {
+			return;
+		}
 
 		const update = () => {
 			setCanScrollPrev(el.scrollLeft > 0);
@@ -29,7 +31,9 @@ export function useHorizontalScroll(contentLength = 0) {
 
 	const scrollByPage = useCallback(
 		(direction: 1 | -1) => {
-			if (!el) return;
+			if (!el) {
+				return;
+			}
 			const reduceMotion =
 				globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ??
 				false;

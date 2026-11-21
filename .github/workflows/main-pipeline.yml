@@ -11,10 +11,18 @@ on:
   push:
     branches:
       - main
+    # The web app only. The parser has its own pipeline (parser-pipeline.yml), and its infra deploys from its own workflows.
     paths:
-      - src/**
-      - infra/**
+      - src/backend/**
+      - src/webapp/**
+      - src/docker-compose.yml
+      - src/.env.sample
+      - docs/api/openapi-generated.yaml
+      - infra/nginx/**
+      - infra/deploy/.env.*
       - .github/**
+      - "!.github/workflows/parser-*.yml"
+      - "!.github/actions/k8s-tunnel/**"
 
 jobs:
   changes-filter:
@@ -32,7 +40,6 @@ jobs:
         ${{ inputs.version-tag == '' &&
         (fromJSON(needs.changes-filter.outputs.backend_changed) ||
         fromJSON(needs.changes-filter.outputs.webapp_changed) ||
-        fromJSON(needs.changes-filter.outputs.parser_changed) ||
         fromJSON(needs.changes-filter.outputs.infra_changed)) }}
     uses: ./.github/workflows/version.yml
 
@@ -42,7 +49,8 @@ jobs:
     with:
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
-      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      # Tested, built and deployed by parser-pipeline.yml.
+      parser_changed: false
 
   openapi-validation:
     needs: changes-filter
@@ -72,7 +80,7 @@ jobs:
       version_tag: ${{ inputs.version-tag || needs.version.outputs.version_tag || github.sha }}
       backend_changed: ${{ fromJSON(needs.changes-filter.outputs.backend_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
       webapp_changed: ${{ fromJSON(needs.changes-filter.outputs.webapp_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
-      parser_changed: ${{ fromJSON(needs.changes-filter.outputs.parser_changed) || fromJSON(needs.changes-filter.outputs.ci_changed) }}
+      parser_changed: false
 
   release-needed:
     needs: [version]

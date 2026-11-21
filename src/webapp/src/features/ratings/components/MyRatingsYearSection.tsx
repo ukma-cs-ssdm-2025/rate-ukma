@@ -4,7 +4,7 @@ import { MyRatingsSemesterSection } from "./MyRatingsSemesterSection";
 
 interface MyRatingsYearSectionProps {
 	yearGroup: YearGroup;
-	onRatingChanged: () => undefined | Promise<unknown>;
+	onRatingChanged: () => void;
 	forceOpen?: boolean;
 }
 
@@ -15,10 +15,7 @@ export function MyRatingsYearSection({
 }: Readonly<MyRatingsYearSectionProps>) {
 	// An academic-year heading over a single semester is noise, and so is one
 	// over a filtered list, so those semesters stand alone as "Весна 2026".
-	if (
-		(forceOpen || yearGroup.seasons.length === 1) &&
-		yearGroup.seasons.every((season) => season.year != null)
-	) {
+	if (forceOpen || yearGroup.seasons.length === 1) {
 		return (
 			<>
 				{yearGroup.seasons.map((seasonGroup) => (

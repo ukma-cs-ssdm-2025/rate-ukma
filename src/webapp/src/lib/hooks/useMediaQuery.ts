@@ -8,7 +8,9 @@ function useMediaQuery(query: string) {
 	const [matches, setMatches] = useState(() => getMatches(query));
 
 	useEffect(() => {
-		if (globalThis.window === undefined) return undefined;
+		if (globalThis.window === undefined) {
+			return undefined;
+		}
 
 		const mediaQuery = globalThis.window.matchMedia(query);
 		const handleChange = (event: MediaQueryListEvent) => {

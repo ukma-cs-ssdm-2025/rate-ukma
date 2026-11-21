@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { FeedCommentItem as FeedCommentItemType } from "../feedTypes";
+import type { FeedCommentItem as FeedCommentItemType } from "@/lib/api/generated";
 import { FeedCommentItem } from "./FeedCommentItem";
 
 vi.mock("@tanstack/react-router", async () => ({
@@ -12,10 +12,10 @@ vi.mock("@tanstack/react-router", async () => ({
 const baseItem: FeedCommentItemType = {
 	kind: "comment",
 	id: "c1",
-	createdAt: new Date().toISOString(),
-	ratingId: "rating-1",
-	courseId: "course-1",
-	courseTitle: "Алгоритми та структури даних",
+	occurred_at: new Date().toISOString(),
+	rating_id: "rating-1",
+	course_id: "course-1",
+	course_title: "Алгоритми та структури даних",
 	content: "Погоджуюсь, лабораторні справді важкі.",
 };
 

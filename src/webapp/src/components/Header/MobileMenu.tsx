@@ -136,7 +136,7 @@ export function MobileMenu({
 	const [showNotifications, setShowNotifications] = useState(false);
 
 	const handleLogout = () => {
-		logout();
+		void logout();
 		onClose();
 	};
 

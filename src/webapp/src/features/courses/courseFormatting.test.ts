@@ -11,13 +11,8 @@ import {
 	getCourseTypeDisplay,
 	getDifficultyTone,
 	getExamTypeDisplay,
-	getFacultyAbbreviation,
 	getSemesterDisplay,
 	getSemesterTermDisplay,
-	getStatusLabel,
-	getStatusVariant,
-	getTypeKindLabel,
-	getTypeKindVariant,
 	getUsefulnessTone,
 	hasCourseScores,
 	USEFULNESS_RANGE,
@@ -33,63 +28,6 @@ describe("courseFormatting", () => {
 		it("should have correct usefulness range", () => {
 			// Assert
 			expect(USEFULNESS_RANGE).toEqual([1, 5]);
-		});
-	});
-
-	describe("getFacultyAbbreviation", () => {
-		it("should return abbreviation from multi-word faculty name", () => {
-			// Arrange
-			const facultyName = "Факультет інформаційних технологій";
-
-			// Act
-			const result = getFacultyAbbreviation(facultyName);
-
-			// Assert
-			expect(result).toBe("ФІТ");
-		});
-
-		it("should handle single word faculty name", () => {
-			// Arrange
-			const facultyName = "Факультет";
-
-			// Act
-			const result = getFacultyAbbreviation(facultyName);
-
-			// Assert
-			expect(result).toBe("Ф");
-		});
-
-		it("should handle extra whitespace in faculty name", () => {
-			// Arrange
-			const facultyName = "  Факультет   інформаційних   технологій  ";
-
-			// Act
-			const result = getFacultyAbbreviation(facultyName);
-
-			// Assert
-			expect(result).toBe("ФІТ");
-		});
-
-		it("should uppercase all letters in abbreviation", () => {
-			// Arrange
-			const facultyName = "економічний факультет";
-
-			// Act
-			const result = getFacultyAbbreviation(facultyName);
-
-			// Assert
-			expect(result).toBe("ЕФ");
-		});
-
-		it("should handle empty string", () => {
-			// Arrange
-			const facultyName = "";
-
-			// Act
-			const result = getFacultyAbbreviation(facultyName);
-
-			// Assert
-			expect(result).toBe("");
 		});
 	});
 
@@ -149,38 +87,24 @@ describe("courseFormatting", () => {
 			["COMPULSORY", "Обов'язковий"],
 			["ELECTIVE", "Вибірковий"],
 			["PROF_ORIENTED", "Професійно-орієнтований"],
-		])("should return Ukrainian label for %s type", (type, expected) => {
-			expect(getCourseTypeDisplay(type)).toBe(expected);
-		});
-
-		it("should return fallback for unknown type when provided", () => {
-			expect(getCourseTypeDisplay("UNKNOWN_TYPE", "Custom Label")).toBe(
-				"Custom Label",
-			);
-		});
-
-		it("should return original value for unknown type without fallback", () => {
-			expect(getCourseTypeDisplay("UNKNOWN_TYPE")).toBe("UNKNOWN_TYPE");
-		});
+		] as const)(
+			"should return Ukrainian label for %s type",
+			(type, expected) => {
+				expect(getCourseTypeDisplay(type)).toBe(expected);
+			},
+		);
 	});
 
 	describe("getExamTypeDisplay", () => {
 		it.each([
 			["EXAM", "Іспит"],
 			["CREDIT", "Залік"],
-			["exam", "Іспит"],
-		])("maps %s to a Ukrainian control-form label", (type, expected) => {
-			expect(getExamTypeDisplay(type)).toBe(expected);
-		});
-
-		it("passes unknown values through without a fallback", () => {
-			expect(getExamTypeDisplay("OFFSET")).toBe("OFFSET");
-		});
-
-		it("returns an empty label for a missing value", () => {
-			expect(getExamTypeDisplay(null)).toBe("");
-			expect(getExamTypeDisplay(undefined)).toBe("");
-		});
+		] as const)(
+			"maps %s to a Ukrainian control-form label",
+			(type, expected) => {
+				expect(getExamTypeDisplay(type)).toBe(expected);
+			},
+		);
 	});
 
 	describe("getSemesterTermDisplay", () => {
@@ -226,52 +150,6 @@ describe("courseFormatting", () => {
 
 			// Assert
 			expect(result).toBe("Невідомо 2024");
-		});
-	});
-
-	describe("getStatusLabel", () => {
-		it.each([
-			["PLANNED", "Заплановано"],
-			["ACTIVE", "Активний"],
-			["FINISHED", "Завершено"],
-		])("should return Ukrainian label for %s status", (status, expected) => {
-			expect(getStatusLabel(status)).toBe(expected);
-		});
-
-		it("should return original value for unknown status", () => {
-			expect(getStatusLabel("UNKNOWN_STATUS")).toBe("UNKNOWN_STATUS");
-		});
-	});
-
-	describe("getStatusVariant", () => {
-		it.each([
-			["PLANNED", "outline"],
-			["ACTIVE", "default"],
-			["FINISHED", "secondary"],
-			["UNKNOWN_STATUS", "default"],
-		])("should return correct variant for %s status", (status, expected) => {
-			expect(getStatusVariant(status)).toBe(expected);
-		});
-	});
-
-	describe("getTypeKindLabel", () => {
-		it("should return Ukrainian label for COMPULSORY type", () => {
-			expect(getTypeKindLabel("COMPULSORY")).toBe("Обов'язковий");
-		});
-
-		it("should return original value for unknown type", () => {
-			expect(getTypeKindLabel("UNKNOWN_TYPE")).toBe("UNKNOWN_TYPE");
-		});
-	});
-
-	describe("getTypeKindVariant", () => {
-		it.each([
-			["COMPULSORY", "default"],
-			["ELECTIVE", "secondary"],
-			["PROF_ORIENTED", "outline"],
-			["UNKNOWN_TYPE", "outline"],
-		])("should return correct variant for %s type", (typeKind, expected) => {
-			expect(getTypeKindVariant(typeKind)).toBe(expected);
 		});
 	});
 

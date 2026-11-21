@@ -2,7 +2,8 @@ import * as React from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Star } from "lucide-react";
-import { useForm, useWatch, type Control } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import type { Control } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -92,7 +93,9 @@ function ScoreInput({
 	const shown = hovered ?? value;
 
 	React.useEffect(() => {
-		if (!dragging) return;
+		if (!dragging) {
+			return;
+		}
 		const stop = () => setDragging(false);
 		globalThis.addEventListener("pointerup", stop);
 		return () => globalThis.removeEventListener("pointerup", stop);
@@ -250,7 +253,9 @@ function RatingFormFields({
 	>(() => new Map());
 	const rememberInstructor = React.useCallback((instructor: Instructor) => {
 		const { id } = instructor;
-		if (!id) return;
+		if (!id) {
+			return;
+		}
 		setSearchedInstructors((current) => new Map(current).set(id, instructor));
 	}, []);
 	const selectedInstructors = (instructorIds ?? []).flatMap((id) => {
@@ -274,7 +279,9 @@ function RatingFormFields({
 	// follow the scroll position instead of always framing the form.
 	const updateEdges = React.useCallback(() => {
 		const el = scrollRef.current;
-		if (!el) return;
+		if (!el) {
+			return;
+		}
 		const scrolled = el.scrollTop > 0;
 		const moreBelow = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
 		setEdges((prev) =>
@@ -286,11 +293,15 @@ function RatingFormFields({
 
 	React.useEffect(() => {
 		const el = scrollRef.current;
-		if (!el) return;
+		if (!el) {
+			return;
+		}
 		updateEdges();
 		const observer = new ResizeObserver(updateEdges);
 		observer.observe(el);
-		for (const child of el.children) observer.observe(child);
+		for (const child of el.children) {
+			observer.observe(child);
+		}
 		return () => observer.disconnect();
 	}, [updateEdges]);
 

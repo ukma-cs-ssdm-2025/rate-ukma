@@ -4,6 +4,11 @@ import { render, screen } from "@/test-utils/render";
 import { CourseAbout, offeringExamType, offeringLoad } from "./CourseAbout";
 import { CourseCazRecords, recordLabels } from "./CourseCazRecords";
 import type { CourseOffering } from "@/lib/api/generated";
+import {
+	createMockOffering,
+	createMockOfferingSpeciality,
+	createMockOfferingTerm,
+} from "@/test-utils/factories";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/lib/hooks/useMediaQuery", () => ({
@@ -11,15 +16,13 @@ vi.mock("@/lib/hooks/useMediaQuery", () => ({
 }));
 
 function offering(over: Partial<CourseOffering> = {}): CourseOffering {
-	return {
+	return createMockOffering({
 		id: "offering-1",
 		semester_year: 2026,
 		semester_term: "Spring",
 		code: "900026",
-		exam_type: "EXAM",
-		instructors: [],
 		terms: [
-			{
+			createMockOfferingTerm({
 				semester_year: 2026,
 				semester_term: "SPRING",
 				credits: "5.0",
@@ -27,10 +30,10 @@ function offering(over: Partial<CourseOffering> = {}): CourseOffering {
 				total_hours: 150,
 				lecture_count: 30,
 				practice_count: 30,
-			},
+			}),
 		],
 		...over,
-	};
+	});
 }
 
 describe("offering facts", () => {
@@ -42,18 +45,19 @@ describe("offering facts", () => {
 	});
 
 	it("leaves missing load fields empty instead of placeholders", () => {
-		expect(
-			offeringLoad(
-				offering({
-					terms: [{ semester_year: 2026, semester_term: "SPRING" }],
-				}),
-			),
-		).toEqual({ credits: null, weeklyHours: null });
+		expect(offeringLoad(offering({ terms: [] }))).toEqual({
+			credits: null,
+			weeklyHours: null,
+		});
 	});
 
 	it("maps the credit control form to a Ukrainian label", () => {
-		expect(offeringExamType(offering({ exam_type: "CREDIT" }))).toBe("Залік");
-		expect(offeringExamType(offering({ exam_type: undefined }))).toBeNull();
+		expect(
+			offeringExamType(
+				offering({ terms: [createMockOfferingTerm({ exam_type: "CREDIT" })] }),
+			),
+		).toBe("Залік");
+		expect(offeringExamType(undefined)).toBeNull();
 	});
 });
 
@@ -147,12 +151,12 @@ describe("CourseCazRecords", () => {
 						id: "old",
 						semester_year: 2021,
 						terms: [
-							{
+							createMockOfferingTerm({
 								semester_year: 2021,
 								semester_term: "SPRING",
 								credits: "4.0",
 								weekly_hours: 3,
-							},
+							}),
 						],
 					}),
 				]}
@@ -168,11 +172,12 @@ describe("CourseCazRecords", () => {
 		).toBeInTheDocument();
 	});
 
-	const spec = (title: string) => ({
-		speciality_id: title,
-		speciality_title: title,
-		speciality_alias: "",
-	});
+	const spec = (title: string) =>
+		createMockOfferingSpeciality({
+			speciality_id: title,
+			speciality_title: title,
+			speciality_alias: "",
+		});
 
 	it("lists every record of a year by speciality, without a toggle", () => {
 		render(
@@ -232,8 +237,16 @@ describe("CourseCazRecords", () => {
 				courseOfferings={[
 					offering({
 						terms: [
-							{ semester_year: 2025, semester_term: "FALL", credits: "3.0" },
-							{ semester_year: 2026, semester_term: "SPRING", credits: "3.0" },
+							createMockOfferingTerm({
+								semester_year: 2025,
+								semester_term: "FALL",
+								credits: "3.0",
+							}),
+							createMockOfferingTerm({
+								semester_year: 2026,
+								semester_term: "SPRING",
+								credits: "3.0",
+							}),
 						],
 					}),
 				]}

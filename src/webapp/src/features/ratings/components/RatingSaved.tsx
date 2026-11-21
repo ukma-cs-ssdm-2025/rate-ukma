@@ -6,7 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { DialogDescription, DialogTitle } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
+import type { RatingSuggestion } from "@/lib/api/generated";
 import { RatingSuggestions } from "./RatingSuggestions";
 
 interface RatingSavedProps {
@@ -24,8 +24,12 @@ interface RatingSavedProps {
 }
 
 function description({ suggestions, isLoading, isError }: RatingSavedProps) {
-	if (isLoading || suggestions.length > 0) return "Хочете оцінити ще одну?";
-	if (isError) return "Оцінку збережено.";
+	if (isLoading || suggestions.length > 0) {
+		return "Хочете оцінити ще одну?";
+	}
+	if (isError) {
+		return "Оцінку збережено.";
+	}
 	return "Ви вже оцінили все доступне.";
 }
 
@@ -62,8 +66,9 @@ function SavedCourse({
 						event.ctrlKey ||
 						event.shiftKey ||
 						event.altKey
-					)
+					) {
 						return;
+					}
 					onOpen();
 				}}
 			>

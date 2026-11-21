@@ -9,13 +9,13 @@ on:
   workflow_call:
     inputs:
       version_tag:
-        description: "Version to deploy (finds the best matching parser image)"
+        description: "Parser image tag to deploy: parser-vX.Y.Z or a commit SHA"
         required: true
         type: string
   workflow_dispatch:
     inputs:
       version_tag:
-        description: "Version or commit SHA to deploy (finds the best matching parser image)"
+        description: "parser-vX.Y.Z or a commit SHA. An older vX.Y.Z picks the newest parser image at or below it"
         required: true
         type: string
 
@@ -62,8 +62,9 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    # No reviewer: every merge deploys. It reaches the node as the tunnel-only user, and the parser-deployer
-    # kubeconfig can't read Secrets directly or change RBAC.
+    # No reviewer: parser-pipeline.yml calls this on every push to main that changes src/parser or the app manifests.
+    # It reaches the node as the tunnel-only user, and the parser-deployer kubeconfig can't read Secrets directly
+    # or change RBAC.
     environment: Parser Deploy
     # One deploy at a time; a newer one waits instead of cancelling a migration.
     # Only the newest waiting deploy runs: the ones it replaces add nothing, since migrate applies every pending migration.

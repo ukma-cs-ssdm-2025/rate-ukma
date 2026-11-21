@@ -9,6 +9,9 @@ ANALYTICS_LIST_NAMESPACE = "analytics:list"
 FILTER_OPTIONS_NAMESPACE = "courses:filter-options"
 
 FEED_NAMESPACE = "feed:list"
+
+# Every student's plan: САЗ syncs change taken and mandatory courses for all of them.
+PLANS_NAMESPACE = "plan:all"
 FEED_NEXT_PUBLISH_AT_KEY = "feed:next-publish-at"
 
 
@@ -42,3 +45,7 @@ def comment_replies_namespace(comment_id: str) -> str:
 
 def student_ratings_namespace(student_id: str) -> str:
     return f"ratings:student:{student_id}"
+
+
+def student_plan_namespace(student_id: str) -> str:
+    return f"plan:student:{student_id}"

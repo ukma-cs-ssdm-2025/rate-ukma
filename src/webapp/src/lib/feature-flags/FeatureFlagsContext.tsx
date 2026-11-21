@@ -48,7 +48,9 @@ export function FeatureFlagsProvider({ children }: PropsWithChildren) {
 		installFeatureFlagConsoleHelpers();
 		const refresh = () => setOverrides(readFeatureFlagOverrides());
 		const onStorage = (e: StorageEvent) => {
-			if (e.key === FEATURE_FLAG_OVERRIDES_STORAGE_KEY) refresh();
+			if (e.key === FEATURE_FLAG_OVERRIDES_STORAGE_KEY) {
+				refresh();
+			}
 		};
 		globalThis.addEventListener(FEATURE_FLAG_OVERRIDES_EVENT, refresh);
 		globalThis.addEventListener("storage", onStorage);

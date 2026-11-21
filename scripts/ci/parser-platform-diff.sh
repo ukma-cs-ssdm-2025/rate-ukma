@@ -44,6 +44,16 @@ else
       has_changes=true
       continue
     fi
+    # database/ holds an ObjectStore, whose CRD plugins/ installs. Before that, the diff fails with
+    # "no matches for kind". Show it rendered instead.
+    if [ "$dir" = database ] && [ -z "$(kubectl get crd objectstores.barmancloud.cnpg.io --ignore-not-found -o name)" ]; then
+      {
+        echo "# database: the barman-cloud CRDs are not installed yet. The apply creates or updates:"
+        kubectl kustomize "$PLATFORM_ROOT/$dir"
+      } >> "$diff_file"
+      has_changes=true
+      continue
+    fi
     code=0
     kubectl diff --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/$dir" >> "$diff_file" || code=$?
     if [ "$code" -gt 1 ]; then exit "$code"; fi

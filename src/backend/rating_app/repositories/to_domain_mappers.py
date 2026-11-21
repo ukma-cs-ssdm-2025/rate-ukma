@@ -23,6 +23,11 @@ from rating_app.application_schemas.feed import FeedPromoItem as FeedPromoItemDT
 from rating_app.application_schemas.feed import FeedReviewItem as FeedReviewItemDTO
 from rating_app.application_schemas.instructor import Instructor as InstructorDTO
 from rating_app.application_schemas.notification import NotificationGroup
+from rating_app.application_schemas.personal_plan import (
+    OfferingTermLoad,
+    PlanCourseSource,
+    PlanOffering,
+)
 from rating_app.application_schemas.promo_banner import PromoBanner as PromoBannerDTO
 from rating_app.application_schemas.rating import Rating as RatingDTO
 from rating_app.application_schemas.rating_vote import RatingVote as RatingVoteDTO
@@ -702,3 +707,46 @@ class NotificationGroupMapper(IProcessor[[NotificationModel], NotificationGroup]
     def _is_anonymous_comment(self, model: NotificationModel) -> bool:
         source = model.source
         return isinstance(source, CommentModel) and source.is_anonymous
+
+
+class PlanOfferingMapper(IProcessor[[CourseOfferingModel], PlanOffering]):
+    @implements
+    def process(self, model: CourseOfferingModel) -> PlanOffering:
+        loads = tuple(
+            OfferingTermLoad(
+                year=term.semester.year,
+                term=SemesterTerm(term.semester.term),
+                credits=term.credits,
+                weekly_hours=term.weekly_hours,
+            )
+            for term in model.terms.all()
+        )
+        if not loads:
+            logger.error("course_offering_missing_terms", offering_id=str(model.id))
+            raise ValueError(f"Course offering {model.id} has no terms")
+
+        return PlanOffering(
+            id=model.id,
+            year=model.semester.year,
+            term=SemesterTerm(model.semester.term),
+            loads=loads,
+            kinds={
+                link.speciality_id: CourseTypeKind(link.type_kind)
+                for link in model.course_offering_specialities.all()
+            },
+        )
+
+
+class PlanCourseSourceMapper:
+    """Expects `department__faculty` loaded."""
+
+    def __init__(self, offering_mapper: PlanOfferingMapper) -> None:
+        self._offering_mapper = offering_mapper
+
+    def process(self, model: Course, offerings: list[CourseOfferingModel]) -> PlanCourseSource:
+        return PlanCourseSource(
+            course_id=model.id,
+            title=model.title,
+            faculty_name=model.department.faculty.name,
+            offerings=tuple(self._offering_mapper.process(offering) for offering in offerings),
+        )

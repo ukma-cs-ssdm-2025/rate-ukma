@@ -28,9 +28,15 @@ function scrollEdge(
 	canScrollPrev: boolean,
 	canScrollNext: boolean,
 ): ScrollEdge {
-	if (canScrollPrev && canScrollNext) return "both";
-	if (canScrollPrev) return "left";
-	if (canScrollNext) return "right";
+	if (canScrollPrev && canScrollNext) {
+		return "both";
+	}
+	if (canScrollPrev) {
+		return "left";
+	}
+	if (canScrollNext) {
+		return "right";
+	}
 	return "none";
 }
 
@@ -48,11 +54,15 @@ export function FeedStrip() {
 
 	// Gate on the flag, and stay hidden until it resolves so the feed never
 	// flashes in before a disabled flag lands.
-	if (!isReady || !enabled) return null;
+	if (!isReady || !enabled) {
+		return null;
+	}
 
 	// The strip is secondary to the courses table below it: an empty or failed
 	// feed should leave no gap rather than announce itself.
-	if (!isLoading && items.length === 0) return null;
+	if (!isLoading && items.length === 0) {
+		return null;
+	}
 
 	return (
 		<section aria-label="Стрічка оновлень" className="space-y-2">

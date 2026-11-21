@@ -72,7 +72,9 @@ export function MobileNotificationPanel({
 					: "animate-in fade-in-0 slide-in-from-right-4",
 			)}
 			onAnimationEnd={(event) => {
-				if (isLeaving && event.target === event.currentTarget) onBack();
+				if (isLeaving && event.target === event.currentTarget) {
+					onBack();
+				}
 			}}
 			data-testid={testIds.notifications.mobilePanel}
 		>

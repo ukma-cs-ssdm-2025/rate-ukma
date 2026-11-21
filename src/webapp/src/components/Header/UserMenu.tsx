@@ -68,7 +68,7 @@ export function UserMenu({ user, logout }: Readonly<UserMenuProps>) {
 					className="cursor-pointer text-destructive"
 					onSelect={(event) => {
 						event.preventDefault();
-						logout();
+						void logout();
 					}}
 					data-testid={testIds.header.logoutButton}
 				>

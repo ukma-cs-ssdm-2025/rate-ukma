@@ -45,8 +45,8 @@ function TestComponent({ endpoint }: Readonly<TestComponentProps>) {
 		try {
 			const response = await authorizedHttpClient.get(endpoint);
 			setData(response.data);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Unknown error");
+		} catch (error_) {
+			setError(error_ instanceof Error ? error_.message : "Unknown error");
 		} finally {
 			setLoading(false);
 		}

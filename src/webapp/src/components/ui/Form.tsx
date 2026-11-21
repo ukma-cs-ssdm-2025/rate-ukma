@@ -4,13 +4,11 @@ import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot } from "@radix-ui/react-slot";
 import {
 	Controller,
-	type ControllerProps,
-	type FieldPath,
-	type FieldValues,
 	FormProvider,
 	useFormContext,
 	useFormState,
 } from "react-hook-form";
+import type { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { Label } from "@/components/ui/Label";
 import { cn } from "@/lib/utils";
@@ -24,8 +22,8 @@ type FormFieldContextValue<
 	name: TName;
 };
 
-const FormFieldContext = React.createContext<FormFieldContextValue>(
-	{} as FormFieldContextValue,
+const FormFieldContext = React.createContext<FormFieldContextValue | null>(
+	null,
 );
 
 const FormField = <
@@ -49,6 +47,9 @@ const useFormField = () => {
 	}
 
 	const itemContext = React.useContext(FormItemContext);
+	if (!itemContext) {
+		throw new Error("useFormField should be used within <FormItem>");
+	}
 	const { getFieldState } = useFormContext();
 	const formState = useFormState({ name: fieldContext.name });
 	const fieldState = getFieldState(fieldContext.name, formState);
@@ -69,9 +70,7 @@ type FormItemContextValue = {
 	id: string;
 };
 
-const FormItemContext = React.createContext<FormItemContextValue>(
-	{} as FormItemContextValue,
-);
+const FormItemContext = React.createContext<FormItemContextValue | null>(null);
 
 function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 	const id = React.useId();

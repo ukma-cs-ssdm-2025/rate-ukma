@@ -12,11 +12,8 @@ import {
 	getSemesterDisplay,
 } from "@/features/courses/courseFormatting";
 import { formatInstructorName } from "@/features/instructors/formatInstructorName";
-import type {
-	CommentAuthor,
-	RatingInstructor,
-	RatingVoteStrType,
-} from "@/lib/api/generated";
+import type { InstructorNameParts } from "@/features/instructors/formatInstructorName";
+import type { CommentAuthor, RatingVoteStrType } from "@/lib/api/generated";
 import { RatingComment } from "./RatingComment";
 import { RatingComments } from "./RatingComments";
 import { RatingStats } from "./RatingStats";
@@ -33,7 +30,7 @@ interface RatingCardBodyProps {
 	readonly usefulness: number | undefined;
 	readonly comment?: string | null;
 	readonly instructor?: string | null;
-	readonly instructors?: readonly RatingInstructor[];
+	readonly instructors?: readonly InstructorNameParts[];
 	readonly commentEmptyMessage?: string;
 	readonly ratingId?: string;
 	readonly courseId?: string;

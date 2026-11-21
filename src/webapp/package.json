@@ -95,6 +95,7 @@
 		"zod": "^4.6.7"
 	},
 	"devDependencies": {
+		"@cloudflare/oxlint-config": "0.1.0",
 		"@faker-js/faker": "^10.5.0",
 		"@playwright/test": "^1.62.1",
 		"@sentry/vite-plugin": "^5.4.0",
@@ -115,7 +116,8 @@
 		"jsdom": "^29.0.1",
 		"orval": "^8.24.0",
 		"oxfmt": "0.62.0",
-		"oxlint": "1.77.0",
+		"oxlint": "1.94.0",
+		"tsrs": "0.25.0-ts7.1.0-beta",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.5",
 		"vitest": "^4.1.10",

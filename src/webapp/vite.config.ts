@@ -2,7 +2,8 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { defineConfig, type PluginOption } from "vite";
+import { defineConfig } from "vite";
+import type { PluginOption } from "vite";
 
 import { resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
