@@ -23,6 +23,7 @@ export const LINT_ALLOWLIST = {
 		"src/components/Header/Header.tsx",
 		"src/components/Header/MobileMenu.tsx",
 		"src/components/TermBadge.tsx",
+		"src/features/courses/components/CourseStatsCards.tsx",
 		"src/features/feed/components/FeedReviewItem.tsx",
 		"src/routes/connection-error.tsx",
 		"src/routes/courses.$courseId.tsx",

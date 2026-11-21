@@ -12,9 +12,9 @@ Accepted
 
 The webapp (`src/webapp/src`) has four kinds of folders: `routes/` (TanStack file routes), `features/<name>/` (one product area each), `components/` (shared UI) and `lib/` (shared non-UI code, including the generated API client). Nothing enforced how they depend on each other, and the code drifted:
 
-- Routes hold page logic. 7 of 18 route files call generated API hooks, and `routes/courses.$courseId.tsx` is 301 lines.
+- Routes hold page logic. 7 of 14 route files call generated API hooks, and `routes/courses.$courseId.tsx` is 301 lines.
 - Shared code reaches into features. `components/Header/Header.tsx` and `Header/MobileMenu.tsx` import from `features/notifications`; `components/AuthShell.tsx` and `components/TermBadge.tsx` import `features/courses/courseFormatting`.
-- Features import each other in a cycle: `courses` renders `feed`, and `feed` imports course formatting from `courses`.
+- Features import each other in cycles: `courses` renders `feed`, and `feed` imports course formatting from `courses`; `ratings` imports from `courses`, and `courses/components/CourseStatsCards.tsx` imports rating definitions from `ratings` through a relative path.
 - Files grow large: `CourseFiltersPanel.tsx` has 860 lines, `RatingComments.tsx` 835, `CoursesScatterPlot.tsx` 792, `CoursesTable.tsx` 733, `RatingForm.tsx` 597.
 - Two barrel files (`lib/auth/index.ts`, `lib/feature-flags/index.ts`) re-export modules, so imports do not say where code lives.
 
@@ -36,7 +36,7 @@ Lint enforces all of it:
 - oxlint (`src/webapp/oxlint.config.ts`): `import/no-cycle`, `max-lines` (400), and `no-restricted-imports` overrides per folder, generated from `lint/layers.ts`.
 - `pnpm lint:ratchet` (`scripts/lint-ratchet.ts`, part of `pnpm check`): every folder in `features/` is declared in `FEATURE_DEPENDENCIES`, the declared graph has no cycle, and no `index.ts` barrel exists.
 
-Today's offenders are listed in `src/webapp/lint/allowlist.ts`, which may only shrink. The ratchet fails when an allowlisted file no longer breaks its rule, so the entry has to be removed in the change that fixes it. Adding an entry is not allowed; a new file follows the rules from its first commit.
+Today's offenders are listed in `src/webapp/lint/allowlist.ts`, which may only shrink. The ratchet fails when an allowlisted file no longer breaks its rule, so the entry has to be removed in the change that fixes it. Adding an entry is not allowed (reviewers reject it); a new file follows the rules from its first commit.
 
 ## Consequences
 

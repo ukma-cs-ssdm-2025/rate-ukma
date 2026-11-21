@@ -15,11 +15,38 @@ export const FEATURE_DEPENDENCIES = {
 
 const FEATURES = Object.keys(FEATURE_DEPENDENCIES);
 
-const GENERATED_API = ["@/lib/api/generated", "@/lib/api/generated/**"];
+type ImportPattern = {
+	group?: string[];
+	regex?: string;
+	message: string;
+	allowTypeImports?: boolean;
+};
 
-function restrictImports(
-	patterns: { group: string[]; message: string; allowTypeImports?: boolean }[],
-): DummyRuleMap {
+function escapeRegex(text: string): string {
+	return text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
+function forbid(
+	srcPaths: string[],
+	message: string,
+	allowTypeImports = false,
+): ImportPattern[] {
+	const relative = srcPaths.map((path) => path.split("/").at(-1) ?? path);
+	return [
+		{
+			group: srcPaths.flatMap((path) => [`@/${path}`, `@/${path}/**`]),
+			message,
+			allowTypeImports,
+		},
+		{
+			regex: String.raw`^(\.\./)+(${relative.map(escapeRegex).join("|")})(/|$)`,
+			message,
+			allowTypeImports,
+		},
+	];
+}
+
+function restrictImports(patterns: ImportPattern[]): DummyRuleMap {
 	return { "no-restricted-imports": ["error", { patterns }] };
 }
 
@@ -32,17 +59,12 @@ function featureOverride([feature, dependencies]: [
 	return {
 		files: [`src/features/${feature}/**`],
 		rules: restrictImports([
-			{
-				group: ["@/routes/**"],
-				message: "Features never import routes.",
-			},
+			...forbid(["routes"], "Features never import routes."),
 			...(banned.length > 0
-				? [
-						{
-							group: banned.map((other) => `@/features/${other}/**`),
-							message: `features/${feature} may import only ${[...allowed].join(", ")}. Move shared code to lib/ or components/, or declare the dependency in lint/layers.ts if it keeps the graph acyclic.`,
-						},
-					]
+				? forbid(
+						banned.map((other) => `features/${other}`),
+						`features/${feature} may import only ${[...allowed].join(", ")}. Move shared code to lib/ or components/, or declare the dependency in lint/layers.ts if it keeps the graph acyclic.`,
+					)
 				: []),
 		]),
 	};
@@ -51,14 +73,13 @@ function featureOverride([feature, dependencies]: [
 export const LAYER_OVERRIDES: OxlintOverride[] = [
 	{
 		files: ["src/routes/**"],
-		rules: restrictImports([
-			{
-				group: GENERATED_API,
-				allowTypeImports: true,
-				message:
-					"A route renders one page from its feature; API calls live in the feature.",
-			},
-		]),
+		rules: restrictImports(
+			forbid(
+				["lib/api/generated"],
+				"A route renders one page from its feature; API calls live in the feature.",
+				true,
+			),
+		),
 	},
 	{
 		files: ["src/routes/**/*.test.{ts,tsx}"],
@@ -66,13 +87,12 @@ export const LAYER_OVERRIDES: OxlintOverride[] = [
 	},
 	{
 		files: ["src/components/**", "src/lib/**"],
-		rules: restrictImports([
-			{
-				group: ["@/features/**", "@/routes/**"],
-				message:
-					"components/ and lib/ are shared: they never import features or routes. Pass the feature part in as a prop or slot.",
-			},
-		]),
+		rules: restrictImports(
+			forbid(
+				["features", "routes"],
+				"components/ and lib/ are shared: they never import features or routes. Pass the feature part in as a prop or slot.",
+			),
+		),
 	},
 	...Object.entries(FEATURE_DEPENDENCIES).map(featureOverride),
 ];
