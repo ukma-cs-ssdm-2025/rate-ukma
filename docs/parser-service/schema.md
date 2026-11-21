@@ -196,7 +196,7 @@ The rule links when title (normalised), credits, mapped department and level all
 | Column | Type | Notes |
 | --- | --- | --- |
 | `offering_id`, `instructor_id` | text | primary key together |
-| `role` | text | `LECTURER`, `PRACTICE_TEACHER` or `LECTURER_AND_PRACTICE_TEACHER`; a teacher with both roles across the matched disciplines gets the last |
+| `role` | text | `LECTURER`, `PRACTICE_TEACHER` or `LECTURER_AND_PRACTICE_TEACHER`; a teacher with different roles across the matched disciplines gets `LECTURER_AND_PRACTICE_TEACHER` |
 
 ## Students
 
