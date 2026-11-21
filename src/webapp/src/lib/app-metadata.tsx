@@ -1,10 +1,10 @@
 import { Helmet } from "react-helmet-async";
 
-export const APP_NAME = "Rate UKMA";
-export const DEFAULT_PAGE_TITLE =
-	"Rate UKMA - Rate. Review. Discover your best courses at NaUKMA";
-export const DEFAULT_PAGE_DESCRIPTION =
-	"Rate UKMA — платформа для студентів НаУКМА, де можна ділитися відгуками та оцінками дисциплін. Обирай найкращі дисципліни завдяки інтерактивній аналітиці та анонімним відгукам.";
+import {
+	APP_NAME,
+	DEFAULT_PAGE_DESCRIPTION,
+	DEFAULT_PAGE_TITLE,
+} from "./site-metadata";
 
 export function formatPageTitle(title: string) {
 	return `${title} | ${APP_NAME}`;
