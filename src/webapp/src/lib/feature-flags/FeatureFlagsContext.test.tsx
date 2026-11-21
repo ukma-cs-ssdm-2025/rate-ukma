@@ -13,8 +13,8 @@ import type { FeatureFlagName } from "./useFeatureFlag";
 
 const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
 const mockUseFlagsList = vi.fn();
-const FE_EXAMPLE = "fe_example" as FeatureFlagName;
-const FE_MISSING = "fe_missing" as FeatureFlagName;
+const FE_EXAMPLE: FeatureFlagName = "fe_feed";
+const FE_MISSING: FeatureFlagName = "fe_rate_flow";
 
 const { authState } = vi.hoisted(() => ({
 	authState: {
@@ -46,7 +46,6 @@ function lastQueryKey() {
 describe("feature flags", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		localStorage.clear();
 		authState.current = { status: "unauthenticated", user: null };
 		mockUseFlagsList.mockReturnValue({
 			data: { flags: { [FE_EXAMPLE]: true } },
