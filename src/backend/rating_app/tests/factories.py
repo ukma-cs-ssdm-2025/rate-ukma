@@ -10,6 +10,7 @@ from factory.django import DjangoModelFactory
 from rating_app.ioc_container.repositories import rating_repository
 from rating_app.ioc_container.services import feed_update_service
 from rating_app.models import (
+    CatalogMappingDecision,
     Comment,
     Course,
     CourseInstructor,
@@ -21,6 +22,7 @@ from rating_app.models import (
     Faculty,
     FeedPost,
     Instructor,
+    MappingAnswer,
     PlannedCourse,
     PromoBanner,
     Rating,
@@ -28,6 +30,20 @@ from rating_app.models import (
     Semester,
     Speciality,
     Student,
+    SyncApproval,
+    SyncApprovalAction,
+    SyncApprovalOutcome,
+    SyncApprovalScope,
+    SyncChange,
+    SyncChangeGroup,
+    SyncChangeState,
+    SyncCursor,
+    SyncPolicy,
+    SyncPolicyChange,
+    SyncPolicyMode,
+    SyncRun,
+    SyncRunStatus,
+    SyncSource,
 )
 from rating_app.models.choices import (
     CourseStatus,
@@ -293,3 +309,79 @@ class PromoBannerFactory(DjangoModelFactory):
     cta_label = "Open"
     logo_alt = ""
     is_active = False
+
+
+class SyncRunFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncRun
+
+    source = SyncSource.CATALOG
+    status = SyncRunStatus.RUNNING
+
+
+class SyncChangeFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncChange
+
+    run = factory.SubFactory(SyncRunFactory)
+    source = SyncSource.CATALOG
+    group = SyncChangeGroup.LINK
+    kind = "link_course"
+    key = factory.Sequence(lambda n: f"change:{n}")
+    state = SyncChangeState.PROPOSED
+    ratings = 0
+
+
+class SyncPolicyFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncPolicy
+
+    kind = factory.Sequence(lambda n: f"policy_kind_{n}")
+    mode = SyncPolicyMode.NEEDS_APPROVAL
+    updated_by = factory.SubFactory(UserFactory)
+
+
+class SyncPolicyChangeFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncPolicyChange
+
+    kind = factory.Sequence(lambda n: f"policy_kind_{n}")
+    old_mode = SyncPolicyMode.NEEDS_APPROVAL
+    new_mode = SyncPolicyMode.AUTO
+    user = factory.SubFactory(UserFactory)
+
+
+class SyncApprovalFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncApproval
+
+    run = factory.SubFactory(SyncRunFactory)
+    run_ref = factory.LazyAttribute(lambda approval: approval.run.pk)
+    action = SyncApprovalAction.APPLY
+    scope = SyncApprovalScope.CHANGE
+    user = None
+    outcome = SyncApprovalOutcome.STARTED
+    counts = factory.LazyFunction(dict)
+
+
+class CatalogMappingDecisionFactory(DjangoModelFactory):
+    class Meta:
+        model = CatalogMappingDecision
+
+    kind = "merge_courses"
+    question_key = factory.Sequence(lambda n: f"merge:ud_course_{n}")
+    ukma_course_id = factory.Sequence(lambda n: f"ud_course_{n}")
+    course = factory.SubFactory(CourseFactory)
+    offering = None
+    answer = MappingAnswer.KEEP_APART
+    premise = factory.LazyFunction(dict)
+    decided_by = factory.SubFactory(UserFactory)
+
+
+class SyncCursorFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncCursor
+
+    source = SyncSource.CATALOG
+    list_name = factory.Sequence(lambda n: f"list_{n}")
+    change_no = 0

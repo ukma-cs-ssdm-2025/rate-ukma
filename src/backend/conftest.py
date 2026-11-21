@@ -26,6 +26,13 @@ register(factories.RatingVoteFactory)
 register(factories.CommentFactory)
 register(factories.FeedPostFactory)
 register(factories.PromoBannerFactory)
+register(factories.SyncRunFactory)
+register(factories.SyncChangeFactory)
+register(factories.SyncPolicyFactory)
+register(factories.SyncPolicyChangeFactory)
+register(factories.SyncApprovalFactory)
+register(factories.CatalogMappingDecisionFactory)
+register(factories.SyncCursorFactory)
 
 
 @pytest.fixture

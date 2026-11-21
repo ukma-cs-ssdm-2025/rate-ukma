@@ -21,6 +21,7 @@ class Course(models.Model):
     offerings: RelatedManager[CourseOffering]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ukma_data_id = models.CharField(max_length=64, null=True, blank=True, db_index=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     status = models.CharField(max_length=16, choices=CourseStatus.choices)
