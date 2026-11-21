@@ -62,13 +62,23 @@ export const normalisedTitle = (title: string): string =>
 const normalisedDepartment = (name: string): string =>
 	normalisedTitle(name.replace(/\s+імені\s.*$/iu, ""));
 
-/** САЗ department names, normalised, that smart.ukma names differently.
- *  matching.md maps six by hand (renamed schools); fill this from the two
- *  department lists, normalised on both sides. */
-const DEPARTMENT_ALIASES: ReadonlyMap<string, string> = new Map<
-	string,
-	string
->();
+/** САЗ department names, normalised, that smart.ukma names differently:
+ *  САЗ calls these schools "Кафедра ..." or drops smart.ukma's "Кафедра".
+ *  Read from both live department lists; every other department with
+ *  offerings matches by its normalised name or has no smart.ukma twin. */
+const DEPARTMENT_ALIASES: ReadonlyMap<string, string> = new Map([
+	[
+		"кафедра києво могилянська школа врядування",
+		"києво могилянська школа врядування",
+	],
+	["кафедра школа громадського здоровя", "школа громадського здоровя"],
+	["кафедра школа соціальної роботи", "школа соціальної роботи"],
+	[
+		"кафедра школа управління в охороні здоровя",
+		"школа управління в охороні здоровя",
+	],
+	["могилянська школа журналістики", "кафедра могилянська школа журналістики"],
+]);
 
 export const departmentKey = (name: string | null): string | null => {
 	if (name === null) {

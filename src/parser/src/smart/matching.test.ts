@@ -45,6 +45,25 @@ describe("normalisedTitle", () => {
 		);
 	});
 
+	it("maps the schools САЗ and smart.ukma name differently", () => {
+		assert.strictEqual(
+			departmentKey(
+				'Кафедра "Школа соціальної роботи імені професора В. І. Полтавця"',
+			),
+			departmentKey(
+				"Школа соціальної роботи імені професора Володимира Полтавця",
+			),
+		);
+		assert.strictEqual(
+			departmentKey("Могилянська школа журналістики"),
+			departmentKey("Кафедра «Могилянська школа журналістики»"),
+		);
+		assert.strictEqual(
+			departmentKey('Кафедра "Школа громадського здоров`я"'),
+			departmentKey("Школа громадського здоров’я "),
+		);
+	});
+
 	it("keeps a department's own name apart from an імені suffix", () => {
 		assert.strictEqual(
 			departmentKey("Кафедра уявної фізики імені Вигаданого"),
