@@ -281,7 +281,7 @@ export const crawlYears = Effect.fn("crawlYears")(function* () {
 	yield* Effect.logInfo(
 		"Crawl finished",
 		results.map(({ sourcePart, status, report }) => ({
-			sourcePart,
+			source_part: sourcePart,
 			status,
 			seconds: report.seconds,
 			done: report.pages.reduce((sum, counts) => sum + counts.done, 0),
