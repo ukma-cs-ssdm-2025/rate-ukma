@@ -6,7 +6,7 @@ commit_msg=$(cat "$commit_msg_file")
 
 # Merges and reverts get their message from git, not from the author.
 case "$commit_msg" in
-    "Merge "*|"Revert "*) exit 0 ;;
+    "Merge branch "*|"Merge remote-tracking branch "*|"Merge pull request "*|"Merge tag "*|"Revert \""*) exit 0 ;;
 esac
 
 if echo "$commit_msg" | grep -Eq "$pattern"; then

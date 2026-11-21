@@ -17,8 +17,8 @@ sources=$(find "$webapp_src" -type f \( -name '*.ts' -o -name '*.tsx' \) ! -name
 status=0
 for flag in $flags; do
   # shellcheck disable=SC2086
-  if ! perl -0777 -ne 'BEGIN { $f = shift } s{/\*.*?\*/}{}gs; s{//[^\n]*}{}g; $found = 1 if /useFeatureFlag(?:State)?\(\s*"\Q$f\E"/; END { exit($found ? 0 : 1) }' "$flag" $sources; then
-    echo "Flag '$flag' is in PUBLIC_FEATURE_FLAGS but no useFeatureFlag(\"$flag\") call exists in $webapp_src. Remove it from the allowlist." >&2
+  if ! perl -0777 -ne 'BEGIN { $f = shift } s{/\*.*?\*/}{}gs; s{(?<!:)//[^\n]*}{}g; $found = 1 if /useFeatureFlag(?:State)?\(\s*"\Q$f\E"/; END { exit($found ? 0 : 1) }' "$flag" $sources; then
+    echo "Flag '$flag' is in PUBLIC_FEATURE_FLAGS but no useFeatureFlag(\"$flag\") call with a string literal exists in $webapp_src. Remove it from the allowlist, or call the hook with the literal name." >&2
     status=1
   fi
 done
