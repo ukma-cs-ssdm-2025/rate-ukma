@@ -48,9 +48,7 @@ export class CommentsSection {
 			.first();
 		await expect(startButton).toBeVisible();
 		await startButton.click();
-		await expect(
-			this.root.getByTestId(testIds.comments.textarea).last(),
-		).toBeVisible();
+		await expect(this.visibleForm()).toBeVisible();
 	}
 
 	async createComment(
@@ -58,7 +56,7 @@ export class CommentsSection {
 		options?: SubmitCommentOptions,
 	): Promise<void> {
 		await this.startComment();
-		await this.submitForm(this.root, content, options);
+		await this.submitForm(this.visibleForm(), content, options);
 		await this.expectCommentVisible(content);
 	}
 
@@ -76,7 +74,7 @@ export class CommentsSection {
 		await expect(replyButton).toBeVisible();
 		await replyButton.click();
 
-		await this.submitForm(parentItem, replyContent, options);
+		await this.submitForm(this.visibleForm(), replyContent, options);
 		await this.expectCommentVisible(replyContent, "last");
 		await expect(this.repliesToggle(parentItem)).toBeVisible();
 	}
@@ -105,11 +103,10 @@ export class CommentsSection {
 		await expect(editButton).toBeVisible();
 		await editButton.click();
 
-		const editTextarea = commentItem
-			.getByTestId(testIds.comments.textarea)
-			.last();
-		await expect(editTextarea).toHaveValue(currentContent);
-		const editForm = this.root.getByTestId(testIds.comments.form).last();
+		const editForm = this.visibleForm();
+		await expect(editForm.getByTestId(testIds.comments.textarea)).toHaveValue(
+			currentContent,
+		);
 		await this.submitForm(editForm, updatedContent, options);
 		await this.expectCommentVisible(updatedContent);
 	}
@@ -185,28 +182,32 @@ export class CommentsSection {
 			.first();
 	}
 
+	private visibleForm(): Locator {
+		return this.root
+			.getByTestId(testIds.comments.form)
+			.filter({ visible: true });
+	}
+
 	private async submitForm(
-		scope: Locator,
+		form: Locator,
 		content: string,
 		options?: SubmitCommentOptions,
 	): Promise<void> {
-		const textarea = scope.getByTestId(testIds.comments.textarea).last();
+		const textarea = form.getByTestId(testIds.comments.textarea);
 		await expect(textarea).toBeVisible();
 		await textarea.fill(content);
 
 		if (options?.anonymous) {
-			const anonymousCheckbox = scope
-				.getByTestId(testIds.comments.anonymousCheckbox)
-				.last();
+			const anonymousCheckbox = form.getByTestId(
+				testIds.comments.anonymousCheckbox,
+			);
 			await expect(anonymousCheckbox).toBeVisible();
 			if ((await anonymousCheckbox.getAttribute("data-state")) !== "checked") {
 				await anonymousCheckbox.click();
 			}
 		}
 
-		const submitButton = scope
-			.getByTestId(testIds.comments.submitButton)
-			.last();
+		const submitButton = form.getByTestId(testIds.comments.submitButton);
 		await expect(submitButton).toBeEnabled();
 		await submitButton.click();
 	}
