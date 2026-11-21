@@ -139,6 +139,24 @@ describe("RatingVotes", () => {
 		);
 	});
 
+	it("keeps the saved vote when a queued unvote fails", async () => {
+		const firstVote = deferred();
+		createVote.mockReturnValueOnce(firstVote.promise);
+		deleteVote.mockRejectedValueOnce(new Error("offline"));
+		renderVotes();
+
+		await userEvent.click(screen.getByRole("button", { name: "За: 2" }));
+		await userEvent.click(screen.getByRole("button", { name: "За: 3" }));
+		firstVote.resolve({});
+
+		await waitFor(() => expect(toastError).toHaveBeenCalledOnce());
+		expect(deleteVote).toHaveBeenCalledOnce();
+		expect(screen.getByRole("button", { name: "За: 3" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+	});
+
 	it("explains instead of voting when the viewer cannot vote", async () => {
 		renderVotes("Спершу прослухайте курс");
 

@@ -146,6 +146,7 @@ export function RatingVotes({
 			return;
 		}
 		sending.current = true;
+		let saved = false;
 		try {
 			while (wantedVote.current !== confirmedVote.current) {
 				const vote = wantedVote.current;
@@ -155,12 +156,7 @@ export function RatingVotes({
 					await createVote.mutateAsync({ ratingId, data: { vote_type: vote } });
 				}
 				confirmedVote.current = vote;
-			}
-			if (courseId) {
-				void queryClient.invalidateQueries({
-					queryKey: getCoursesRatingsListQueryKey(courseId),
-					refetchType: "none",
-				});
+				saved = true;
 			}
 		} catch (error) {
 			console.error("Failed to sync vote with server:", error);
@@ -169,11 +165,17 @@ export function RatingVotes({
 			setUserVote(confirmedVote.current);
 		} finally {
 			sending.current = false;
+			if (saved && courseId) {
+				void queryClient.invalidateQueries({
+					queryKey: getCoursesRatingsListQueryKey(courseId),
+					refetchType: "none",
+				});
+			}
 		}
 	};
 
 	const toggleVote = (target: RatingVoteStrType) => {
-		const next = userVote === target ? null : target;
+		const next = wantedVote.current === target ? null : target;
 		setUserVote(next);
 		wantedVote.current = next;
 		void sendWantedVote();
