@@ -38,7 +38,6 @@ function resolveContent({
 	enabled: boolean;
 	feed: UseFeedReturn;
 }): ReactNode {
-	// Stay blank until the flag resolves, so a disabled feed never flashes in.
 	if (!isReady) {
 		return null;
 	}
@@ -76,7 +75,6 @@ function resolveContent({
 				))}
 			</div>
 
-			{/* Sentinel: intersecting it pulls the next page. */}
 			<div ref={feed.loaderRef} className="h-px" aria-hidden />
 			{feed.isFetchingNextPage && (
 				<p className="text-center text-sm text-muted-foreground">

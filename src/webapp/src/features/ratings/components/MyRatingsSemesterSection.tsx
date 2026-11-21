@@ -16,8 +16,6 @@ import { MyRatingCard } from "./MyRatingCard";
 
 const OPEN_STATE_KEY = "my-ratings-open-semesters";
 
-// Mirrors SemesterService on the backend: the term a month falls in, and the
-// month from which that term's courses can be rated.
 const TERM_START_MONTH = {
 	SPRING: 0,
 	SUMMER: 4,
@@ -59,8 +57,6 @@ interface StoredOpenState {
 	open: Record<string, boolean>;
 }
 
-// Choices hold for the current term only: a new term starts from the defaults,
-// so it opens on what is newly rateable instead of last term's layout.
 function readOpenState(period: string): Record<string, boolean> {
 	const stored = localStorageAdapter.getItem<StoredOpenState>(OPEN_STATE_KEY);
 	return stored?.period === period ? stored.open : {};
@@ -95,8 +91,6 @@ const DAY_MONTH = new Intl.DateTimeFormat("uk-UA", {
 	month: "long",
 });
 
-// One status per semester. The call to rate shows only while the semester is
-// closed: once open, each row's «Оцінити» button is the call.
 function SemesterStatus({
 	seasonGroup,
 	timing,
@@ -139,7 +133,6 @@ function SemesterStatus({
 interface MyRatingsSemesterSectionProps {
 	seasonGroup: SemesterGroup;
 	onRatingChanged: () => void;
-	/** Holds the section open without touching the remembered state, e.g. under a filter. */
 	forceOpen?: boolean;
 }
 
@@ -153,7 +146,6 @@ export function MyRatingsSemesterSection({
 		seasonGroup.season,
 		new Date(),
 	);
-	// Open by default: the running semester and anything still waiting for a rating.
 	const [storedOpen, setOpen] = useSemesterOpen(
 		`${seasonGroup.year}-${seasonGroup.key}`,
 		timing !== "future" &&
@@ -163,7 +155,6 @@ export function MyRatingsSemesterSection({
 	const open = forceOpen || storedOpen;
 
 	const sortedItems = useMemo(() => {
-		// What is left to rate scans first; rated rows stay alphabetical after it.
 		return [...seasonGroup.items].sort((a, b) => {
 			const ratedA = a.rated ? 1 : 0;
 			const ratedB = b.rated ? 1 : 0;
@@ -219,7 +210,6 @@ export function MyRatingsSemesterSection({
 const SKELETON_GROUPS = ["skeleton-group-1", "skeleton-group-2"];
 const SKELETON_CARDS = ["skeleton-card-1", "skeleton-card-2"];
 
-// Mirrors a semester group: its header row, then muted course cards.
 export function MyRatingsSkeleton() {
 	return (
 		<div className="space-y-6" aria-hidden="true">

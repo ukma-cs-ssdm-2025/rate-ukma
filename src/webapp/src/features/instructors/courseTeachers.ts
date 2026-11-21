@@ -1,15 +1,12 @@
 import type { CourseInstructorMentions } from "@/lib/api/generated";
 import { formatInstructorName } from "./formatInstructorName";
 
-/** A teacher on the course page's row and why they are listed. Students'
- *  mentions fill it today; a planned teacher would come with its own note. */
 export interface CourseTeacher {
 	readonly id: string;
 	readonly name: string;
 	readonly note: string;
 }
 
-// One mention could be a typo; two students agreeing is a signal.
 const MIN_STUDENTS = 2;
 
 const UK_PLURAL = new Intl.PluralRules("uk");
@@ -22,15 +19,12 @@ const STUDENT_FORMS: Record<Intl.LDMLPluralRule, string> = {
 	other: "студента",
 };
 
-/** "обрали 3 студенти", "обрав 21 студент". */
 export function chosenByNote(count: number): string {
 	const form = UK_PLURAL.select(count);
 	const verb = form === "one" ? "обрав" : "обрали";
 	return `${verb} ${count} ${STUDENT_FORMS[form]}`;
 }
 
-/** Teachers at least two students named on the course, most named first.
- *  Counts students, not ratings: one student may rate several offerings. */
 export function namedCourseTeachers(
 	items: ReadonlyArray<CourseInstructorMentions>,
 ): CourseTeacher[] {

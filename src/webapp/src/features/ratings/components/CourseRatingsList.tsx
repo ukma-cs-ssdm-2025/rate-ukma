@@ -34,7 +34,6 @@ interface CourseRatingsListProps {
 	userRating?: InlineRating | RatingRead | null;
 	onEditUserRating?: () => void;
 	onDeleteUserRating?: () => void;
-	// Sits where the user's own review appears once they rate.
 	rateAction?: React.ReactNode;
 	hasAttended: boolean;
 	canRate: boolean;
@@ -228,7 +227,6 @@ export function CourseRatingsList({
 	);
 }
 
-// The «Відгуки» title and sort menu, for the page skeleton before the list mounts.
 export function CourseRatingsHeaderSkeleton() {
 	return (
 		<div className="flex items-center justify-between">

@@ -1,17 +1,3 @@
-/**
- * Client-side feature-flag overrides.
- *
- * Waffle evaluates flags per-user on the server, so there is no way to flip a
- * flag from the browser for testing. These overrides layer on top of the
- * server response (see `FeatureFlagsProvider`) so QA / Playwright can force a
- * flag on or off without touching the backend.
- *
- * Enabled in EVERY environment (including live): the E2E suite runs against
- * live too and relies on flipping flags, and the override is an obscure,
- * console-only affordance that only changes client-side display gating (the
- * write path is validated server-side regardless). Not a security boundary.
- */
-
 const STORAGE_KEY = "ff:overrides";
 const CHANGE_EVENT = "ff:overrides-changed";
 
@@ -35,7 +21,7 @@ export function readFeatureFlagOverrides(): Record<string, boolean> {
 			);
 		}
 	} catch {
-		// corrupt value — treat as no overrides
+		return {};
 	}
 	return {};
 }
@@ -65,13 +51,6 @@ export function clearFeatureFlagOverrides(): void {
 export const FEATURE_FLAG_OVERRIDES_EVENT = CHANGE_EVENT;
 export const FEATURE_FLAG_OVERRIDES_STORAGE_KEY = STORAGE_KEY;
 
-/**
- * Expose `window.featureFlags` helpers in non-live environments so a flag can
- * be flipped straight from the browser console:
- *   featureFlags.set("fe_feed", true)
- *   featureFlags.clear("fe_feed")
- *   featureFlags.list()
- */
 export function installFeatureFlagConsoleHelpers(): void {
 	if (!featureFlagOverridesEnabled || typeof window === "undefined") {
 		return;

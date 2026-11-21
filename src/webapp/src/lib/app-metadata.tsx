@@ -39,7 +39,6 @@ export function buildCourseOgDescription(course: {
 export function AppMetadataDefaults() {
 	return (
 		<Helmet defaultTitle={DEFAULT_PAGE_TITLE}>
-			{/* Keep index.html in sync: that file provides the static HTML fallback before React hydrates. */}
 			<meta name="description" content={DEFAULT_PAGE_DESCRIPTION} />
 		</Helmet>
 	);

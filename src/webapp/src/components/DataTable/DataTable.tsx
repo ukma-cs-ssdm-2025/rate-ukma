@@ -43,7 +43,6 @@ function shouldIgnoreRowClickTarget(target: EventTarget | null): boolean {
 }
 
 declare module "@tanstack/react-table" {
-	// Required by TanStack Table interface signature
 	interface ColumnMeta<TData, TValue> {
 		align?: "left" | "center" | "right";
 		label?: string;
@@ -51,7 +50,6 @@ declare module "@tanstack/react-table" {
 		variant?: "text" | "number";
 		icon?: React.ComponentType<{ className?: string }>;
 		range?: [number, number];
-		// Hides the whole column below the sm breakpoint (CSS only, keeps DOM for tests).
 		hideOnMobile?: boolean;
 	}
 }
@@ -281,7 +279,6 @@ export function DataTableSkeleton({
 			className={cn("flex w-full flex-col gap-4 overflow-auto", className)}
 			{...props}
 		>
-			{/* An empty toolbar would push the table below where it renders. */}
 			{filterCount > 0 || withViewOptions ? (
 				<div className="flex w-full items-center justify-between gap-2 overflow-auto p-1">
 					<div className="flex flex-1 items-center gap-2">

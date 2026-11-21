@@ -15,7 +15,6 @@ import {
 } from "@/features/ukma-data/reviewCases";
 import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
 
-// The proxy has no single-case route, so the page reads the list's cached page.
 function ReviewCaseDetail() {
 	const { caseId } = Route.useParams();
 	const { data, isLoading, error, refetch, isRefetching } =

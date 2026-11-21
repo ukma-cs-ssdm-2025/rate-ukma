@@ -26,12 +26,9 @@ export type Margin = Readonly<{
 
 type LinearScale = (value: number) => number;
 
-// Zoom level after which labels may start appearing.
 export const LABEL_ZOOM_THRESHOLD = 2;
-// If there are few points or plenty of canvas space per point, show many labels.
 export const SPARSE_POINT_THRESHOLD = 40;
 export const SPARSE_AREA_PER_POINT = 12_000;
-// Spacing for dense vs sparse to reduce overlap.
 export const MIN_LABEL_BASE_DISTANCE_DENSE = 12;
 export const MIN_LABEL_BASE_DISTANCE_SPARSE = 8;
 export const MIN_LABEL_BASE_DISTANCE_DENSE_PX = 36;

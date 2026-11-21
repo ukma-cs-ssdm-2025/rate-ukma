@@ -29,7 +29,6 @@ function LoginPage() {
 	const [showAdminLogin, setShowAdminLogin] = useState(false);
 
 	useEffect(() => {
-		// Check auth status when component mounts
 		checkAuth();
 	}, [checkAuth]);
 
@@ -41,7 +40,6 @@ function LoginPage() {
 		}
 	}, [status, search.redirect, navigate]);
 
-	// Keyboard shortcut for admin login (Ctrl+Shift+D)
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.ctrlKey && e.shiftKey && e.key === "D") {

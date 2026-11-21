@@ -9,14 +9,11 @@ interface DrawerProps {
 	onOpenChange: (open: boolean) => void;
 	children: React.ReactNode;
 	ariaLabel: string;
-	/** `bottom` rises as a sheet; use it for panels opened from a bottom control. */
 	side?: "right" | "bottom";
-	/** Kept for callers; the scrim is no longer a labelled button. */
 	closeButtonLabel?: string;
 	"data-testid"?: string;
 }
 
-// Matches the exit transition below, so the panel unmounts after it has left.
 const EXIT_DURATION_MS = 220;
 
 const HIDDEN_OFFSET = {
@@ -49,8 +46,6 @@ export function Drawer({
 		return () => globalThis.window.clearTimeout(timer);
 	}, [open]);
 
-	// The panel must paint once off-screen before it can transition in, so the
-	// flip waits two frames after mount.
 	useEffect(() => {
 		if (!open || !isMounted) {
 			return;
@@ -61,7 +56,6 @@ export function Drawer({
 		return () => cancelAnimationFrame(frame);
 	}, [open, isMounted]);
 
-	// Unlocking only after unmount keeps the page from jumping mid-exit.
 	useEffect(() => {
 		if (!isMounted) {
 			return;
@@ -79,8 +73,6 @@ export function Drawer({
 		? "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
 		: "duration-200 ease-in";
 
-	// Portaled to body: an ancestor stacking context (e.g. a view-transition
-	// name on /explore) would otherwise trap it under the sticky header.
 	return createPortal(
 		<dialog
 			open

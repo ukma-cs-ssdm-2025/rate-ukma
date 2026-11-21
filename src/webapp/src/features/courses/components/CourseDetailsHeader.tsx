@@ -22,7 +22,6 @@ interface CourseDetailsHeaderProps {
 	terms?: readonly string[];
 	credits?: string | null;
 	weeklyHours?: string | null;
-	/** Rows under the badges, such as the course's teachers. */
 	children?: ReactNode;
 }
 
@@ -85,8 +84,6 @@ export function CourseDetailsHeader({
 
 			{(specialityCount > 0 || facts) && (
 				<div className="max-w-4xl space-y-2">
-					{/* One line while it fits; general courses list up to twenty
-					    specialities, so those get their own line under the facts. */}
 					{specialityCount > SINGLE_LINE_SPECIALITIES ? (
 						<>
 							{facts}

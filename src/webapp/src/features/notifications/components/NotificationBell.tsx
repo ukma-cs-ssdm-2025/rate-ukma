@@ -49,7 +49,6 @@ export function NotificationBell() {
 		resetPagination();
 	}, [markAllRead, resetPagination]);
 
-	// refetch on open or when unreadCount changes while open
 	useEffect(() => {
 		if (open) {
 			void refetch();

@@ -46,8 +46,6 @@ const ratingSchema = z.object({
 		.transform((val) => val?.trim() || undefined)
 		.optional(),
 	instructor_ids: z.array(z.string().uuid()),
-	// Legacy free-text instructor, kept for backward compatibility with old clients.
-	// The form no longer edits it — new ratings pick Instructor entities instead.
 	instructor: z.string().max(256).optional(),
 	is_anonymous: z.boolean(),
 });
@@ -56,7 +54,6 @@ export type RatingFormData = z.infer<typeof ratingSchema>;
 
 const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
 
-// Descriptions read as "Коротко - детальніше"; the input shows the short head.
 function getShortDescription(
 	descriptions: Record<number, string>,
 	value: number,
@@ -140,8 +137,6 @@ function ScoreInput({
 					aria-live="polite"
 					className="mt-0.5 flex items-baseline gap-1.5 text-sm text-muted-foreground"
 				>
-					{/* No default score: a preset 3 anchors people and lets them submit
-					    a verdict they never made. */}
 					{shown > 0 ? (
 						<>
 							<span className="font-medium text-foreground tabular-nums">
@@ -238,7 +233,6 @@ function RatingFormFields({
 		courseInstructors?.items ?? [],
 		instructorIds ?? [],
 	).map((item) => item.instructor);
-	// Picked chips need names before the picker has loaded its own list.
 	const instructorOptions = React.useMemo(
 		() => [
 			...(initialInstructors ?? []),
@@ -246,8 +240,6 @@ function RatingFormFields({
 		],
 		[initialInstructors, courseInstructors],
 	);
-	// Teachers found by search are not in the options above, so remember each
-	// one the student adds; the preview needs their names too.
 	const [searchedInstructors, setSearchedInstructors] = React.useState<
 		ReadonlyMap<string, Instructor>
 	>(() => new Map());
@@ -275,8 +267,6 @@ function RatingFormFields({
 		moreBelow: false,
 	});
 
-	// Dividers only mark content hidden under the header or footer, so they
-	// follow the scroll position instead of always framing the form.
 	const updateEdges = React.useCallback(() => {
 		const el = scrollRef.current;
 		if (!el) {
@@ -466,8 +456,6 @@ function RatingFormFields({
 								Як побачать інші
 							</button>
 						</div>
-						{/* The same card the course page renders, fed from the form, so
-						    the anonymous toggle shows its real effect. */}
 						{previewOpen && (
 							<div
 								role="region"
@@ -513,7 +501,6 @@ interface RatingFormProps {
 	readonly offeringId?: string;
 	readonly courseId?: string;
 	readonly initialInstructors?: readonly Instructor[];
-	/** Signed-in student, for the byline preview. */
 	readonly author?: RatingAuthor;
 }
 

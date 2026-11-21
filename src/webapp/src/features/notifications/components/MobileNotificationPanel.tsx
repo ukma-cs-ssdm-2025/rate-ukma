@@ -40,8 +40,6 @@ export function MobileNotificationPanel({
 	const unreadCount = unreadData?.count ?? 0;
 	const [isLeaving, setIsLeaving] = useState(false);
 
-	// The menu swaps this panel out on back, so it slides away first and only
-	// then hands control back; reduced motion skips straight to the swap.
 	const handleBack = useCallback(() => {
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 			onBack();

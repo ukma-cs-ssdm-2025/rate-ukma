@@ -4,10 +4,6 @@ import * as Sentry from "@sentry/react";
 
 import type { AuthUser } from "@/lib/auth";
 
-/**
- * Hook to sync authenticated user data with Sentry for better error tracking and filtering.
- * Sets user context and authentication status tag.
- */
 export function useSentryUser(user: AuthUser | null) {
 	useEffect(() => {
 		if (user?.email) {
