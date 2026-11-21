@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import type { FilterOptions } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
-import { getActiveFilterChips } from "../hooks/useCourseFiltersData";
+import { getActiveFilterChips } from "../activeFilters";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 
 export const ActiveFilterChips = memo(function ActiveFilterChips({
