@@ -203,6 +203,57 @@ prometheus.relabel "cert_manager" {
 	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 }
 
+//  Metrics: parser spans. The api and worker send traces over OTLP; only the
+// metrics derived from them leave the cluster, the traces themselves are dropped.
+// Dimensions are bounded: the span name is a fixed string or a route template,
+// and url.full is never one.
+
+otelcol.receiver.otlp "parser" {
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		traces = [otelcol.connector.spanmetrics.parser.input]
+	}
+}
+
+otelcol.connector.spanmetrics "parser" {
+	dimension {
+		name = "http.route"
+	}
+
+	dimension {
+		name = "http.request.method"
+	}
+
+	dimension {
+		name = "http.response.status_code"
+	}
+
+	dimension {
+		name = "server.address"
+	}
+
+	dimension {
+		name = "outcome"
+	}
+
+	histogram {
+		explicit {
+			buckets = ["10ms", "50ms", "250ms", "1s", "5s", "30s", "2m", "10m"]
+		}
+	}
+
+	output {
+		metrics = [otelcol.exporter.prometheus.parser.input]
+	}
+}
+
+otelcol.exporter.prometheus "parser" {
+	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
 //  Push
 
 prometheus.remote_write "grafana_cloud" {

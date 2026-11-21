@@ -40,6 +40,9 @@ spec:
                 secretKeyRef:
                   name: parser-db-app
                   key: uri
+            # Alloy in the monitoring namespace turns the spans into metrics.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://alloy.monitoring:4318
           readinessProbe:
             httpGet:
               path: /health
