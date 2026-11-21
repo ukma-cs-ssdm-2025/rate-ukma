@@ -11,6 +11,10 @@ import { RemovalThreshold, removeOfferings } from "../offerings/removals.ts";
 import { SazClient } from "../saz/SazClient.ts";
 import { parseStudents } from "../students/students.ts";
 import { StudentStore } from "../students/StudentStore.ts";
+import { crawlSmart, untilNextSmartCrawl } from "../smart/crawl.ts";
+import { parseSmart } from "../smart/parse.ts";
+import { SmartClient } from "../smart/SmartClient.ts";
+import { SmartStore } from "../smart/SmartStore.ts";
 import { crawlLoop } from "./crawlLoop.ts";
 
 export const WorkerLive = Layer.effectDiscard(
@@ -86,7 +90,54 @@ export const WorkerLive = Layer.effectDiscard(
 				),
 			);
 
-		yield* crawlLoop({ nextWait, crawl, parse }).pipe(Effect.forkScoped);
+		yield* crawlLoop({ source: "САЗ", nextWait, crawl, parse }).pipe(
+			Effect.forkScoped,
+		);
+
+		// smart.ukma runs beside САЗ with its own lock, sign-in and schedule.
+		const smartWait = (
+			triedAt: number | undefined,
+		): Effect.Effect<Duration.Duration, never, CrawlStore> =>
+			untilNextSmartCrawl(triedAt).pipe(
+				Effect.catchCause((cause) =>
+					Effect.logError("Reading the smart.ukma schedule failed", cause).pipe(
+						Effect.andThen(Effect.sleep("1 minute")),
+						Effect.andThen(Effect.suspend(() => smartWait(triedAt))),
+					),
+				),
+			);
+
+		const smartCrawl = crawlSmart().pipe(
+			Effect.as(true),
+			Effect.catchTag("SmartSignInFailed", (error) =>
+				Effect.logError("smart.ukma crawl failed", error).pipe(
+					Effect.as(false),
+				),
+			),
+			Effect.catchCause((cause) =>
+				Effect.logError("smart.ukma crawl failed", cause).pipe(Effect.as(true)),
+			),
+		);
+
+		// A failed write's cause may quote a row, names and emails included, so
+		// only the list error's reason is logged.
+		const smartParse = parseSmart("crawl").pipe(
+			Effect.catchTag("SmartListError", ({ reason }) =>
+				Effect.logError("Parsing smart.ukma lists failed", { reason }),
+			),
+			Effect.catchCause(() =>
+				Effect.logError("Parsing smart.ukma lists failed", {
+					reason: "write failed",
+				}),
+			),
+		);
+
+		yield* crawlLoop({
+			source: "smart.ukma",
+			nextWait: smartWait,
+			crawl: smartCrawl,
+			parse: smartParse,
+		}).pipe(Effect.forkScoped);
 	}),
 ).pipe(
 	Layer.provide([
@@ -95,6 +146,8 @@ export const WorkerLive = Layer.effectDiscard(
 		OfferingStore.layer,
 		RemovalStore.layer,
 		SazClient.layer,
+		SmartClient.layer,
+		SmartStore.layer,
 		StudentStore.layer,
 	]),
 	Layer.provide(ChangeLog.layer),

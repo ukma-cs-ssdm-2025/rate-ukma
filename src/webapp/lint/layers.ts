@@ -26,12 +26,17 @@ function escapeRegex(text: string): string {
 	return text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
-function forbid(
+function suffixes(path: string): string[] {
+	const parts = path.split("/");
+	return parts.map((_, index) => parts.slice(index).join("/"));
+}
+
+export function forbid(
 	srcPaths: string[],
 	message: string,
 	allowTypeImports = false,
 ): ImportPattern[] {
-	const relative = srcPaths.map((path) => path.split("/").at(-1) ?? path);
+	const relativeTargets = srcPaths.flatMap(suffixes).map(escapeRegex);
 	return [
 		{
 			group: srcPaths.flatMap((path) => [`@/${path}`, `@/${path}/**`]),
@@ -39,7 +44,7 @@ function forbid(
 			allowTypeImports,
 		},
 		{
-			regex: String.raw`^(\.\./)+(${relative.map(escapeRegex).join("|")})(/|$)`,
+			regex: String.raw`^(\.\./)+(.+/)?(${relativeTargets.join("|")})(/|$)`,
 			message,
 			allowTypeImports,
 		},

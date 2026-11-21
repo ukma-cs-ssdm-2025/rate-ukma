@@ -10,6 +10,7 @@ const makeSteps = (waits: ReadonlyArray<Duration.Input>, signedIn = true) => {
 	const pending = waits.map(Duration.fromInputUnsafe);
 
 	const steps = {
+		source: "САЗ",
 		nextWait: (triedAt: number | undefined) =>
 			Effect.sync(() => {
 				log.push(`wait ${triedAt ?? "none"}`);

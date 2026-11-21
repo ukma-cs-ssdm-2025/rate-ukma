@@ -17,10 +17,14 @@ function lintWithoutAllowlist(): Map<string, Set<string>> {
 	});
 	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- oxlint's own JSON report
 	const { diagnostics } = JSON.parse(stdout) as {
-		diagnostics: { code: string; filename: string }[];
+		diagnostics: { code?: string; filename: string; message: string }[];
 	};
 	const filesByRule = new Map<string, Set<string>>();
-	for (const { code, filename } of diagnostics) {
+	for (const { code, filename, message } of diagnostics) {
+		if (code === undefined) {
+			problems.push(`${filename}: ${message}`);
+			continue;
+		}
 		const rule = code.replace(/^.*\((.*)\)$/, "$1");
 		const files = filesByRule.get(rule) ?? new Set<string>();
 		files.add(filename);
@@ -78,11 +82,13 @@ function checkFeatureGraph() {
 	}
 }
 
+const INDEX_FILE_EXEMPT_DIRS = new Set(["src/routes", "src/lib/api/generated"]);
+
 function findIndexFiles(dir: string): string[] {
 	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
 		const path = join(dir, entry.name);
 		if (entry.isDirectory()) {
-			return ["routes", "generated"].includes(entry.name)
+			return INDEX_FILE_EXEMPT_DIRS.has(relative(root, path))
 				? []
 				: findIndexFiles(path);
 		}

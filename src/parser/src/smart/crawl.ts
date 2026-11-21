@@ -1,6 +1,7 @@
-import { DateTime, Effect, Schema } from "effect";
+import { Clock, DateTime, Duration, Effect, Schema } from "effect";
 import {
 	CrawlAlreadyRunning,
+	crawlDelay,
 	crawlRun,
 	PageFailed,
 	type PageSource,
@@ -76,3 +77,25 @@ export const crawlSmart = Effect.fn("crawlSmart")(function* () {
 
 	return results;
 }, Effect.scoped);
+
+/** smart.ukma changes slowly and each crawl sends the password, so the
+ *  worker crawls it once a day. */
+const SMART_INTERVAL = Duration.hours(24);
+
+/** The wait before the next smart.ukma crawl, as `untilNextCrawl` counts it
+ *  for САЗ. */
+export const untilNextSmartCrawl = Effect.fn("untilNextSmartCrawl")(function* (
+	triedAt: number | undefined,
+) {
+	const store = yield* CrawlStore;
+	const now = yield* Clock.currentTimeMillis;
+
+	const sinceTry =
+		triedAt === undefined ? undefined : Duration.millis(now - triedAt);
+
+	return crawlDelay(
+		SMART_INTERVAL,
+		yield* store.lastCrawl(SMART_SOURCE),
+		sinceTry,
+	);
+});

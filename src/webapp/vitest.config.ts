@@ -13,7 +13,7 @@ export default defineConfig({
 	},
 	test: {
 		environment: "jsdom",
-		include: ["src/**/*.test.{ts,tsx}"],
+		include: ["src/**/*.test.{ts,tsx}", "lint/**/*.test.ts"],
 		exclude: ["tests/e2e/**"],
 		setupFiles: ["./src/vitest.setup.ts"],
 		coverage: {
