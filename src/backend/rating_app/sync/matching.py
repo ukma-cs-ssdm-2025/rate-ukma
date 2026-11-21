@@ -26,6 +26,11 @@ class _NamedRow(Protocol):
     def name(self) -> str: ...
 
 
+class _UkmaDataNamedRow(_NamedRow, Protocol):
+    @property
+    def removed_at(self) -> object | None: ...
+
+
 class _LinkedNamedRow(_NamedRow, Protocol):
     @property
     def ukma_data_id(self) -> str | None: ...
@@ -75,7 +80,8 @@ def match_offerings(ud: UkmaDataSnapshot, ru: RateUkmaSnapshot) -> dict[str, str
 
 
 def resolve_course(ud: UkmaDataSnapshot, course_id: str) -> str | None:
-    """Follow ``mergedInto`` to the course that now holds this one's offerings."""
+    """Follow ``mergedInto`` to the course that now holds this one's offerings, or None
+    when that course is removed (M6 ignores removed courses)."""
     seen: set[str] = set()
     current: str | None = course_id
     while current is not None:
@@ -86,7 +92,7 @@ def resolve_course(ud: UkmaDataSnapshot, course_id: str) -> str | None:
         if course is None:
             return None
         if course.merged_into is None:
-            return current
+            return current if course.removed_at is None else None
         current = course.merged_into
     return None
 
@@ -133,13 +139,15 @@ def match_faculties(ud: UkmaDataSnapshot, ru: RateUkmaSnapshot) -> dict[str, str
 
 
 def _match_by_name(
-    ud_rows: Mapping[str, _NamedRow],
+    ud_rows: Mapping[str, _UkmaDataNamedRow],
     ru_rows: Mapping[str, _LinkedNamedRow],
 ) -> dict[str, str]:
+    """Removed UKMA Data rows never match, so they cannot take a row from a live namesake."""
+    live = {ud_id: row for ud_id, row in ud_rows.items() if row.removed_at is None}
     by_ukma_data_id: dict[str, str] = {}
     by_name: dict[str, str] = {}
     ambiguous: set[str] = {
-        name for name, count in Counter(row.name for row in ud_rows.values()).items() if count > 1
+        name for name, count in Counter(row.name for row in live.values()).items() if count > 1
     }
     for row_id, row in ru_rows.items():
         if row.ukma_data_id is not None:
@@ -151,7 +159,7 @@ def _match_by_name(
             by_name[row.name] = row_id
 
     matches: dict[str, str] = {}
-    for ud_id, ud_row in ud_rows.items():
+    for ud_id, ud_row in live.items():
         target = by_ukma_data_id.get(ud_id)
         if target is None and ud_row.name not in ambiguous:
             target = by_name.get(ud_row.name)

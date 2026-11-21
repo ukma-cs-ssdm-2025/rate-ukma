@@ -119,6 +119,7 @@ def _ud_department(
     *,
     name: str,
     faculty_id: str | None = "ud-fac",
+    removed_at: str | None = None,
 ) -> ud.Department:
     return ud.Department.model_validate(
         {
@@ -127,7 +128,7 @@ def _ud_department(
             "sazFilterId": None,
             "facultyId": faculty_id,
             "changeNo": 1,
-            "removedAt": None,
+            "removedAt": removed_at,
         }
     )
 
@@ -338,6 +339,17 @@ def test_resolve_course_returns_the_course_without_a_merge():
     assert resolve_course(ud_snapshot, "ud-kept") == "ud-kept"
 
 
+def test_resolve_course_drops_a_removed_course():
+    ud_snapshot = _ud_snapshot(
+        courses=[
+            _ud_course("ud-old", merged_into="ud-gone"),
+            _ud_course("ud-gone", removed_at="2026-01-01T00:00:00Z"),
+        ]
+    )
+
+    assert resolve_course(ud_snapshot, "ud-old") is None
+
+
 def test_resolve_course_follows_a_merged_into_chain():
     ud_snapshot = _ud_snapshot(
         courses=[
@@ -491,6 +503,29 @@ def test_match_departments_does_not_claim_a_row_linked_to_another_department():
     )
 
     assert match_departments(ud_snapshot, ru) == {}
+
+
+def test_match_departments_ignores_a_removed_department():
+    ud_snapshot = _ud_snapshot(
+        departments=[
+            _ud_department("ud-old", name="Кафедра даних", removed_at="2026-01-01T00:00:00Z")
+        ]
+    )
+    ru = _ru_snapshot(departments=[_ru_department("ru-dept", name="Кафедра даних")])
+
+    assert match_departments(ud_snapshot, ru) == {}
+
+
+def test_match_departments_links_the_live_namesake_of_a_removed_department():
+    ud_snapshot = _ud_snapshot(
+        departments=[
+            _ud_department("ud-old", name="Кафедра даних", removed_at="2026-01-01T00:00:00Z"),
+            _ud_department("ud-new", name="Кафедра даних"),
+        ]
+    )
+    ru = _ru_snapshot(departments=[_ru_department("ru-dept", name="Кафедра даних")])
+
+    assert match_departments(ud_snapshot, ru) == {"ud-new": "ru-dept"}
 
 
 def test_match_faculties_prefers_the_stored_ukma_data_id():
