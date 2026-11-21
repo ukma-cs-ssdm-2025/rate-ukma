@@ -20,7 +20,7 @@ export function ReviewCasesPage() {
 			) : data && !error ? (
 				<>
 					<ReviewCaseList
-						cases={filterCases(data.items ?? [], {
+						cases={filterCases(data.items, {
 							kind: kind === "all" ? undefined : kind,
 							status: status === "all" ? undefined : status,
 						})}
