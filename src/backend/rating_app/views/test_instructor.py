@@ -381,6 +381,16 @@ def test_course_instructors_add_planned_teachers_only_with_the_flag(
         ("Планова", False),
     ]
 
+    other_course = course_offering_factory(semester=semester_factory(year=2021))
+    course_instructor_factory(
+        instructor=instructor_factory(last_name="Чужа", email="d@x.ua"),
+        course_offering=other_course,
+    )
+    foreign = token_client.get(url, {"offering_id": str(other_course.id)}).json()["items"]
+
+    assert [i["instructor"]["last_name"] for i in foreign] == ["Названа", "Планова"]
+    assert not any(i["planned"] for i in foreign)
+
 
 @pytest.mark.django_db
 @pytest.mark.integration

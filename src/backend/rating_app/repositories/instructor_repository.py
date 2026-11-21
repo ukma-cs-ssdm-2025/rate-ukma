@@ -200,10 +200,16 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             .order_by("-offering_ratings_count", "-ratings_count", "last_name", "first_name", "id")
         )
 
-    def planned_for_offering(self, offering_id: uuid.UUID) -> QuerySet[InstructorModel]:
-        """Teachers UKMA Data plans for the offering (``CourseInstructor``)."""
+    def planned_for_offering(
+        self, offering_id: uuid.UUID, course_id: uuid.UUID
+    ) -> QuerySet[InstructorModel]:
+        """Teachers UKMA Data plans for the offering (``CourseInstructor``), and
+        none when the offering belongs to another course."""
         return (
-            InstructorModel.objects.filter(assignments__course_offering_id=offering_id)
+            InstructorModel.objects.filter(
+                assignments__course_offering_id=offering_id,
+                assignments__course_offering__course_id=course_id,
+            )
             .distinct()
             .order_by("last_name", "first_name", "id")
         )

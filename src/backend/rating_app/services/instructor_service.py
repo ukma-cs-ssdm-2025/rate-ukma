@@ -64,7 +64,9 @@ class InstructorService(IFilterable):
                 course_id
             )
             if offering_id is not None:
-                planned = list(self.instructor_repository.planned_for_offering(offering_id))
+                planned = list(
+                    self.instructor_repository.planned_for_offering(offering_id, course_id)
+                )
         planned_ids = {obj.id for obj in planned}
         items = [
             CourseInstructorMentions(

@@ -23,8 +23,25 @@ set -euo pipefail
 PREV_WEBAPP_TAG=""
 PREV_BACKEND_TAG=""
 
+# Services the web deploy does not wait for: a failing one is reported, never rolled back.
+NON_BLOCKING_SERVICES='["scheduler"]'
+
 compose_cmd() {
   sudo WEBAPP_IMAGE_TAG="$1" BACKEND_IMAGE_TAG="$2" docker compose --profile prod "${@:3}"
+}
+
+# Starts the web services, then each non-blocking one on its own, so a
+# non-blocking service that cannot start never stops the deploy or its rollback.
+start_services() {
+  local web non_blocking
+  mapfile -t web < <(compose_cmd "$1" "$2" config --services \
+    | jq -R . | jq -s -r --argjson skip "$NON_BLOCKING_SERVICES" '.[] | select(. as $s | $skip | index($s) | not)')
+  compose_cmd "$1" "$2" up -d "${web[@]}"
+
+  for non_blocking in $(echo "$NON_BLOCKING_SERVICES" | jq -r '.[]'); do
+    compose_cmd "$1" "$2" up -d --no-deps "$non_blocking" \
+      || echo "Warning: $non_blocking failed to start; the web deploy goes on"
+  done
 }
 
 setup_permissions() {
@@ -107,11 +124,8 @@ deploy_new_version() {
   compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" pull
 
   echo "Starting services..."
-  compose_cmd "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG" up -d
+  start_services "$WEBAPP_IMAGE_TAG" "$BACKEND_IMAGE_TAG"
 }
-
-# Services the web deploy does not wait for: a failing one is reported, never rolled back.
-NON_BLOCKING_SERVICES='["scheduler"]'
 
 health_check() {
   echo "Waiting for services to be up and running..."
@@ -247,7 +261,7 @@ rollback() {
   if [[ -n "$PREV_WEBAPP_TAG" && -n "$PREV_BACKEND_TAG" ]]; then
     echo "Rolling back to WEBAPP: $PREV_WEBAPP_TAG, BACKEND: $PREV_BACKEND_TAG"
     compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" pull
-    compose_cmd "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG" up -d
+    start_services "$PREV_WEBAPP_TAG" "$PREV_BACKEND_TAG"
   else
     echo "Warning: Previous image tags not available. Cannot rollback to a previous version."
   fi
