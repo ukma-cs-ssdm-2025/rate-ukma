@@ -51,8 +51,6 @@ describe("FeedReviewItem", () => {
 	});
 
 	it("shows no arrow when the score matches the course average", () => {
-		// A course whose only rating is this one ties by construction, so an
-		// arrow here would be arbitrary.
 		render(
 			<FeedReviewItem
 				item={{

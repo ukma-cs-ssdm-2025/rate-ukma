@@ -15,8 +15,6 @@ import type {
 	StudentRatingsLight,
 } from "../../../src/lib/api/generated";
 
-// Every value here is invented: no real students, teachers or reviews.
-
 const NOW = Date.parse("2026-09-16T09:00:00Z");
 const hoursAgo = (hours: number) =>
 	new Date(NOW - hours * 3_600_000).toISOString();
@@ -73,8 +71,6 @@ export const COURSE = COURSES[0];
 export const LONG_COURSE_TITLE =
 	"Українська мова за професійним спрямуванням для студентів природничих і технічних спеціальностей";
 
-// General courses such as Ukrainian for professional purposes list most
-// bachelor programmes; single-word titles without an alias render in full.
 const MANY_SPECIALITY_TITLES = [
 	["Комп'ютерні науки", 0],
 	["Інженерія програмного забезпечення", 0],
@@ -109,7 +105,6 @@ export const MANY_SPECIALITIES = MANY_SPECIALITY_TITLES.map(
 	}),
 );
 
-// Real САЗ descriptions run several paragraphs, so the detail page gets a long one.
 export const COURSE_DETAIL = {
 	...COURSE,
 	description:
@@ -125,8 +120,6 @@ export const ANALYTICS = COURSES.map((course) => ({
 	faculty_name: course.faculty_name,
 })) satisfies CourseAnalytics[];
 
-// Teachers other students named on the course; the third has a single old tag,
-// below the form's threshold, so only two show as picks.
 export const COURSE_INSTRUCTORS = {
 	items: [
 		{
@@ -139,6 +132,8 @@ export const COURSE_INSTRUCTORS = {
 			ratings_count: 6,
 			offering_ratings_count: 3,
 			students_count: 5,
+			recent_students_count: 5,
+			planned: false,
 		},
 		{
 			instructor: {
@@ -150,6 +145,8 @@ export const COURSE_INSTRUCTORS = {
 			ratings_count: 2,
 			offering_ratings_count: 0,
 			students_count: 2,
+			recent_students_count: 2,
+			planned: false,
 		},
 		{
 			instructor: {
@@ -161,6 +158,8 @@ export const COURSE_INSTRUCTORS = {
 			ratings_count: 1,
 			offering_ratings_count: 0,
 			students_count: 1,
+			recent_students_count: 1,
+			planned: false,
 		},
 	],
 } satisfies CourseInstructorList;
@@ -236,8 +235,6 @@ const reviews: FeedItem[] = COURSES.slice(0, 6).map((course, index) => ({
 	course_avg_usefulness: course.avg_usefulness,
 })) satisfies FeedItem[];
 
-// Invented images in the two shapes admins upload: a round photo on a white
-// square and a rounded-square logo with transparent corners.
 const svg = (body: string) =>
 	`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">${body}</svg>`)}`;
 const HACKATHON_LOGO = svg(
@@ -317,7 +314,6 @@ export const COURSE_RATINGS = {
 			difficulty: 4 + (index % 2),
 			usefulness: 5 - (index % 2),
 			comment,
-			// One free-text instructor, typed by the student and shown unverified.
 			instructor: index === 1 ? "Олена Демченко" : null,
 			instructors: [],
 			is_anonymous: RATING_AUTHORS[index] === "Анонім",
@@ -372,7 +368,6 @@ const offering = (
 	max_groups: 3,
 	group_size_min: 10,
 	group_size_max: 30,
-	// Prod never fills offering instructors (CourseInstructor is empty).
 	instructors: [],
 	specialities: COURSE.specialities,
 	terms: [
@@ -393,13 +388,10 @@ const offering = (
 	],
 });
 
-// Newest first; the 2021 run carries a lighter load so its row shows it.
 export const COURSE_OFFERINGS = {
 	course_offerings: [
 		offering(2026, "SPRING", "5.0", 4),
 		offering(2025, "SPRING", "5.0", 4),
-		// Prod САЗ holds one record per stream, so a year can carry several,
-		// mostly split by speciality.
 		{
 			...offering(2025, "SPRING", "5.0", 4),
 			id: "offering-2025-SPRING-b",
@@ -418,8 +410,6 @@ export const COURSE_OFFERINGS = {
 	],
 } satisfies CourseOfferingListResponse;
 
-// One run lists every speciality on a single record, the next splits them
-// into a record each, so both shapes of a general course show up.
 export const COURSE_OFFERINGS_MANY = {
 	course_offerings: [
 		{ ...offering(2026, "SPRING", "3.0", 2), specialities: MANY_SPECIALITIES },
@@ -485,8 +475,6 @@ export const NOTIFICATIONS = [
 	},
 ] satisfies NotificationGroup[];
 
-// A review pasted from a text editor: long, with hard line breaks mid-sentence,
-// the shape that makes the expanded card much taller than its scores.
 const LONG_PASTED_COMMENT = [
 	"Курс починається з класів і об'єктів, але вже на третьому тижні переходить до",
 	"наслідування, інтерфейсів і композиції. Лектор щоразу пояснює, чому одне рішення",
@@ -533,8 +521,6 @@ export const MY_GRADES = COURSES.slice(0, 8).map((course, index) => ({
 	can_rate: true,
 })) satisfies StudentRatingsDetailed[];
 
-// Four finished years of six courses a semester plus a term still running:
-// the scale a final-year student reaches.
 export const MY_GRADES_MANY = Array.from({ length: 52 }, (_, index) => {
 	const course = COURSES[index % COURSES.length];
 	const semesterIndex = Math.floor(index / 6);
@@ -583,8 +569,6 @@ export const EMPTY_COMMENT_LIST = {
 	previous_page: null,
 } satisfies CommentList;
 
-// The fixture student attends COURSE; the offering's state decides what the
-// course page rate action shows (see useUserCourseRating).
 export type MyCourseState = "rateable" | "not-yet" | "rated";
 
 export const myCourses = (state: MyCourseState) =>
@@ -617,8 +601,6 @@ export const myCourses = (state: MyCourseState) =>
 		},
 	] satisfies StudentRatingsLight[];
 
-// Thread under the first review (rating-0): two top-level comments, the first
-// with a single reply served from COMMENT_REPLIES.
 export const RATING_COMMENTS = {
 	items: [
 		{

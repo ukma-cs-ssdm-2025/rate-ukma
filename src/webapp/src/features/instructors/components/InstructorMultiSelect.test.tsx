@@ -8,7 +8,6 @@ import type { Instructor } from "@/lib/api/generated";
 import { renderWithProviders } from "@/test-utils/render";
 import { InstructorMultiSelect } from "./InstructorMultiSelect";
 
-// Mock the orval-generated infinite query hook backing the dropdown
 vi.mock("@/lib/api/generated", async () => {
 	const actual = await vi.importActual("@/lib/api/generated");
 	return {
@@ -48,7 +47,6 @@ function mockInstructors(items: Instructor[]) {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockInstructors([]);
-	// cmdk scrolls the active item into view; jsdom lacks this API
 	Element.prototype.scrollIntoView = vi.fn();
 });
 
@@ -84,7 +82,6 @@ describe("InstructorMultiSelect", () => {
 			expect(screen.getByText("Обрати викладача…")).toBeInTheDocument();
 		});
 
-		// The whole chip is the remove target: the ×, the name, or Enter on it.
 		it.each([
 			[
 				"its × is clicked",
@@ -264,7 +261,6 @@ describe("InstructorMultiSelect", () => {
 				/>,
 			);
 
-			// The cap must block additions but still allow deselection.
 			await user.click(screen.getByRole("combobox"));
 			const list = await screen.findByTestId("instructor-select-list");
 			await user.click(within(list).getByText("Борисенко Іван"));

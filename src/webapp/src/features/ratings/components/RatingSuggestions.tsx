@@ -1,7 +1,7 @@
 import { PenLine } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { getSemesterDisplay } from "@/features/courses/courseFormatting";
+import { getSemesterDisplay } from "@/lib/semester-term";
 import { cn } from "@/lib/utils";
 import type { RatingSuggestion } from "@/lib/api/generated";
 

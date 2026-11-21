@@ -10,15 +10,12 @@ export interface RatingData {
 }
 
 export class RatingModal {
-	// Modal
 	private readonly modal: Locator;
 
-	// Form — star rating inputs
 	private readonly difficultyStars: Locator;
 	private readonly usefulnessStars: Locator;
 	private readonly commentTextarea: Locator;
 
-	// Action buttons
 	private readonly saveButton: Locator;
 
 	private readonly page: Page;
@@ -55,9 +52,6 @@ export class RatingModal {
 
 	async openInstructorPicker(): Promise<void> {
 		await expect(this.instructorTrigger).toBeVisible();
-		// Click the chevron, not the trigger: with a chip selected the trigger's
-		// centre lands on that chip's remove button. The open click can also race
-		// with the dialog's focus handling, so retry until the list shows.
 		await expect(async () => {
 			if (!(await this.instructorList.isVisible())) {
 				await this.instructorToggle.click();
@@ -80,7 +74,6 @@ export class RatingModal {
 		await this.instructorSearchInput.fill("");
 	}
 
-	/** Names currently offered by the picker, in listed order. */
 	async getListedInstructorNames(limit = 5): Promise<string[]> {
 		await expect(this.instructorList).toBeVisible();
 		const options = this.instructorList.getByRole("option");
@@ -93,10 +86,6 @@ export class RatingModal {
 		return names;
 	}
 
-	/**
-	 * Search for a name, then pick the row that matches it exactly, so the
-	 * choice never depends on directory ordering or on a partial-name collision.
-	 */
 	async pickInstructorByText(text: string): Promise<void> {
 		await this.searchInstructor(text);
 		const option = this.instructorList.getByRole("option", {
@@ -113,9 +102,6 @@ export class RatingModal {
 	}
 
 	private get instructorChips(): Locator {
-		// Each chip is one remove button labelled "Видалити <name>". The open
-		// picker is modal and hides the rest of the page from the a11y tree, so
-		// the chips are looked up with includeHidden.
 		return this.instructorTrigger.getByRole("button", {
 			name: /^Видалити /,
 			includeHidden: true,
@@ -135,14 +121,12 @@ export class RatingModal {
 		return names;
 	}
 
-	/** The one-tap pick under the field for a teacher others named on the course. */
 	instructorQuickPick(fullName: string): Locator {
 		return this.modal
 			.getByTestId(testIds.rating.instructorQuickPicks)
 			.getByRole("button", { name: `Додати: ${fullName}`, exact: true });
 	}
 
-	/** Full names of the teachers offered as one-tap picks, best first. */
 	async getQuickPickNames(): Promise<string[]> {
 		const picks = this.modal
 			.getByTestId(testIds.rating.instructorQuickPicks)
@@ -153,7 +137,6 @@ export class RatingModal {
 		return labels.map((label) => label.replace(/^Додати: /, ""));
 	}
 
-	/** Remove the chip at `index`; the whole chip is the remove target. */
 	async removeInstructorChipByIndex(index: number): Promise<void> {
 		await this.instructorChips.nth(index).click();
 	}

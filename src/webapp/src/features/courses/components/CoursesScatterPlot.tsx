@@ -28,12 +28,8 @@ import {
 import { getFacultyColors, getFacultyHexColor } from "@/lib/faculty-colors";
 import { computeLabelPoints } from "./scatterLabeling";
 import type { CourseDataPoint, LabelPoint, Margin } from "./scatterLabeling";
-import {
-	DIFFICULTY_RANGE,
-	getDifficultyTone,
-	getUsefulnessTone,
-	USEFULNESS_RANGE,
-} from "../courseFormatting";
+import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
 
 const PLOT_LOADING_MESSAGES = [
 	{

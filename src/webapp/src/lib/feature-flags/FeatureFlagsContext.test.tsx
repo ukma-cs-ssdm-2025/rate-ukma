@@ -13,7 +13,6 @@ import type { FeatureFlagName } from "./useFeatureFlag";
 
 const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
 const mockUseFlagsList = vi.fn();
-// Fixture names, cast so the test does not depend on the live allowlist.
 const FE_EXAMPLE = "fe_example" as FeatureFlagName;
 const FE_MISSING = "fe_missing" as FeatureFlagName;
 
@@ -47,7 +46,7 @@ function lastQueryKey() {
 describe("feature flags", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		localStorage.clear(); // drop any ff:overrides leaked from other tests
+		localStorage.clear();
 		authState.current = { status: "unauthenticated", user: null };
 		mockUseFlagsList.mockReturnValue({
 			data: { flags: { [FE_EXAMPLE]: true } },

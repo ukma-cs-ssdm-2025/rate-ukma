@@ -1142,8 +1142,10 @@ paths:
     get:
       operationId: courses_instructors_retrieve
       description: Instructors that ratings of this course name, with mention counts.
-        Never-named instructors are left out, so an empty list means no signal. Pass
-        `offering_id` to count and rank that offering first.
+        Pass `offering_id` to count and rank that offering first. While fe_course_instructors
+        is on for the user, teachers UKMA Data plans for the offering (or the course's
+        latest) are marked `planned`, and planned teachers nobody named yet follow
+        with zero counts.
       summary: List instructors named on a course
       parameters:
       - in: path
@@ -3928,10 +3930,21 @@ components:
           type: integer
           description: Distinct students behind ratings_count; one may rate several
             offerings
+        recent_students_count:
+          type: integer
+          description: Of those, students who rated an offering of the current or
+            previous academic year
+        planned:
+          type: boolean
+          description: UKMA Data plans this teacher for the offering (offering_id,
+            else the course's latest). Always false while fe_course_instructors is
+            off for the user
       required:
       - instructor
       - offering_ratings_count
+      - planned
       - ratings_count
+      - recent_students_count
       - students_count
     CourseList:
       type: object

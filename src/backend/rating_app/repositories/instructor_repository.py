@@ -16,9 +16,10 @@ from django.db.models.functions import Lower
 
 from rating_app.application_schemas.instructor import Instructor, InstructorInput
 from rating_app.exception.instructor_exceptions import InstructorNotFoundError
+from rating_app.models import CourseOffering as CourseOfferingModel
 from rating_app.models import Instructor as InstructorModel
 from rating_app.models import Student as StudentModel
-from rating_app.models.choices import EducationLevel
+from rating_app.models.choices import EducationLevel, SemesterTerm
 from rating_app.repositories.protocol import IDomainOrmRepository
 from rating_app.repositories.to_domain_mappers import InstructorMapper
 
@@ -40,6 +41,20 @@ def current_academic_year_start(today: date | None = None) -> int:
     return today.year if today.month >= 9 else today.year - 1
 
 
+def _recent_ratings(today: date | None = None) -> Q:
+    """Ratings on offerings of the current or previous academic year. A
+    semester's ``year`` is the calendar year, so autumn starts its academic
+    year and spring and summer end it."""
+    first = current_academic_year_start(today) - 1
+    return Q(
+        ratings__course_offering__semester__term=SemesterTerm.FALL,
+        ratings__course_offering__semester__year__gte=first,
+    ) | (
+        ~Q(ratings__course_offering__semester__term=SemesterTerm.FALL)
+        & Q(ratings__course_offering__semester__year__gte=first + 1)
+    )
+
+
 class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
     def __init__(self, mapper: InstructorMapper) -> None:
         self.mapper = mapper
@@ -48,6 +63,16 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         qs = InstructorModel.objects.all()
         if ordered:
             qs = qs.order_by("last_name", "first_name", "id")
+        return self._map_to_domain_models(qs)
+
+    def get_named(self) -> list[Instructor]:
+        """Teachers some rating names, ordered by name: the only ones the
+        course list's instructor filter can match."""
+        qs = (
+            InstructorModel.objects.filter(ratings__isnull=False)
+            .distinct()
+            .order_by("last_name", "first_name", "id")
+        )
         return self._map_to_domain_models(qs)
 
     def list_ranked(
@@ -164,7 +189,9 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         ``ratings_count`` covers every offering of the course,
         ``offering_ratings_count`` only ``offering_id`` (zero when omitted),
         ``students_count`` the distinct students behind ``ratings_count``: one
-        student may rate several offerings of the course.
+        student may rate several offerings of the course;
+        ``recent_students_count`` those of them on offerings of the current
+        and previous academic year.
         Ordered by this offering first, then the whole course, then name.
         """
         offering_filter = (
@@ -175,10 +202,45 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             .annotate(
                 ratings_count=Count("ratings", distinct=True),
                 students_count=Count("ratings__student", distinct=True),
+                recent_students_count=Count(
+                    "ratings__student", filter=_recent_ratings(), distinct=True
+                ),
                 offering_ratings_count=Count("ratings", filter=offering_filter, distinct=True),
             )
             .order_by("-offering_ratings_count", "-ratings_count", "last_name", "first_name", "id")
         )
+
+    def planned_for_offering(
+        self, offering_id: uuid.UUID, course_id: uuid.UUID
+    ) -> QuerySet[InstructorModel]:
+        """Teachers UKMA Data plans for the offering (``CourseInstructor``), and
+        none when the offering belongs to another course."""
+        return (
+            InstructorModel.objects.filter(
+                assignments__course_offering_id=offering_id,
+                assignments__course_offering__course_id=course_id,
+            )
+            .distinct()
+            .order_by("last_name", "first_name", "id")
+        )
+
+    def latest_offering_id(self, course_id: uuid.UUID) -> uuid.UUID | None:
+        offering = (
+            CourseOfferingModel.objects.filter(course_id=course_id)
+            .annotate(
+                # Within a calendar year spring comes first, then summer, then fall.
+                term_rank=Case(
+                    When(semester__term=SemesterTerm.FALL, then=Value(2)),
+                    When(semester__term=SemesterTerm.SUMMER, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("-semester__year", "-term_rank")
+            .values_list("id", flat=True)
+            .first()
+        )
+        return offering
 
     def get_many_by_ids(self, ids: list[uuid.UUID]) -> list[InstructorModel]:
         if not ids:

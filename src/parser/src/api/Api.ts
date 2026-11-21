@@ -21,11 +21,13 @@ import {
 	Department,
 	Faculty,
 	Offering,
+	OfferingTeachers,
 	Page,
 	PageQuery,
 	Programme,
 	ReviewCase,
 	Term,
+	YearPageQuery,
 } from "../lists/lists.ts";
 import { Stats } from "../stats/stats.ts";
 
@@ -131,6 +133,24 @@ export class CatalogApi extends HttpApiGroup.make("catalog")
 	.middleware(ApiKeyAuth)
 	.prefix("/v1") {}
 
+export class InstructorApi extends HttpApiGroup.make("instructors")
+	.add(
+		HttpApiEndpoint.get("offeringTeachers", "/offerings/instructors", {
+			query: YearPageQuery,
+			success: Page(OfferingTeachers, "OfferingTeachersPage"),
+		}).annotate(
+			OpenApi.Summary,
+			"Each offering's smart.ukma teachers with their emails and roles",
+		),
+	)
+	.annotate(
+		OpenApi.Description,
+		"Teachers linked to offerings, with emails: `instructors:read`",
+	)
+	.annotateEndpoints(RequiredScopes, ["instructors:read"])
+	.middleware(ApiKeyAuth)
+	.prefix("/v1") {}
+
 export class ReviewApi extends HttpApiGroup.make("review")
 	.add(
 		HttpApiEndpoint.get("reviewCases", "/review-cases", {
@@ -189,6 +209,7 @@ export class Api extends HttpApi.make("ukma-data")
 	.add(SystemApi)
 	.add(KeyApi)
 	.add(CatalogApi)
+	.add(InstructorApi)
 	.add(ReviewApi)
 	.annotateMerge(
 		OpenApi.annotations({

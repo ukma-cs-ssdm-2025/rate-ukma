@@ -42,7 +42,6 @@ for (const width of [1440, 390]) {
 		await mockBackend(page, { ratingSuggestions: "items" });
 
 		await page.goto("/my-ratings");
-		// Every row already offers «Оцінити», so the page shows no suggestion card.
 		await expect(page.getByTestId(testIds.myRatings.list)).toBeVisible();
 		await expect(suggestions(page)).toHaveCount(0);
 		await shot(page, `my-ratings-${width}`);
@@ -59,7 +58,6 @@ for (const width of [1440, 390]) {
 			thanks(page).getByRole("button", { name: /^Оцінити «/ }),
 		).toHaveCount(2);
 		await shot(page, `thanks-${width}`);
-		// The list already updates in place, so no way to another page here.
 		await expect(
 			thanks(page).getByRole("link", { name: /^Відкрити/ }),
 		).toHaveCount(0);
@@ -74,7 +72,6 @@ for (const width of [1440, 390]) {
 		await expect(page.getByTestId(testIds.rating.modalTitle)).toHaveText(
 			"Машинне навчання",
 		);
-		// Fresh form; only the anonymity choice carries over.
 		await expect(
 			page
 				.getByTestId(testIds.rating.difficultySlider)
@@ -123,7 +120,6 @@ for (const width of [1440, 390]) {
 			exact: true,
 		});
 		await expect(open).toBeVisible();
-		// No jump on its own: the user stays on the page they were reading.
 		await expect(page).toHaveURL(new RegExp(`/courses/${COURSE.id}$`));
 		await shot(page, `open-course-${width}`);
 		await open.click();
@@ -185,7 +181,6 @@ test("thanks never interrupts a delete confirmation", async ({ page }) => {
 	await page.clock.install();
 	await page.clock.pauseAt(new Date(Date.now() + 100));
 	await page.getByTestId(testIds.rating.submitButton).click();
-	// A paused clock also stalls React Query, so step it until the rating shows.
 	await expect(async () => {
 		await page.clock.runFor(50);
 		await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible({

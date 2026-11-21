@@ -133,6 +133,7 @@ describe("key commands", () => {
 				assert.deepStrictEqual((yield* storedKey(all.keyId))?.scopes, [
 					"catalog:read",
 					"review:decide",
+					"instructors:read",
 				]);
 			}),
 		);

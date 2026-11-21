@@ -1,7 +1,4 @@
-import {
-	getDifficultyTone,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
 import { cn } from "@/lib/utils";
 
 interface RatingStatsProps {
