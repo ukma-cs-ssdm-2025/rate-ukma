@@ -1,25 +1,25 @@
 import { describe, expect, it } from "vitest";
 
 import type { CourseInstructorMentions } from "@/lib/api/generated";
-import { chosenByNote, namedCourseTeachers } from "./courseTeachers";
+import { chosenByNote, courseTeachers } from "./courseTeachers";
 
 const mention = (
 	id: string,
 	lastName: string,
-	studentsCount: number,
-	ratingsCount = studentsCount,
+	recentStudents: number,
+	{ students = recentStudents, planned = false } = {},
 ): CourseInstructorMentions => ({
 	instructor: { id, first_name: "Ім'я", last_name: lastName, patronymic: "" },
-	ratings_count: ratingsCount,
+	ratings_count: students,
 	offering_ratings_count: 0,
-	students_count: studentsCount,
-	recent_students_count: studentsCount,
-	planned: false,
+	students_count: students,
+	recent_students_count: recentStudents,
+	planned,
 });
 
-describe("namedCourseTeachers", () => {
-	it("keeps teachers named at least twice, most named first", () => {
-		const teachers = namedCourseTeachers([
+describe("courseTeachers", () => {
+	it("keeps teachers two students named lately, most named first", () => {
+		const teachers = courseTeachers([
 			mention("i-1", "Вигаданий", 2),
 			mention("i-2", "Уявна", 1),
 			mention("i-3", "Зразкова", 7),
@@ -31,14 +31,36 @@ describe("namedCourseTeachers", () => {
 		]);
 	});
 
-	it("counts students, not ratings", () => {
-		expect(namedCourseTeachers([mention("i-1", "Вигаданий", 1, 2)])).toEqual(
-			[],
-		);
+	it("leaves out picks older than two academic years", () => {
+		expect(
+			courseTeachers([mention("i-1", "Вигаданий", 1, { students: 4 })]),
+		).toEqual([]);
 	});
 
-	it("gives nothing when nobody was named twice", () => {
-		expect(namedCourseTeachers([mention("i-1", "Вигаданий", 1)])).toEqual([]);
+	it("falls back to the planned teachers when nobody was named twice lately", () => {
+		expect(
+			courseTeachers([
+				mention("i-1", "Вигаданий", 1, { planned: true }),
+				mention("i-2", "Уявна", 0, { planned: true }),
+				mention("i-3", "Зразкова", 1),
+			]),
+		).toEqual([
+			{ id: "i-1", name: "Вигаданий Ім'я", note: "за планом" },
+			{ id: "i-2", name: "Уявна Ім'я", note: "за планом" },
+		]);
+	});
+
+	it("prefers students' picks over the plan", () => {
+		expect(
+			courseTeachers([
+				mention("i-1", "Вигаданий", 3),
+				mention("i-2", "Уявна", 0, { planned: true }),
+			]).map(({ id }) => id),
+		).toEqual(["i-1"]);
+	});
+
+	it("gives nothing without picks or a plan", () => {
+		expect(courseTeachers([mention("i-1", "Вигаданий", 1)])).toEqual([]);
 	});
 });
 

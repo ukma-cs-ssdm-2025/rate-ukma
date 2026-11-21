@@ -7,7 +7,14 @@ import { HelmetProvider } from "react-helmet-async";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import type { HeaderNotifications } from "@/components/Header/HeaderNotificationsProvider";
+import { HeaderNotificationsProvider } from "@/components/Header/HeaderNotificationsProvider";
 import { Toaster } from "@/components/ui/Toaster";
+import {
+	MobileNotificationPanel,
+	MobileNotificationRow,
+} from "@/features/notifications/components/MobileNotificationPanel";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { RatingContinuationProvider } from "@/features/ratings/components/RatingContinuationProvider";
 import { SentryUserSync } from "@/integrations/sentry/SentryUserSync";
 import { AppMetadataDefaults } from "@/lib/app-metadata";
@@ -22,6 +29,12 @@ const TanStackRouterDevtools = import.meta.env.PROD
 			})),
 		);
 
+const headerNotifications: HeaderNotifications = {
+	Bell: NotificationBell,
+	MobilePanel: MobileNotificationPanel,
+	MobileRow: MobileNotificationRow,
+};
+
 interface MyRouterContext {
 	queryClient: QueryClient;
 }
@@ -35,12 +48,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 					<FeatureFlagsProvider>
 						<SentryUserSync />
 						<ThemeProvider defaultTheme="system" storageKey="rate-ukma-theme">
-							<RatingContinuationProvider>
-								<NuqsAdapter>
-									<Outlet />
-								</NuqsAdapter>
-								<Toaster />
-							</RatingContinuationProvider>
+							<HeaderNotificationsProvider value={headerNotifications}>
+								<RatingContinuationProvider>
+									<NuqsAdapter>
+										<Outlet />
+									</NuqsAdapter>
+									<Toaster />
+								</RatingContinuationProvider>
+							</HeaderNotificationsProvider>
 						</ThemeProvider>
 						<Suspense>
 							<TanStackRouterDevtools position="bottom-left" />

@@ -67,3 +67,76 @@ test("no row when nobody named a teacher twice", async ({ page }) => {
 
 	await expect(page.getByTestId(testIds.courseDetails.teachers)).toHaveCount(0);
 });
+
+for (const width of WIDTHS) {
+	test(`planned teachers when nobody named one twice, at ${width} px`, async ({
+		page,
+	}) => {
+		await mockBackend(page, { courseInstructors: "planned" });
+		await open(page, true, width);
+
+		const row = page.getByTestId(testIds.courseDetails.teachers);
+		await expect(row).toContainText("Савчук Ірина Василівна");
+		await expect(row).toContainText("Мельничук Тарас Ігорович");
+		await expect(row).not.toContainText("Демченко");
+		await expect(row.getByText("за планом").first()).toHaveClass("sr-only");
+
+		mkdirSync(out, { recursive: true });
+		await page.screenshot({
+			path: resolve(out, `planned-${width}.png`),
+			animations: "disabled",
+		});
+	});
+
+	test(`each year of the course history lists its planned teachers, at ${width} px`, async ({
+		page,
+	}) => {
+		await mockBackend(page, { courseInstructors: "planned" });
+		await open(page, true, width);
+
+		const history = page
+			.getByRole("heading", { name: "Історія дисципліни" })
+			.locator("..");
+		const teachers = history.getByRole("listitem").filter({
+			hasText: /^Викладачі:/,
+		});
+		await expect(teachers).toHaveText([
+			"Викладачі: Савчук І. В., Мельничук Т. І.",
+			"Викладачі: Савчук І. В.",
+		]);
+		await history.scrollIntoViewIfNeeded();
+
+		mkdirSync(out, { recursive: true });
+		await history.screenshot({
+			path: resolve(out, `history-planned-${width}.png`),
+			animations: "disabled",
+		});
+	});
+
+	test(`quick picks put the plan after students' picks, at ${width} px`, async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width, height: 900 });
+		await mockBackend(page, {
+			courseInstructors: "planned",
+			myCourses: "rateable",
+		});
+		await setFeatureFlagOverride(page, "fe_course_instructors", true);
+		await page.goto(`/courses/${COURSES[0].id}`);
+		await page.getByTestId("course-details-rate-button").click();
+		await page.getByTestId("rating-modal").waitFor();
+
+		const picks = page.getByTestId(testIds.rating.instructorQuickPicks);
+		await expect(picks.getByRole("button")).toHaveText([
+			/Демченко/,
+			/Савчук/,
+			/Мельничук/,
+		]);
+
+		mkdirSync(out, { recursive: true });
+		await page.screenshot({
+			path: resolve(out, `quick-picks-planned-${width}.png`),
+			animations: "disabled",
+		});
+	});
+}

@@ -164,6 +164,41 @@ export const COURSE_INSTRUCTORS = {
 	],
 } satisfies CourseInstructorList;
 
+export const COURSE_INSTRUCTORS_PLANNED = {
+	items: [
+		{
+			...COURSE_INSTRUCTORS.items[0],
+			recent_students_count: 1,
+		},
+		{
+			instructor: {
+				id: "i-4",
+				first_name: "Ірина",
+				patronymic: "Василівна",
+				last_name: "Савчук",
+			},
+			ratings_count: 0,
+			offering_ratings_count: 0,
+			students_count: 0,
+			recent_students_count: 0,
+			planned: true,
+		},
+		{
+			instructor: {
+				id: "i-5",
+				first_name: "Тарас",
+				patronymic: "Ігорович",
+				last_name: "Мельничук",
+			},
+			ratings_count: 0,
+			offering_ratings_count: 0,
+			students_count: 0,
+			recent_students_count: 0,
+			planned: true,
+		},
+	],
+} satisfies CourseInstructorList;
+
 export const FILTER_OPTIONS = {
 	instructors: [{ id: "i-1", name: "Олена Демченко", department: null }],
 	faculties: FACULTIES.map((faculty) => ({
@@ -408,6 +443,31 @@ export const COURSE_OFFERINGS = {
 		offering(2023, "SPRING", "5.0", 4),
 		offering(2021, "SPRING", "4.0", 3),
 	],
+} satisfies CourseOfferingListResponse;
+
+const SAVCHUK = {
+	id: "i-4",
+	first_name: "Ірина",
+	patronymic: "Василівна",
+	last_name: "Савчук",
+};
+const MELNYCHUK = {
+	id: "i-5",
+	first_name: "Тарас",
+	patronymic: "Ігорович",
+	last_name: "Мельничук",
+};
+
+export const COURSE_OFFERINGS_PLANNED = {
+	course_offerings: COURSE_OFFERINGS.course_offerings.map((item) => ({
+		...item,
+		instructors:
+			item.semester_year === 2026
+				? [SAVCHUK, MELNYCHUK]
+				: item.semester_year === 2025
+					? [SAVCHUK]
+					: [],
+	})),
 } satisfies CourseOfferingListResponse;
 
 export const COURSE_OFFERINGS_MANY = {

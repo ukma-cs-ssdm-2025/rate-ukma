@@ -15,6 +15,8 @@ import type {
 	CourseOfferingTerm,
 	SemesterTermEnum,
 } from "@/lib/api/generated";
+import { useFeatureFlag } from "@/lib/feature-flags";
+import { yearTeachers } from "./yearTeachers";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";
 const MAX_RECORDS_PER_YEAR = 3;
@@ -233,14 +235,17 @@ function YearRow({
 	group,
 	showTerm,
 	bySpeciality,
+	showTeachers,
 }: Readonly<{
 	group: YearGroup;
 	showTerm: boolean;
 	bySpeciality: boolean;
+	showTeachers: boolean;
 }>) {
 	const [expanded, setExpanded] = useState(false);
 	const termLabel = showTerm || group.terms.includes(",") ? group.terms : "";
 	const labels = recordLabels(group.records, bySpeciality);
+	const teachers = showTeachers ? yearTeachers(group.records) : [];
 	const hidden = group.records.length - MAX_RECORDS_PER_YEAR;
 	const shown =
 		expanded || hidden <= 1
@@ -306,6 +311,17 @@ function YearRow({
 						</button>
 					</li>
 				) : null}
+				{teachers.length > 0 ? (
+					<li className="col-span-2 text-xs text-muted-foreground">
+						Викладачі:{" "}
+						{teachers.map(({ id, name }, index) => (
+							<Fragment key={id}>
+								{index > 0 ? ", " : null}
+								<span className="whitespace-nowrap">{name}</span>
+							</Fragment>
+						))}
+					</li>
+				) : null}
 			</ul>
 		</>
 	);
@@ -319,6 +335,7 @@ export function CourseCazRecords({
 	initialVisible?: number;
 }>) {
 	const [expanded, setExpanded] = useState(false);
+	const showTeachers = useFeatureFlag("fe_course_instructors");
 	const groups = useMemo(
 		() => groupByYear(sortOfferings(courseOfferings)),
 		[courseOfferings],
@@ -332,7 +349,12 @@ export function CourseCazRecords({
 	const bySpeciality = new Set(courseOfferings.map(specialitiesLabel)).size > 1;
 	const renderGroup = (group: YearGroup) => (
 		<li key={group.key} className="col-span-3 grid min-w-0 grid-cols-subgrid">
-			<YearRow group={group} showTerm={showTerm} bySpeciality={bySpeciality} />
+			<YearRow
+				group={group}
+				showTerm={showTerm}
+				bySpeciality={bySpeciality}
+				showTeachers={showTeachers}
+			/>
 		</li>
 	);
 	const rest = groups.slice(initialVisible);

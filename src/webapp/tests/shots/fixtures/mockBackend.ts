@@ -5,8 +5,10 @@ import {
 	COMMENT_REPLIES,
 	COURSE_DETAIL,
 	COURSE_INSTRUCTORS,
+	COURSE_INSTRUCTORS_PLANNED,
 	COURSE_OFFERINGS,
 	COURSE_OFFERINGS_MANY,
+	COURSE_OFFERINGS_PLANNED,
 	COURSE_RATINGS,
 	COURSES,
 	EMPTY_COMMENT_LIST,
@@ -34,7 +36,7 @@ export interface MockOptions {
 	readonly session?: "student" | "guest" | "superuser";
 	readonly specialities?: "one" | "many";
 	readonly title?: "short" | "long";
-	readonly courseInstructors?: "named" | "none";
+	readonly courseInstructors?: "named" | "planned" | "none";
 	readonly loading?: boolean;
 	readonly ratingSuggestions?: "items" | "empty" | "error";
 	readonly saveRating?: "success" | "error";
@@ -221,11 +223,20 @@ export async function mockBackend(
 		[
 			/^\/courses\/[^/]+\/instructors\/$/,
 			() =>
-				courseInstructors === "named" ? COURSE_INSTRUCTORS : { items: [] },
+				({
+					named: COURSE_INSTRUCTORS,
+					planned: COURSE_INSTRUCTORS_PLANNED,
+					none: { items: [] },
+				})[courseInstructors],
 		],
 		[
 			/^\/courses\/[^/]+\/offerings\/$/,
-			() => (many ? COURSE_OFFERINGS_MANY : COURSE_OFFERINGS),
+			() =>
+				many
+					? COURSE_OFFERINGS_MANY
+					: courseInstructors === "planned"
+						? COURSE_OFFERINGS_PLANNED
+						: COURSE_OFFERINGS,
 		],
 		[
 			/^\/courses\/[^/]+\/ratings\/$/,

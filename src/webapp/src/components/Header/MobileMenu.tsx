@@ -4,12 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { LogOut, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
-import {
-	MobileNotificationPanel,
-	MobileNotificationRow,
-} from "@/features/notifications/components/MobileNotificationPanel";
 import type { AuthUser } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
+import { useHeaderNotifications } from "./HeaderNotificationsProvider";
 import type { NavigationItem, ThemeOption } from "./navigationData";
 import { themeOptions } from "./navigationData";
 import { Logo } from "../Logo";
@@ -134,6 +131,7 @@ export function MobileMenu({
 	setTheme,
 }: Readonly<MobileMenuProps>) {
 	const [showNotifications, setShowNotifications] = useState(false);
+	const notifications = useHeaderNotifications();
 
 	const handleLogout = () => {
 		void logout();
@@ -156,8 +154,8 @@ export function MobileMenu({
 			ariaLabel="Мобільне меню"
 			data-testid={testIds.header.mobileMenu}
 		>
-			{showNotifications ? (
-				<MobileNotificationPanel
+			{showNotifications && notifications ? (
+				<notifications.MobilePanel
 					onBack={() => setShowNotifications(false)}
 					onNavigate={handleClose}
 				/>
@@ -186,9 +184,11 @@ export function MobileMenu({
 						<ThemeSwitcher theme={theme} setTheme={setTheme} />
 						{isAuthenticated && (
 							<>
-								<MobileNotificationRow
-									onOpen={() => setShowNotifications(true)}
-								/>
+								{notifications && (
+									<notifications.MobileRow
+										onOpen={() => setShowNotifications(true)}
+									/>
+								)}
 								<AccountSummary user={user} onLogout={handleLogout} />
 							</>
 						)}
