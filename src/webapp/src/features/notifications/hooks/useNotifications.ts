@@ -12,7 +12,7 @@ import {
 	useNotificationsMarkReadCreate,
 	useNotificationsUnreadCountRetrieve,
 } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 
 const UNREAD_COUNT_POLL_INTERVAL = 30_000;
 const PAGE_SIZE = 20;

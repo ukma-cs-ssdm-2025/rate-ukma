@@ -1,5 +1,5 @@
 import { useStudentsMeRatingSuggestionsList } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { useRatingFlowEnabled } from "./useRatingFlowEnabled";
 
 export function useRatingSuggestions(excludeCourse?: string, enabled = true) {

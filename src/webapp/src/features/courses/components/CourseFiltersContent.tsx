@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { Separator } from "@/components/ui/Separator";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { testIds } from "@/lib/test-ids";
 import {
 	parseEducationLevel,

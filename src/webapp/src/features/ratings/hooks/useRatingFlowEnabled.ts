@@ -1,4 +1,4 @@
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 
 export function useRatingFlowEnabled(): boolean {
 	const { enabled, isReady } = useFeatureFlagState("fe_rate_flow");

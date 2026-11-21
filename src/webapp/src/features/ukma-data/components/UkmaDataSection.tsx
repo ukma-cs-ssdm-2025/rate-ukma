@@ -2,8 +2,8 @@ import { Outlet } from "@tanstack/react-router";
 
 import Layout from "@/components/Layout";
 import { DataSectionHeader, StaffOnlyState } from "./DataSectionHeader";
-import { useAuth } from "@/lib/auth";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 
 export function UkmaDataSection() {
 	const { isSuperuser } = useAuth();

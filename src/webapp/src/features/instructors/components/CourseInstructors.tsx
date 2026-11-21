@@ -1,5 +1,5 @@
 import { useCoursesInstructorsRetrieve } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
+import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 import { courseTeachers } from "../courseTeachers";
 import { CourseTeachersRow } from "./CourseTeachersRow";
 

@@ -5,7 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useFeatureFlagState } from "@/lib/feature-flags";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
 import { useHorizontalScroll } from "@/lib/hooks/useHorizontalScroll";
 import { cn } from "@/lib/utils";
 import { useFeed } from "../hooks/useFeed";

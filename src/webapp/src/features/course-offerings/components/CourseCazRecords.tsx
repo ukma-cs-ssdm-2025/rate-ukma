@@ -15,7 +15,7 @@ import type {
 	CourseOfferingTerm,
 	SemesterTermEnum,
 } from "@/lib/api/generated";
-import { useFeatureFlag } from "@/lib/feature-flags";
+import { useFeatureFlag } from "@/lib/feature-flags/useFeatureFlag";
 import { yearTeachers } from "./yearTeachers";
 
 const BASE_CAZ_URL = "https://my.ukma.edu.ua/course/";

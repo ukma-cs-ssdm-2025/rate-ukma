@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import { INDEX_FILE_ALLOWLIST, LINT_ALLOWLIST } from "../lint/allowlist.ts";
+import { LINT_ALLOWLIST } from "../lint/allowlist.ts";
 import { FEATURE_DEPENDENCIES } from "../lint/layers.ts";
 
 const root = join(import.meta.dirname, "..");
@@ -100,16 +100,7 @@ function findIndexFiles(dir: string): string[] {
 function checkIndexFiles() {
 	const found = findIndexFiles(join(root, "src"));
 	for (const file of found) {
-		if (!INDEX_FILE_ALLOWLIST.includes(file)) {
-			problems.push(
-				`${file}: no barrel index files; import the module itself.`,
-			);
-		}
-	}
-	for (const file of INDEX_FILE_ALLOWLIST) {
-		if (!found.includes(file)) {
-			problems.push(`${file} is gone: remove it from INDEX_FILE_ALLOWLIST.`);
-		}
+		problems.push(`${file}: no barrel index files; import the module itself.`);
 	}
 }
 
@@ -121,7 +112,7 @@ if (problems.length > 0) {
 	console.error(problems.join("\n"));
 	process.exit(1);
 }
-const sizes = Object.entries(LINT_ALLOWLIST)
-	.map(([rule, files]) => `${rule} ${files.length}`)
-	.concat(`index files ${INDEX_FILE_ALLOWLIST.length}`);
+const sizes = Object.entries(LINT_ALLOWLIST).map(
+	([rule, files]) => `${rule} ${files.length}`,
+);
 console.log(`Lint allowlist is current: ${sizes.join(", ")}.`);

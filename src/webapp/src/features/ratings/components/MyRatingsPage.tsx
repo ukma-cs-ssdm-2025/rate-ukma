@@ -10,7 +10,7 @@ import { MyRatingsYearSection } from "@/features/ratings/components/MyRatingsYea
 import { groupRatingsByYearAndSemester } from "@/features/ratings/groupRatings";
 import type { StudentRatingsDetailed } from "@/lib/api/generated";
 import { useStudentsMeGradesRetrieve } from "@/lib/api/generated";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { testIds } from "@/lib/test-ids";
 
 export function MyRatingsPage() {

@@ -74,7 +74,7 @@ vi.mock("@/features/ratings/components/RatingModal", () => ({
 	RatingModal: () => null,
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/lib/auth/withAuth", () => ({
 	withAuth: <P extends object>(Component: React.ComponentType<P>) => Component,
 }));
 

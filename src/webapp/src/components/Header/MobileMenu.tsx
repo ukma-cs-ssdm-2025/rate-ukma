@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { LogOut, X } from "lucide-react";
 
 import { Drawer } from "@/components/ui/Drawer";
-import type { AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth/AuthContext";
 import { testIds } from "@/lib/test-ids";
 import { useHeaderNotifications } from "./HeaderNotificationsProvider";
 import type { NavigationItem, ThemeOption } from "./navigationData";

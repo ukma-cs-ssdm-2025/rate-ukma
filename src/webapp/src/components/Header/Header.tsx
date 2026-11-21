@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 
 import { useTheme } from "@/components/ThemeProvider";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { testIds } from "@/lib/test-ids";
 import { HeaderNav } from "./HeaderNav";

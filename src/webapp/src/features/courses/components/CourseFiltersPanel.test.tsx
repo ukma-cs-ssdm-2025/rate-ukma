@@ -17,8 +17,8 @@ const auth = vi.hoisted(() => ({
 	speciality: null as { id: string; name: string } | null,
 }));
 
-vi.mock("@/lib/auth", async (importOriginal) => ({
-	...(await importOriginal<typeof import("@/lib/auth")>()),
+vi.mock("@/lib/auth/useAuth", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/lib/auth/useAuth")>()),
 	useAuth: () => ({ speciality: auth.speciality }),
 }));
 

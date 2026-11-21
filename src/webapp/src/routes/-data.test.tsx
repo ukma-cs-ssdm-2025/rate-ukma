@@ -3,7 +3,7 @@ import type { ComponentType, ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth/useAuth";
 import { FeatureFlagsContext } from "@/lib/feature-flags/FeatureFlagsContext";
 import { Route } from "./data";
 
@@ -23,8 +23,11 @@ vi.mock("@/features/ukma-data/components/DataSectionHeader", async () => ({
 	DataSectionHeader: () => null,
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/lib/auth/withAuth", () => ({
 	withAuth: <P extends object>(Component: ComponentType<P>) => Component,
+}));
+
+vi.mock("@/lib/auth/useAuth", () => ({
 	useAuth: vi.fn(),
 }));
 

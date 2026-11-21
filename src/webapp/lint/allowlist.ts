@@ -6,8 +6,3 @@ export const LINT_ALLOWLIST = {
 		"src/features/ratings/components/RatingForm.tsx",
 	],
 } satisfies Record<string, string[]>;
-
-export const INDEX_FILE_ALLOWLIST = [
-	"src/lib/auth/index.ts",
-	"src/lib/feature-flags/index.ts",
-];

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import * as Sentry from "@sentry/react";
 
-import type { AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth/AuthContext";
 
 export function useSentryUser(user: AuthUser | null) {
 	useEffect(() => {

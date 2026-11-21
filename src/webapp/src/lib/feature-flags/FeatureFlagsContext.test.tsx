@@ -30,7 +30,7 @@ vi.mock("../api/generated", () => ({
 	getFlagsListQueryKey: () => [...FLAGS_QUERY_KEY],
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/lib/auth/useAuth", () => ({
 	useAuth: () => authState.current,
 }));
 
