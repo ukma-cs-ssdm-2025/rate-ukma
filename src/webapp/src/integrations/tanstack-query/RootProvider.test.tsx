@@ -8,7 +8,7 @@ describe("RootProvider", () => {
 			const context = getContext();
 			const defaultOptions = context.queryClient.getDefaultOptions();
 
-			expect(defaultOptions.queries?.staleTime).toBe(5 * 60 * 1000); // 5 minutes
+			expect(defaultOptions.queries?.staleTime).toBe(5 * 60 * 1000);
 		});
 
 		it("should return a fresh QueryClient instance each time", () => {

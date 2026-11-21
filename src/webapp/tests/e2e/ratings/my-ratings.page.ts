@@ -30,7 +30,6 @@ export class MyRatingsPage {
 			.nth(nth);
 		await expect(rateableCard).toBeVisible();
 
-		// Navigate via the course title link — leaveReviewLink opens an inline modal
 		const courseLink = rateableCard.getByTestId(
 			testIds.myRatings.courseTitleLink,
 		);

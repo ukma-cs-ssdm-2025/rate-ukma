@@ -14,7 +14,7 @@ import {
 	getSafeRedirectTarget,
 	shouldAutoReturn,
 	withBounceCount,
-} from "./connection-error";
+} from "./ConnectionErrorPage";
 
 const { sessionRetrieveMock } = vi.hoisted(() => ({
 	sessionRetrieveMock: vi.fn(),
@@ -63,7 +63,6 @@ const renderPage = (props: Parameters<typeof ConnectionErrorPage>[0] = {}) => {
 };
 
 const settle = async () => {
-	// Executor form: tsconfig lib is ES2022, without Promise.withResolvers.
 	await new Promise<void>((resolve) => setTimeout(resolve, 50));
 };
 

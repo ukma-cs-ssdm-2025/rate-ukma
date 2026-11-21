@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Instructor, InstructorsListParams } from "@/lib/api/generated";
 import { useInfiniteInstructors } from "./useInfiniteInstructors";
 
-// Mock the orval-generated infinite query hook
 vi.mock("@/lib/api/generated", async () => {
 	const actual = await vi.importActual("@/lib/api/generated");
 	return {
@@ -49,7 +48,6 @@ function createMockInstructor(overrides: Partial<Instructor> = {}): Instructor {
 	};
 }
 
-/** Read the params passed to the most recent useInstructorsListInfinite call */
 function lastCallParams(): InstructorsListParams {
 	const calls = mockedInfinite.mock.calls;
 	return calls.at(-1)?.[0] as InstructorsListParams;

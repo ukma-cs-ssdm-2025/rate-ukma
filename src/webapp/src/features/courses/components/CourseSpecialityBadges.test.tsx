@@ -37,29 +37,21 @@ describe("CourseSpecialityBadges", () => {
 
 		render(<CourseSpecialityBadges specialities={specialities} />);
 
-		// Initially 5 items shown (SA to SE)
 		expect(screen.getByText("SA")).toBeInTheDocument();
 		expect(screen.getByText("SE")).toBeInTheDocument();
-		// SF should be hidden (not rendered)
 		expect(screen.queryByText("SF")).not.toBeInTheDocument();
 
-		// Button should be visible
 		const button = screen.getByRole("button");
 		expect(button).toHaveTextContent("ще 1");
 
-		// Click to expand
 		await user.click(button);
 
-		// SF should be visible now
 		expect(screen.getByText("SF")).toBeInTheDocument();
 
-		// Button text changes
 		expect(button).toHaveTextContent("Згорнути");
 
-		// Click to collapse
 		await user.click(button);
 
-		// SF should be hidden again
 		expect(screen.queryByText("SF")).not.toBeInTheDocument();
 		expect(button).toHaveTextContent("ще 1");
 	});
