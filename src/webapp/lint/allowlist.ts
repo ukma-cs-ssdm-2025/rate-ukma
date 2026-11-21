@@ -16,8 +16,6 @@ export const LINT_ALLOWLIST = {
 		"src/features/courses/components/CourseStatsCards.tsx",
 		"src/features/feed/components/FeedReviewItem.tsx",
 		"src/routes/courses.$courseId.tsx",
-		"src/routes/explore.tsx",
-		"src/routes/my-ratings.tsx",
 	],
 } satisfies Record<string, string[]>;
 
