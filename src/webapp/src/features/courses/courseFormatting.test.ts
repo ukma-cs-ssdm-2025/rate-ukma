@@ -9,11 +9,7 @@ import {
 	formatWeeklyHours,
 	getAcademicStartYear,
 	getCourseTypeDisplay,
-	getDifficultyTone,
 	getExamTypeDisplay,
-	getSemesterDisplay,
-	getSemesterTermDisplay,
-	getUsefulnessTone,
 	hasCourseScores,
 	USEFULNESS_RANGE,
 } from "./courseFormatting";
@@ -28,57 +24,6 @@ describe("courseFormatting", () => {
 		it("should have correct usefulness range", () => {
 			// Assert
 			expect(USEFULNESS_RANGE).toEqual([1, 5]);
-		});
-	});
-
-	describe("getDifficultyTone", () => {
-		const TONES = {
-			DESTRUCTIVE: "text-destructive",
-			MEDIUM: "text-chart-5",
-			PRIMARY: "text-primary",
-			MUTED: "text-muted-foreground",
-		};
-
-		it.each([
-			["high difficulty (4.5)", 4.5, TONES.DESTRUCTIVE],
-			["exact boundary 4", 4, TONES.DESTRUCTIVE],
-			["medium difficulty (3.2)", 3.2, TONES.MEDIUM],
-			["exact boundary 3", 3, TONES.MEDIUM],
-			["low difficulty (2.1)", 2.1, TONES.PRIMARY],
-		])("should return correct tone for %s", (_, value, expected) => {
-			expect(getDifficultyTone(value)).toBe(expected);
-		});
-
-		it.each([
-			["null", null],
-			["undefined", undefined],
-			["zero", 0],
-		])("should return muted tone for %s value", (_, value) => {
-			expect(getDifficultyTone(value)).toBe(TONES.MUTED);
-		});
-	});
-
-	describe("getUsefulnessTone", () => {
-		const TONES = {
-			PRIMARY: "text-primary",
-			MEDIUM: "text-chart-2",
-			LOW: "text-muted-foreground",
-			MUTED: "text-muted-foreground",
-		};
-
-		it.each([
-			["high usefulness (4.5)", 4.5, TONES.PRIMARY],
-			["medium usefulness (3.2)", 3.2, TONES.MEDIUM],
-			["low usefulness (2.1)", 2.1, TONES.LOW],
-		])("should return correct tone for %s", (_, value, expected) => {
-			expect(getUsefulnessTone(value)).toBe(expected);
-		});
-
-		it.each([
-			["null", null],
-			["undefined", undefined],
-		])("should return muted tone for %s value", (_, value) => {
-			expect(getUsefulnessTone(value)).toBe(TONES.MUTED);
 		});
 	});
 
@@ -105,52 +50,6 @@ describe("courseFormatting", () => {
 				expect(getExamTypeDisplay(type)).toBe(expected);
 			},
 		);
-	});
-
-	describe("getSemesterTermDisplay", () => {
-		it.each([
-			["FALL", "Осінь"],
-			["SPRING", "Весна"],
-			["SUMMER", "Літо"],
-			["fall", "Осінь"], // lowercase handling
-		])("should return Ukrainian label for %s term", (term, expected) => {
-			expect(getSemesterTermDisplay(term)).toBe(expected);
-		});
-
-		it("should return fallback for unknown term when provided", () => {
-			expect(getSemesterTermDisplay("WINTER", "Зима")).toBe("Зима");
-		});
-
-		it("should return original value for unknown term without fallback", () => {
-			expect(getSemesterTermDisplay("WINTER")).toBe("WINTER");
-		});
-	});
-
-	describe("getSemesterDisplay", () => {
-		it("should combine term and year into display string", () => {
-			// Arrange
-			const year = 2024;
-			const term = "FALL";
-
-			// Act
-			const result = getSemesterDisplay(year, term);
-
-			// Assert
-			expect(result).toBe("Осінь 2024");
-		});
-
-		it("should use fallback when term is unknown", () => {
-			// Arrange
-			const year = 2024;
-			const unknownTerm = "UNKNOWN";
-			const fallback = "Невідомо";
-
-			// Act
-			const result = getSemesterDisplay(year, unknownTerm, fallback);
-
-			// Assert
-			expect(result).toBe("Невідомо 2024");
-		});
 	});
 
 	describe("formatDate", () => {

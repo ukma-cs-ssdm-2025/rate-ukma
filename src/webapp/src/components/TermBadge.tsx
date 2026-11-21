@@ -1,10 +1,7 @@
 import type * as React from "react";
 
 import { Badge } from "@/components/ui/Badge";
-import {
-	getSemesterTermDisplay,
-	parseSemesterTerm,
-} from "@/features/courses/courseFormatting";
+import { getSemesterTermDisplay, parseSemesterTerm } from "@/lib/semester-term";
 import type { SemesterTermEnum } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 

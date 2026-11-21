@@ -1,11 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, MessageSquareText } from "lucide-react";
 
-import {
-	getDifficultyTone,
-	getSemesterDisplay,
-	getUsefulnessTone,
-} from "@/features/courses/courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
+import { getSemesterDisplay } from "@/lib/semester-term";
 import { formatRelativeTime } from "@/features/notifications/notificationFormatting";
 import { cn } from "@/lib/utils";
 import type { FeedReviewItem as FeedReviewItemData } from "@/lib/api/generated";

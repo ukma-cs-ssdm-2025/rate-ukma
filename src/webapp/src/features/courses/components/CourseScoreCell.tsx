@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { getDifficultyTone, getUsefulnessTone } from "../courseFormatting";
+import { getDifficultyTone, getUsefulnessTone } from "@/lib/score-tone";
 
 interface CourseScoreCellProps {
 	value: number | null;
