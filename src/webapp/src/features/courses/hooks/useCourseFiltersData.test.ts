@@ -30,7 +30,6 @@ const DEFAULT_PARAMS: CourseFiltersParamsState = {
 	reviewSort: null,
 };
 
-// Shared mock data
 const MOCK_FACULTIES = {
 	FI: {
 		id: "fac-1",
@@ -70,9 +69,6 @@ const MOCK_DEPARTMENTS = {
 	},
 } as const;
 
-/**
- * Helper to render useCourseFiltersData hook with params
- */
 function renderFiltersHook(
 	paramsOverrides: Partial<CourseFiltersParamsState> = {},
 	filterOptions?: ReturnType<typeof createMockFilterOptions>,
@@ -87,9 +83,6 @@ function renderFiltersHook(
 	);
 }
 
-/**
- * Helper to render hook with explicitly undefined filter options
- */
 function renderFiltersHookWithoutOptions(
 	paramsOverrides: Partial<CourseFiltersParamsState> = {},
 ) {
@@ -103,7 +96,6 @@ function renderFiltersHookWithoutOptions(
 	);
 }
 
-/** Flatten all range filters from groups for convenience */
 function allRangeFilters(data: ReturnType<typeof useCourseFiltersData>) {
 	return [
 		...data.groups.rating.rangeFilters,
@@ -111,7 +103,6 @@ function allRangeFilters(data: ReturnType<typeof useCourseFiltersData>) {
 	];
 }
 
-/** Flatten all select filters from groups for convenience */
 function allSelectFilters(data: ReturnType<typeof useCourseFiltersData>) {
 	return [
 		...data.groups.semester.selectFilters,
@@ -200,7 +191,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			const selects = allSelectFilters(result.current);
 			const facultyFilter = selects.find((f) => f.key === "faculty");
-			expect(facultyFilter?.options).toHaveLength(3); // Includes 'All' option
+			expect(facultyFilter?.options).toHaveLength(3);
 			expect(facultyFilter?.options[0]).toEqual({
 				value: "",
 				label: "Усі факультети",
@@ -228,8 +219,6 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			const selects = allSelectFilters(result.current);
 			selects.forEach((filter) => {
-				// The instructor filter is rendered by a dedicated server-search
-				// component, so it carries no inline options.
 				if (filter.key === "instructor") {
 					expect(filter.options).toEqual([]);
 					return;
@@ -275,7 +264,7 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			const selects = allSelectFilters(result.current);
 			const departmentFilter = selects.find((f) => f.key === "dept");
-			expect(departmentFilter?.options).toHaveLength(4); // 1 All + 3 departments
+			expect(departmentFilter?.options).toHaveLength(4);
 		});
 		it("should filter departments by selected faculty", () => {
 			// Arrange
@@ -305,9 +294,9 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			const selects = allSelectFilters(result.current);
 			const departmentFilter = selects.find((f) => f.key === "dept");
-			expect(departmentFilter?.options).toHaveLength(3); // Includes 'All' option
+			expect(departmentFilter?.options).toHaveLength(3);
 			expect(departmentFilter?.options.map((o) => o.value)).toEqual([
-				"", // 'All' option
+				"",
 				"dept-1",
 				"dept-3",
 			]);
@@ -356,7 +345,6 @@ describe("useCourseFiltersData", () => {
 			// Assert
 			const selects = allSelectFilters(result.current);
 			const departmentFilter = selects.find((f) => f.key === "dept");
-			// Without faculty selected, labels include 'All' option at index 0
 			expect(departmentFilter?.options[1].label).toBe(
 				"Кафедра мультимедійних систем",
 			);

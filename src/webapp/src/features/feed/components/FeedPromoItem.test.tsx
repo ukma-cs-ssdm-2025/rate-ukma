@@ -47,7 +47,6 @@ describe("FeedPromoItem", () => {
 				<FeedPromoItem item={item} variant={variant} />,
 			);
 
-			// The title beside it already names the channel, so no alt text.
 			const avatar = container.querySelector("img");
 			expect(avatar).toHaveAttribute("src", "https://example.com/promo.png");
 			expect(avatar).toHaveAttribute("alt", "");
@@ -84,9 +83,6 @@ describe("FeedPromoItem", () => {
 		expect(screen.queryByText("Зареєструватися")).not.toBeInTheDocument();
 	});
 
-	// A server-side accent this bundle predates is a plain object miss, not
-	// undefined, so `??` on `item.accent` alone would leave the lookup
-	// undefined and throw on `.container`.
 	it("falls back to BRAND styling for an unknown accent", () => {
 		const unknownAccent = {
 			...baseItem,

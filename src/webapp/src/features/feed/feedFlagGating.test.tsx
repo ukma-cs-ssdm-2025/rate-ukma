@@ -10,9 +10,6 @@ const { fetcherMock } = vi.hoisted(() => ({
 	fetcherMock: vi.fn(),
 }));
 
-// The real `useFeed` runs here (unlike the component tests, which stub it), so
-// the flag-to-request wiring is what is under test. Mocking the HTTP mutator
-// rather than a generated export keeps the generated hook in the path.
 vi.mock("@/lib/api/apiClient", async () => ({
 	...(await vi.importActual("@/lib/api/apiClient")),
 	authorizedFetcher: fetcherMock,

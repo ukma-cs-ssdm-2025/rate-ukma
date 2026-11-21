@@ -4,11 +4,6 @@ import { testIds } from "@/lib/test-ids";
 import { CourseDetailsPage } from "../courses/course-details.page";
 import { CoursesPage } from "../courses/courses.page";
 
-/**
- * NOTE: These tests rely on finding a course with no ratings.
- * The test navigates to the last course on the last page, assuming it has no ratings.
- * If test data changes (e.g., ratings are added), tests will be skipped with a clear message.
- */
 test.describe("No ratings are displayed correctly", () => {
 	let coursesPage: CoursesPage;
 	let coursePage: CourseDetailsPage;

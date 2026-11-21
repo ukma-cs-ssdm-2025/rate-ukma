@@ -5,7 +5,7 @@ description: "Review every code comment under a path of this repo and remove the
 
 # Delete comments
 
-The webapp bans comments in `src/webapp/src` (`rate-ukma/no-comments` in `src/webapp/oxlint.config.ts`, plugin `src/webapp/lint/plugins/no-comments.ts`). Only lint and type directives stay. Files that still have comments are listed in `LINT_ALLOWLIST["rate-ukma/no-comments"]` in `src/webapp/lint/allowlist.ts`; that list only shrinks. ADR-0018 records the decisions earlier comments carried.
+The webapp bans comments in `src/webapp/src` (`rate-ukma/no-comments` in `src/webapp/oxlint.config.ts`, plugin `src/webapp/lint/plugins/no-comments.ts`). Only lint and type directives stay, plus Arrange/Act/Assert markers in tests. Files that still have comments are listed in `LINT_ALLOWLIST["rate-ukma/no-comments"]` in `src/webapp/lint/allowlist.ts`; that list only shrinks. ADR-0018 records the decisions earlier comments carried.
 
 ## Steps
 
@@ -16,6 +16,7 @@ The webapp bans comments in `src/webapp/src` (`rate-ukma/no-comments` in `src/we
    - **Excuse**: justifies a hack (a cast, a fixed wait, a library workaround, a TODO). Delete it and file one GitHub issue per hack: a plain body naming `file:line`, what the hack is and the proper fix. Group the same hack in several places into one issue.
    - **Decision**: an important, non-obvious decision. Delete it and add it to an ADR in `docs/architecture/decisions/` (extend the closest existing ADR, or write a new one grouping related decisions; list it in `INDEX.md`). Never one ADR per comment.
    - **Directive**: `oxlint-disable-next-line … -- reason`, `@ts-expect-error reason`, `/// <reference …>`. Keep.
+   - **Test marker**: in test files (`*.test.*`, `tests/**`), the bare `// Arrange`, `// Act`, `// Assert` and combined forms like `// Arrange & Act`. Keep them, but drop any words after the marker (`// Act - click save` becomes `// Act`). Anywhere else, or with other words, they are comments like any other.
 3. Never touch generated files (`src/webapp/src/lib/api/generated/**`, `src/webapp/src/routeTree.gen.ts`).
 4. Remove each cleaned file from the allowlist. `pnpm check:all` (Node 22) must pass; `pnpm lint:ratchet` fails while a clean file is still listed.
 5. Report comment lines removed per category, lines remaining, the issues filed and the ADR changed.

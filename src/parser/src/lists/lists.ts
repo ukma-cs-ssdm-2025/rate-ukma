@@ -38,6 +38,20 @@ export interface PageRequest {
 	readonly limit: number;
 }
 
+/** `PageQuery` plus `?year=<first calendar year>`: one academic year's rows. */
+export const YearPageQuery = {
+	...PageQuery,
+	year: queryInt(
+		Schema.isGreaterThanOrEqualTo(0),
+		0,
+		"The academic year's first calendar year, as 2031 for 2031-32; 0 for every year",
+	),
+};
+
+export interface YearPageRequest extends PageRequest {
+	readonly year: number;
+}
+
 /** One page of a list in change-number order. A reader stores every page,
  *  then saves `cursor` once `hasMore` is false (spec rule 5). */
 export const Page = <S extends Schema.Top>(item: S, identifier: string) =>
@@ -137,8 +151,22 @@ const OfferingProgramme = Schema.Struct({
 	kind: Schema.Literals(["compulsory", "prof_oriented", "elective"]),
 }).annotate({ identifier: "OfferingProgramme" });
 
-/** One САЗ card. The card's teacher cell is left out: teacher data needs
- *  `instructors:read`. */
+/** A smart.ukma teacher the matching rule linked to an offering. */
+const OfferingInstructor = Schema.Struct({
+	id: Schema.String,
+	lastName: Schema.String,
+	firstName: Schema.String,
+	middleName: Schema.NullOr(Schema.String),
+	email: Schema.NullOr(Schema.String),
+	role: Schema.Literals([
+		"lecturer",
+		"practice_teacher",
+		"lecturer_and_practice_teacher",
+	]),
+}).annotate({ identifier: "OfferingInstructor" });
+
+/** One САЗ card. The card's teacher cell is left out; the smart.ukma
+ *  teachers linked to it are `OfferingTeachers`. */
 export const Offering = Schema.Struct({
 	id: Schema.String,
 	sazCode: Schema.String,
@@ -168,6 +196,17 @@ export const Offering = Schema.Struct({
 	changeNo,
 	removedAt,
 }).annotate({ identifier: "Offering" });
+
+/** An offering's smart.ukma teachers, linked by the matching rule. It takes
+ *  the offering's change number, which moves when its teachers change. */
+export const OfferingTeachers = Schema.Struct({
+	id: Schema.String,
+	sazCode: Schema.String,
+	academicYear: Schema.Int,
+	instructors: Schema.Array(OfferingInstructor),
+	changeNo,
+	removedAt,
+}).annotate({ identifier: "OfferingTeachers" });
 
 /** Offerings of one subject across years. */
 export const Course = Schema.Struct({

@@ -7,7 +7,6 @@ import { MyRatingsPage } from "../ratings/my-ratings.page";
 import { RatingModal } from "../shared/rating-modal.component";
 
 export interface RatingCleanup {
-	/** Call right after the test saves a rating, so teardown deletes it. */
 	markCreated(): void;
 }
 
@@ -18,11 +17,6 @@ interface Fixtures {
 	ratingCleanup: RatingCleanup;
 }
 
-/**
- * Specs import `test` and `expect` from here instead of `@playwright/test`.
- * Page objects come in as fixtures, and `ratingCleanup` deletes a rating the
- * test created in teardown, which runs even when the test fails.
- */
 export const test = base.extend<Fixtures>({
 	coursePage: async ({ page }, use) => {
 		await use(new CourseDetailsPage(page));
@@ -51,7 +45,6 @@ export const test = base.extend<Fixtures>({
 
 export { expect };
 
-/** A failed step can leave the modal (and its picker) open over the page. */
 async function closeRatingModal(page: Page): Promise<void> {
 	const modal = page.getByTestId(testIds.rating.modal);
 	for (let attempt = 0; attempt < 2 && (await modal.isVisible()); attempt++) {

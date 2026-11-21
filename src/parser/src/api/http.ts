@@ -67,6 +67,19 @@ export const CatalogApiHandlers = HttpApiBuilder.group(
 		}),
 );
 
+export const InstructorApiHandlers = HttpApiBuilder.group(
+	Api,
+	"instructors",
+	(handlers) =>
+		Effect.gen(function* () {
+			const lists = yield* ListReader;
+
+			return handlers.handle("offeringTeachers", ({ query }) =>
+				served(lists.offeringTeachers(query)),
+			);
+		}),
+);
+
 export const ReviewApiHandlers = HttpApiBuilder.group(
 	Api,
 	"review",
@@ -117,6 +130,7 @@ export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 		SystemApiHandlers,
 		KeyApiHandlers,
 		CatalogApiHandlers,
+		InstructorApiHandlers,
 		ReviewApiHandlers,
 	]),
 	Layer.provide([

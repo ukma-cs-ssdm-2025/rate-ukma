@@ -9,7 +9,6 @@ const out = resolve(process.env.SHOT_DIR ?? "shots/ukma-data");
 
 async function shot(page: Page, name: string) {
 	mkdirSync(out, { recursive: true });
-	// A sticky header lands mid-page in a full-page capture taken while scrolled.
 	await page.evaluate(() => globalThis.scrollTo(0, 0));
 	await page.screenshot({
 		path: resolve(out, `${name}.png`),
@@ -53,7 +52,6 @@ const reviewCase = (
 	change_no: 40,
 });
 
-/** Invented UKMA Data pages in the proxy's snake_case shape. */
 const UKMA_DATA: Record<string, unknown> = {
 	"status/": {
 		key_id: "key-test",

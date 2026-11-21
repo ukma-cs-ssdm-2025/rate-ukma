@@ -22,10 +22,6 @@ import type {
 	StudentRatingsDetailed,
 } from "@/lib/api/generated";
 
-/**
- * Factory for creating mock course data
- * Uses faker for realistic test data generation
- */
 export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 	const facultyNames = [
 		"Факультет інформатики",
@@ -62,16 +58,10 @@ export function createMockCourse(overrides?: Partial<CourseList>): CourseList {
 	};
 }
 
-/**
- * Factory for creating multiple mock courses
- */
 export function createMockCourses(count: number): CourseList[] {
 	return Array.from({ length: count }, () => createMockCourse());
 }
 
-/**
- * Factory for creating mock faculty option
- */
 export function createMockFaculty(
 	overrides?: Partial<FacultyOption>,
 ): FacultyOption {
@@ -84,9 +74,6 @@ export function createMockFaculty(
 	};
 }
 
-/**
- * Factory for creating mock department option
- */
 export function createMockDepartment(
 	overrides?: Partial<DepartmentOption>,
 ): DepartmentOption {
@@ -97,9 +84,6 @@ export function createMockDepartment(
 	};
 }
 
-/**
- * Factory for creating mock instructor option
- */
 export function createMockInstructor(
 	overrides?: Partial<InstructorOption>,
 ): InstructorOption {
@@ -110,9 +94,6 @@ export function createMockInstructor(
 	};
 }
 
-/**
- * Factory for creating mock semester term option
- */
 export function createMockSemesterTerm(
 	overrides?: Partial<SemesterTermOption>,
 ): SemesterTermOption {
@@ -128,9 +109,6 @@ export function createMockSemesterTerm(
 	};
 }
 
-/**
- * Factory for creating mock semester year option
- */
 export function createMockSemesterYear(
 	overrides?: Partial<SemesterYearOption>,
 ): SemesterYearOption {
@@ -142,9 +120,6 @@ export function createMockSemesterYear(
 	};
 }
 
-/**
- * Factory for creating mock course type option
- */
 export function createMockCourseType(
 	overrides?: Partial<CourseTypeOption>,
 ): CourseTypeOption {
@@ -161,9 +136,6 @@ export function createMockCourseType(
 	};
 }
 
-/**
- * Factory for creating mock speciality option
- */
 export function createMockSpeciality(
 	overrides?: Partial<SpecialityOption>,
 ): SpecialityOption {
@@ -174,9 +146,6 @@ export function createMockSpeciality(
 	};
 }
 
-/**
- * Factory for creating complete filter options
- */
 export function createMockFilterOptions(
 	overrides?: Partial<FilterOptions>,
 ): FilterOptions {
@@ -297,10 +266,6 @@ export function createMockFeedCommentItem(
 	};
 }
 
-/**
- * Factory for creating a mock `useFeed` return value, for tests that mock the
- * hook out and only render its result
- */
 export function createMockFeedState(
 	overrides?: Partial<UseFeedReturn>,
 ): UseFeedReturn {

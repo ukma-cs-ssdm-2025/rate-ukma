@@ -7,9 +7,6 @@ import { testIds } from "../../src/lib/test-ids";
 import { COURSE } from "../shots/fixtures/data";
 import { mockBackend } from "../shots/fixtures/mockBackend";
 
-// Each page is loaded PERF_RUNS times in a fresh context under PERF_CPU x CPU
-// throttling; the table reports medians. The API is mocked, so network cost is
-// not in these numbers: compare builds against each other, not against prod.
 const RUNS = Number(process.env.PERF_RUNS ?? 3);
 const CPU = Number(process.env.PERF_CPU ?? 4);
 const ONLY = process.env.PERF_ONLY ? new RegExp(process.env.PERF_ONLY) : null;
@@ -78,8 +75,6 @@ function observe() {
 			window.__perf.cls += shift.value;
 		}
 	});
-	// INP counts interactions, not events: a keystroke fires keydown, keypress
-	// and keyup under one interactionId, and the slowest of them is its latency.
 	on(
 		"event",
 		(e) => {
@@ -126,7 +121,6 @@ async function measure(page: Page, scenario: Scenario): Promise<Sample> {
 	if (!response?.ok()) {
 		throw new Error(`${scenario.path} answered ${response?.status()}`);
 	}
-	// Late layout shifts (a strip mounting after its flag) land after idle.
 	await page.waitForTimeout(1500);
 	if (scenario.interact) {
 		await scenario.interact(page);
@@ -139,8 +133,6 @@ async function measure(page: Page, scenario: Scenario): Promise<Sample> {
 			lcp,
 			cls,
 			tbt: long.reduce((sum, d) => sum + Math.max(0, d - 50), 0),
-			// Below 50 interactions INP is the slowest one. None recorded means
-			// every interaction beat the 16 ms observer threshold, not 0 ms.
 			inp: Math.max(0, ...Object.values(interactions)),
 		};
 	});
