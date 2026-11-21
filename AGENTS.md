@@ -12,7 +12,7 @@ Each app has its own `AGENTS.md`. Read it before you edit in that app.
 - `src/webapp`: React SPA
 - `src/parser`: UKMA Data, collects САЗ and smart.ukma data behind its own API (Effect, TypeScript)
 
-Run it: `docs/onboarding.md`, section 3 (sets `REDIS_HOST=redis`, which the README skips).
+Run it: `docs/onboarding.md`, section 3.
 
 ## Rules across apps
 

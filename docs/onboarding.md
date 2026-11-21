@@ -43,8 +43,7 @@ flowchart LR
 
 ## 3. Run it
 
-1. Copy [`src/.env.sample`](../src/.env.sample) to `src/.env` and set
-   `REDIS_HOST=redis` (the sample's `localhost` only works outside Docker).
+1. Copy [`src/.env.sample`](../src/.env.sample) to `src/.env`.
 2. From `src/`: `docker compose --profile dev up -d --build`. Webapp on `:3000`,
    API and `/admin` on `:8000`. More in
    [README § Running Project](../README.md#-running-project).
