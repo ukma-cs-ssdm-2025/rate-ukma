@@ -52,7 +52,7 @@ jobs:
       - name: Snyk test (SARIF upload)
         # --all-projects: the pnpm workspace file (pnpm-workspace.yaml) makes
         # Snyk treat src/webapp as a workspace; without the flag it aborts.
-        uses: snyk/actions/node@master
+        uses: snyk/actions/node@11b673cfb4b0dc0d860a1323caa199d54950dcce # master, 2026-10-07
         with:
           command: test
           args: ${{ env.FRONTEND_DIR }} --all-projects --sarif-file-output=${{ env.FRONTEND_DIR }}/snyk.sarif --severity-threshold=high
