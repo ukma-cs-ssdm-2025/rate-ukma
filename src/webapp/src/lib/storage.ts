@@ -15,7 +15,7 @@ export class LocalStorageAdapter implements PersistentStorage {
 			if (rawValue === null) {
 				return null;
 			}
-			// oxlint-disable-next-line typescript/no-unsafe-type-assertion
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- callers read back the shape they wrote; corrupt JSON throws into the catch
 			return JSON.parse(rawValue) as T;
 		} catch {
 			return null;
