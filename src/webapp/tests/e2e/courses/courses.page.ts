@@ -1,4 +1,5 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { getSearchParam } from "../shared/url-assertions";
@@ -280,8 +281,12 @@ export class CoursesPage {
 		}
 
 		const waitForLastPageResponse = this.page.waitForResponse((response) => {
-			if (response.request().method() !== "GET") return false;
-			if (!response.url().includes("/api/v1/courses/")) return false;
+			if (response.request().method() !== "GET") {
+				return false;
+			}
+			if (!response.url().includes("/api/v1/courses/")) {
+				return false;
+			}
 			try {
 				const url = new URL(response.url());
 				return url.searchParams.get("page") === String(totalPages);

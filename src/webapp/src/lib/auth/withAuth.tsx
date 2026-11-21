@@ -37,7 +37,7 @@ export function withAuth<P extends object>(
 					}
 				}
 
-				navigate({
+				void navigate({
 					to: redirectTo,
 					search: {
 						redirect: globalThis.location.pathname + globalThis.location.search,

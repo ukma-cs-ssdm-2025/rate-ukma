@@ -5,10 +5,11 @@ import type {
 	ReactNode,
 } from "react";
 
-import {
-	type Column,
-	flexRender,
-	type Table as TanstackTable,
+import { flexRender } from "@tanstack/react-table";
+import type {
+	Column,
+	ColumnMeta,
+	Table as TanstackTable,
 } from "@tanstack/react-table";
 
 import { DataTablePagination } from "@/components/DataTable/DataTablePagination";
@@ -88,7 +89,7 @@ export function getCommonPinningStyles<TData>({
 }
 
 function getAlignmentClass<TData, TValue>(
-	meta?: import("@tanstack/react-table").ColumnMeta<TData, TValue>,
+	meta?: ColumnMeta<TData, TValue>,
 ): string {
 	const align = meta?.align;
 	if (align === "center") {
@@ -180,10 +181,18 @@ export function DataTable<TData>({
 										data-clickable={onRowClick ? true : undefined}
 										className={cn(onRowClick && "group")}
 										onClick={(event) => {
-											if (!onRowClick) return;
-											if (isModifiedClick(event)) return;
-											if (hasActiveTextSelection()) return;
-											if (shouldIgnoreRowClickTarget(event.target)) return;
+											if (!onRowClick) {
+												return;
+											}
+											if (isModifiedClick(event)) {
+												return;
+											}
+											if (hasActiveTextSelection()) {
+												return;
+											}
+											if (shouldIgnoreRowClickTarget(event.target)) {
+												return;
+											}
 
 											onRowClick(row.original);
 										}}

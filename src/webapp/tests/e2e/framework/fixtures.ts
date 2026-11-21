@@ -1,4 +1,5 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { CourseDetailsPage } from "../courses/course-details.page";

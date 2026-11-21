@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 
 import { localStorageAdapter } from "@/lib/storage";
-import { SORT_OPTIONS, type SortOption } from "../components/RatingsSortSelect";
+import { SORT_OPTIONS } from "../components/RatingsSortSelect";
+import type { SortOption } from "../components/RatingsSortSelect";
 
 export const RATINGS_SORT_STORAGE_KEY = "course-ratings-sort";
 const DEFAULT_SORT: SortOption = "most-popular";

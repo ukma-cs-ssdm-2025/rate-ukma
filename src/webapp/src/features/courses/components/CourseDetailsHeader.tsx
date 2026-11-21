@@ -1,7 +1,12 @@
+import type { ReactNode } from "react";
+
 import { TermBadge } from "@/components/TermBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { EducationLevelEnum, TypeKindEnum } from "@/lib/api/generated";
+import type {
+	CourseOfferingSpeciality,
+	EducationLevelEnum,
+} from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { getEducationLevelDisplay } from "../courseFormatting";
@@ -11,19 +16,14 @@ const SINGLE_LINE_SPECIALITIES = 4;
 interface CourseDetailsHeaderProps {
 	title: string;
 	educationLevel?: EducationLevelEnum | null;
-	specialities?: ReadonlyArray<{
-		readonly speciality_id?: string;
-		readonly speciality_title?: string;
-		readonly speciality_alias?: string | null;
-		readonly faculty_id?: string;
-		readonly faculty_name?: string;
-		readonly type_kind?: TypeKindEnum;
-	}> | null;
+	specialities?: readonly CourseOfferingSpeciality[];
 	departmentName?: string | null;
 	facultyName?: string | null;
 	terms?: readonly string[];
 	credits?: string | null;
 	weeklyHours?: string | null;
+	/** Rows under the badges, such as the course's teachers. */
+	children?: ReactNode;
 }
 
 export function CourseDetailsHeader({
@@ -35,9 +35,10 @@ export function CourseDetailsHeader({
 	terms = [],
 	credits,
 	weeklyHours,
+	children,
 }: Readonly<CourseDetailsHeaderProps>) {
 	const meta = [
-		getEducationLevelDisplay(educationLevel),
+		educationLevel ? getEducationLevelDisplay(educationLevel) : null,
 		facultyName,
 		departmentName,
 	].filter(Boolean);
@@ -99,6 +100,8 @@ export function CourseDetailsHeader({
 					)}
 				</div>
 			)}
+
+			{children}
 		</header>
 	);
 }

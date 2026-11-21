@@ -1,17 +1,20 @@
-import type { FeedItem as FeedItemType } from "../feedTypes";
-import { isCommentItem, isPromoItem } from "../feedTypes";
+import type { FeedItem as FeedItemData } from "@/lib/api/generated";
 import { FeedCommentItem } from "./FeedCommentItem";
 import { FeedPromoItem } from "./FeedPromoItem";
 import { FeedReviewItem } from "./FeedReviewItem";
 
 interface FeedItemProps {
-	readonly item: FeedItemType;
+	readonly item: FeedItemData;
 	readonly variant?: "card" | "banner";
 }
 
 export function FeedItem({ item, variant = "card" }: Readonly<FeedItemProps>) {
-	if (isPromoItem(item)) return <FeedPromoItem item={item} variant={variant} />;
-	if (isCommentItem(item))
-		return <FeedCommentItem item={item} variant={variant} />;
-	return <FeedReviewItem item={item} variant={variant} />;
+	switch (item.kind) {
+		case "promo":
+			return <FeedPromoItem item={item} variant={variant} />;
+		case "comment":
+			return <FeedCommentItem item={item} variant={variant} />;
+		case "review":
+			return <FeedReviewItem item={item} variant={variant} />;
+	}
 }

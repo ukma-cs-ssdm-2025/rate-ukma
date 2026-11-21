@@ -1,5 +1,8 @@
 import { getSemesterTermDisplay } from "@/features/courses/courseFormatting";
-import type { StudentRatingsDetailed } from "@/lib/api/generated";
+import type {
+	SemesterTermEnum,
+	StudentRatingsDetailed,
+} from "@/lib/api/generated";
 
 export interface SemesterGroup {
 	key: string;
@@ -10,98 +13,58 @@ export interface SemesterGroup {
 	ratedCount: number;
 	totalCount: number;
 	unratedRateableCount: number;
-	year?: number;
-	seasonRaw?: string;
+	year: number;
+	season: SemesterTermEnum;
 }
 
 export interface YearGroup {
 	key: string;
 	label: string;
 	seasons: SemesterGroup[];
-	year?: number;
+	year: number;
 	total: number;
 	ratedCount: number;
 }
 
-const TERM_ORDER: Record<string, number> = {
+const TERM_ORDER = {
 	FALL: 1,
 	SPRING: 2,
 	SUMMER: 3,
-};
+} satisfies Record<SemesterTermEnum, number>;
 
-function getAcademicYear(
+// An academic year starts in the fall: spring 2026 belongs to 2025–2026.
+function academicYearStart(year: number, season: SemesterTermEnum): number {
+	return season === "FALL" ? year : year - 1;
+}
+
+interface YearAccumulator {
+	key: string;
+	label: string;
+	year: number;
+	seasons: Map<SemesterTermEnum, SemesterGroup>;
+}
+
+function emptySemesterGroup(
+	yearKey: string,
 	year: number,
-	season: string | undefined,
-): { academicYearStart: number; academicYearLabel: string } {
-	const academicYearStart = season?.toUpperCase() === "FALL" ? year : year - 1;
-	const academicYearLabel = `${academicYearStart} – ${academicYearStart + 1}`;
-	return { academicYearStart, academicYearLabel };
-}
-
-interface YearInfo {
-	key: string;
-	label: string;
-	academicYearStart?: number;
-}
-
-function resolveYearInfo(
-	yearValue: number | undefined,
-	seasonRaw: string | undefined,
-): YearInfo {
-	if (yearValue == null) {
-		return { key: "unknown", label: "Без року" };
-	}
-	const { academicYearStart, academicYearLabel } = getAcademicYear(
-		yearValue,
-		seasonRaw,
-	);
+	season: SemesterTermEnum,
+): SemesterGroup {
+	const label = getSemesterTermDisplay(season);
 	return {
-		key: String(academicYearStart),
-		label: academicYearLabel,
-		academicYearStart,
-	};
-}
-
-interface SeasonInfo {
-	key: string;
-	label: string;
-	description: string;
-	order: number;
-}
-
-function resolveSeasonInfo(
-	yearValue: number | undefined,
-	seasonRaw: string | undefined,
-): SeasonInfo {
-	if (yearValue == null) {
-		return {
-			key: "no-semester",
-			label: "Без семестра",
-			description: "Невідомий рік",
-			order: TERM_ORDER[seasonRaw ?? ""] ?? 99,
-		};
-	}
-
-	const key = seasonRaw ?? "no-semester";
-	const label = seasonRaw
-		? getSemesterTermDisplay(seasonRaw, "Невідомий семестр")
-		: "Семестр не вказано";
-	const description = seasonRaw
-		? `Семестр ${label.toLowerCase()}`
-		: "Без семестра";
-
-	return {
-		key,
+		key: `${yearKey}-${season}`,
 		label,
-		description,
-		order: TERM_ORDER[seasonRaw ?? ""] ?? 99,
+		description: `Семестр ${label.toLowerCase()}`,
+		items: [],
+		order: TERM_ORDER[season],
+		ratedCount: 0,
+		totalCount: 0,
+		unratedRateableCount: 0,
+		year,
+		season,
 	};
 }
 
-function updateSeasonCounts(
-	group: SemesterGroup,
-	course: StudentRatingsDetailed,
-): void {
+function addCourse(group: SemesterGroup, course: StudentRatingsDetailed): void {
 	group.totalCount++;
 	if (course.rated) {
 		group.ratedCount++;
@@ -111,84 +74,47 @@ function updateSeasonCounts(
 	group.items.push(course);
 }
 
-type YearAccumulator = {
-	key: string;
-	label: string;
-	year?: number;
-	seasons: Map<string, SemesterGroup>;
-};
-
-function toYearGroups(years: Map<string, YearAccumulator>): YearGroup[] {
-	return Array.from(years.values())
-		.sort((a, b) => {
-			if (a.key === "unknown") return 1;
-			if (b.key === "unknown") return -1;
-			return Number(b.key) - Number(a.key);
-		})
-		.map((year) => {
-			const seasons = Array.from(year.seasons.values())
-				.filter((s) => s.items.length > 0)
-				.sort((a, b) => b.order - a.order);
-
-			return {
-				key: year.key,
-				label: year.label,
-				year: year.year,
-				seasons,
-				total: seasons.reduce((acc, s) => acc + s.totalCount, 0),
-				ratedCount: seasons.reduce((acc, s) => acc + s.ratedCount, 0),
-			};
-		})
-		.filter((year) => year.seasons.length > 0);
+function toYearGroup(year: YearAccumulator): YearGroup {
+	const seasons = [...year.seasons.values()].sort((a, b) => b.order - a.order);
+	return {
+		key: year.key,
+		label: year.label,
+		year: year.year,
+		seasons,
+		total: seasons.reduce((acc, s) => acc + s.totalCount, 0),
+		ratedCount: seasons.reduce((acc, s) => acc + s.ratedCount, 0),
+	};
 }
 
 export function groupRatingsByYearAndSemester(
-	allRatings: StudentRatingsDetailed[],
+	allRatings: readonly StudentRatingsDetailed[],
 ): YearGroup[] {
 	const years = new Map<string, YearAccumulator>();
 
 	for (const course of allRatings) {
-		const yearValue =
-			typeof course.semester?.year === "number"
-				? course.semester.year
-				: undefined;
-		const seasonRaw = course.semester?.season?.toUpperCase();
+		const { year, season } = course.semester;
+		const start = academicYearStart(year, season);
+		const yearKey = String(start);
 
-		const yearInfo = resolveYearInfo(yearValue, seasonRaw);
-		const seasonInfo = resolveSeasonInfo(yearValue, seasonRaw);
-
-		if (!years.has(yearInfo.key)) {
-			years.set(yearInfo.key, {
-				key: yearInfo.key,
-				label: yearInfo.label,
-				year: yearInfo.academicYearStart,
+		let yearEntry = years.get(yearKey);
+		if (!yearEntry) {
+			yearEntry = {
+				key: yearKey,
+				label: `${start} – ${start + 1}`,
+				year: start,
 				seasons: new Map(),
-			});
+			};
+			years.set(yearKey, yearEntry);
 		}
 
-		const yearEntry = years.get(yearInfo.key);
-		if (!yearEntry) continue;
-
-		if (!yearEntry.seasons.has(seasonInfo.key)) {
-			yearEntry.seasons.set(seasonInfo.key, {
-				key: `${yearInfo.key}-${seasonInfo.key}`,
-				label: seasonInfo.label,
-				description: seasonInfo.description,
-				items: [],
-				order: seasonInfo.order,
-				ratedCount: 0,
-				totalCount: 0,
-				unratedRateableCount: 0,
-				year: yearValue,
-				seasonRaw,
-			});
+		let seasonGroup = yearEntry.seasons.get(season);
+		if (!seasonGroup) {
+			seasonGroup = emptySemesterGroup(yearKey, year, season);
+			yearEntry.seasons.set(season, seasonGroup);
 		}
 
-		const seasonGroup = yearEntry.seasons.get(seasonInfo.key);
-		if (!seasonGroup) continue;
-
-		updateSeasonCounts(seasonGroup, course);
+		addCourse(seasonGroup, course);
 	}
 
-	return toYearGroups(years);
+	return [...years.values()].sort((a, b) => b.year - a.year).map(toYearGroup);
 }

@@ -14,7 +14,11 @@ export class LocalStorageAdapter implements PersistentStorage {
 	getItem<T>(key: string): T | null {
 		try {
 			const rawValue = storage()?.getItem(key) ?? null;
-			if (rawValue === null) return null;
+			if (rawValue === null) {
+				return null;
+			}
+			// Callers read back the shape they wrote; a corrupt value throws above.
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion
 			return JSON.parse(rawValue) as T;
 		} catch {
 			return null;

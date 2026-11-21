@@ -19,7 +19,7 @@ function LoginFailedPage() {
 	const isTechnicalError = search.technical === "1";
 
 	const handleRetry = () => {
-		router.navigate({ to: "/login" });
+		void router.navigate({ to: "/login" });
 	};
 
 	return (

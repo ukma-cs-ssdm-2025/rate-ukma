@@ -22,7 +22,9 @@ export function ExpandableText({
 
 	const measureRef = useCallback((el: HTMLParagraphElement | null) => {
 		elRef.current = el;
-		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
+		if (el) {
+			setIsClamped(el.scrollHeight > el.clientHeight);
+		}
 	}, []);
 
 	// When content changes, collapse so the clamped layout is applied before measuring.
@@ -34,9 +36,13 @@ export function ExpandableText({
 	// Remeasure clamping after every transition back to the collapsed state.
 	// children is a prop that signals new content
 	useLayoutEffect(() => {
-		if (isExpanded) return;
+		if (isExpanded) {
+			return;
+		}
 		const el = elRef.current;
-		if (el) setIsClamped(el.scrollHeight > el.clientHeight);
+		if (el) {
+			setIsClamped(el.scrollHeight > el.clientHeight);
+		}
 	}, [isExpanded, children, lines]);
 
 	// Clamping snaps the text instantly, so the height glides between the two
@@ -45,10 +51,16 @@ export function ExpandableText({
 		const el = elRef.current;
 		const from = heightBeforeToggle.current;
 		heightBeforeToggle.current = null;
-		if (!el || from == null) return;
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (!el || from == null) {
+			return;
+		}
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+			return;
+		}
 		const to = el.getBoundingClientRect().height;
-		if (from === to) return;
+		if (from === to) {
+			return;
+		}
 		el.animate(
 			[
 				{ height: `${from}px`, overflow: "hidden" },

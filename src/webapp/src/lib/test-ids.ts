@@ -34,7 +34,9 @@ export function getTestId(...parts: string[]): string {
  * Note: This assumes input is kebab-case with lowercase letters (e.g., 'submit-button')
  */
 function toCamelCase(str: string): string {
-	return str.replaceAll(/-([a-zA-Z])/g, (_, char) => char.toUpperCase());
+	return str.replaceAll(/-([a-zA-Z])/g, (_match: string, char: string) =>
+		char.toUpperCase(),
+	);
 }
 
 /**
@@ -52,12 +54,9 @@ export function createTestIds<T extends string>(
 	prefix: string,
 	ids: readonly T[],
 ): Record<string, string> {
-	const result: Record<string, string> = {};
-	for (const id of ids) {
-		const key = toCamelCase(id);
-		result[key] = getTestId(prefix, id);
-	}
-	return result;
+	return Object.fromEntries(
+		ids.map((id) => [toCamelCase(id), getTestId(prefix, id)]),
+	);
 }
 
 /**
@@ -143,6 +142,7 @@ export const testIds = {
 	// Course details page
 	courseDetails: {
 		title: "course-details-title",
+		teachers: "course-details-teachers",
 		rateButton: "course-details-rate-button",
 		editUserRatingButton: "course-details-edit-user-rating-button",
 		statsCards: "course-details-stats-cards",

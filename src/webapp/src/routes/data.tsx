@@ -17,7 +17,9 @@ function DataSection() {
 	const { enabled, isReady } = useFeatureFlagState("fe_ukma_data");
 
 	// Stay blank until the flag resolves, so a hidden section never flashes in.
-	if (!isReady) return null;
+	if (!isReady) {
+		return null;
+	}
 	if (!enabled) {
 		return (
 			<Layout>

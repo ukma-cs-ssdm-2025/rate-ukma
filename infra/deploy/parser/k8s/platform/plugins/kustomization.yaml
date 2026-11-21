@@ -1,0 +1,9 @@
+---
+# CNPG plugins, pinned to exact releases. They need cert-manager's CRDs and webhook, so they are applied after config/,
+# and the database needs their CRDs, so before database/.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # barman-cloud v0.15 archives WAL and base backups to S3-compatible storage. Installs into cnpg-system.
+  - https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.15.1/manifest.yaml

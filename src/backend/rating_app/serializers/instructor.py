@@ -23,6 +23,9 @@ class CourseInstructorMentionsSerializer(serializers.Serializer):
     offering_ratings_count = serializers.IntegerField(
         help_text="Of those, ratings on the requested offering (0 without offering_id)"
     )
+    students_count = serializers.IntegerField(
+        help_text="Distinct students behind ratings_count; one may rate several offerings"
+    )
 
 
 class CourseInstructorListSerializer(serializers.Serializer):

@@ -26,7 +26,9 @@ function MyRatings() {
 		});
 
 	const ratings = useMemo<StudentRatingsDetailed[]>(() => {
-		if (!data) return [];
+		if (!data) {
+			return [];
+		}
 		return Array.isArray(data) ? data : [data];
 	}, [data]);
 

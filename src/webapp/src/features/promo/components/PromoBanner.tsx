@@ -13,8 +13,12 @@ export function PromoBanner() {
 	const banner = data?.banner ?? null;
 	const { isDismissed, dismiss } = usePromoDismissal(banner?.id ?? "");
 
-	if (isDismissed) return null;
-	if (!banner?.id || !banner.title || !banner.href) return null;
+	if (isDismissed) {
+		return null;
+	}
+	if (!banner?.id || !banner.title || !banner.href) {
+		return null;
+	}
 
 	return (
 		<aside

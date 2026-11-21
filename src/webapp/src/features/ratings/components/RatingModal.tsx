@@ -10,7 +10,11 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import { toast } from "@/components/ui/Toaster";
-import type { Instructor, RatingInstructor } from "@/lib/api/generated";
+import type {
+	Instructor,
+	RatingCreateRequest,
+	RatingInstructor,
+} from "@/lib/api/generated";
 import {
 	useCoursesRatingsCreate,
 	useCoursesRatingsPartialUpdate,
@@ -18,7 +22,8 @@ import {
 import { useAuth } from "@/lib/auth";
 import { testIds } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
-import { RatingForm, type RatingFormData } from "./RatingForm";
+import { RatingForm } from "./RatingForm";
+import type { RatingFormData } from "./RatingForm";
 import { RatingContinuationContext } from "../RatingContinuationContext";
 import { useRatingFlowEnabled } from "../hooks/useRatingFlowEnabled";
 import { refreshRatingQueries } from "../refreshRatingQueries";
@@ -85,14 +90,17 @@ export function RatingModal({
 	const handleSubmit = async (data: RatingFormData) => {
 		// A non-empty selection supersedes the legacy text; an empty one leaves it,
 		// rather than dropping the rating's only instructor.
-		const instructorPayload = {
-			instructor_ids: data.instructor_ids,
-			...(data.instructor_ids.length > 0 ? { instructor: "" } : {}),
-		};
+		const instructorPayload: Pick<
+			RatingCreateRequest,
+			"instructor" | "instructor_ids"
+		> = { instructor_ids: data.instructor_ids };
+		if (data.instructor_ids.length > 0) {
+			instructorPayload.instructor = "";
+		}
 		try {
 			if (isEditMode && existingRating?.id) {
 				await updateMutation.mutateAsync({
-					courseId: courseId,
+					courseId,
 					ratingId: existingRating.id,
 					data: {
 						difficulty: data.difficulty,
@@ -110,7 +118,7 @@ export function RatingModal({
 					return;
 				}
 				await createMutation.mutateAsync({
-					courseId: courseId,
+					courseId,
 					data: {
 						course_offering: offeringId,
 						difficulty: data.difficulty,
@@ -212,5 +220,3 @@ export function RatingModal({
 		</Dialog>
 	);
 }
-
-export type { RatingFormData } from "./RatingForm";

@@ -9,12 +9,10 @@ import { toast } from "@/components/ui/Toaster";
 import {
 	getCoursesRatingsListQueryKey,
 	RatingVoteStrType,
+	useRatingsVotesDestroy,
+	useRatingsVotesUpdate,
 } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
-import {
-	useCoursesRatingsVotesCreate,
-	useCoursesRatingsVotesDestroy,
-} from "../hooks/useVoteMutations";
 
 interface RatingVotesProps {
 	ratingId: string;
@@ -127,8 +125,8 @@ export function RatingVotes({
 		initialUserVote,
 	);
 
-	const createVote = useCoursesRatingsVotesCreate();
-	const deleteVote = useCoursesRatingsVotesDestroy();
+	const createVote = useRatingsVotesUpdate();
+	const deleteVote = useRatingsVotesDestroy();
 
 	// Store stable references to mutation functions
 	const createVoteRef = useRef(createVote.mutateAsync);
@@ -158,11 +156,13 @@ export function RatingVotes({
 
 	// Debounced sync effect
 	useEffect(() => {
-		if (userVote === serverVote) return;
+		if (userVote === serverVote) {
+			return;
+		}
 
 		let isMounted = true;
 
-		const timer = setTimeout(async () => {
+		const sync = async () => {
 			try {
 				if (userVote === null) {
 					await deleteVoteRef.current({ ratingId });
@@ -176,7 +176,7 @@ export function RatingVotes({
 				if (isMounted) {
 					setServerVote(userVote);
 					if (courseId) {
-						queryClient.invalidateQueries({
+						void queryClient.invalidateQueries({
 							queryKey: getCoursesRatingsListQueryKey(courseId),
 							refetchType: "none",
 						});
@@ -191,6 +191,9 @@ export function RatingVotes({
 					setUserVote(serverVote);
 				}
 			}
+		};
+		const timer = setTimeout(() => {
+			void sync();
 		}, 500); // 500ms debounce
 
 		return () => {

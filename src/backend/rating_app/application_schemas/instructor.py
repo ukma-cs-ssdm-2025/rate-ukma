@@ -95,3 +95,4 @@ class CourseInstructorMentions:
     instructor: Instructor
     ratings_count: int
     offering_ratings_count: int
+    students_count: int

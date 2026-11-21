@@ -1,12 +1,12 @@
 import * as React from "react";
 
-import { EducationLevelEnum, type FilterOptions } from "@/lib/api/generated";
+import { EducationLevelEnum } from "@/lib/api/generated";
+import type { CoursesListTypeKind, FilterOptions } from "@/lib/api/generated";
 import type { CourseFiltersParamsState } from "../courseFiltersParams";
 import {
 	CREDITS_RANGE,
 	DIFFICULTY_RANGE,
 	formatDecimalValue,
-	getCourseTypeDisplay,
 	getEducationLevelDisplay,
 	getSemesterTermDisplay,
 	USEFULNESS_RANGE,
@@ -40,8 +40,16 @@ type SelectOption = {
 	label: string;
 };
 
+export type SelectFilterKey =
+	| "year"
+	| "faculty"
+	| "dept"
+	| "spec"
+	| "type"
+	| "instructor";
+
 export type SelectFilterConfig = {
-	key: string;
+	key: SelectFilterKey;
 	label: string;
 	placeholder: string;
 	value: string;
@@ -166,9 +174,7 @@ export function getActiveFilterChips(
 	if (params.type) {
 		chips.push({
 			key: "type",
-			label:
-				COURSE_TYPE_FILTER_LABELS[params.type] ??
-				getCourseTypeDisplay(params.type),
+			label: COURSE_TYPE_FILTER_LABELS[params.type],
 			clear: { type: null },
 		});
 	}
@@ -200,11 +206,11 @@ export function getActiveFilterChips(
 
 // Read as the answer to "which courses of my speciality": ELECTIVE covers
 // everything that is neither compulsory nor profession-oriented for it.
-export const COURSE_TYPE_FILTER_LABELS: Record<string, string> = {
+const COURSE_TYPE_FILTER_LABELS = {
 	COMPULSORY: "Обов'язкові",
 	PROF_ORIENTED: "Професійно-орієнтовані",
 	ELECTIVE: "Вільного вибору",
-};
+} satisfies Record<CoursesListTypeKind, string>;
 
 export type EducationLevelToggle = {
 	options: Array<{ value: string; label: string }>;
@@ -399,7 +405,7 @@ export function useCourseFiltersData({
 				value: filters.type ?? "",
 				options: courseTypes.map((type) => ({
 					value: type.value,
-					label: getCourseTypeDisplay(type.value, type.label),
+					label: COURSE_TYPE_FILTER_LABELS[type.value],
 				})),
 				disabled: !filters.spec,
 				disabledMessage: filters.spec
@@ -436,36 +442,55 @@ export function useCourseFiltersData({
 		if (
 			filters.diff[0] !== DIFFICULTY_RANGE[0] ||
 			filters.diff[1] !== DIFFICULTY_RANGE[1]
-		)
+		) {
 			count++;
+		}
 		if (
 			filters.use[0] !== USEFULNESS_RANGE[0] ||
 			filters.use[1] !== USEFULNESS_RANGE[1]
-		)
+		) {
 			count++;
+		}
 		return count;
 	}, [filters.diff, filters.use]);
 
 	const semesterActiveCount = React.useMemo(() => {
 		let count = 0;
-		if (filters.year) count++;
-		if (filters.term.length > 0) count++;
+		if (filters.year) {
+			count++;
+		}
+		if (filters.term.length > 0) {
+			count++;
+		}
 		if (
 			filters.credits[0] !== CREDITS_RANGE[0] ||
 			filters.credits[1] !== CREDITS_RANGE[1]
-		)
+		) {
 			count++;
+		}
 		return count;
 	}, [filters.year, filters.term, filters.credits]);
 
 	const structureActiveCount = React.useMemo(() => {
 		let count = 0;
-		if (filters.faculty) count++;
-		if (filters.dept) count++;
-		if (filters.spec) count++;
-		if (filters.type) count++;
-		if (filters.eduLevel) count++;
-		if (filters.instructor) count++;
+		if (filters.faculty) {
+			count++;
+		}
+		if (filters.dept) {
+			count++;
+		}
+		if (filters.spec) {
+			count++;
+		}
+		if (filters.type) {
+			count++;
+		}
+		if (filters.eduLevel) {
+			count++;
+		}
+		if (filters.instructor) {
+			count++;
+		}
 		return count;
 	}, [
 		filters.faculty,

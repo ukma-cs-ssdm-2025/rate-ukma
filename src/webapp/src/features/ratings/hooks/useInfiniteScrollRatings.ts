@@ -50,7 +50,7 @@ export function useInfiniteScrollRatings(
 		useInfiniteQuery({
 			queryKey: getCoursesRatingsListQueryKey(courseId, params),
 			queryFn: ({ pageParam }) =>
-				coursesRatingsList(courseId, { ...params, page: pageParam as number }),
+				coursesRatingsList(courseId, { ...params, page: pageParam }),
 			getNextPageParam: (lastPage) =>
 				lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
 			initialPageParam: 1,

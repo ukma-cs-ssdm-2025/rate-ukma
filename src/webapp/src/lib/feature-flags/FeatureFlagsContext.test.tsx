@@ -5,11 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FeatureFlagsProvider } from "./FeatureFlagsContext";
 import {
-	type FeatureFlagName,
 	useFeatureFlag,
 	useFeatureFlags,
 	useFeatureFlagState,
 } from "./useFeatureFlag";
+import type { FeatureFlagName } from "./useFeatureFlag";
 
 const FLAGS_QUERY_KEY = ["/api/v1/flags/"];
 const mockUseFlagsList = vi.fn();

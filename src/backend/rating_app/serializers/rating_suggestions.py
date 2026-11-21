@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from rating_app.models.choices import SemesterTerm
+
 
 class RatingSuggestionQuerySerializer(serializers.Serializer):
     exclude_course = serializers.UUIDField(required=False)
@@ -7,7 +9,7 @@ class RatingSuggestionQuerySerializer(serializers.Serializer):
 
 class RatingSuggestionSemesterSerializer(serializers.Serializer):
     year = serializers.IntegerField()
-    season = serializers.CharField()
+    season = serializers.ChoiceField(choices=SemesterTerm.choices)
 
 
 class RatingSuggestionSerializer(serializers.Serializer):

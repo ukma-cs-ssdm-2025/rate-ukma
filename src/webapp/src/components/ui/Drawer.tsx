@@ -52,7 +52,9 @@ export function Drawer({
 	// The panel must paint once off-screen before it can transition in, so the
 	// flip waits two frames after mount.
 	useEffect(() => {
-		if (!open || !isMounted) return;
+		if (!open || !isMounted) {
+			return;
+		}
 		let frame = requestAnimationFrame(() => {
 			frame = requestAnimationFrame(() => setIsShown(true));
 		});
@@ -61,7 +63,9 @@ export function Drawer({
 
 	// Unlocking only after unmount keeps the page from jumping mid-exit.
 	useEffect(() => {
-		if (!isMounted) return;
+		if (!isMounted) {
+			return;
+		}
 		return lockBodyScroll();
 	}, [isMounted]);
 

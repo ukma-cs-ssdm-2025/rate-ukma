@@ -606,6 +606,174 @@
 				"summary": "Review cases with their safe answers"
 			}
 		},
+		"/v1/review-cases/{id}": {
+			"get": {
+				"tags": [
+					"review"
+				],
+				"operationId": "review.studentCase",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "StudentCase",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/StudentCase"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "ReviewCaseNotFound",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ReviewCaseNotFoundEncoded"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "ReviewCaseRefused",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ReviewCaseRefusedEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "A `student_match` case with each person's name, programme, study year and status"
+			}
+		},
+		"/v1/review-cases/{id}/decide": {
+			"post": {
+				"tags": [
+					"review"
+				],
+				"operationId": "review.decideCase",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "<No Content>"
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "ReviewCaseNotFound",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ReviewCaseNotFoundEncoded"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "ReviewCaseRefused",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ReviewCaseRefusedEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Close an open `student_match` case: the record is the student it joined",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"decision": {
+										"type": "string",
+										"enum": [
+											"same_person"
+										],
+										"description": "The record is the student it joined; the only decision for now"
+									}
+								},
+								"required": [
+									"decision"
+								],
+								"additionalProperties": false
+							}
+						}
+					},
+					"required": true
+				}
+			}
+		},
 		"/v1/courses/{id}/merge": {
 			"post": {
 				"tags": [
@@ -840,6 +1008,243 @@
 					"courseId"
 				],
 				"additionalProperties": false
+			},
+			"ReviewCaseRefusedEncoded": {
+				"type": "object",
+				"properties": {
+					"_tag": {
+						"type": "string",
+						"enum": [
+							"ReviewCaseRefused"
+						]
+					},
+					"reason": {
+						"type": "string",
+						"enum": [
+							"not_student_match",
+							"not_open"
+						]
+					}
+				},
+				"required": [
+					"_tag",
+					"reason"
+				],
+				"additionalProperties": false
+			},
+			"ReviewCaseNotFoundEncoded": {
+				"type": "object",
+				"properties": {
+					"_tag": {
+						"type": "string",
+						"enum": [
+							"ReviewCaseNotFound"
+						]
+					},
+					"caseId": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"_tag",
+					"caseId"
+				],
+				"additionalProperties": false
+			},
+			"StudentCase": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"kind": {
+						"type": "string",
+						"enum": [
+							"student_match"
+						]
+					},
+					"status": {
+						"type": "string",
+						"enum": [
+							"open",
+							"decided",
+							"obsolete"
+						]
+					},
+					"openedAt": {
+						"type": "string"
+					},
+					"record": {
+						"$ref": "#/components/schemas/CasePerson"
+					},
+					"joinedStudentId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The student the record joined: the safe answer"
+					},
+					"candidates": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/CasePerson_1"
+						},
+						"description": "Each matching student, from their newest other programme record"
+					}
+				},
+				"required": [
+					"id",
+					"kind",
+					"status",
+					"openedAt",
+					"record",
+					"joinedStudentId",
+					"candidates"
+				],
+				"additionalProperties": false
+			},
+			"CasePerson_1": {
+				"type": "object",
+				"properties": {
+					"studentId": {
+						"type": "string"
+					},
+					"recordId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The programme record the details come from"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"programme": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"studyYear": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"status": {
+						"anyOf": [
+							{
+								"type": "string",
+								"enum": [
+									"active",
+									"inactive"
+								]
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"studentId",
+					"recordId",
+					"firstName",
+					"lastName",
+					"programme",
+					"studyYear",
+					"status"
+				],
+				"additionalProperties": false
+			},
+			"CasePerson": {
+				"type": "object",
+				"properties": {
+					"studentId": {
+						"type": "string"
+					},
+					"recordId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The programme record the details come from"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"programme": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"studyYear": {
+						"anyOf": [
+							{
+								"type": "integer"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"status": {
+						"anyOf": [
+							{
+								"type": "string",
+								"enum": [
+									"active",
+									"inactive"
+								]
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"studentId",
+					"recordId",
+					"firstName",
+					"lastName",
+					"programme",
+					"studyYear",
+					"status"
+				],
+				"additionalProperties": false,
+				"description": "The programme record that opened the case, as САЗ last listed it"
 			},
 			"ReviewCasePage": {
 				"type": "object",

@@ -1,4 +1,5 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import { Logo } from "@/components/Logo";
 import { ModeToggle } from "@/components/ModeToggle";
@@ -279,9 +280,11 @@ function useTooltipBox() {
 				}
 				const unchanged =
 					current !== null &&
-					Object.entries(next).every(
-						([key, value]) => current[key as keyof TooltipBox] === value,
-					);
+					current.cardWidth === next.cardWidth &&
+					current.cardHeight === next.cardHeight &&
+					current.shellWidth === next.shellWidth &&
+					current.shellHeight === next.shellHeight &&
+					current.rem === next.rem;
 				return unchanged ? current : next;
 			});
 		};

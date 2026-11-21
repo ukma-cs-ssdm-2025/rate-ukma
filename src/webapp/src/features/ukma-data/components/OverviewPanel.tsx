@@ -3,10 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import {
-	type UkmaDataReviewCaseKindEnum,
-	type UkmaDataStatus,
-	useUkmaDataReviewCasesList,
+import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
+import type {
+	UkmaDataReviewCaseKindEnum,
+	UkmaDataStatus,
 } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
 import {

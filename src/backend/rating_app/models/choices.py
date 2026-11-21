@@ -71,3 +71,14 @@ class NotificationEventType(models.TextChoices):
     RATING_UPVOTED = "RATING_UPVOTED", "Rating Upvoted"
     RATING_DOWNVOTED = "RATING_DOWNVOTED", "Rating Downvoted"
     RATING_COMMENT_CREATED = "RATING_COMMENT_CREATED", "Rating Comment Created"
+
+
+class PlanSlot(models.TextChoices):
+    MAIN = "MAIN", "Main"
+    BACKUP = "BACKUP", "Backup"
+
+
+class PlanYearStatus(models.TextChoices):
+    DONE = "done", "Done"
+    CURRENT = "current", "Current"
+    PLANNED = "planned", "Planned"

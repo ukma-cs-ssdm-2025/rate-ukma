@@ -21,7 +21,9 @@ function ReviewCaseDetail() {
 	const { data, isLoading, error, refetch, isRefetching } =
 		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
 
-	if (isLoading) return <Skeleton className="h-96 rounded-xl" />;
+	if (isLoading) {
+		return <Skeleton className="h-96 rounded-xl" />;
+	}
 	if (error || !data) {
 		return (
 			<UkmaDataError

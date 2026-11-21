@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -86,7 +85,7 @@ function blend(fg: Rgb, base: Rgb, alpha: number): Rgb {
 }
 
 function readTokens(block: "light" | "dark"): Map<string, Rgb> {
-	const cssPath = join(dirname(fileURLToPath(import.meta.url)), "styles.css");
+	const cssPath = join(import.meta.dirname, "styles.css");
 	const css = readFileSync(cssPath, "utf8");
 	const selector = block === "light" ? ":root" : "@variant dark";
 	// Light tokens sit in `:root` before its nested `@variant dark` block.

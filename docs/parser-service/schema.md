@@ -298,6 +298,8 @@ Each parse's `report` counts its rows by table and action. A removed offering co
 
 A decision wins over the matching rules, so the matching step reads the latest non-reversed decision for each offering, or for each programme record, before it applies a rule. `split_student` moves one programme record (`payload`: `student_programme_id`) to a new student; `keep_student` confirms the student it joined. The safe answer of a `student_match` case is the student the record joined.
 
+Staff read a `student_match` case through `GET /v1/review-cases/{id}` (`review:decide`): the record that opened it and each candidate student, with first and last name, study year and status as the students page of their record last showed them (a candidate from their newest other record), and the programme under its current name in `programmes` when the record has one, else the name that page showed; ids are kept as the join key. When there is no such page (a candidate with no other programme record) or the page no longer lists the record, the person has the student's stored name, `null` `studyYear` and `status`, and, for a candidate without another record, a `null` `recordId`. `POST /v1/review-cases/{id}/decide` with `{"decision": "same_person"}` is `keep_student`: it closes the open case (`status` `decided`, a new change number), leaves the record with its student, and writes a `student_case_decided` audit row in the same transaction; until the `decisions` table exists, that row is the record of the decision, as for course merges. Any other decision is a 400; a case of another kind or one already closed is a 409, an unknown id a 404. A split has no endpoint yet.
+
 ## Keys and audit log
 
 ### `api_keys`
@@ -318,10 +320,10 @@ A decision wins over the matching rules, so the matching step reads the latest n
 | `id` | text | `aud_...` |
 | `at` | timestamptz | |
 | `key_id` | text null | null for an action from the command line |
-| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`, `course_merged`, `course_unmerged`; a new action comes with the code that writes it |
+| `action` | text | `request`, `request_denied`, `key_created`, `key_revoked`, `course_merged`, `course_unmerged`, `student_case_decided`; a new action comes with the code that writes it |
 | `route` | text null | the endpoint's method and path template, such as `GET /v1/offerings`; no ids or filter values |
-| `target_id` | text null | the key, or the course a merge or unmerge decided |
-| `related_id` | text null | the course a merge moved into |
+| `target_id` | text null | the key, the course a merge or unmerge decided, or the review case decided |
+| `related_id` | text null | the course a merge moved into, or the student a `student_match` decision kept |
 | `row_count` | integer null | rows returned for a read; no data values |
 | `reason` | text null | on a `request_denied` row, why the request was refused: `wrong_secret`, `revoked`, `expired`, `missing_scope`, `no_required_scopes` |
 

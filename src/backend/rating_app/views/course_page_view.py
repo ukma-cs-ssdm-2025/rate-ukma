@@ -4,6 +4,8 @@ from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from drf_spectacular.utils import extend_schema
+
 from rating_app.services.course_page_service import CoursePageService
 
 
@@ -15,6 +17,7 @@ class CoursePageView(APIView):
     # IoC args
     course_page_service: CoursePageService | None = None
 
+    @extend_schema(exclude=True)
     def get(self, request: HttpRequest, course_id: str) -> Response:
         assert self.course_page_service is not None
 

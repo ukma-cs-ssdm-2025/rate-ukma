@@ -243,10 +243,18 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
-    "COMPONENT_NO_READ_ONLY_REQUIRED": True,
+    "COMPONENT_NO_READ_ONLY_REQUIRED": False,
     "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
     # UKMA Data rows have their own `status` fields; keep the course one's name
-    "ENUM_NAME_OVERRIDES": {"StatusEnum": "rating_app.models.choices.CourseStatus"},
+    "ENUM_NAME_OVERRIDES": {
+        "StatusEnum": "rating_app.models.choices.CourseStatus",
+        # One name per choice set, so the webapp gets one TS type per concept
+        # instead of numbered duplicates (Value283Enum, TimeOrderEnum, ...).
+        "SemesterTermEnum": "rating_app.models.choices.SemesterTerm",
+        "CourseTypeKindEnum": "rating_app.models.choices.CourseTypeKind",
+        "VoteTypeEnum": "rating_app.models.choices.RatingVoteStrType",
+        "SortOrderEnum": [("asc", "asc"), ("desc", "desc")],
+    },
 }
 
 
@@ -326,4 +334,10 @@ UKMA_DATA_TIMEOUT_SECONDS = config("UKMA_DATA_TIMEOUT_SECONDS", default=10, cast
 # ONLY when added to this allowlist in a reviewed PR — the endpoint fails closed,
 # so server-only flags can never leak through a naming mistake. `fe_` is a soft
 # naming convention for client-facing flags, not the security boundary.
-PUBLIC_FEATURE_FLAGS = ["fe_feed", "fe_faculty_colors", "fe_rate_flow", "fe_ukma_data"]
+PUBLIC_FEATURE_FLAGS = [
+    "fe_feed",
+    "fe_faculty_colors",
+    "fe_rate_flow",
+    "fe_ukma_data",
+    "fe_course_instructors",
+]

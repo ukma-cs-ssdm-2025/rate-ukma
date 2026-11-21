@@ -1,27 +1,36 @@
 import { describe, expect, it } from "vitest";
 
-import type { StudentRatingsDetailed } from "@/lib/api/generated";
+import type {
+	SemesterTermEnum,
+	StudentRatingsDetailed,
+} from "@/lib/api/generated";
 import { groupRatingsByYearAndSemester } from "./groupRatings";
+import {
+	createMockInlineRatingDetailed,
+	createMockStudentRating,
+} from "@/test-utils/factories";
 
 function makeCourse(
 	index: number,
 	overrides?: Partial<StudentRatingsDetailed>,
 ): StudentRatingsDetailed {
-	return {
+	return createMockStudentRating({
 		course_id: `course-${index}`,
 		course_title: `Курс ${index}`,
 		course_code: `9000${index}`,
 		course_offering_id: `offering-${index}`,
-		can_rate: true,
-		rated: null,
 		...overrides,
-	};
+	});
 }
 
-function ratedCourse(index: number, year: number, season: string) {
+function ratedCourse(index: number, year: number, season: SemesterTermEnum) {
 	return makeCourse(index, {
 		semester: { year, season },
-		rated: { id: `rating-${index}`, difficulty: 4, usefulness: 5 },
+		rated: createMockInlineRatingDetailed({
+			id: `rating-${index}`,
+			difficulty: 4,
+			usefulness: 5,
+		}),
 	});
 }
 

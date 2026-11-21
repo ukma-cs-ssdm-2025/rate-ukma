@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
-import { AlertTriangle, type LucideIcon } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import {

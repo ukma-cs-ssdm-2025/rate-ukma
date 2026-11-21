@@ -50,7 +50,9 @@ function ButtonGroup({
 	}, []);
 
 	const enhancedChildren = childrenArray.map((child, index) => {
-		if (!isButtonElement(child)) return child;
+		if (!isButtonElement(child)) {
+			return child;
+		}
 
 		const position = buttonIndexes.indexOf(index);
 		const isFirst = position === 0;

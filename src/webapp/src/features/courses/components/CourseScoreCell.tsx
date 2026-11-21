@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { getDifficultyTone, getUsefulnessTone } from "../courseFormatting";
 
 interface CourseScoreCellProps {
-	value?: number;
+	value: number | null;
 	variant: "difficulty" | "usefulness";
 }
 

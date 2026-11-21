@@ -3,7 +3,7 @@ import { PenLine } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getSemesterDisplay } from "@/features/courses/courseFormatting";
 import { cn } from "@/lib/utils";
-import type { RatingSuggestion } from "../hooks/useRatingSuggestions";
+import type { RatingSuggestion } from "@/lib/api/generated";
 
 interface RatingSuggestionsProps {
 	readonly items: readonly RatingSuggestion[];

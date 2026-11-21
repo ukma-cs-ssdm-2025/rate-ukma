@@ -31,10 +31,13 @@ import {
 
 const ALL = "all";
 
+const kindParser = parseAsStringEnum([...caseKinds, ALL]);
+const statusParser = parseAsStringEnum([...caseStatuses, ALL]);
+
 export function useCaseFilterParams() {
 	return useQueryStates({
-		kind: parseAsStringEnum([...caseKinds, ALL]).withDefault(ALL),
-		status: parseAsStringEnum([...caseStatuses, ALL]).withDefault("open"),
+		kind: kindParser.withDefault(ALL),
+		status: statusParser.withDefault("open"),
 	});
 }
 
@@ -44,7 +47,7 @@ export function ReviewCaseFilters() {
 		<div className="flex flex-col gap-2 sm:flex-row">
 			<Select
 				value={kind}
-				onValueChange={(value) => setParams({ kind: value as typeof kind })}
+				onValueChange={(value) => setParams({ kind: kindParser.parse(value) })}
 			>
 				<SelectTrigger aria-label="Тип справи" className="w-full sm:w-56">
 					<SelectValue />
@@ -60,7 +63,9 @@ export function ReviewCaseFilters() {
 			</Select>
 			<Select
 				value={status}
-				onValueChange={(value) => setParams({ status: value as typeof status })}
+				onValueChange={(value) =>
+					setParams({ status: statusParser.parse(value) })
+				}
 			>
 				<SelectTrigger aria-label="Стан справи" className="w-full sm:w-44">
 					<SelectValue />

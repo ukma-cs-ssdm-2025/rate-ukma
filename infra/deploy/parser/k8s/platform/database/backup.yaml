@@ -1,0 +1,63 @@
+# Backups of parser-db to Hetzner Object Storage, through the barman-cloud plugin (plugins/).
+# WAL is archived continuously and a base backup runs daily, so the database can be restored
+# to any point in the last 7 days. The restore steps are in infra/deploy/parser/README.md.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: parser-backups
+  namespace: parser
+spec:
+  # A recovery window: barman keeps every base backup and WAL file needed to restore to any point in it.
+  retentionPolicy: "7d"
+  configuration:
+    # Backups land under <destinationPath>/<serverName>/, and serverName defaults to the cluster name.
+    destinationPath: s3://rate-ukma-parser-backups/
+    endpointURL: https://hel1.your-objectstorage.com
+    # From the parser-db-backup-s3 Secret, which Parser Platform creates.
+    s3Credentials:
+      accessKeyId:
+        name: parser-db-backup-s3
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: parser-db-backup-s3
+        key: ACCESS_SECRET_KEY
+      region:
+        name: parser-db-backup-s3
+        key: REGION
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
+  instanceSidecarConfiguration:
+    env:
+      # boto3 1.36+ sends CRC checksums by default, which some S3-compatible stores reject.
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+    # The sidecar runs in each Postgres pod. Sized for the 4 GB node: a failed backup shows up in
+    # the ScheduledBackup's status, an unbounded one could starve the database.
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: parser-db-daily
+  namespace: parser
+spec:
+  # Six fields, seconds first: 02:00 UTC every day.
+  schedule: "0 0 2 * * *"
+  # A first backup right after the apply, so a restore is possible from day one.
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: parser-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io

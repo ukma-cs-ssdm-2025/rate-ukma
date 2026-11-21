@@ -162,7 +162,9 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
         """Instructors named in ratings of ``course_id``, with mention counts.
 
         ``ratings_count`` covers every offering of the course,
-        ``offering_ratings_count`` only ``offering_id`` (zero when omitted).
+        ``offering_ratings_count`` only ``offering_id`` (zero when omitted),
+        ``students_count`` the distinct students behind ``ratings_count``: one
+        student may rate several offerings of the course.
         Ordered by this offering first, then the whole course, then name.
         """
         offering_filter = (
@@ -172,6 +174,7 @@ class InstructorRepository(IDomainOrmRepository[Instructor, InstructorModel]):
             InstructorModel.objects.filter(ratings__course_offering__course_id=course_id)
             .annotate(
                 ratings_count=Count("ratings", distinct=True),
+                students_count=Count("ratings__student", distinct=True),
                 offering_ratings_count=Count("ratings", filter=offering_filter, distinct=True),
             )
             .order_by("-offering_ratings_count", "-ratings_count", "last_name", "first_name", "id")

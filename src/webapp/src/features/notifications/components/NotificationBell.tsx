@@ -52,9 +52,9 @@ export function NotificationBell() {
 	// refetch on open or when unreadCount changes while open
 	useEffect(() => {
 		if (open) {
-			refetch();
+			void refetch();
 		}
-	}, [open, unreadCount]);
+	}, [open, unreadCount, refetch]);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
