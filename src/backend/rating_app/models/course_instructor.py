@@ -6,7 +6,7 @@ from .choices import InstructorRole
 
 
 class CourseInstructor(models.Model):
-    # Planned teachers mirrored daily from UKMA Data by sync_offering_instructors (ADR 0017).
+    # Planned teachers mirrored daily from UKMA Data by sync_offering_instructors (ADR 0018).
     instructor_id: uuid.UUID
     course_offering_id: uuid.UUID
 

@@ -1,4 +1,4 @@
-"""Periodic jobs run by ``manage.py run_scheduler`` (ADR 0017).
+"""Periodic jobs run by ``manage.py run_scheduler`` (ADR 0018).
 
 Each job is a management command run once a day at a Kyiv wall-clock time.
 ``lock_key`` is the job's Postgres advisory lock, fixed for good: two

@@ -41,7 +41,7 @@ class SyncReport:
 
 
 class OfferingInstructorSync:
-    """Mirrors UKMA Data's planned teachers into ``CourseInstructor`` (ADR 0017).
+    """Mirrors UKMA Data's planned teachers into ``CourseInstructor`` (ADR 0018).
 
     Reads every offering page, keeps the current and previous academic year,
     finds the offering by САЗ code and the teacher by email, and makes the

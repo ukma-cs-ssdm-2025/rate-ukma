@@ -24,4 +24,4 @@ This document serves as the central index and log for all significant **Architec
 * [ADR-0015](0015-parser-single-live-environment.md) - One Live Environment for UKMA Data, Promoted from Staging
 * [ADR-0016](0016-sign-in-log.md) - Record Every Sign-in as a `SignIn` Row
 * [ADR-0017](0017-webapp-layers.md) - Webapp Layers Enforced by Lint
-* [ADR-0017](0017-planned-teachers-and-in-app-scheduler.md) - Planned Teachers Come from UKMA Data, Mirrored Daily by an In-App Scheduler
+* [ADR-0018](0018-planned-teachers-and-in-app-scheduler.md) - Planned Teachers Come from UKMA Data, Mirrored Daily by an In-App Scheduler
