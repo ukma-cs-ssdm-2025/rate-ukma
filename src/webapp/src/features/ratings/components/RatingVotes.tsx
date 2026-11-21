@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
@@ -13,8 +13,6 @@ import {
 	useRatingsVotesUpdate,
 } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
-
-const VOTE_SYNC_DEBOUNCE_MS = 500;
 
 interface RatingVotesProps {
 	ratingId: string;
@@ -118,18 +116,12 @@ export function RatingVotes({
 	const [userVote, setUserVote] = useState<RatingVoteStrType | null>(
 		initialUserVote,
 	);
-	const [serverVote, setServerVote] = useState<RatingVoteStrType | null>(
-		initialUserVote,
-	);
+	const wantedVote = useRef(initialUserVote);
+	const confirmedVote = useRef(initialUserVote);
+	const sending = useRef(false);
 
 	const createVote = useRatingsVotesUpdate();
 	const deleteVote = useRatingsVotesDestroy();
-
-	const pushVote = useEffectEvent((vote: RatingVoteStrType | null) =>
-		vote === null
-			? deleteVote.mutateAsync({ ratingId })
-			: createVote.mutateAsync({ ratingId, data: { vote_type: vote } }),
-	);
 
 	const upvotes =
 		initialUpvotes +
@@ -141,49 +133,50 @@ export function RatingVotes({
 		(userVote === RatingVoteStrType.DOWNVOTE ? 1 : 0);
 
 	useEffect(() => {
-		setUserVote(initialUserVote);
-		setServerVote(initialUserVote);
-	}, [initialUserVote]);
-
-	useEffect(() => {
-		if (userVote === serverVote) {
+		if (sending.current) {
 			return;
 		}
+		wantedVote.current = initialUserVote;
+		confirmedVote.current = initialUserVote;
+		setUserVote(initialUserVote);
+	}, [initialUserVote]);
 
-		let isMounted = true;
-
-		const sync = async () => {
-			try {
-				await pushVote(userVote);
-				if (isMounted) {
-					setServerVote(userVote);
-					if (courseId) {
-						void queryClient.invalidateQueries({
-							queryKey: getCoursesRatingsListQueryKey(courseId),
-							refetchType: "none",
-						});
-					}
+	const sendWantedVote = async () => {
+		if (sending.current) {
+			return;
+		}
+		sending.current = true;
+		try {
+			while (wantedVote.current !== confirmedVote.current) {
+				const vote = wantedVote.current;
+				if (vote === null) {
+					await deleteVote.mutateAsync({ ratingId });
+				} else {
+					await createVote.mutateAsync({ ratingId, data: { vote_type: vote } });
 				}
-			} catch (error) {
-				if (isMounted) {
-					console.error("Failed to sync vote with server:", error);
-					toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
-					setUserVote(serverVote);
-				}
+				confirmedVote.current = vote;
 			}
-		};
-		const timer = setTimeout(() => {
-			void sync();
-		}, VOTE_SYNC_DEBOUNCE_MS);
-
-		return () => {
-			clearTimeout(timer);
-			isMounted = false;
-		};
-	}, [userVote, serverVote, ratingId, courseId, queryClient]);
+			if (courseId) {
+				void queryClient.invalidateQueries({
+					queryKey: getCoursesRatingsListQueryKey(courseId),
+					refetchType: "none",
+				});
+			}
+		} catch (error) {
+			console.error("Failed to sync vote with server:", error);
+			toast.error("Не вдалося зберегти ваш голос. Спробуйте ще раз");
+			wantedVote.current = confirmedVote.current;
+			setUserVote(confirmedVote.current);
+		} finally {
+			sending.current = false;
+		}
+	};
 
 	const toggleVote = (target: RatingVoteStrType) => {
-		setUserVote((prev) => (prev === target ? null : target));
+		const next = userVote === target ? null : target;
+		setUserVote(next);
+		wantedVote.current = next;
+		void sendWantedVote();
 	};
 
 	const upActive = userVote === RatingVoteStrType.UPVOTE;
