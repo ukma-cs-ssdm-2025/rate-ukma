@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from rateukma.caching.patterns import (
+    FILTER_OPTIONS_NAMESPACE,
     comment_replies_namespace,
     course_analytics_namespace,
     course_detail_namespace,
@@ -117,10 +118,15 @@ class TestRatingCacheInvalidator:
             student_ratings_namespace(str(event.rating.student_id))
         )
 
+    def test_bumps_filter_options_namespace(self, invalidator, cache_manager):
+        """The course filter lists only teachers some rating names."""
+        invalidator.on_event(_make_rating_event())
+        cache_manager.bump_version.assert_any_call(FILTER_OPTIONS_NAMESPACE)
+
     def test_bumps_all_namespaces(self, invalidator, cache_manager):
         event = _make_rating_event()
         invalidator.on_event(event)
-        assert cache_manager.bump_version.call_count == 4
+        assert cache_manager.bump_version.call_count == 5
 
     def test_anonymous_rating_still_bumps_student_namespace(self, invalidator, cache_manager):
         """Anonymous ratings carry the real student_id in the domain model.
@@ -130,7 +136,7 @@ class TestRatingCacheInvalidator:
         cache_manager.bump_version.assert_any_call(
             student_ratings_namespace(str(event.rating.student_id))
         )
-        assert cache_manager.bump_version.call_count == 4
+        assert cache_manager.bump_version.call_count == 5
 
 
 class TestCommentCacheInvalidator:

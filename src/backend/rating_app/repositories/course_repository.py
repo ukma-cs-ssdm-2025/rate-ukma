@@ -327,7 +327,7 @@ class CourseRepository(
             has_offering_filter = True
 
         if filters.instructor:
-            # CourseInstructor rows are prod-empty; mentions are the signal (#664, removal: #687).
+            # Rating mentions, not the planned CourseInstructor rows, are the signal (#664).
             mentioned = Rating.objects.filter(
                 course_offering_id=OuterRef("pk"),
                 instructors__id=filters.instructor,
