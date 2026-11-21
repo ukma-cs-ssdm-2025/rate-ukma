@@ -38,6 +38,20 @@ export interface PageRequest {
 	readonly limit: number;
 }
 
+/** `PageQuery` plus `?year=<first calendar year>`: one academic year's rows. */
+export const YearPageQuery = {
+	...PageQuery,
+	year: queryInt(
+		Schema.isGreaterThanOrEqualTo(0),
+		0,
+		"The academic year's first calendar year, as 2031 for 2031-32; 0 for every year",
+	),
+};
+
+export interface YearPageRequest extends PageRequest {
+	readonly year: number;
+}
+
 /** One page of a list in change-number order. A reader stores every page,
  *  then saves `cursor` once `hasMore` is false (spec rule 5). */
 export const Page = <S extends Schema.Top>(item: S, identifier: string) =>
@@ -152,7 +166,7 @@ const OfferingInstructor = Schema.Struct({
 }).annotate({ identifier: "OfferingInstructor" });
 
 /** One САЗ card. The card's teacher cell is left out; the smart.ukma
- *  teachers linked to it come only to a key with `instructors:read`. */
+ *  teachers linked to it are `OfferingTeachers`. */
 export const Offering = Schema.Struct({
 	id: Schema.String,
 	sazCode: Schema.String,
@@ -179,13 +193,20 @@ export const Offering = Schema.Struct({
 	}),
 	terms: Schema.Array(OfferingTerm),
 	programmes: Schema.Array(OfferingProgramme),
-	instructors: Schema.optionalKey(Schema.Array(OfferingInstructor)).annotate({
-		description:
-			"smart.ukma teachers linked by the matching rule; present only for a key with `instructors:read`",
-	}),
 	changeNo,
 	removedAt,
 }).annotate({ identifier: "Offering" });
+
+/** An offering's smart.ukma teachers, linked by the matching rule. It takes
+ *  the offering's change number, which moves when its teachers change. */
+export const OfferingTeachers = Schema.Struct({
+	id: Schema.String,
+	sazCode: Schema.String,
+	academicYear: Schema.Int,
+	instructors: Schema.Array(OfferingInstructor),
+	changeNo,
+	removedAt,
+}).annotate({ identifier: "OfferingTeachers" });
 
 /** Offerings of one subject across years. */
 export const Course = Schema.Struct({

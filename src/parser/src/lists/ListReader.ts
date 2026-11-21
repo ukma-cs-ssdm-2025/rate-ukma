@@ -5,12 +5,14 @@ import {
 	Department,
 	Faculty,
 	Offering,
+	OfferingTeachers,
 	type PageOf,
 	type PageRequest,
 	Programme,
 	ReviewCase,
 	Term,
 	toPage,
+	type YearPageRequest,
 } from "./lists.ts";
 
 const Request = Schema.Struct({ after: Schema.Int, limit: Schema.Int });
@@ -39,11 +41,11 @@ export class ListReader extends Context.Service<
 		departments: Read<typeof Department>;
 		programmes: Read<typeof Programme>;
 		courses: Read<typeof Course>;
-		/** `withInstructors` adds each offering's linked teachers. */
-		offerings: (
-			request: PageRequest,
-			withInstructors: boolean,
-		) => Effect.Effect<PageOf<typeof Offering.Type>>;
+		offerings: Read<typeof Offering>;
+		/** Each offering's linked teachers, of one academic year or all. */
+		offeringTeachers: (
+			request: YearPageRequest,
+		) => Effect.Effect<PageOf<typeof OfferingTeachers.Type>>;
 		reviewCases: Read<typeof ReviewCase>;
 	}
 >()("ukma-data/lists/ListReader") {
@@ -127,10 +129,9 @@ export class ListReader extends Context.Service<
 						WHERE change_no > ${after} ORDER BY change_no LIMIT ${rows}
 					`,
 				),
-				offerings: (request, withInstructors) =>
-					reader(
-						Offering.pipe(numbered),
-						(after, rows) => sql`
+				offerings: reader(
+					Offering.pipe(numbered),
+					(after, rows) => sql`
 						SELECT o.id, o.saz_code AS "sazCode",
 							o.academic_year AS "academicYear", o.title,
 							o.faculty_id AS "facultyId", o.department_id AS "departmentId",
@@ -145,7 +146,6 @@ export class ListReader extends Context.Service<
 							o.course_id AS "courseId",
 							coalesce(t.terms, '[]') AS terms,
 							coalesce(p.programmes, '[]') AS programmes,
-							${withInstructors ? sql`coalesce(i.instructors, '[]') AS instructors,` : sql``}
 							o.change_no AS "changeNo", o.removed_at AS "removedAt"
 						FROM offerings o
 						LEFT JOIN LATERAL (
@@ -164,22 +164,32 @@ export class ListReader extends Context.Service<
 							) ORDER BY op.programme_id) AS programmes
 							FROM offering_programmes op WHERE op.offering_id = o.id
 						) p ON true
-						${
-							withInstructors
-								? sql`LEFT JOIN LATERAL (
-							SELECT jsonb_agg(jsonb_build_object(
-								'id', ins.id, 'lastName', ins.last_name,
-								'firstName', ins.first_name, 'middleName', ins.middle_name,
-								'email', ins.email, 'role', lower(oi.role)
-							) ORDER BY ins.last_name, ins.first_name, ins.id) AS instructors
-							FROM offering_instructors oi
-							JOIN instructors ins ON ins.id = oi.instructor_id
-							WHERE oi.offering_id = o.id
-						) i ON true`
-								: sql``
-						}
 						WHERE o.change_no > ${after} ORDER BY o.change_no LIMIT ${rows}
 					`,
+				),
+				offeringTeachers: ({ year, ...request }) =>
+					reader(
+						OfferingTeachers.pipe(numbered),
+						(after, rows) => sql`
+							SELECT o.id, o.saz_code AS "sazCode",
+								o.academic_year AS "academicYear",
+								coalesce(i.instructors, '[]') AS instructors,
+								o.change_no AS "changeNo", o.removed_at AS "removedAt"
+							FROM offerings o
+							LEFT JOIN LATERAL (
+								SELECT jsonb_agg(jsonb_build_object(
+									'id', ins.id, 'lastName', ins.last_name,
+									'firstName', ins.first_name, 'middleName', ins.middle_name,
+									'email', ins.email, 'role', lower(oi.role)
+								) ORDER BY ins.last_name, ins.first_name, ins.id) AS instructors
+								FROM offering_instructors oi
+								JOIN instructors ins ON ins.id = oi.instructor_id
+								WHERE oi.offering_id = o.id
+							) i ON true
+							WHERE o.change_no > ${after}
+								${year === 0 ? sql`` : sql`AND o.academic_year = ${year}`}
+							ORDER BY o.change_no LIMIT ${rows}
+						`,
 					)(request),
 				reviewCases: reader(
 					ReviewCase.pipe(numbered),

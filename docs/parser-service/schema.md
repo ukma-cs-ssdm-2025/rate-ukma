@@ -189,7 +189,7 @@ A discipline's teachers, child rows of `smart_disciplines`: a change gives the d
 
 ### `offering_instructors`
 
-smart.ukma teachers linked to САЗ offerings by the automatic part of the matching rule (`src/parser/src/smart/matching.ts`), rebuilt after each smart.ukma parse. Child rows of `offerings`: a change to an offering's teachers or their roles gives the offering a new change number. `GET /v1/offerings` adds them as `instructors` (id, names, email, role in lower case) only for a key with `instructors:read`.
+smart.ukma teachers linked to САЗ offerings by the automatic part of the matching rule (`src/parser/src/smart/matching.ts`), rebuilt after each smart.ukma parse. Child rows of `offerings`: a change to an offering's teachers or their roles gives the offering a new change number. `GET /v1/offerings/instructors` (scope `instructors:read`, `?year=` for one academic year) serves them per offering as `instructors` (id, names, email, role in lower case), paged by the offering's change number; `GET /v1/offerings` never includes them.
 
 The rule links when title (normalised), credits, mapped department and level all match, and the matching disciplines name one teacher set that САЗ's teacher text does not contradict; when they name different sets, the teachers САЗ's text names. A tie САЗ cannot settle and a set САЗ contradicts stay unlinked: they become `instructor_match` review cases in a later PR.
 

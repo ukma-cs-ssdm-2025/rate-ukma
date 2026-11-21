@@ -62,12 +62,21 @@ export const CatalogApiHandlers = HttpApiBuilder.group(
 				.handle("departments", ({ query }) => served(lists.departments(query)))
 				.handle("programmes", ({ query }) => served(lists.programmes(query)))
 				.handle("courses", ({ query }) => served(lists.courses(query)))
-				.handle("offerings", ({ query }) =>
-					Caller.use(({ scopes }) =>
-						served(lists.offerings(query, scopes.includes("instructors:read"))),
-					),
-				)
+				.handle("offerings", ({ query }) => served(lists.offerings(query)))
 				.handle("stats", () => stats.stats());
+		}),
+);
+
+export const InstructorApiHandlers = HttpApiBuilder.group(
+	Api,
+	"instructors",
+	(handlers) =>
+		Effect.gen(function* () {
+			const lists = yield* ListReader;
+
+			return handlers.handle("offeringTeachers", ({ query }) =>
+				served(lists.offeringTeachers(query)),
+			);
 		}),
 );
 
@@ -121,6 +130,7 @@ export const ApiRoutes = HttpApiBuilder.layer(Api).pipe(
 		SystemApiHandlers,
 		KeyApiHandlers,
 		CatalogApiHandlers,
+		InstructorApiHandlers,
 		ReviewApiHandlers,
 	]),
 	Layer.provide([

@@ -85,7 +85,9 @@ export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 });
 
 /** Links smart.ukma teachers to САЗ offerings, as a part of the parse. */
-const linkTeachers = Effect.fn("Smart.linkTeachers")(function* (parseId: bigint) {
+const linkTeachers = Effect.fn("Smart.linkTeachers")(function* (
+	parseId: bigint,
+) {
 	const store = yield* OfferingTeacherStore;
 
 	const { report, changed } = yield* store.link(

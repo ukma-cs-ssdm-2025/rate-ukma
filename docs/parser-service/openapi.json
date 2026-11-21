@@ -541,6 +541,81 @@
 				"summary": "Totals per academic year, merged courses, open review cases and the crawl schedule"
 			}
 		},
+		"/v1/offerings/instructors": {
+			"get": {
+				"tags": [
+					"instructors"
+				],
+				"operationId": "instructors.offeringTeachers",
+				"parameters": [
+					{
+						"name": "after",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The change number saved after the last sync; 0 for all rows, default 0"
+						},
+						"required": false
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "Rows per page, 1 to 1000, default 500"
+						},
+						"required": false
+					},
+					{
+						"name": "year",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"description": "The academic year's first calendar year, as 2031 for 2031-32; 0 for every year, default 0"
+						},
+						"required": false
+					}
+				],
+				"security": [
+					{
+						"bearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OfferingTeachersPage",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OfferingTeachersPage"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_UnauthorizedEncoded"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/effect_HttpApiError_ForbiddenEncoded"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Each offering's smart.ukma teachers with their emails and roles"
+			}
+		},
 		"/v1/review-cases": {
 			"get": {
 				"tags": [
@@ -1356,6 +1431,136 @@
 				],
 				"additionalProperties": false
 			},
+			"OfferingTeachersPage": {
+				"type": "object",
+				"properties": {
+					"items": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OfferingTeachers"
+						}
+					},
+					"cursor": {
+						"type": "integer",
+						"description": "The last item's change number, or `after` when the page is empty"
+					},
+					"hasMore": {
+						"type": "boolean"
+					},
+					"dataUpdatedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "When САЗ was last read: the latest successful run finished"
+					}
+				},
+				"required": [
+					"items",
+					"cursor",
+					"hasMore",
+					"dataUpdatedAt"
+				],
+				"additionalProperties": false
+			},
+			"OfferingTeachers": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"sazCode": {
+						"type": "string"
+					},
+					"academicYear": {
+						"type": "integer"
+					},
+					"instructors": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OfferingInstructor"
+						}
+					},
+					"changeNo": {
+						"type": "integer"
+					},
+					"removedAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "Set when the row left its source; readers hide such rows"
+					}
+				},
+				"required": [
+					"id",
+					"sazCode",
+					"academicYear",
+					"instructors",
+					"changeNo",
+					"removedAt"
+				],
+				"additionalProperties": false
+			},
+			"OfferingInstructor": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"middleName": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"email": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"role": {
+						"type": "string",
+						"enum": [
+							"lecturer",
+							"practice_teacher",
+							"lecturer_and_practice_teacher"
+						]
+					}
+				},
+				"required": [
+					"id",
+					"lastName",
+					"firstName",
+					"middleName",
+					"email",
+					"role"
+				],
+				"additionalProperties": false
+			},
 			"Stats": {
 				"type": "object",
 				"properties": {
@@ -1704,13 +1909,6 @@
 							"$ref": "#/components/schemas/OfferingProgramme"
 						}
 					},
-					"instructors": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/OfferingInstructor"
-						},
-						"description": "smart.ukma teachers linked by the matching rule; present only for a key with `instructors:read`"
-					},
 					"changeNo": {
 						"type": "integer"
 					},
@@ -1752,57 +1950,6 @@
 					"programmes",
 					"changeNo",
 					"removedAt"
-				],
-				"additionalProperties": false
-			},
-			"OfferingInstructor": {
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"lastName": {
-						"type": "string"
-					},
-					"firstName": {
-						"type": "string"
-					},
-					"middleName": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"email": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "null"
-							}
-						]
-					},
-					"role": {
-						"type": "string",
-						"enum": [
-							"lecturer",
-							"practice_teacher",
-							"lecturer_and_practice_teacher"
-						]
-					}
-				},
-				"required": [
-					"id",
-					"lastName",
-					"firstName",
-					"middleName",
-					"email",
-					"role"
 				],
 				"additionalProperties": false
 			},
@@ -2393,6 +2540,10 @@
 		{
 			"name": "catalog",
 			"description": "Reference lists, courses, offerings and their totals: `catalog:read`"
+		},
+		{
+			"name": "instructors",
+			"description": "Teachers linked to offerings, with emails: `instructors:read`"
 		},
 		{
 			"name": "review",
