@@ -154,7 +154,6 @@ export function MobileMenu({
 				}
 			}}
 			ariaLabel="Мобільне меню"
-			closeButtonLabel="Закрити меню"
 			data-testid={testIds.header.mobileMenu}
 		>
 			{showNotifications ? (

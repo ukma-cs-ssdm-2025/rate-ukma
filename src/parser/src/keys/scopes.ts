@@ -4,7 +4,11 @@ import { Schema } from "effect";
  *  what it names: `catalog:read` gives no student data. A scope is added with
  *  the first endpoint that needs it, together with a migration that widens
  *  the check on `api_keys.scopes`. */
-export const SCOPES = ["catalog:read", "review:decide"] as const;
+export const SCOPES = [
+	"catalog:read",
+	"review:decide",
+	"instructors:read",
+] as const;
 
 export const Scope = Schema.Literals(SCOPES);
 

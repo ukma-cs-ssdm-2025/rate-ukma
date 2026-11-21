@@ -9,7 +9,8 @@ import {
 	useCoursesOfferingsList,
 	useCoursesRetrieve,
 } from "@/lib/api/generated";
-import { AppMetadataDefaults, DEFAULT_PAGE_TITLE } from "@/lib/app-metadata";
+import { AppMetadataDefaults } from "@/lib/app-metadata";
+import { DEFAULT_PAGE_TITLE } from "@/lib/site-metadata";
 import { Route } from "./courses.$courseId";
 
 vi.mock("@tanstack/react-router", () => ({

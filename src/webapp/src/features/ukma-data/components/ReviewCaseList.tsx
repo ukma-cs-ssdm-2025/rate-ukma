@@ -86,9 +86,7 @@ export function ReviewCaseFilters() {
 function caseMeta(reviewCase: UkmaDataReviewCase): string {
 	return [
 		reviewCase.run_id ? `Запуск ${reviewCase.run_id}` : null,
-		reviewCase.opened_at
-			? `відкрито ${formatDateTime(reviewCase.opened_at)}`
-			: null,
+		`відкрито ${formatDateTime(reviewCase.opened_at)}`,
 	]
 		.filter(Boolean)
 		.join(" · ");
@@ -119,7 +117,7 @@ export function ReviewCaseList({
 					<Card asChild>
 						<Link
 							to="/data/cases/$caseId"
-							params={{ caseId: reviewCase.id ?? "" }}
+							params={{ caseId: reviewCase.id }}
 							className="block space-y-2 p-4 transition-colors hover:bg-accent/50"
 						>
 							<div className="flex flex-wrap items-center gap-2">

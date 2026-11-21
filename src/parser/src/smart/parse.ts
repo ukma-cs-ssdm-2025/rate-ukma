@@ -1,9 +1,12 @@
 import { Clock, Effect, Option, Result } from "effect";
+import type { ChangeSource } from "../changes/ChangeLog.ts";
 import {
 	OfferingStore,
 	type ParseTrigger,
 } from "../offerings/OfferingStore.ts";
 import { type SmartList, smartRowsOf } from "./catalog.ts";
+import { matchTeachers } from "./matching.ts";
+import { OfferingTeacherStore } from "./OfferingTeacherStore.ts";
 import { SmartStore } from "./SmartStore.ts";
 
 const PATHS: Readonly<Record<SmartList, string>> = {
@@ -17,7 +20,8 @@ const PATHS: Readonly<Record<SmartList, string>> = {
  *  lists, recorded as a parse like САЗ's, so its changes carry the parse id.
  *  Nothing to do before the first crawl. A refused list is recorded as the
  *  parse's failure and fails it, leaving the tables as they were; a parse
- *  that finds newer lists stored meanwhile writes nothing. */
+ *  that finds newer lists stored meanwhile writes nothing. After a write,
+ *  teachers are linked to САЗ offerings by the matching rule. */
 export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 	trigger: ParseTrigger,
 ) {
@@ -61,6 +65,10 @@ export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 		{ parseId },
 	);
 
+	const linked = Option.isSome(written)
+		? yield* linkTeachers({ parseId })
+		: undefined;
+
 	const report = {
 		seconds: yield* seconds,
 		parsed: Option.isSome(written) ? 4 : 0,
@@ -73,6 +81,29 @@ export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 		Option.isSome(written)
 			? "smart.ukma lists parsed"
 			: "smart.ukma parse skipped: newer lists were stored meanwhile",
-		{ report },
+		{ report, linked },
 	).pipe(Effect.annotateLogs({ parse_id: String(parseId), trigger }));
+});
+
+/** Links smart.ukma teachers to САЗ offerings by the stored lists. */
+const linkTeachers = Effect.fn("Smart.linkTeachers")(function* (
+	source: ChangeSource,
+) {
+	const store = yield* OfferingTeacherStore;
+
+	const { report, changed } = yield* store.link(
+		({ offerings, disciplines, teachers }) =>
+			matchTeachers(offerings, disciplines, teachers),
+		source,
+	);
+
+	return { ...report, offerings_changed: changed };
+});
+
+/** Links teachers again after САЗ changed offerings, so a changed or new
+ *  offering does not wait for the next smart.ukma parse. */
+export const relinkTeachers = Effect.fn("Smart.relinkTeachers")(function* () {
+	const linked = yield* linkTeachers({});
+
+	yield* Effect.logInfo("Teachers relinked after САЗ parse", { linked });
 });
