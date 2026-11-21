@@ -252,6 +252,19 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					yield* parseSmart("reparse");
 
 					assert.strictEqual(yield* offeringNo(), after);
+
+					const removed = yield* changes.withTurn(
+						sql`
+							UPDATE offerings
+							SET removed_at = now(), change_no = nextval('change_no_seq')
+							WHERE id = 'off_x'
+						`.pipe(Effect.andThen(offeringNo())),
+					);
+
+					yield* parseSmart("reparse");
+
+					assert.strictEqual(yield* offeringNo(), removed);
+					assert.lengthOf(yield* linked(), 2);
 				}),
 		);
 

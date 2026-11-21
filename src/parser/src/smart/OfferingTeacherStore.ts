@@ -127,15 +127,19 @@ export class OfferingTeacherStore extends Context.Service<
 								ON i.smart_id = r."smartId" AND i.removed_at IS NULL
 						`;
 
+						// Matching reads live offerings only, so a removed offering
+						// keeps its last teachers and its change number.
+						const held = sql`
+							SELECT oi.offering_id, oi.instructor_id, oi.role
+							FROM offering_instructors oi
+							JOIN offerings o ON o.id = oi.offering_id AND o.removed_at IS NULL
+						`;
+
 						const changed = (yield* sql<{ readonly id: string }>`
 							SELECT DISTINCT offering_id AS id FROM (
-								(${wanted}
-								EXCEPT SELECT offering_id, instructor_id, role
-								FROM offering_instructors)
+								(${wanted} EXCEPT ${held})
 								UNION ALL
-								(SELECT offering_id, instructor_id, role
-								FROM offering_instructors
-								EXCEPT ${wanted})
+								(${held} EXCEPT ${wanted})
 							) diff
 						`).map(({ id }) => id);
 
