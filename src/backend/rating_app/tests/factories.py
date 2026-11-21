@@ -10,11 +10,7 @@ from factory.django import DjangoModelFactory
 from rating_app.ioc_container.repositories import rating_repository
 from rating_app.ioc_container.services import feed_update_service
 from rating_app.models import (
-    CatalogApproval,
     CatalogMappingDecision,
-    CatalogProposal,
-    CatalogProposalList,
-    CatalogSyncCursor,
     Comment,
     Course,
     CourseInstructor,
@@ -26,6 +22,7 @@ from rating_app.models import (
     Faculty,
     FeedPost,
     Instructor,
+    MappingAnswer,
     PlannedCourse,
     PromoBanner,
     Rating,
@@ -33,13 +30,20 @@ from rating_app.models import (
     Semester,
     Speciality,
     Student,
-)
-from rating_app.models.catalog_sync import (
-    ApprovalOutcome,
-    ListStatus,
-    MappingAnswer,
-    ProposalGroup,
-    ProposalKind,
+    SyncApproval,
+    SyncApprovalAction,
+    SyncApprovalOutcome,
+    SyncApprovalScope,
+    SyncChange,
+    SyncChangeGroup,
+    SyncChangeState,
+    SyncCursor,
+    SyncPolicy,
+    SyncPolicyChange,
+    SyncPolicyMode,
+    SyncRun,
+    SyncRunStatus,
+    SyncSource,
 )
 from rating_app.models.choices import (
     CourseStatus,
@@ -307,30 +311,64 @@ class PromoBannerFactory(DjangoModelFactory):
     is_active = False
 
 
-class CatalogProposalListFactory(DjangoModelFactory):
+class SyncRunFactory(DjangoModelFactory):
     class Meta:
-        model = CatalogProposalList
+        model = SyncRun
 
-    status = ListStatus.BUILDING
+    source = SyncSource.CATALOG
+    status = SyncRunStatus.RUNNING
 
 
-class CatalogProposalFactory(DjangoModelFactory):
+class SyncChangeFactory(DjangoModelFactory):
     class Meta:
-        model = CatalogProposal
+        model = SyncChange
 
-    list = factory.SubFactory(CatalogProposalListFactory)
-    group = ProposalGroup.LINK
-    kind = ProposalKind.LINK_COURSE
-    ukma_data_id = factory.Sequence(lambda n: f"ud_course_{n}")
-    target_id = factory.Sequence(lambda n: f"ru_course_{n}")
+    run = factory.SubFactory(SyncRunFactory)
+    source = SyncSource.CATALOG
+    group = SyncChangeGroup.LINK
+    kind = "link_course"
+    key = factory.Sequence(lambda n: f"change:{n}")
+    state = SyncChangeState.PROPOSED
     ratings = 0
+
+
+class SyncPolicyFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncPolicy
+
+    kind = factory.Sequence(lambda n: f"policy_kind_{n}")
+    mode = SyncPolicyMode.NEEDS_APPROVAL
+    updated_by = factory.SubFactory(UserFactory)
+
+
+class SyncPolicyChangeFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncPolicyChange
+
+    kind = factory.Sequence(lambda n: f"policy_kind_{n}")
+    old_mode = SyncPolicyMode.NEEDS_APPROVAL
+    new_mode = SyncPolicyMode.AUTO
+    user = factory.SubFactory(UserFactory)
+
+
+class SyncApprovalFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncApproval
+
+    run = factory.SubFactory(SyncRunFactory)
+    run_ref = factory.LazyAttribute(lambda approval: approval.run.pk)
+    action = SyncApprovalAction.APPLY
+    scope = SyncApprovalScope.CHANGE
+    user = None
+    outcome = SyncApprovalOutcome.STARTED
+    counts = factory.LazyFunction(dict)
 
 
 class CatalogMappingDecisionFactory(DjangoModelFactory):
     class Meta:
         model = CatalogMappingDecision
 
-    kind = ProposalKind.MERGE_COURSES
+    kind = "merge_courses"
     ukma_course_id = factory.Sequence(lambda n: f"ud_course_{n}")
     course = factory.SubFactory(CourseFactory)
     offering = None
@@ -339,21 +377,10 @@ class CatalogMappingDecisionFactory(DjangoModelFactory):
     decided_by = factory.SubFactory(UserFactory)
 
 
-class CatalogApprovalFactory(DjangoModelFactory):
+class SyncCursorFactory(DjangoModelFactory):
     class Meta:
-        model = CatalogApproval
+        model = SyncCursor
 
-    list = factory.SubFactory(CatalogProposalListFactory)
-    list_ref = factory.LazyAttribute(lambda approval: approval.list.pk)
-    group = ProposalGroup.LINK
-    user = None
-    outcome = ApprovalOutcome.STARTED
-    counts = factory.LazyFunction(dict)
-
-
-class CatalogSyncCursorFactory(DjangoModelFactory):
-    class Meta:
-        model = CatalogSyncCursor
-
+    source = SyncSource.CATALOG
     list_name = factory.Sequence(lambda n: f"list_{n}")
     change_no = 0

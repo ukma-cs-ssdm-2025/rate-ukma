@@ -1,10 +1,3 @@
-from .catalog_sync import (
-    CatalogApproval,
-    CatalogMappingDecision,
-    CatalogProposal,
-    CatalogProposalList,
-    CatalogSyncCursor,
-)
 from .comment import Comment
 from .course import Course
 from .course_instructor import CourseInstructor
@@ -27,13 +20,44 @@ from .semester import Semester
 from .sign_in import SignIn
 from .speciality import Speciality
 from .student import Student
+from .sync import (
+    CatalogMappingDecision,
+    MappingAnswer,
+    SyncApproval,
+    SyncApprovalAction,
+    SyncApprovalOutcome,
+    SyncApprovalScope,
+    SyncChange,
+    SyncChangeGroup,
+    SyncChangeState,
+    SyncChangeStateReason,
+    SyncCursor,
+    SyncPolicy,
+    SyncPolicyChange,
+    SyncPolicyMode,
+    SyncRun,
+    SyncRunStatus,
+    SyncSource,
+)
 
 __all__ = [
-    "CatalogApproval",
     "CatalogMappingDecision",
-    "CatalogProposal",
-    "CatalogProposalList",
-    "CatalogSyncCursor",
+    "MappingAnswer",
+    "SyncApproval",
+    "SyncApprovalAction",
+    "SyncApprovalOutcome",
+    "SyncApprovalScope",
+    "SyncChange",
+    "SyncChangeGroup",
+    "SyncChangeState",
+    "SyncChangeStateReason",
+    "SyncCursor",
+    "SyncPolicy",
+    "SyncPolicyChange",
+    "SyncPolicyMode",
+    "SyncRun",
+    "SyncRunStatus",
+    "SyncSource",
     "Course",
     "Faculty",
     "Department",

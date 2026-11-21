@@ -127,9 +127,13 @@ A waffle **Switch** is a global on/off row, not a per-user `Flag`: check it with
 Switches. It never goes in `PUBLIC_FEATURE_FLAGS` and is never serialized by
 `/api/v1/flags/`; use one for a server job or a backend write path, not for UI.
 
-`catalog_sync_proposals` gates the nightly catalog proposal builder (#768). A data
-migration creates the switch with `active=False`, so it is off by default; turn it
-on per environment in Django admin when that environment should build lists.
+`catalog_sync_proposals` gates the nightly catalog sync run (#768). No migration
+creates it: a missing switch counts as off, so live and staging need nothing. Turn
+it on in an environment with:
+
+```bash
+manage.py waffle_switch catalog_sync_proposals on --create
+```
 
 ## Toggle / target a flag
 
