@@ -9,20 +9,11 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from pydantic import BaseModel
 from pydantic import ValidationError as ModelValidationError
 
-from rating_app.application_schemas.ukma_data import (
+from rating_app.application_schemas.ukma_data_params import (
     UkmaDataPageParams,
     UkmaDataReviewCaseParams,
 )
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
-from rating_app.serializers.ukma_data import (
-    UkmaDataDepartmentPageSerializer,
-    UkmaDataFacultyPageSerializer,
-    UkmaDataOfferingPageSerializer,
-    UkmaDataProgrammePageSerializer,
-    UkmaDataReviewCasePageSerializer,
-    UkmaDataStatusSerializer,
-    UkmaDataTermPageSerializer,
-)
 from rating_app.services.ukma_data_service import UkmaDataService
 from rating_app.views.responses import (
     R_UKMA_DATA_DEPARTMENTS,
@@ -69,7 +60,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         assert self.ukma_data_service is not None
 
         payload = self.ukma_data_service.get_status()
-        return Response(UkmaDataStatusSerializer(payload).data, status=status.HTTP_200_OK)
+        return Response(payload.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="List UKMA Data terms",
@@ -82,7 +73,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         assert self.ukma_data_service is not None
 
         page = self.ukma_data_service.list_terms(self._page_params(request))
-        return Response(UkmaDataTermPageSerializer(page).data, status=status.HTTP_200_OK)
+        return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="List UKMA Data faculties",
@@ -95,7 +86,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         assert self.ukma_data_service is not None
 
         page = self.ukma_data_service.list_faculties(self._page_params(request))
-        return Response(UkmaDataFacultyPageSerializer(page).data, status=status.HTTP_200_OK)
+        return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="List UKMA Data departments",
@@ -108,7 +99,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         assert self.ukma_data_service is not None
 
         page = self.ukma_data_service.list_departments(self._page_params(request))
-        return Response(UkmaDataDepartmentPageSerializer(page).data, status=status.HTTP_200_OK)
+        return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="List UKMA Data programmes",
@@ -121,7 +112,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         assert self.ukma_data_service is not None
 
         page = self.ukma_data_service.list_programmes(self._page_params(request))
-        return Response(UkmaDataProgrammePageSerializer(page).data, status=status.HTTP_200_OK)
+        return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="List UKMA Data course offerings",
@@ -134,7 +125,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         assert self.ukma_data_service is not None
 
         page = self.ukma_data_service.list_offerings(self._page_params(request))
-        return Response(UkmaDataOfferingPageSerializer(page).data, status=status.HTTP_200_OK)
+        return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="List UKMA Data review cases",
@@ -150,7 +141,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         page = self.ukma_data_service.list_review_cases(
             self._query(request, UkmaDataReviewCaseParams)
         )
-        return Response(UkmaDataReviewCasePageSerializer(page).data, status=status.HTTP_200_OK)
+        return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     def _page_params(self, request: Request) -> UkmaDataPageParams:
         return self._query(request, UkmaDataPageParams)

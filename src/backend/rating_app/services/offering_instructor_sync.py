@@ -4,10 +4,9 @@ from django.db import transaction
 
 import structlog
 
-from rating_app.application_schemas.ukma_data import (
+from rating_app.application_schemas import ukma_data_api as ud
+from rating_app.application_schemas.ukma_data_params import (
     UKMA_DATA_MAX_PAGE_SIZE,
-    UkmaDataOfferingInstructor,
-    UkmaDataOfferingInstructors,
     UkmaDataPageParams,
 )
 from rating_app.models import CourseInstructor, CourseOffering, Instructor
@@ -72,7 +71,7 @@ class OfferingInstructorSync:
                     break
         return report
 
-    def _apply_page(self, rows: list[UkmaDataOfferingInstructors], report: SyncReport) -> None:
+    def _apply_page(self, rows: list[ud.OfferingTeachers], report: SyncReport) -> None:
         offerings = CourseOffering.objects.in_bulk(
             [row.saz_code for row in rows], field_name="code"
         )
@@ -101,7 +100,7 @@ class OfferingInstructorSync:
             report.linked += len(new)
 
     def _wanted_links(
-        self, listed: list[UkmaDataOfferingInstructor], report: SyncReport
+        self, listed: list[ud.OfferingInstructor], report: SyncReport
     ) -> set[tuple[object, str]]:
         wanted: set[tuple[object, str]] = set()
         for teacher in listed:

@@ -5816,9 +5816,9 @@ components:
           readOnly: true
         removed_at:
           type: string
-          format: date-time
           readOnly: true
           nullable: true
+          description: Set when the row left its source; readers hide such rows
       required:
       - change_no
       - faculty_id
@@ -5829,24 +5829,24 @@ components:
     UkmaDataDepartmentPage:
       type: object
       properties:
-        cursor:
-          type: integer
-          readOnly: true
-          description: Pass as `after` for the next page; the last item's change number
-        has_more:
-          type: boolean
-          readOnly: true
-        data_updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          description: When UKMA Data last finished a successful read of its source
         items:
           type: array
           items:
             $ref: '#/components/schemas/UkmaDataDepartment'
           readOnly: true
+        cursor:
+          type: integer
+          readOnly: true
+          description: The last item's change number, or `after` when the page is
+            empty
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'When САЗ was last read: the latest successful run finished'
       required:
       - cursor
       - data_updated_at
@@ -5870,9 +5870,9 @@ components:
           readOnly: true
         removed_at:
           type: string
-          format: date-time
           readOnly: true
           nullable: true
+          description: Set when the row left its source; readers hide such rows
       required:
       - change_no
       - id
@@ -5882,24 +5882,24 @@ components:
     UkmaDataFacultyPage:
       type: object
       properties:
-        cursor:
-          type: integer
-          readOnly: true
-          description: Pass as `after` for the next page; the last item's change number
-        has_more:
-          type: boolean
-          readOnly: true
-        data_updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          description: When UKMA Data last finished a successful read of its source
         items:
           type: array
           items:
             $ref: '#/components/schemas/UkmaDataFaculty'
           readOnly: true
+        cursor:
+          type: integer
+          readOnly: true
+          description: The last item's change number, or `after` when the page is
+            empty
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'When САЗ was last read: the latest successful run finished'
       required:
       - cursor
       - data_updated_at
@@ -5911,10 +5911,6 @@ components:
         id:
           type: string
           readOnly: true
-        course_id:
-          type: string
-          readOnly: true
-          nullable: true
         saz_code:
           type: string
           readOnly: true
@@ -5982,6 +5978,11 @@ components:
           type: integer
           readOnly: true
           nullable: true
+        course_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The course grouping this offering across years
         terms:
           type: array
           items:
@@ -5997,9 +5998,9 @@ components:
           readOnly: true
         removed_at:
           type: string
-          format: date-time
           readOnly: true
           nullable: true
+          description: Set when the row left its source; readers hide such rows
       required:
       - academic_year
       - annotation
@@ -6029,24 +6030,24 @@ components:
     UkmaDataOfferingPage:
       type: object
       properties:
-        cursor:
-          type: integer
-          readOnly: true
-          description: Pass as `after` for the next page; the last item's change number
-        has_more:
-          type: boolean
-          readOnly: true
-        data_updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          description: When UKMA Data last finished a successful read of its source
         items:
           type: array
           items:
             $ref: '#/components/schemas/UkmaDataOffering'
           readOnly: true
+        cursor:
+          type: integer
+          readOnly: true
+          description: The last item's change number, or `after` when the page is
+            empty
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'When САЗ was last read: the latest successful run finished'
       required:
       - cursor
       - data_updated_at
@@ -6155,9 +6156,9 @@ components:
           readOnly: true
         removed_at:
           type: string
-          format: date-time
           readOnly: true
           nullable: true
+          description: Set when the row left its source; readers hide such rows
       required:
       - change_no
       - id
@@ -6168,24 +6169,24 @@ components:
     UkmaDataProgrammePage:
       type: object
       properties:
-        cursor:
-          type: integer
-          readOnly: true
-          description: Pass as `after` for the next page; the last item's change number
-        has_more:
-          type: boolean
-          readOnly: true
-        data_updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          description: When UKMA Data last finished a successful read of its source
         items:
           type: array
           items:
             $ref: '#/components/schemas/UkmaDataProgramme'
           readOnly: true
+        cursor:
+          type: integer
+          readOnly: true
+          description: The last item's change number, or `after` when the page is
+            empty
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'When САЗ was last read: the latest successful run finished'
       required:
       - cursor
       - data_updated_at
@@ -6224,7 +6225,6 @@ components:
           nullable: true
         opened_at:
           type: string
-          format: date-time
           readOnly: true
         change_no:
           type: integer
@@ -6255,28 +6255,29 @@ components:
     UkmaDataReviewCasePage:
       type: object
       properties:
-        cursor:
-          type: integer
-          readOnly: true
-          description: Pass as `after` for the next page; the last item's change number
-        has_more:
-          type: boolean
-          readOnly: true
-        data_updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          description: When UKMA Data last finished a successful read of its source
         items:
           type: array
           items:
             $ref: '#/components/schemas/UkmaDataReviewCase'
           readOnly: true
+        cursor:
+          type: integer
+          readOnly: true
+          description: The last item's change number, or `after` when the page is
+            empty
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'When САЗ was last read: the latest successful run finished'
         total:
           type: integer
           readOnly: true
-          description: Cases that match the filters, across every page
+          description: Cases numbered above `after` that match the filters, across
+            every page
       required:
       - cursor
       - data_updated_at
@@ -6346,24 +6347,24 @@ components:
     UkmaDataTermPage:
       type: object
       properties:
-        cursor:
-          type: integer
-          readOnly: true
-          description: Pass as `after` for the next page; the last item's change number
-        has_more:
-          type: boolean
-          readOnly: true
-        data_updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          description: When UKMA Data last finished a successful read of its source
         items:
           type: array
           items:
             $ref: '#/components/schemas/UkmaDataTerm'
           readOnly: true
+        cursor:
+          type: integer
+          readOnly: true
+          description: The last item's change number, or `after` when the page is
+            empty
+        has_more:
+          type: boolean
+          readOnly: true
+        data_updated_at:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'When САЗ was last read: the latest successful run finished'
       required:
       - cursor
       - data_updated_at

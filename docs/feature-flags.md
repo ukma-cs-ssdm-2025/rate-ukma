@@ -227,9 +227,11 @@ feature is fully rolled out or dropped:
    `useFeatureFlag` call and the dead branch).
 2. Remove the name from `PUBLIC_FEATURE_FLAGS`, regenerate the spec and
    `pnpm generate-api`; `tsc` then fails on every stale `useFeatureFlag`
-   consumer you missed in step 1.
-3. Delete the `Flag` row in each environment (Django admin, or the ORM — there
-   is no `waffle_flag --delete`).
+   consumer you missed in step 1. CI also fails (`.github/scripts/check-flags.sh`)
+   when a name in the allowlist has no `useFeatureFlag("<name>")` or
+   `useFeatureFlagState("<name>")` call with a string literal in the webapp.
+3. Delete the `Flag` row in each environment (Django admin, or
+   `python manage.py waffle_delete --flags <name>`).
 
 Do steps 1 and 2 together in one PR. A row left behind with no consumer is
 harmless; an allowlisted name with no consumer is a permanently `false` entry in

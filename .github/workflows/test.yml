@@ -51,7 +51,7 @@ jobs:
 
       - name: Install linting dependencies
         working-directory: ${{ env.BACKEND_DIR }}
-        run: uv sync --extra linting
+        run: uv sync --extra linting --extra codegen
 
       - name: Run lint checks
         working-directory: ${{ env.BACKEND_DIR }}
@@ -60,6 +60,15 @@ jobs:
       - name: Check formatting
         working-directory: ${{ env.BACKEND_DIR }}
         run: uv run ruff format --check .
+
+      - name: Check generated UKMA Data models are current
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          bash scripts/generate_ukma_data_models.sh
+          if ! git diff --exit-code -- rating_app/application_schemas/ukma_data_api.py; then
+            echo "::error::rating_app/application_schemas/ukma_data_api.py is stale. Run src/backend/scripts/generate_ukma_data_models.sh and commit the result."
+            exit 1
+          fi
 
   typecheck-backend:
     if: inputs.backend_changed == true && github.actor != 'github-actions[bot]'
