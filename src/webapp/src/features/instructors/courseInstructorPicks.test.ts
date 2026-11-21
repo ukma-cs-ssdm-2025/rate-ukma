@@ -12,6 +12,7 @@ function mention(
 		instructor: { id, first_name: "Ім'я", last_name: id },
 		ratings_count,
 		offering_ratings_count,
+		students_count: ratings_count,
 	};
 }
 

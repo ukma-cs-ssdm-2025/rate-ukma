@@ -3924,10 +3924,15 @@ components:
         offering_ratings_count:
           type: integer
           description: Of those, ratings on the requested offering (0 without offering_id)
+        students_count:
+          type: integer
+          description: Distinct students behind ratings_count; one may rate several
+            offerings
       required:
       - instructor
       - offering_ratings_count
       - ratings_count
+      - students_count
     CourseList:
       type: object
       description: Serializer for course list responses
@@ -5246,7 +5251,12 @@ components:
         fe_ukma_data:
           type: boolean
           description: Whether `fe_ukma_data` is enabled for the current user.
+        fe_course_instructors:
+          type: boolean
+          description: Whether `fe_course_instructors` is enabled for the current
+            user.
       required:
+      - fe_course_instructors
       - fe_faculty_colors
       - fe_feed
       - fe_rate_flow

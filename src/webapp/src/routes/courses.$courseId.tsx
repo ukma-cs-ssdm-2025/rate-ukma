@@ -28,6 +28,7 @@ import {
 	CourseRatingsList,
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
+import { CourseInstructors } from "@/features/instructors/components/CourseInstructors";
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
 import { RatingSuggestionPrompt } from "@/features/ratings/components/RatingSuggestionPrompt";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
@@ -203,7 +204,9 @@ function CourseDetailsRoute() {
 							terms={terms}
 							credits={load.credits}
 							weeklyHours={load.weeklyHours}
-						/>
+						>
+							<CourseInstructors courseId={courseId} />
+						</CourseDetailsHeader>
 
 						{showStats ? (
 							<CourseStatsHero

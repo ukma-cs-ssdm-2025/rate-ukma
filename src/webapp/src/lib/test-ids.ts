@@ -142,6 +142,7 @@ export const testIds = {
 	// Course details page
 	courseDetails: {
 		title: "course-details-title",
+		teachers: "course-details-teachers",
 		rateButton: "course-details-rate-button",
 		editUserRatingButton: "course-details-edit-user-rating-button",
 		statsCards: "course-details-stats-cards",

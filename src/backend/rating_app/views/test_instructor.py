@@ -298,6 +298,24 @@ def test_course_instructors_without_offering_rank_by_course_mentions(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_course_instructors_count_a_student_once_across_offerings(
+    token_client, instructor_factory, rating_factory, course_offering_factory, student_factory
+):
+    offering = course_offering_factory()
+    later = course_offering_factory(course=offering.course)
+    teacher = instructor_factory(last_name="Вигадана", email="a@x.ua")
+    student = student_factory()
+    rating_factory(course_offering=offering, student=student).instructors.add(teacher)
+    rating_factory(course_offering=later, student=student).instructors.add(teacher)
+
+    response = token_client.get(reverse("course-instructors", args=[offering.course_id]))
+
+    [item] = response.json()["items"]
+    assert (item["ratings_count"], item["students_count"]) == (2, 1)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_course_instructors_empty_when_nobody_named_anyone(token_client, course_factory):
     course = course_factory()
 
