@@ -1,5 +1,5 @@
 ---
-name: Parser Pipeline
+name: UKMAData Parser Pipeline
 
 # Tests, builds and deploys UKMA Data when a push to main changes the parser or its k8s manifests.
 # It can also be run by hand, from main only, to redeploy main as it is: a version is cut only if
