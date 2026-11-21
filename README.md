@@ -1,11 +1,44 @@
+<div align="center">
+
 # Rate UKMA
+
+**Rate. Review. Discover your best courses at NaUKMA.**
+
+[rateukma.com](https://rateukma.com) · [Staging](https://staging.rateukma.com) · [Releases](https://github.com/ukma-cs-ssdm-2025/rate-ukma/releases)
 
 [![Deploy Staging](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/main-pipeline.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/main-pipeline.yml)
 [![Deploy Live](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/prod-pipeline.yml/badge.svg)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/actions/workflows/prod-pipeline.yml)
 ![Tests Coverage](coverage.svg)
 [![Release](https://img.shields.io/github/v/release/ukma-cs-ssdm-2025/rate-ukma?cacheSeconds=300)](https://github.com/ukma-cs-ssdm-2025/rate-ukma/releases)
 
-**Rate. Review. Discover your best courses at NaUKMA.**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.png">
+  <img src="docs/readme/hero-light.png" alt="Rate UKMA home: feed of updates, course map, course list and filters" width="100%">
+</picture>
+
+</div>
+
+## 🎬 A quick tour
+
+<table>
+  <tr>
+    <td width="50%"><b>Find a course</b><br>Search, open it, read what students say.<br><br><img src="docs/readme/find.gif" alt="Searching for a course and opening its reviews" width="100%"></td>
+    <td width="50%"><b>Rate it</b><br>Two scores and an optional review, in under a minute.<br><br><img src="docs/readme/rate.gif" alt="Rating a course on difficulty and usefulness" width="100%"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>Course map</b><br>Every course on two axes: usefulness and difficulty.<br><br><img src="docs/readme/map.gif" alt="Hovering courses on the map and opening one" width="100%"></td>
+    <td width="50%"><b>Feed</b><br>Fresh reviews and university announcements.<br><br><img src="docs/readme/feed.gif" alt="Scrolling the feed of reviews and announcements" width="100%"></td>
+  </tr>
+</table>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/phones-dark.png">
+    <img src="docs/readme/phones-light.png" alt="Rate UKMA on a phone: home, course page, rating form and feed" width="100%">
+  </picture>
+  <br>
+  <sub>Works just as well on a phone. Screens use invented demo data.</sub>
+</p>
 
 ## 📌 Overview
 
@@ -18,12 +51,6 @@
 **The idea.** One place for the whole course choice: student reviews with usefulness and difficulty ratings and an interactive course map, live at rateukma.com, plus the semester planning and analytics we are building now.
 
 **How it started.** Rate UKMA began as a project in one of our university courses and grew into a product. From the first days we treated it as a product rather than an assignment to hand in, and shipped it: the site has been live since 2025, about 300 students come to it every month, with a peak in the spring registration window. The first point was a hand-made chart someone shared in a student chat, courses plotted on two axes, usefulness and difficulty. The chart was not ours, but the format stuck: we turned the idea into a product, the same map built from real student reviews.
-
-**Staging**: <https://staging.rateukma.com>
-
-**Live**: <https://rateukma.com>
-
-**Releases**: <https://github.com/ukma-cs-ssdm-2025/rate-ukma/releases>
 
 ## 🧩 Features
 
