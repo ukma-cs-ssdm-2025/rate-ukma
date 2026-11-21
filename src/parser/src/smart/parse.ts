@@ -1,4 +1,5 @@
 import { Clock, Effect, Option, Result } from "effect";
+import type { ChangeSource } from "../changes/ChangeLog.ts";
 import {
 	OfferingStore,
 	type ParseTrigger,
@@ -65,7 +66,7 @@ export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 	);
 
 	const linked = Option.isSome(written)
-		? yield* linkTeachers(parseId)
+		? yield* linkTeachers({ parseId })
 		: undefined;
 
 	const report = {
@@ -84,17 +85,25 @@ export const parseSmart = Effect.fn("Smart.parseSmart")(function* (
 	).pipe(Effect.annotateLogs({ parse_id: String(parseId), trigger }));
 });
 
-/** Links smart.ukma teachers to САЗ offerings, as a part of the parse. */
+/** Links smart.ukma teachers to САЗ offerings by the stored lists. */
 const linkTeachers = Effect.fn("Smart.linkTeachers")(function* (
-	parseId: bigint,
+	source: ChangeSource,
 ) {
 	const store = yield* OfferingTeacherStore;
 
 	const { report, changed } = yield* store.link(
 		({ offerings, disciplines, teachers }) =>
 			matchTeachers(offerings, disciplines, teachers),
-		{ parseId },
+		source,
 	);
 
 	return { ...report, offerings_changed: changed };
+});
+
+/** Links teachers again after САЗ changed offerings, so a changed or new
+ *  offering does not wait for the next smart.ukma parse. */
+export const relinkTeachers = Effect.fn("Smart.relinkTeachers")(function* () {
+	const linked = yield* linkTeachers({});
+
+	yield* Effect.logInfo("Teachers relinked after САЗ parse", { linked });
 });

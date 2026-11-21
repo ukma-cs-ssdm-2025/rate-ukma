@@ -5,7 +5,7 @@ import { ChangeLog } from "../changes/ChangeLog.ts";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { smartRowsOf } from "./catalog.ts";
 import { link, smartLists } from "./catalog.fixture.ts";
-import { parseSmart } from "./parse.ts";
+import { parseSmart, relinkTeachers } from "./parse.ts";
 import { OfferingStore } from "../offerings/OfferingStore.ts";
 import { OfferingTeacherStore } from "./OfferingTeacherStore.ts";
 import { SmartStore } from "./SmartStore.ts";
@@ -252,6 +252,22 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					yield* parseSmart("reparse");
 
 					assert.strictEqual(yield* offeringNo(), after);
+
+					const retitle = (title: string) =>
+						changes.withTurn(
+							sql`UPDATE offerings SET title = ${title} WHERE id = 'off_x'`,
+						);
+
+					yield* retitle("Інша уявна дисципліна");
+					yield* relinkTeachers();
+
+					assert.lengthOf(yield* linked(), 0);
+					assert.notStrictEqual(yield* offeringNo(), after);
+
+					yield* retitle("Уявні алгоритми");
+					yield* relinkTeachers();
+
+					assert.lengthOf(yield* linked(), 2);
 
 					const removed = yield* changes.withTurn(
 						sql`
