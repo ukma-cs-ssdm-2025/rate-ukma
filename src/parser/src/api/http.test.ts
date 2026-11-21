@@ -15,6 +15,7 @@ import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
 import { ListReader } from "../lists/ListReader.ts";
+import { StatsReader } from "../stats/StatsReader.ts";
 import { Api, ApiKeyAuth } from "./Api.ts";
 import {
 	ApiRoutes,
@@ -149,7 +150,12 @@ const TestLive = Layer.mergeAll(
 	Layer.empty.pipe(Layer.provide(HttpRouter.serve(ApiRoutes))),
 ).pipe(
 	Layer.provideMerge(
-		Layer.mergeAll(ListReader.layer, CourseStore.layer, AuthLive),
+		Layer.mergeAll(
+			ListReader.layer,
+			CourseStore.layer,
+			StatsReader.layer,
+			AuthLive,
+		),
 	),
 	Layer.provideMerge(NodeHttpServer.layerTest),
 	Layer.provideMerge(Layer.effectDiscard(seed)),
@@ -275,6 +281,80 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 				assert.strictEqual(departments.items[0]?.facultyId, "fac_one");
 				assert.strictEqual(programmes.items[0]?.level, "bachelor");
 			}),
+		);
+
+		it.effect(
+			"counts each year's offerings, courses, students and teacher share",
+			() =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const changes = yield* ChangeLog;
+					const next = sql`nextval('change_no_seq')`;
+
+					yield* changes.withTurn(
+						Effect.gen(function* () {
+							yield* sql`
+								INSERT INTO students (id, full_name, snapshot_id, change_no)
+								SELECT 'stu_one', 'Студент Вигаданий', snapshot_id, ${next}
+								FROM offerings WHERE id = 'off_930001'
+							`;
+							yield* sql`
+								INSERT INTO student_programmes (
+									id, saz_cdoc, student_id, spec_name, snapshot_id, change_no
+								)
+								SELECT 'spr_one', '990001', 'stu_one', 'Уявна інженерія',
+									snapshot_id, ${next}
+								FROM offerings WHERE id = 'off_930001'
+							`;
+							yield* sql`
+								INSERT INTO enrollments (
+									offering_id, student_programme_id, kind, status,
+									is_student_active, is_forced, grade, change_no
+								)
+								VALUES ('off_930001', 'spr_one', 'elective', 'enrolled',
+									true, false, 2, ${next})
+							`;
+						}),
+					);
+					yield* sql`
+						UPDATE offerings SET saz_teachers = ' ' WHERE id = 'off_930003'
+					`;
+
+					const { client } = yield* clientAs(["catalog:read"]);
+					const before = Date.now();
+					const stats = yield* client.catalog.stats();
+
+					assert.deepStrictEqual(stats.years, [
+						{
+							academicYear: 2031,
+							offerings: 2,
+							courses: 1,
+							students: 1,
+							enrollments: 1,
+							teacherShare: 0.5,
+						},
+					]);
+					assert.deepStrictEqual(stats.mergedCourses, {
+						rule: 0,
+						decision: 1,
+					});
+					assert.deepStrictEqual(stats.openReviewCases, {
+						courseMatch: 0,
+						instructorMatch: 0,
+						studentMatch: 0,
+						removalsHeld: 0,
+					});
+					assert.deepStrictEqual(stats.lastCrawl, {
+						finishedAt: FINISHED_AT,
+						status: "succeeded",
+					});
+
+					// The seeded run started at insert, so the next one is a day later.
+					const nextIn = stats.nextCrawlAt.getTime() - before;
+					const day = 24 * 60 * 60 * 1000;
+
+					assert.isTrue(nextIn > day - 60_000 && nextIn <= day, `${nextIn}`);
+				}),
 		);
 
 		it.effect(
