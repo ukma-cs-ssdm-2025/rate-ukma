@@ -1,6 +1,6 @@
 import { useCoursesInstructorsRetrieve } from "@/lib/api/generated";
 import { useFeatureFlag } from "@/lib/feature-flags";
-import { namedCourseTeachers } from "../courseTeachers";
+import { courseTeachers } from "../courseTeachers";
 import { CourseTeachersRow } from "./CourseTeachersRow";
 
 export function CourseInstructors({
@@ -15,7 +15,5 @@ export function CourseInstructors({
 		return null;
 	}
 
-	return (
-		<CourseTeachersRow teachers={namedCourseTeachers(data?.items ?? [])} />
-	);
+	return <CourseTeachersRow teachers={courseTeachers(data?.items ?? [])} />;
 }
