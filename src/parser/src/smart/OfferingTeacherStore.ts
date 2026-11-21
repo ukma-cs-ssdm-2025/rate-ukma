@@ -46,16 +46,20 @@ export interface MatchInputs {
 export class OfferingTeacherStore extends Context.Service<
 	OfferingTeacherStore,
 	{
-		/** Live offerings, disciplines with their teachers, and teachers. */
-		inputs(): Effect.Effect<MatchInputs>;
-		/** Makes each offering's teachers the given links, in one writers'
-		 *  turn. An offering whose teacher set or roles changed takes a new
-		 *  change number. Links to a teacher missing from `instructors` are
-		 *  dropped. Returns how many offerings changed. */
-		write(
-			links: ReadonlyArray<OfferingTeacher>,
+		/** In one writers' turn, reads live offerings, disciplines with their
+		 *  teachers, and teachers, matches them, and makes each offering's
+		 *  teachers the matched links, so no other write lands between the
+		 *  read and the write. An offering whose teacher set or roles changed
+		 *  takes a new change number. Links to a teacher missing from
+		 *  `instructors` are dropped. Returns the match report and how many
+		 *  offerings changed. */
+		link<Report>(
+			match: (inputs: MatchInputs) => {
+				readonly links: ReadonlyArray<OfferingTeacher>;
+				readonly report: Report;
+			},
 			source: ChangeSource,
-		): Effect.Effect<number>;
+		): Effect.Effect<{ readonly report: Report; readonly changed: number }>;
 	}
 >()("ukma-data/smart/OfferingTeacherStore") {
 	static readonly layer = Layer.effect(
@@ -110,12 +114,17 @@ export class OfferingTeacherStore extends Context.Service<
 					teachers: findTeachers(),
 				}).pipe(Effect.orDie);
 
-			const write = (
-				links: ReadonlyArray<OfferingTeacher>,
+			const link = <Report>(
+				match: (inputs: MatchInputs) => {
+					readonly links: ReadonlyArray<OfferingTeacher>;
+					readonly report: Report;
+				},
 				source: ChangeSource,
 			) =>
 				changes.withTurn(
 					Effect.gen(function* () {
+						const { links, report } = match(yield* inputs());
+
 						const wanted = sql`
 							SELECT r."offeringId" AS offering_id, i.id AS instructor_id, r.role
 							FROM ${recordset(links, {
@@ -144,7 +153,7 @@ export class OfferingTeacherStore extends Context.Service<
 						`).map(({ id }) => id);
 
 						if (changed.length === 0) {
-							return 0;
+							return { report, changed: 0 };
 						}
 
 						const ids = sql`(
@@ -170,11 +179,11 @@ export class OfferingTeacherStore extends Context.Service<
 							`,
 						);
 
-						return numbered.length;
+						return { report, changed: numbered.length };
 					}),
 				);
 
-			return OfferingTeacherStore.of({ inputs, write });
+			return OfferingTeacherStore.of({ link });
 		}),
 	);
 }

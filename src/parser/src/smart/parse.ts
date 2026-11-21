@@ -87,16 +87,12 @@ export const parseSmart = Effect.fn("parseSmart")(function* (
 /** Links smart.ukma teachers to САЗ offerings, as a part of the parse. */
 const linkTeachers = Effect.fnUntraced(function* (parseId: bigint) {
 	const store = yield* OfferingTeacherStore;
-	const inputs = yield* store.inputs();
 
-	const { links, report } = matchTeachers(
-		inputs.offerings,
-		inputs.disciplines,
-		inputs.teachers,
+	const { report, changed } = yield* store.link(
+		({ offerings, disciplines, teachers }) =>
+			matchTeachers(offerings, disciplines, teachers),
+		{ parseId },
 	);
 
-	return {
-		...report,
-		offerings_changed: yield* store.write(links, { parseId }),
-	};
+	return { ...report, offerings_changed: changed };
 });
