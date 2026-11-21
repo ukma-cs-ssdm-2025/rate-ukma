@@ -178,15 +178,9 @@ test("thanks never interrupts a delete confirmation", async ({ page }) => {
 		.getByRole("button", { name: "Оцінити дисципліну", exact: true })
 		.click();
 	await score(page);
-	await page.clock.install();
-	await page.clock.pauseAt(new Date(Date.now() + 100));
+	await page.clock.install({ time: new Date() });
 	await page.getByTestId(testIds.rating.submitButton).click();
-	await expect(async () => {
-		await page.clock.runFor(50);
-		await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible({
-			timeout: 250,
-		});
-	}).toPass();
+	await expect(page.getByText("Ваша оцінка", { exact: true })).toBeVisible();
 	await page
 		.getByRole("button", { name: "Видалити оцінку", exact: true })
 		.click();
