@@ -3,6 +3,8 @@ import { Clock, DateTime, Duration, Effect } from "effect";
 /** The steps the crawl loop runs. `nextWait` takes the time of this worker's
  *  last try, if any; `crawl` succeeds with `false` after a failed sign-in. */
 export interface CrawlSteps<RWait, RCrawl, RParse> {
+	/** The system crawled, for the logs: `САЗ` or `smart.ukma`. */
+	readonly source: string;
 	readonly nextWait: (
 		triedAt: number | undefined,
 	) => Effect.Effect<Duration.Duration, never, RWait>;
@@ -13,6 +15,7 @@ export interface CrawlSteps<RWait, RCrawl, RParse> {
 /** Crawls whenever `nextWait` says one is due and parses after each, until a
  *  sign-in fails: another try would send the password again. */
 export const crawlLoop = Effect.fnUntraced(function* <RWait, RCrawl, RParse>({
+	source,
 	nextWait,
 	crawl,
 	parse,
@@ -30,6 +33,7 @@ export const crawlLoop = Effect.fnUntraced(function* <RWait, RCrawl, RParse>({
 			const at = DateTime.addDuration(yield* DateTime.now, wait);
 
 			yield* Effect.logInfo("Next crawl scheduled", {
+				source,
 				at: DateTime.formatIso(at),
 			});
 			yield* Effect.sleep(wait);
@@ -43,7 +47,7 @@ export const crawlLoop = Effect.fnUntraced(function* <RWait, RCrawl, RParse>({
 
 		if (!signedIn) {
 			return yield* Effect.logError(
-				"Crawling stopped until the worker restarts: the САЗ sign-in failed",
+				`Crawling stopped until the worker restarts: the ${source} sign-in failed`,
 			);
 		}
 	}
