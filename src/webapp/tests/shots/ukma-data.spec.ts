@@ -3,17 +3,18 @@ import type { Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { setFeatureFlagOverride } from "../e2e/shared/feature-flags";
+import { testIds } from "../../src/lib/test-ids";
 import { mockBackend } from "./fixtures/mockBackend";
 
 const out = resolve(process.env.SHOT_DIR ?? "shots/ukma-data");
 
 async function shot(page: Page, name: string) {
 	mkdirSync(out, { recursive: true });
-	await page.evaluate(() => globalThis.scrollTo(0, 0));
 	await page.screenshot({
 		path: resolve(out, `${name}.png`),
 		fullPage: true,
 		animations: "disabled",
+		style: `[data-testid="${testIds.header.root}"]{position:static!important}`,
 	});
 }
 
