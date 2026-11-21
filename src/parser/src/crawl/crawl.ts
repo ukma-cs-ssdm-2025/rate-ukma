@@ -151,25 +151,24 @@ export const crawlRun = Effect.fn("crawlRun")(function* <E>(
 		Effect.andThen((requeued) => (requeued > 0 ? drain : Effect.void)),
 	);
 
-	const finish = (crashed: boolean) =>
-		Effect.gen(function* () {
-			const report = yield* store.report(run.id);
+	const finish = Effect.fn("crawl.finishRun")(function* (crashed: boolean) {
+		const report = yield* store.report(run.id);
 
-			const status =
-				crashed || report.pages.some(source.failsRun) ? "failed" : "succeeded";
+		const status =
+			crashed || report.pages.some(source.failsRun) ? "failed" : "succeeded";
 
-			yield* store.finishRun(run.id, status, report);
+		yield* store.finishRun(run.id, status, report);
 
-			yield* Effect.logInfo("Run finished", report).pipe(
-				Effect.annotateLogs({
-					run_id: String(run.id),
-					source_part: run.sourcePart,
-					status,
-				}),
-			);
+		yield* Effect.logInfo("Run finished", report).pipe(
+			Effect.annotateLogs({
+				run_id: String(run.id),
+				source_part: run.sourcePart,
+				status,
+			}),
+		);
 
-			return { sourcePart: run.sourcePart, status, report };
-		});
+		return { sourcePart: run.sourcePart, status, report };
+	});
 
 	yield* Effect.logInfo("Run started").pipe(
 		Effect.annotateLogs({

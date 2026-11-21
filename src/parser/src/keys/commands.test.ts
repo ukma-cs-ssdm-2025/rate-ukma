@@ -46,24 +46,23 @@ const newKey = (name: string, ...flags: ReadonlyArray<string>) =>
 		Effect.map(({ lines }) => created(lines)),
 	);
 
-const storedKey = (id: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const storedKey = Effect.fnUntraced(function* (id: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const rows = yield* sql<{
-			readonly name: string;
-			readonly scopes: ReadonlyArray<string>;
-			readonly secretHash: string;
-			readonly createdBy: string | null;
-			readonly revoked: boolean;
-		}>`
+	const rows = yield* sql<{
+		readonly name: string;
+		readonly scopes: ReadonlyArray<string>;
+		readonly secretHash: string;
+		readonly createdBy: string | null;
+		readonly revoked: boolean;
+	}>`
 			SELECT name, scopes, secret_hash AS "secretHash", created_by AS "createdBy",
 				revoked_at IS NOT NULL AS revoked
 			FROM api_keys WHERE id = ${id}
 		`;
 
-		return rows[0];
-	});
+	return rows[0];
+});
 
 const keyCount = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

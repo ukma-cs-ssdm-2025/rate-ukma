@@ -185,11 +185,10 @@ const TestLive = Layer.mergeAll(CourseStore.layer, OfferingStore.layer).pipe(
 );
 
 /** The offering's title, snapshot and terms, as one line. */
-const offeringLine = (sazCode: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const offeringLine = Effect.fnUntraced(function* (sazCode: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const [row] = yield* sql<{ readonly line: string }>`
+	const [row] = yield* sql<{ readonly line: string }>`
 			SELECT o.title || ' #' || o.snapshot_id || ' ' || string_agg(
 				t.code || ' ' || ot.control, ', ' ORDER BY t.code
 			) AS line
@@ -200,8 +199,8 @@ const offeringLine = (sazCode: string) =>
 			GROUP BY o.id
 		`;
 
-		return row?.line;
-	});
+	return row?.line;
+});
 
 const parses = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

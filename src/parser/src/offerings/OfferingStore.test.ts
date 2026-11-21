@@ -33,26 +33,25 @@ const SPRING: OfferingTerm = {
 };
 
 /** Writes these offerings, each parsed from a new snapshot of its page. */
-const write = (
+const write = Effect.fnUntraced(function* (
 	offerings: ReadonlyArray<ParsedOffering>,
 	filters = NO_FILTERS,
-) =>
-	Effect.gen(function* () {
-		const store = yield* OfferingStore;
+) {
+	const store = yield* OfferingStore;
 
-		const pages = yield* Effect.forEach(offerings, (parsed) =>
-			snapshot(`/course/${parsed.sazCode}`, parsed.title).pipe(
-				Effect.map((snapshotId) => ({ snapshotId, offering: parsed })),
-			),
-		);
+	const pages = yield* Effect.forEach(offerings, (parsed) =>
+		snapshot(`/course/${parsed.sazCode}`, parsed.title).pipe(
+			Effect.map((snapshotId) => ({ snapshotId, offering: parsed })),
+		),
+	);
 
-		yield* store.write(
-			offeringRowsOf(pages, filters, yield* store.programmes),
-			yield* store.startParse("crawl"),
-		);
+	yield* store.write(
+		offeringRowsOf(pages, filters, yield* store.programmes),
+		yield* store.startParse("crawl"),
+	);
 
-		return pages.map(({ snapshotId }) => snapshotId);
-	});
+	return pages.map(({ snapshotId }) => snapshotId);
+});
 
 const ids = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -68,11 +67,10 @@ const ids = Effect.gen(function* () {
 });
 
 /** One line per term and programme of the offering, in a stable order. */
-const childrenOf = (sazCode: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const childrenOf = Effect.fnUntraced(function* (sazCode: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const rows = yield* sql<{ readonly line: string }>`
+	const rows = yield* sql<{ readonly line: string }>`
 			SELECT 'term ' || t.code || ' ' || ot.control AS line
 			FROM offering_terms ot
 			JOIN offerings o ON o.id = ot.offering_id
@@ -87,23 +85,22 @@ const childrenOf = (sazCode: string) =>
 			ORDER BY line
 		`;
 
-		return rows.map(({ line }) => line);
-	});
+	return rows.map(({ line }) => line);
+});
 
-const offeringRow = (sazCode: string) =>
-	Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+const offeringRow = Effect.fnUntraced(function* (sazCode: string) {
+	const sql = yield* SqlClient.SqlClient;
 
-		const [row] = yield* sql<{
-			readonly title: string;
-			readonly snapshotId: bigint;
-		}>`
+	const [row] = yield* sql<{
+		readonly title: string;
+		readonly snapshotId: bigint;
+	}>`
 			SELECT title, snapshot_id AS "snapshotId" FROM offerings
 			WHERE saz_code = ${sazCode}
 		`;
 
-		return row;
-	});
+	return row;
+});
 
 const departmentRows = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
