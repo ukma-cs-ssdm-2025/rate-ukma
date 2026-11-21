@@ -31,7 +31,7 @@ export class MyRatingsPage {
 		await expect(rateableCard).toBeVisible();
 
 		const courseLink = rateableCard.getByTestId(
-			testIds.myRatings.courseTitleLink,
+			testIds.myRatings.coursePageLink,
 		);
 
 		await Promise.all([

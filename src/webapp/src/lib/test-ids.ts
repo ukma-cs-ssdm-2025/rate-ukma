@@ -137,7 +137,6 @@ export const testIds = {
 		header: "my-ratings-header",
 		list: "my-ratings-list",
 		card: "my-ratings-card",
-		courseTitleLink: "my-ratings-course-title-link",
 		coursePageLink: "my-ratings-course-page-link",
 		semesterTrigger: "my-ratings-semester-trigger",
 		leaveReviewLink: "my-ratings-leave-review-link",
