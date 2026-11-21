@@ -23,6 +23,7 @@ The Django proxy (`GET /api/v1/ukma-data/review-cases/`) validates the two filte
 ## Consequences
 
 - Filters and the count stay right past the first page.
+- A filtered page is not a sync feed: a case whose status changes leaves the filtered set without a row saying so. Readers that sync (spec rule 5) never pass `status` or `kind`; only staff reads do.
 - UKMA Data has to deploy before the proxy that reads `total`; the parser pipeline deploys on the same push, and the proxy answers 502 for the staff page until it does.
 - The per-kind counts and the oldest open case on the overview still come from the first 1000 open cases, which is every case today.
 
