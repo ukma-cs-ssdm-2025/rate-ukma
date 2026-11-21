@@ -4,6 +4,11 @@ pattern='^(feat|fix|docs|style|refactor|test|chore|ci|security|feat!)(\([a-z0-9_
 
 commit_msg=$(cat "$commit_msg_file")
 
+# Merges and reverts get their message from git, not from the author.
+case "$commit_msg" in
+    "Merge "*|"Revert "*) exit 0 ;;
+esac
+
 if echo "$commit_msg" | grep -Eq "$pattern"; then
     exit 0
 else
