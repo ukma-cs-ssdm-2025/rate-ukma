@@ -51,13 +51,16 @@ export class RatingModal {
 	}
 
 	async openInstructorPicker(): Promise<void> {
-		await expect(this.instructorTrigger).toBeVisible();
-		await expect(async () => {
-			if (!(await this.instructorList.isVisible())) {
-				await this.instructorToggle.click();
-			}
-			await expect(this.instructorList).toBeVisible({ timeout: 2000 });
-		}).toPass({ timeout: 20_000 });
+		await expect(this.modal).toBeVisible();
+		await expect
+			.poll(() =>
+				this.page.evaluate(
+					() => document.activeElement?.closest('[role="dialog"]') !== null,
+				),
+			)
+			.toBe(true);
+		await this.instructorToggle.click();
+		await expect(this.instructorList).toBeVisible();
 	}
 
 	async cancel(): Promise<void> {
@@ -102,10 +105,9 @@ export class RatingModal {
 	}
 
 	private get instructorChips(): Locator {
-		return this.instructorTrigger.getByRole("button", {
-			name: /^Видалити /,
-			includeHidden: true,
-		});
+		return this.instructorTrigger.getByTestId(
+			`${testIds.rating.instructorMultiSelect}-chip`,
+		);
 	}
 
 	async getSelectedInstructorCount(): Promise<number> {
