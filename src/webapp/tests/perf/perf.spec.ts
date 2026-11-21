@@ -104,10 +104,10 @@ async function waitForLayoutSettled(page: Page): Promise<void> {
 				};
 				const observer = new PerformanceObserver(() => {
 					window.clearTimeout(quietTimer);
-					quietTimer = window.setTimeout(finish, 500);
+					quietTimer = window.setTimeout(finish, 1000);
 				});
 				observer.observe({ type: "layout-shift", buffered: true });
-				quietTimer = window.setTimeout(finish, 500);
+				quietTimer = window.setTimeout(finish, 1000);
 				const capTimer = window.setTimeout(finish, 5000);
 			}),
 	);
