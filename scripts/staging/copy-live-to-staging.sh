@@ -130,6 +130,9 @@ done
 if (( ${#KEEP_EMAILS[@]} == 0 && NO_KEEP_EMAIL == 0 )); then
   die "pass --keep-email with the E2E account's address (CORPORATE_EMAIL), or --no-keep-email"
 fi
+if (( ${#KEEP_EMAILS[@]} > 0 && NO_KEEP_EMAIL == 1 )); then
+  die "--keep-email and --no-keep-email exclude each other"
+fi
 
 # Addresses are never printed whole.
 mask_email() {
@@ -253,7 +256,8 @@ STAGING_TMP="/tmp/rateukma-staging-copy-$(date +%Y%m%d%H%M%S)-$$"
 
 step "Exporting $STAGING_HOST's superusers, kept accounts and feature flags; creating $NEW_DB"
 # The kept addresses travel over ssh stdin into a 600 file, never as arguments.
-printf '%s\n' ${KEEP_EMAILS[@]+"${KEEP_EMAILS[@]}"} \
+# An empty list writes an empty file, so no blank address can match anything.
+{ (( ${#KEEP_EMAILS[@]} == 0 )) || printf '%s\n' "${KEEP_EMAILS[@]}"; } \
   | ssh "$STAGING_HOST" "umask 077 && install -d -m 700 '$STAGING_TMP' && cat >'$STAGING_TMP/keep-emails.csv'"
 ssh "$STAGING_HOST" bash -s -- "$STAGING_PG_CONTAINER" "$STAGING_TMP" "$LIVE_DB" "$NEW_DB" <<'REMOTE'
 main() {
@@ -270,7 +274,7 @@ sudo docker cp "$tmp/keep-emails.csv" "$pg:/tmp/rateukma-keep-emails.csv"
 # A user is kept when it is a superuser or one of its addresses was passed
 # with --keep-email. by_email marks the second kind: they must keep a rateable
 # enrolment for the E2E suite.
-kept_users="SELECT u.id, (lower(u.email) IN (SELECT e FROM keep) OR EXISTS (SELECT 1 FROM account_emailaddress a WHERE a.user_id = u.id AND lower(a.email) IN (SELECT e FROM keep))) AS by_email FROM auth_user u"
+kept_users="SELECT u.id, (lower(u.email) IN (SELECT e FROM keep WHERE e <> '') OR EXISTS (SELECT 1 FROM account_emailaddress a WHERE a.user_id = u.id AND lower(a.email) IN (SELECT e FROM keep WHERE e <> ''))) AS by_email FROM auth_user u"
 kept_ids="SELECT id FROM ($kept_users) k WHERE by_email OR id IN (SELECT id FROM auth_user WHERE is_superuser)"
 
 copy_out() {
@@ -438,6 +442,24 @@ CREATE TEMP TABLE exported_sample (
     created timestamptz NOT NULL, modified timestamptz NOT NULL
 );
 COPY exported_sample FROM '/tmp/rateukma-samples.csv' WITH (FORMAT csv);
+
+-- Every address passed with --keep-email must name a staging account; a typo
+-- would otherwise copy without the E2E account and break its login.
+CREATE TEMP TABLE keep_address (e text);
+COPY keep_address FROM '/tmp/rateukma-keep-emails.csv' WITH (FORMAT csv);
+DO $$
+DECLARE unmatched integer;
+BEGIN
+    SELECT count(*) INTO unmatched
+    FROM keep_address k
+    WHERE k.e <> ''
+      AND NOT EXISTS (SELECT 1 FROM exported_user u WHERE lower(u.email) = k.e)
+      AND NOT EXISTS (SELECT 1 FROM exported_email a WHERE lower(a.email) = k.e);
+    IF unmatched > 0 THEN
+        RAISE EXCEPTION '% --keep-email address(es) match no staging account; staging was not touched', unmatched;
+    END IF;
+END
+$$;
 
 -- Users: new ids, so they cannot collide with live's anonymised users.
 CREATE TEMP TABLE user_map (old_id integer PRIMARY KEY, new_id integer NOT NULL);

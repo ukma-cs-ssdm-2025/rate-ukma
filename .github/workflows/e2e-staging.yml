@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# One manual run at a time; it signs in with the same account as the deploy's E2E.
+concurrency:
+  group: e2e-staging-manual
+  cancel-in-progress: false
+
 jobs:
   e2e:
     uses: ./.github/workflows/e2e-test.yml
