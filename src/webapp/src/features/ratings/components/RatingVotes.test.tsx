@@ -8,9 +8,10 @@ import { RatingVotes } from "./RatingVotes";
 
 const createVote = vi.hoisted(() => vi.fn());
 
-vi.mock("../hooks/useVoteMutations", () => ({
-	useCoursesRatingsVotesCreate: () => ({ mutateAsync: createVote }),
-	useCoursesRatingsVotesDestroy: () => ({ mutateAsync: vi.fn() }),
+vi.mock("@/lib/api/generated", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/lib/api/generated")>()),
+	useRatingsVotesUpdate: () => ({ mutateAsync: createVote }),
+	useRatingsVotesDestroy: () => ({ mutateAsync: vi.fn() }),
 }));
 
 function renderVotes(disabledReason?: string) {

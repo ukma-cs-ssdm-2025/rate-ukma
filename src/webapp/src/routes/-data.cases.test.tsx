@@ -7,11 +7,8 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
-import {
-	getAuthSessionRetrieveQueryKey,
-	type Session,
-	type UkmaDataReviewCasePage,
-} from "@/lib/api/generated";
+import { getAuthSessionRetrieveQueryKey } from "@/lib/api/generated";
+import type { Session, UkmaDataReviewCasePage } from "@/lib/api/generated";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
 import { Route } from "./data.cases.index";
 

@@ -26,12 +26,12 @@ const loginSchema = z.object({
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
 type LoginFormProps = {
-	loginWithDjango: (username: string, password: string) => Promise<unknown>;
+	loginWithDjango: (username: string, password: string) => Promise<void>;
 	onCancel: () => void;
 };
 
 function mapErrorToMessage(error: unknown): string {
-	if (!isAxiosError(error)) {
+	if (!isAxiosError<{ detail?: string | string[] }>(error)) {
 		return "Something went wrong. Please try again.";
 	}
 

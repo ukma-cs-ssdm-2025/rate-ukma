@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/Collapsible";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { SemesterGroup } from "@/features/ratings/groupRatings";
+import type { SemesterTermEnum } from "@/lib/api/generated";
 import { localStorageAdapter } from "@/lib/storage";
 import { testIds } from "@/lib/test-ids";
 import { MyRatingCard } from "./MyRatingCard";
@@ -17,35 +18,39 @@ const OPEN_STATE_KEY = "my-ratings-open-semesters";
 
 // Mirrors SemesterService on the backend: the term a month falls in, and the
 // month from which that term's courses can be rated.
-const TERM_START_MONTH: Record<string, number> = {
+const TERM_START_MONTH = {
 	SPRING: 0,
 	SUMMER: 4,
 	FALL: 8,
-};
-const TERM_MIDTERM_MONTH: Record<string, number> = {
+} satisfies Record<SemesterTermEnum, number>;
+const TERM_MIDTERM_MONTH = {
 	SPRING: 2,
 	SUMMER: 5,
 	FALL: 10,
-};
+} satisfies Record<SemesterTermEnum, number>;
 
 type SemesterTiming = "past" | "current" | "future";
 
 function semesterTiming(
-	year: number | undefined,
-	season: string | undefined,
+	year: number,
+	season: SemesterTermEnum,
 	now: Date,
 ): SemesterTiming {
-	const startMonth = TERM_START_MONTH[season?.toUpperCase() ?? ""];
-	if (year == null || startMonth == null) return "past";
-	if (now < new Date(year, startMonth, 1)) return "future";
+	const startMonth = TERM_START_MONTH[season];
+	if (now < new Date(year, startMonth, 1)) {
+		return "future";
+	}
 	return now < new Date(year, startMonth + 4, 1) ? "current" : "past";
 }
 
 function currentPeriod(now: Date): string {
 	const month = now.getMonth();
-	let term = "SPRING";
-	if (month >= TERM_START_MONTH.FALL) term = "FALL";
-	else if (month >= TERM_START_MONTH.SUMMER) term = "SUMMER";
+	let term: SemesterTermEnum = "SPRING";
+	if (month >= TERM_START_MONTH.FALL) {
+		term = "FALL";
+	} else if (month >= TERM_START_MONTH.SUMMER) {
+		term = "SUMMER";
+	}
 	return `${now.getFullYear()}-${term}`;
 }
 
@@ -106,7 +111,9 @@ function SemesterStatus({
 	}
 	const left = seasonGroup.unratedRateableCount;
 	if (left > 0) {
-		if (open) return null;
+		if (open) {
+			return null;
+		}
 		return (
 			<span className="font-medium text-primary">
 				Оцініть ще {left} {COURSE_FORMS[UK_PLURAL.select(left)]}
@@ -121,11 +128,7 @@ function SemesterStatus({
 			</span>
 		);
 	}
-	const midterm =
-		TERM_MIDTERM_MONTH[seasonGroup.seasonRaw?.toUpperCase() ?? ""];
-	if (seasonGroup.year == null || midterm == null) {
-		return <span className="text-muted-foreground">Оцінювання згодом</span>;
-	}
+	const midterm = TERM_MIDTERM_MONTH[seasonGroup.season];
 	return (
 		<span className="text-muted-foreground">
 			Оцінювання з {DAY_MONTH.format(new Date(seasonGroup.year, midterm, 1))}
@@ -135,7 +138,7 @@ function SemesterStatus({
 
 interface MyRatingsSemesterSectionProps {
 	seasonGroup: SemesterGroup;
-	onRatingChanged: () => undefined | Promise<unknown>;
+	onRatingChanged: () => void;
 	/** Holds the section open without touching the remembered state, e.g. under a filter. */
 	forceOpen?: boolean;
 }
@@ -147,12 +150,12 @@ export function MyRatingsSemesterSection({
 }: Readonly<MyRatingsSemesterSectionProps>) {
 	const timing = semesterTiming(
 		seasonGroup.year,
-		seasonGroup.seasonRaw,
+		seasonGroup.season,
 		new Date(),
 	);
 	// Open by default: the running semester and anything still waiting for a rating.
 	const [storedOpen, setOpen] = useSemesterOpen(
-		`${seasonGroup.year ?? "none"}-${seasonGroup.key}`,
+		`${seasonGroup.year}-${seasonGroup.key}`,
 		timing !== "future" &&
 			(seasonGroup.unratedRateableCount > 0 || timing === "current"),
 	);
@@ -164,7 +167,9 @@ export function MyRatingsSemesterSection({
 		return [...seasonGroup.items].sort((a, b) => {
 			const ratedA = a.rated ? 1 : 0;
 			const ratedB = b.rated ? 1 : 0;
-			if (ratedA !== ratedB) return ratedA - ratedB;
+			if (ratedA !== ratedB) {
+				return ratedA - ratedB;
+			}
 			return (a.course_title ?? "").localeCompare(b.course_title ?? "");
 		});
 	}, [seasonGroup.items]);

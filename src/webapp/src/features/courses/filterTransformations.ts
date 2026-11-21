@@ -11,12 +11,24 @@ export function transformFiltersToApiParams(
 ): Partial<CoursesListParams> {
 	const params: Partial<CoursesListParams> = {};
 
-	if (filters.q) params.name = filters.q;
-	if (filters.faculty) params.faculty = filters.faculty;
-	if (filters.dept) params.department = filters.dept;
-	if (filters.instructor) params.instructor = filters.instructor;
-	if (filters.term.length > 0) params.semester_terms = filters.term;
-	if (filters.year) params.semester_year = filters.year;
+	if (filters.q) {
+		params.name = filters.q;
+	}
+	if (filters.faculty) {
+		params.faculty = filters.faculty;
+	}
+	if (filters.dept) {
+		params.department = filters.dept;
+	}
+	if (filters.instructor) {
+		params.instructor = filters.instructor;
+	}
+	if (filters.term.length > 0) {
+		params.semester_terms = filters.term;
+	}
+	if (filters.year) {
+		params.semester_year = filters.year;
+	}
 	if (
 		filters.year &&
 		(filters.credits[0] !== CREDITS_RANGE[0] ||
@@ -25,9 +37,15 @@ export function transformFiltersToApiParams(
 		params.credits_min = filters.credits[0];
 		params.credits_max = filters.credits[1];
 	}
-	if (filters.type) params.type_kind = filters.type;
-	if (filters.spec) params.speciality = filters.spec;
-	if (filters.eduLevel) params.education_level = filters.eduLevel;
+	if (filters.type) {
+		params.type_kind = filters.type;
+	}
+	if (filters.spec) {
+		params.speciality = filters.spec;
+	}
+	if (filters.eduLevel) {
+		params.education_level = filters.eduLevel;
+	}
 
 	if (
 		filters.diff[0] !== DIFFICULTY_RANGE[0] ||
@@ -46,23 +64,4 @@ export function transformFiltersToApiParams(
 	}
 
 	return params;
-}
-
-export function transformSortingToApiParams(
-	sortingId: string,
-	isDescending: boolean,
-): Record<string, "asc" | "desc"> {
-	if (sortingId === "avg_difficulty") {
-		return {
-			avg_difficulty_order: isDescending ? "desc" : "asc",
-		};
-	}
-
-	if (sortingId === "avg_usefulness") {
-		return {
-			avg_usefulness_order: isDescending ? "desc" : "asc",
-		};
-	}
-
-	return {};
 }

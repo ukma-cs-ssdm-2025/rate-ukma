@@ -199,6 +199,7 @@ async function cleanupSeededRating({
 			throw new AggregateError(
 				[uiCleanupError, apiCleanupError],
 				"Failed to cleanup seeded rating through UI and API",
+				{ cause: apiCleanupError },
 			);
 		}
 	}
@@ -308,8 +309,8 @@ function getCourseIdFromUrl(page: Page): string {
 
 function uniqueText(testInfo: TestInfo, label: string): string {
 	const title = testInfo.title
-		.replace(/[^a-zA-Z0-9]+/g, "-")
-		.replace(/^-|-$/g, "")
+		.replaceAll(/[^a-zA-Z0-9]+/g, "-")
+		.replaceAll(/^-|-$/g, "")
 		.slice(0, 32);
 
 	return `e2e:comments:${label}:${title}:${Date.now()}`;

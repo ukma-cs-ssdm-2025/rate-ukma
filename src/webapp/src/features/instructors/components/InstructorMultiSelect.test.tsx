@@ -306,7 +306,7 @@ describe("InstructorMultiSelect", () => {
 
 			const calls = mockedInfinite.mock.calls;
 			expect(calls.length).toBeGreaterThan(0);
-			expect(calls[calls.length - 1]?.[0]).not.toHaveProperty("mentioned_only");
+			expect(calls.at(-1)?.[0]).not.toHaveProperty("mentioned_only");
 		});
 	});
 });

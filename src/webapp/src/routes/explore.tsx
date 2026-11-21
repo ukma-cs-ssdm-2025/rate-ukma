@@ -70,7 +70,7 @@ function ExploreRoute() {
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const isPhone = !useMediaQuery("(min-width: 768px)");
 	const handleResetFilters = useCallback(() => {
-		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
+		void setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
 	const { groups: filterGroups } = useCourseFiltersData({ params });

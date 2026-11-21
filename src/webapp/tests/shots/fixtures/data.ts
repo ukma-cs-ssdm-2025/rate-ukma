@@ -59,6 +59,7 @@ export const COURSES = COURSE_SEEDS.map(
 			{
 				speciality_id: `${FACULTIES[faculty].id}-spec`,
 				speciality_title: "Демонстраційна спеціальність",
+				speciality_alias: "",
 				faculty_name: FACULTIES[faculty].name,
 				faculty_id: FACULTIES[faculty].id,
 				type_kind: "COMPULSORY" as const,
@@ -290,6 +291,8 @@ export const FEED_ITEMS: FeedItem[] = [
 		body: "У ніч на суботу сайт може бути недоступний до 30 хвилин.",
 		accent: "WARNING",
 		label: "Увага",
+		cta_label: "",
+		cta_href: "",
 		image_url: null,
 	},
 	...reviews.slice(3),
@@ -372,6 +375,8 @@ const offering = (
 	terms: [
 		{
 			id: `t-${year}-${term}`,
+			offering_id: `offering-${year}-${term}`,
+			semester_id: `semester-${year}-${term.toLowerCase()}`,
 			semester_year: year,
 			semester_term: term,
 			credits,
@@ -379,6 +384,8 @@ const offering = (
 			total_hours: Number(credits) * 30,
 			lecture_count: Number(credits) * 6,
 			practice_count: Number(credits) * 6,
+			exam_type: "EXAM",
+			practice_type: "PRACTICE",
 		},
 	],
 });

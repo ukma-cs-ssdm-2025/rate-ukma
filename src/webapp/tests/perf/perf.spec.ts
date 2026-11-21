@@ -1,4 +1,5 @@
-import { test, type Page } from "@playwright/test";
+import { test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 import { writeFileSync } from "node:fs";
 
@@ -73,7 +74,9 @@ function observe() {
 			value: number;
 			hadRecentInput: boolean;
 		};
-		if (!shift.hadRecentInput) window.__perf.cls += shift.value;
+		if (!shift.hadRecentInput) {
+			window.__perf.cls += shift.value;
+		}
 	});
 	// INP counts interactions, not events: a keystroke fires keydown, keypress
 	// and keyup under one interactionId, and the slowest of them is its latency.
@@ -83,7 +86,9 @@ function observe() {
 			const { interactionId } = e as PerformanceEntry & {
 				interactionId: number;
 			};
-			if (!interactionId) return;
+			if (!interactionId) {
+				return;
+			}
 			const seen = window.__perf.interactions[interactionId] ?? 0;
 			window.__perf.interactions[interactionId] = Math.max(seen, e.duration);
 		},
@@ -102,22 +107,25 @@ async function measure(page: Page, scenario: Scenario): Promise<Sample> {
 	const js: Promise<number>[] = [];
 	page.on("request", (request) => {
 		const url = new URL(request.url());
-		if (url.pathname.includes("/api/"))
+		if (url.pathname.includes("/api/")) {
 			api.push(`${request.method()} ${url.pathname}${url.search}`);
+		}
 	});
 	page.on("response", (response) => {
-		if (new URL(response.url()).pathname.endsWith(".js"))
+		if (new URL(response.url()).pathname.endsWith(".js")) {
 			js.push(
 				response.body().then(
 					(body) => body.length,
 					() => 0,
 				),
 			);
+		}
 	});
 
 	const response = await page.goto(scenario.path, { waitUntil: "networkidle" });
-	if (!response?.ok())
+	if (!response?.ok()) {
 		throw new Error(`${scenario.path} answered ${response?.status()}`);
+	}
 	// Late layout shifts (a strip mounting after its flag) land after idle.
 	await page.waitForTimeout(1500);
 	if (scenario.interact) {
@@ -136,10 +144,14 @@ async function measure(page: Page, scenario: Scenario): Promise<Sample> {
 			inp: Math.max(0, ...Object.values(interactions)),
 		};
 	});
-	if (!vitals.lcp) throw new Error(`${scenario.path} never painted content`);
+	if (!vitals.lcp) {
+		throw new Error(`${scenario.path} never painted content`);
+	}
 	const sizes = await Promise.all(js);
 	const counts = new Map<string, number>();
-	for (const call of api) counts.set(call, (counts.get(call) ?? 0) + 1);
+	for (const call of api) {
+		counts.set(call, (counts.get(call) ?? 0) + 1);
+	}
 
 	return {
 		...vitals,
@@ -158,7 +170,9 @@ const rows: Record<string, string | number>[] = [];
 test.describe.configure({ mode: "serial" });
 
 for (const scenario of SCENARIOS) {
-	if (ONLY && !ONLY.test(scenario.name)) continue;
+	if (ONLY && !ONLY.test(scenario.name)) {
+		continue;
+	}
 
 	test(scenario.name, async ({ browser }) => {
 		const samples: Sample[] = [];
@@ -192,6 +206,7 @@ for (const scenario of SCENARIOS) {
 test.afterAll(() => {
 	console.log(`\nMedians of ${RUNS} runs, CPU ${CPU}x, API mocked:`);
 	console.table(rows);
-	if (process.env.PERF_OUT)
+	if (process.env.PERF_OUT) {
 		writeFileSync(process.env.PERF_OUT, JSON.stringify(rows, null, "\t"));
+	}
 });

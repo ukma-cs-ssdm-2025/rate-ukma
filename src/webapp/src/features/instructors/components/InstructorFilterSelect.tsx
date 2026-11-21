@@ -156,7 +156,9 @@ function InstructorFilterSelect({
 							<CommandEmpty>{emptyText}</CommandEmpty>
 						) : null}
 						{allInstructors.map((instr) => {
-							if (!instr.id) return null;
+							if (!instr.id) {
+								return null;
+							}
 							const id = instr.id;
 							return (
 								<CommandItem

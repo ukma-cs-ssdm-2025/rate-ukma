@@ -30,7 +30,9 @@ export function UkmaDataError({
 	// session which one it is without refetching its query: a refetch unmounts
 	// the section, and the remount would hit the 403 again.
 	useEffect(() => {
-		if (status !== 403) return;
+		if (status !== 403) {
+			return;
+		}
 		let active = true;
 		authSessionRetrieve()
 			.then((session) => {

@@ -28,7 +28,9 @@ function getAvatarColor(name: string): string {
 }
 
 function getInitials(name: string, isAnonymous: boolean): string {
-	if (isAnonymous) return "?";
+	if (isAnonymous) {
+		return "?";
+	}
 	const parts = name.trim().split(/\s+/);
 	if (parts.length >= 2) {
 		return (parts[0][0] + parts[1][0]).toUpperCase();

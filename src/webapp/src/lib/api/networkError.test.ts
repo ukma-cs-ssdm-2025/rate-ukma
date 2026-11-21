@@ -1,4 +1,5 @@
-import axios, { type AxiosError } from "axios";
+import axios from "axios";
+import type { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {

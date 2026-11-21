@@ -83,10 +83,14 @@ function InstructorMultiSelect({
 	const optionsById = React.useMemo(() => {
 		const map = new Map<string, Instructor>();
 		for (const option of initialOptions) {
-			if (option.id) map.set(option.id, option);
+			if (option.id) {
+				map.set(option.id, option);
+			}
 		}
 		for (const option of allInstructors) {
-			if (option.id) map.set(option.id, option);
+			if (option.id) {
+				map.set(option.id, option);
+			}
 		}
 		return map;
 	}, [initialOptions, allInstructors]);
@@ -121,7 +125,9 @@ function InstructorMultiSelect({
 	}, [initialOptions, allInstructors, selectedSet]);
 
 	const toggleValue = (instr: Instructor) => {
-		if (!instr.id) return;
+		if (!instr.id) {
+			return;
+		}
 		const id = instr.id;
 
 		if (selectedSet.has(id)) {
@@ -242,7 +248,9 @@ function InstructorMultiSelect({
 						) : null}
 						<CommandGroup>
 							{allInstructors.map((instr) => {
-								if (!instr.id) return null;
+								if (!instr.id) {
+									return null;
+								}
 								const id = instr.id;
 								const isSelected = selectedSet.has(id);
 								return (

@@ -1,7 +1,8 @@
 import type { ReactElement, ReactNode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type RenderOptions, render, renderHook } from "@testing-library/react";
+import { render, renderHook } from "@testing-library/react";
+import type { RenderOptions } from "@testing-library/react";
 
 import { AuthProvider } from "@/lib/auth";
 import { FeatureFlagsContext } from "@/lib/feature-flags/FeatureFlagsContext";
@@ -97,5 +98,7 @@ export function renderHookWithProviders<Result, Props>(
 	};
 }
 
+// Our `render` below deliberately shadows the library one.
+// oxlint-disable-next-line import/export
 export * from "@testing-library/react";
 export { renderWithProviders as render };

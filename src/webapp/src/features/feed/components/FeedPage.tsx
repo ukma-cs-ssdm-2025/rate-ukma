@@ -39,7 +39,9 @@ function resolveContent({
 	feed: UseFeedReturn;
 }): ReactNode {
 	// Stay blank until the flag resolves, so a disabled feed never flashes in.
-	if (!isReady) return null;
+	if (!isReady) {
+		return null;
+	}
 	if (!enabled) {
 		return (
 			<p
@@ -50,13 +52,17 @@ function resolveContent({
 			</p>
 		);
 	}
-	if (feed.isLoading) return <FeedSkeleton />;
+	if (feed.isLoading) {
+		return <FeedSkeleton />;
+	}
 	if (feed.isError) {
 		return (
 			<FeedErrorState onRetry={feed.refetch} isRetrying={feed.isRefetching} />
 		);
 	}
-	if (feed.items.length === 0) return <FeedEmptyState />;
+	if (feed.items.length === 0) {
+		return <FeedEmptyState />;
+	}
 
 	return (
 		<>

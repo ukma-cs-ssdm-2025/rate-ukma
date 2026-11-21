@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from rating_app.models.choices import SemesterTerm
 from rating_app.serializers.rating_read import RatingInstructorSerializer
 
 
@@ -16,7 +17,7 @@ class InlineRatingDetailedSerializer(serializers.Serializer):
 
 class InlineSemesterSerializer(serializers.Serializer):
     year = serializers.IntegerField(read_only=True)
-    season = serializers.CharField(read_only=True)
+    season = serializers.ChoiceField(choices=SemesterTerm.choices, read_only=True)
 
 
 class StudentRatingsDetailedSerializer(serializers.Serializer):

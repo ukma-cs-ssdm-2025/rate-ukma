@@ -7,6 +7,10 @@ import { testIds } from "@/lib/test-ids";
 import { renderWithProviders } from "@/test-utils/render";
 import type { SemesterGroup } from "../groupRatings";
 import { MyRatingsSemesterSection } from "./MyRatingsSemesterSection";
+import {
+	createMockInlineRatingDetailed,
+	createMockStudentRating,
+} from "@/test-utils/factories";
 
 vi.mock("@tanstack/react-router", async () => {
 	const actual = await vi.importActual("@tanstack/react-router");
@@ -35,16 +39,13 @@ function makeCourse(
 	index: number,
 	overrides?: Partial<StudentRatingsDetailed>,
 ): StudentRatingsDetailed {
-	return {
+	return createMockStudentRating({
 		course_id: `course-${index}`,
 		course_title: `Курс ${index}`,
 		course_code: `9000${index}`,
 		course_offering_id: `offering-${index}`,
-		can_rate: true,
-		rated: null,
-		semester: { year: 2025, season: "FALL" },
 		...overrides,
-	};
+	});
 }
 
 function makeSemester(
@@ -62,7 +63,7 @@ function makeSemester(
 		totalCount: items.length,
 		unratedRateableCount: items.length - ratedCount,
 		year: 2025,
-		seasonRaw: "FALL",
+		season: "FALL",
 		...overrides,
 	};
 }
@@ -73,7 +74,11 @@ describe("MyRatingsSemesterSection", () => {
 			<MyRatingsSemesterSection
 				seasonGroup={makeSemester([
 					makeCourse(1, {
-						rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+						rated: createMockInlineRatingDetailed({
+							id: "rating-1",
+							difficulty: 4,
+							usefulness: 5,
+						}),
 					}),
 					makeCourse(2),
 				])}
@@ -91,7 +96,11 @@ describe("MyRatingsSemesterSection", () => {
 			<MyRatingsSemesterSection
 				seasonGroup={makeSemester([
 					makeCourse(1, {
-						rated: { id: "rating-1", difficulty: 4, usefulness: 5 },
+						rated: createMockInlineRatingDetailed({
+							id: "rating-1",
+							difficulty: 4,
+							usefulness: 5,
+						}),
 					}),
 					makeCourse(2),
 				])}
@@ -151,7 +160,7 @@ describe("MyRatingsSemesterSection", () => {
 				<MyRatingsSemesterSection
 					seasonGroup={makeSemester([makeCourse(1, { can_rate: false })], {
 						year: 2027,
-						seasonRaw: "SPRING",
+						season: "SPRING",
 						key: "SPRING",
 						unratedRateableCount: 0,
 					})}

@@ -1,19 +1,16 @@
-import {
-	type ComponentProps,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ComponentProps } from "react";
 
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-	type ColumnDef,
 	getCoreRowModel,
 	getPaginationRowModel,
-	type PaginationState,
-	type SortingState,
 	useReactTable,
+} from "@tanstack/react-table";
+import type {
+	ColumnDef,
+	PaginationState,
+	SortingState,
 } from "@tanstack/react-table";
 import { ChevronDown, Filter, Maximize2, Search } from "lucide-react";
 
@@ -50,15 +47,15 @@ import { CourseFiltersDrawer, CourseFiltersPanel } from "./CourseFiltersPanel";
 import { CourseScoreCell } from "./CourseScoreCell";
 import { CourseSpecialityBadges } from "./CourseSpecialityBadges";
 import { CoursesScatterPlot } from "./CoursesScatterPlot";
+import { CoursesReviewsSortMenu } from "./CoursesReviewsSortMenu";
+import type { CoursesReviewsSortOption } from "./CoursesReviewsSortMenu";
 import {
-	CoursesReviewsSortMenu,
-	type CoursesReviewsSortOption,
-} from "./CoursesReviewsSortMenu";
-import {
-	type CourseFiltersParamsSetter,
-	type CourseFiltersParamsState,
 	courseFiltersStateToSearchParams,
 	DEFAULT_COURSE_FILTERS_PARAMS,
+} from "../courseFiltersParams";
+import type {
+	CourseFiltersParamsSetter,
+	CourseFiltersParamsState,
 } from "../courseFiltersParams";
 import { DIFFICULTY_RANGE, USEFULNESS_RANGE } from "../courseFormatting";
 import { transformFiltersToApiParams } from "../filterTransformations";
@@ -243,7 +240,7 @@ function buildCoursesTableColumns({
 				</div>
 			),
 			cell: ({ row }) => {
-				const count = row.getValue("ratings_count") as number;
+				const count = row.original.ratings_count;
 				return (
 					<div className="hidden sm:flex items-center justify-center">
 						<span className="text-sm font-medium tabular-nums text-muted-foreground md:text-base">
@@ -288,7 +285,7 @@ function buildCoursesTableColumns({
 			),
 			cell: ({ row }) => (
 				<CourseScoreCell
-					value={row.getValue("avg_difficulty") as number}
+					value={row.original.avg_difficulty}
 					variant="difficulty"
 				/>
 			),
@@ -330,7 +327,7 @@ function buildCoursesTableColumns({
 			),
 			cell: ({ row }) => (
 				<CourseScoreCell
-					value={row.getValue("avg_usefulness") as number}
+					value={row.original.avg_usefulness}
 					variant="usefulness"
 				/>
 			),
@@ -436,7 +433,7 @@ export function CoursesTable({
 				useOrder = useSort.desc ? "desc" : "asc";
 			}
 
-			setParams({
+			void setParams({
 				diffOrder,
 				useOrder,
 				reviewSort: null,
@@ -447,13 +444,15 @@ export function CoursesTable({
 	);
 
 	const reviewsSortValue = useMemo<CoursesReviewsSortOption | null>(() => {
-		if (params.diffOrder || params.useOrder) return null;
+		if (params.diffOrder || params.useOrder) {
+			return null;
+		}
 		return params.reviewSort ?? "by-count";
 	}, [params.diffOrder, params.useOrder, params.reviewSort]);
 
 	const handleReviewsSortChange = useCallback(
 		(value: CoursesReviewsSortOption) => {
-			setParams({
+			void setParams({
 				reviewSort: value,
 				diffOrder: null,
 				useOrder: null,
@@ -482,7 +481,9 @@ export function CoursesTable({
 	});
 
 	const attendedCourseIds = useMemo(() => {
-		if (!studentCourses) return new Set<string>();
+		if (!studentCourses) {
+			return new Set<string>();
+		}
 		return new Set(
 			studentCourses
 				.map((course) => course.id)
@@ -499,8 +500,10 @@ export function CoursesTable({
 
 	const handleRowClick = useCallback(
 		(course: CourseList) => {
-			if (!course.id) return;
-			navigate({
+			if (!course.id) {
+				return;
+			}
+			void navigate({
 				to: "/courses/$courseId",
 				params: { courseId: course.id },
 			});
@@ -527,7 +530,7 @@ export function CoursesTable({
 	);
 
 	const openExplore = useCallback(() => {
-		navigate({
+		void navigate({
 			to: "/explore",
 			search: courseFiltersStateToSearchParams(params),
 		});
@@ -555,7 +558,7 @@ export function CoursesTable({
 
 			const nextSize = newPagination.pageSize;
 			const nextPage = newPagination.pageIndex + 1;
-			setParams({
+			void setParams({
 				size: nextSize,
 				page: nextSize !== params.size ? 1 : nextPage,
 			});
@@ -570,7 +573,7 @@ export function CoursesTable({
 	});
 
 	const handleResetFilters = useCallback(() => {
-		setParams(DEFAULT_COURSE_FILTERS_PARAMS);
+		void setParams(DEFAULT_COURSE_FILTERS_PARAMS);
 	}, [setParams]);
 
 	const hasActiveFilters = activeFilterCount > 0 || params.q !== "";
@@ -652,7 +655,7 @@ export function CoursesTable({
 							placeholder="Пошук дисциплін за назвою..."
 							value={params.q}
 							onChange={(value) => {
-								setParams({ q: String(value), page: 1 });
+								void setParams({ q: String(value), page: 1 });
 							}}
 							className="h-10 pl-10 text-sm"
 							disabled={isInitialLoading}

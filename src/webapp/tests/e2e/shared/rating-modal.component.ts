@@ -1,4 +1,5 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 
@@ -61,7 +62,7 @@ export class RatingModal {
 			if (!(await this.instructorList.isVisible())) {
 				await this.instructorToggle.click();
 			}
-			await expect(this.instructorList).toBeVisible({ timeout: 2_000 });
+			await expect(this.instructorList).toBeVisible({ timeout: 2000 });
 		}).toPass({ timeout: 20_000 });
 	}
 
@@ -164,7 +165,9 @@ export class RatingModal {
 	private async getStarValue(container: Locator): Promise<number> {
 		await expect(container).toBeVisible();
 		const selected = container.locator('[data-state="on"]');
-		if ((await selected.count()) === 0) return 0;
+		if ((await selected.count()) === 0) {
+			return 0;
+		}
 		return Number((await selected.first().innerText()).trim());
 	}
 

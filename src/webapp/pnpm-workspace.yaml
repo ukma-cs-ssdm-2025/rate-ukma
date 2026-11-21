@@ -19,6 +19,7 @@ minimumReleaseAgeExclude:
   - "@tanstack/react-router@1.170.23"
   - orval@8.24.0
   - react-hook-form@7.85.0
+  - "@cloudflare/oxlint-config@0.1.0"
 auditConfig:
   ignoreGhsas:
     # picomatch ReDoS (<=4.0.7). No fixed release on npm yet (latest is 4.0.7);
