@@ -19,6 +19,7 @@ on:
       - src/.env.sample
       - docs/api/openapi-generated.yaml
       - infra/nginx/**
+      - infra/deploy/.env.*
       - .github/**
       - "!.github/workflows/parser-*.yml"
       - "!.github/actions/k8s-tunnel/**"
