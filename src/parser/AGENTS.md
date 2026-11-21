@@ -6,7 +6,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - Node 24 runs `src/*.ts` directly by type stripping, so dev needs no build: `pnpm api`, `pnpm worker`, `pnpm migrate`, `pnpm reparse`, `pnpm crawl-smart`, `pnpm create-key`, `pnpm revoke-key`, `pnpm list-keys`.
 - Docker: `docker compose --profile dev` in `src` starts `parser-api` and `parser-worker`; before the worker, `parser-db-init` creates the `ukma_data` database and role on `parser-db` and `parser-migrate` applies migrations. `parser-db` is the parser's own Postgres 18 with its own volume, on `127.0.0.1:${PARSER_POSTGRES_PORT:-5433}`, as live runs; the Django app keeps `db-rateukma` on Postgres 15.
-- Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the university account, for the worker's САЗ crawl and `crawl-smart`), `SAZ_REQUEST_GAP` and `SMART_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` and `SMART_REQUEST_TIMEOUT` (default 30 seconds, covering the response body), `CRAWL_INTERVAL` (from the start of one САЗ crawl to the start of the next, default 24 hours, at least 1 hour) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
+- Settings: `DATABASE_URL` (every command), `PORT` (api, default 8080), `CORPORATE_EMAIL` and `CORPORATE_PASSWORD` (the university account, for the worker's САЗ crawl and `crawl-smart`), `SAZ_REQUEST_GAP` and `SMART_REQUEST_GAP` (default 1 second), `SAZ_REQUEST_TIMEOUT` and `SMART_REQUEST_TIMEOUT` (default 30 seconds, covering the response body), `CRAWL_INTERVAL` (from the start of one САЗ crawl to the start of the next, default 24 hours, at least 1 hour; the api reads it too, for the next crawl in `/v1/stats`) and `REMOVAL_THRESHOLD` (the share of a year's offerings one run may remove before the removals are held, default 0.05).
 
 ## Layout
 
@@ -14,6 +14,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/keys/`: API keys, their scopes, and the `create-key`, `revoke-key` and `list-keys` commands. `src/audit/Audit.ts` writes the audit log.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
 - `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
+- `src/stats/`: the totals behind `/v1/stats`, counts only, never rows.
 - `docs/parser-service/openapi.json` is generated from `Api.ts` by `pnpm openapi`; `src/api/openapi.test.ts` fails when the committed file is stale.
 - `src/worker/`: the background loop (`crawlLoop.ts`), every `CRAWL_INTERVAL`: crawl (the two latest years and the older year crawled longest ago, `yearsToCrawl`), parse offerings and group them into courses (`src/courses/`), parse students (`src/students/`), then removals (`src/offerings/removals.ts`).
 - `src/changes/ChangeLog.ts`: the writers' turn, change numbers and the `changes` trail.

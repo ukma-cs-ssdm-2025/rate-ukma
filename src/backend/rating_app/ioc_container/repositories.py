@@ -18,6 +18,8 @@ from rating_app.repositories.to_domain_mappers import (
     FeedReviewMapper,
     InstructorMapper,
     NotificationGroupMapper,
+    PlanCourseSourceMapper,
+    PlanOfferingMapper,
     PromoBannerMapper,
     RatingVoteModelMapper,
     SemesterMapper,
@@ -38,6 +40,7 @@ from ..repositories import (
     FeedEventRepository,
     FeedPostRepository,
     InstructorRepository,
+    PersonalPlanRepository,
     PromoBannerRepository,
     RatingMapper,
     RatingRepository,
@@ -262,3 +265,16 @@ def notification_repository() -> NotificationRepository:
 @once
 def notification_cursor_repository() -> NotificationCursorRepository:
     return NotificationCursorRepository()
+
+
+@once
+def plan_offering_mapper() -> PlanOfferingMapper:
+    return PlanOfferingMapper()
+
+
+@once
+def personal_plan_repository() -> PersonalPlanRepository:
+    return PersonalPlanRepository(
+        course_mapper=PlanCourseSourceMapper(offering_mapper=plan_offering_mapper()),
+        offering_mapper=plan_offering_mapper(),
+    )

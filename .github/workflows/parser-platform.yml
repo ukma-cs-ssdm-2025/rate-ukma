@@ -32,7 +32,7 @@ env:
   KUBECTL_VERSION: v1.36.5
   PLATFORM_ROOT: infra/deploy/parser/k8s/platform
   # Applied in this order: each one needs what the previous one installs.
-  PLATFORM_DIRS: operators config database monitoring
+  PLATFORM_DIRS: operators config plugins database monitoring
 
 jobs:
   render:
@@ -147,6 +147,26 @@ jobs:
           bash scripts/ci/parser-platform-saz-secret.sh \
             | kubectl apply --server-side --field-manager=parser-platform -f -
 
+      - name: Apply plugins
+        run: |
+          # The plugin's Certificate goes through the cert-manager webhook, which config/ already waited for,
+          # but retry in case it is still settling.
+          for attempt in 1 2 3; do
+            kubectl apply --server-side --field-manager=parser-platform -k "$PLATFORM_ROOT/plugins" && break
+            [ "$attempt" -eq 3 ] && exit 1
+            sleep 10
+          done
+          kubectl -n cnpg-system rollout status deployment/barman-cloud --timeout=5m
+
+      # The barman-cloud plugin writes backups to the bucket with these keys.
+      - name: Apply backup secret
+        env:
+          BACKUP_S3_ACCESS_KEY: ${{ secrets.PARSER_BACKUP_S3_ACCESS_KEY }}
+          BACKUP_S3_SECRET_KEY: ${{ secrets.PARSER_BACKUP_S3_SECRET_KEY }}
+        run: |
+          bash scripts/ci/parser-platform-backup-secret.sh \
+            | kubectl apply --server-side --field-manager=parser-platform -f -
+
       - name: Apply database
         run: bash scripts/ci/parser-platform-apply-database.sh
 
@@ -186,6 +206,7 @@ jobs:
             kubectl get pods -n cnpg-system
             kubectl get clusterissuers
             kubectl -n parser get cluster,pods,pvc
+            kubectl -n parser get objectstore,scheduledbackup,backup
             kubectl get pods -n monitoring
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

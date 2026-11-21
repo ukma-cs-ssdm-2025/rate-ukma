@@ -29,6 +29,21 @@ on:
         required: false
         type: boolean
         default: false
+      tag_prefix:
+        description: "Prefix of this release line's tags, to find the previous one (v, or parser-v for the parser)"
+        required: false
+        type: string
+        default: "v"
+      change_path:
+        description: "Only list commits that change these space-separated paths in the changelog (all when empty)"
+        required: false
+        type: string
+        default: ""
+      make_latest:
+        description: "Whether to mark the release as the repository's latest: true, false, or empty for GitHub's default"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   create-release:
@@ -45,16 +60,21 @@ jobs:
         env:
           VERSION_TAG: ${{ inputs.version_tag }}
           PREV_USER_TAG: ${{ inputs.previous_version }}
+          # A dispatch has no tag_prefix input.
+          TAG_PREFIX: ${{ inputs.tag_prefix || 'v' }}
+          CHANGE_PATH: ${{ inputs.change_path }}
         run: |
           if [ -n "$PREV_USER_TAG" ]; then
             PREV_TAG="$PREV_USER_TAG"
           else
-            PREV_TAG=$(git tag -l "v*" --sort=-v:refname | grep -v "^$VERSION_TAG$" | head -n 1)
+            PREV_TAG=$(git tag -l "$TAG_PREFIX*" --sort=-v:refname | grep -v "^$VERSION_TAG$" | head -n 1)
           fi
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
           if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."$VERSION_TAG")
+            # Unquoted: CHANGE_PATH is a space-separated list of paths, or empty for every commit.
+            # shellcheck disable=SC2086
+            COMMITS=$(git log --pretty=format:"- %s (%an)" "$PREV_TAG".."$VERSION_TAG" -- $CHANGE_PATH)
 
             if [ -n "$COMMITS" ]; then
               CHANGELOG="$COMMITS"
@@ -91,3 +111,4 @@ jobs:
 
           draft: false
           prerelease: ${{ inputs.pre-release }}
+          make_latest: ${{ inputs.make_latest }}

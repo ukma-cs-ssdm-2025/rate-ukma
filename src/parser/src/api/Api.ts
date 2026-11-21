@@ -22,6 +22,7 @@ import {
 	ReviewCase,
 	Term,
 } from "../lists/lists.ts";
+import { Stats } from "../stats/stats.ts";
 
 /** The key behind a request that passed `ApiKeyAuth`. */
 export class Caller extends Context.Service<
@@ -112,10 +113,14 @@ export class CatalogApi extends HttpApiGroup.make("catalog")
 			OpenApi.Summary,
 			"Offerings, each with its terms and programmes",
 		),
+		HttpApiEndpoint.get("stats", "/stats", { success: Stats }).annotate(
+			OpenApi.Summary,
+			"Totals per academic year, merged courses, open review cases and the crawl schedule",
+		),
 	)
 	.annotate(
 		OpenApi.Description,
-		"Reference lists, courses and offerings: `catalog:read`",
+		"Reference lists, courses, offerings and their totals: `catalog:read`",
 	)
 	.annotateEndpoints(RequiredScopes, ["catalog:read"])
 	.middleware(ApiKeyAuth)

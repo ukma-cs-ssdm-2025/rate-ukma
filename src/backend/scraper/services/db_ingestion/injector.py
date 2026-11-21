@@ -11,6 +11,7 @@ from rateukma.caching.cache_manager import ICacheManager
 from rateukma.caching.patterns import (
     COURSE_PATTERN,
     FILTER_OPTIONS_PATTERN,
+    PLANS_NAMESPACE,
     RATINGS_PATTERN,
 )
 from rateukma.protocols.decorators import implements
@@ -122,7 +123,7 @@ class CourseDbInjector(IDbInjector):
             raise e
 
         self.tracker.complete()
-        self._invalidate_cache()
+        transaction.on_commit(self._invalidate_cache)
 
     def reset_state(self) -> None:
         self._reset_caches()
@@ -141,6 +142,7 @@ class CourseDbInjector(IDbInjector):
         ]
         for pattern in patterns:
             self.cache_manager.invalidate_pattern(pattern)
+        self.cache_manager.bump_version(PLANS_NAMESPACE)
 
         logger.info("cache_invalidated_after_ingestion", patterns=patterns)
 

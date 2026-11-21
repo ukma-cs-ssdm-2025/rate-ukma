@@ -140,7 +140,8 @@ Cluster-wide add-ons, applied by [`.github/workflows/parser-platform.yml`](../..
 
 - **`operators/`:** upstream cert-manager and CloudNativePG manifests, pinned to exact releases.
 - **`config/`:** the `parser` namespace, the `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers, and the `parser-deployer` ServiceAccount that Deploy Parser uses. It needs the operator CRDs, so it is applied second.
-- **`database/`:** the `parser-db` Postgres cluster. It needs the CNPG CRDs and the `parser` namespace, so it is applied last.
+- **`plugins/`:** the CNPG barman-cloud plugin, pinned to an exact release. It needs cert-manager, so it comes after `config/`.
+- **`database/`:** the `parser-db` Postgres cluster and its backups. It needs the CNPG and barman-cloud CRDs and the `parser` namespace.
 - **Ingress:** the Traefik bundled with k3s, IngressClass `traefik`. It is not in this folder.
 
 The workflow reaches the API server through [`.github/actions/k8s-tunnel`](../../../.github/actions/k8s-tunnel/action.yml), an SSH tunnel to `127.0.0.1:6443` on the node.
@@ -185,7 +186,8 @@ A following `diff` run should print no changes.
 
 ### Database (`parser-db`)
 
-- **Two instances**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`: a primary and a streaming standby. Backups come with #772.
+- **Two instances**, Postgres 18 (`imageName` in `database/cluster.yaml`), database and owner `parser`: a primary and a streaming standby.
+- **Backups** (`database/backup.yaml`): the barman-cloud plugin archives WAL continuously and takes a base backup daily at 02:00 UTC to the `rate-ukma-parser-backups` bucket. Retention is a 7-day recovery window: the database can be restored to any point in the last 7 days. The apply fails if WAL archiving doesn't start or no base backup completes within 10 minutes.
 - **Failover:** when the primary pod fails, CNPG promotes the standby and moves the `parser-db-rw` Service to it, then recreates the old pod as the new standby. Both run on the one node, so a node failure still takes the database down. Replication is asynchronous, so a failover can lose the last commits not yet streamed.
 - **WAL cap:** while the standby is down, its replication slot keeps WAL on the primary, up to `max_slot_wal_keep_size` (2GB), so it can't fill the node's disk. A standby further behind than that loses its slot and has to be recreated.
 - **Credentials:** CNPG generates them and stores them in the `parser-db-app` Secret. Its `uri` key is the service's `DATABASE_URL`, so no DB password passes through GitHub or Terraform.
@@ -207,6 +209,31 @@ To check failover, delete the primary pod and watch the standby take over:
 sudo k3s kubectl -n parser delete pod <primary>
 sudo k3s kubectl -n parser get cluster parser-db -w   # Failing over, then Cluster in healthy state with the other instance as primary
 ```
+
+### Backups
+
+**Before the first apply with backups:**
+
+1. In a **separate Hetzner project** from the one that holds the Terraform state, open Object Storage and create the bucket `rate-ukma-parser-backups` in `hel1`. Keep it **private**. Leave versioning off: barman deletes expired backups itself, and versioning would keep them anyway.
+2. In that project, create an S3 credential pair (Object Storage → S3 credentials). Hetzner keys reach every bucket in their project, so a separate project is what keeps the keys from the state bucket: `parser-deployer` can create Jobs in `parser`, so it can mount the `parser-db-backup-s3` Secret, and SSE-C protects the state's contents but not from being deleted or replaced.
+3. Add the pair to `Parser` as `PARSER_BACKUP_S3_ACCESS_KEY` and `PARSER_BACKUP_S3_SECRET_KEY`. **Parser Platform** creates the `parser-db-backup-s3` Secret from them on apply.
+
+Adding the plugin to `parser-db` restarts both instances, the standby first, with a switchover (`primaryUpdateMethod: switchover`).
+
+**Check** on the node:
+
+```bash
+sudo k3s kubectl -n parser get cluster parser-db \
+  -o jsonpath='{.status.conditions[?(@.type=="ContinuousArchiving")].status}'   # True
+sudo k3s kubectl -n parser get scheduledbackup,backup   # parser-db-daily, and a Backup with PHASE completed
+sudo k3s kubectl -n parser get objectstore parser-backups -o jsonpath='{.status.serverRecoveryWindow}'   # first and last recoverability point
+```
+
+**If the bucket is unreachable**, Postgres keeps every WAL segment it could not archive in `pg_wal` on the primary and retries. The database keeps working, but the WAL grows until the bucket is back. `max_slot_wal_keep_size` does not limit this: it only caps what the standby's slot holds, and `local-path` enforces no size, so unarchived WAL can fill the node's disk, and Postgres stops when `pg_wal` has no room. Archiving shows as `ContinuousArchiving` = `False` on the Cluster (the check above), and the sidecar logs say why: `kubectl -n parser logs <primary> -c plugin-barman-cloud | grep -i wal`. Fix the bucket or the keys in `parser-db-backup-s3` before the disk fills.
+
+**Whether a restore point exists** is answered by the bucket, not by the `Backup` objects: they are Kubernetes records, and the docs for the barman-cloud plugin do not say what happens to them when retention deletes the files. Trust `serverRecoveryWindow` on the `ObjectStore` (the last command above), which is read from the bucket. The apply's check looks at the `Backup` objects, so it only shows that a base backup completed at some point.
+
+The backups hold the crawled САЗ data, student lists included. Keep the bucket private and the keys in the password manager.
 
 ### Upgrading an operator
 
@@ -233,8 +260,16 @@ The UKMA Data image `ghcr.io/ukma-cs-ssdm-2025/rate-ukma/parser` runs as three w
 Deploys run from [`.github/workflows/parser-deploy.yml`](../../../.github/workflows/parser-deploy.yml):
 
 - **Pull requests** render the `live` overlay and validate it with kubeconform against the Kubernetes 1.36 schemas.
-- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA). The `deploy` job:
-  1. picks the parser image with `scripts/ci/find-image-tags.sh`: the exact tag, or for a version the newest parser release at or below it, since the image is only built when `src/parser` changes;
+- **A push to main** that changes `src/parser` or `k8s/app` runs [`.github/workflows/parser-pipeline.yml`](../../../.github/workflows/parser-pipeline.yml), separate from the web app's Staging Build:
+  1. cuts a parser version, `parser-vX.Y.Z`, from the commits that changed the parser since the last one (`feat!` major, `feat` minor, any other type patch);
+  2. runs the parser checks;
+  3. builds and pushes the image, tagged with that version. When nothing in the parser changed since the last version (a push that only changes the pipeline), it is tagged with the commit SHA instead, so a released version's image is never replaced;
+  4. deploys that tag with the `deploy` job below;
+  5. creates a GitHub release for the new version, with the parser's commits since the previous one. It is a full release, since it is already live, but not marked latest: that label stays with the web app.
+
+  It runs one push at a time, in push order, and a newer push replaces a waiting run, so an older commit never deploys after a newer one. A re-run of an old run skips the deploy when main already has a newer parser commit; dispatch Deploy Parser to put an older version on live on purpose. A re-run after a failure reuses the version the first attempt tagged.
+- **Actions → Deploy Parser → Run workflow** deploys a version (or a commit SHA). It is also the way to roll back. The `deploy` job:
+  1. picks the parser image with `scripts/ci/find-image-tags.sh`: the exact tag for a parser version or a SHA. Images from before the parser had its own versions are tagged with the web app's `vX.Y.Z`; for those it picks the newest image at or below the version;
   2. renders the overlay with that tag;
   3. opens the tunnel as the `tunnel` user with the `parser-deployer` kubeconfig, and checks with `kubectl auth can-i` that it can't read Secrets or change RBAC;
   4. runs the `parser-migrate` Job (`scripts/ci/parser-deploy-migrate.sh`). If it fails, the deploy stops there and the old pods keep serving;
