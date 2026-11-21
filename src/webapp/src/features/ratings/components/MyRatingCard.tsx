@@ -52,7 +52,7 @@ export function MyRatingCard({
 						to="/courses/$courseId"
 						params={{ courseId }}
 						className="line-clamp-2 font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-						data-testid={testIds.myRatings.coursePageLink}
+						data-testid={testIds.myRatings.courseTitleLink}
 					>
 						{course.course_title ?? "Дисципліна"}
 					</Link>
