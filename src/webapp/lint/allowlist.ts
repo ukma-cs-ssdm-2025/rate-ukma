@@ -12,13 +12,7 @@ export const LINT_ALLOWLIST = {
 		"src/components/Header/Header.tsx",
 		"src/components/Header/MobileMenu.tsx",
 		"src/features/courses/components/CourseStatsCards.tsx",
-		"src/routes/connection-error.tsx",
 		"src/routes/courses.$courseId.tsx",
-		"src/routes/data.cases.$caseId.tsx",
-		"src/routes/data.cases.index.tsx",
-		"src/routes/data.index.tsx",
-		"src/routes/explore.tsx",
-		"src/routes/my-ratings.tsx",
 	],
 } satisfies Record<string, string[]>;
 

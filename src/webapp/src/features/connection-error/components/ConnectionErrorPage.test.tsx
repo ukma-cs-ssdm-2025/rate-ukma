@@ -14,7 +14,7 @@ import {
 	getSafeRedirectTarget,
 	shouldAutoReturn,
 	withBounceCount,
-} from "./connection-error";
+} from "./ConnectionErrorPage";
 
 const { sessionRetrieveMock } = vi.hoisted(() => ({
 	sessionRetrieveMock: vi.fn(),
