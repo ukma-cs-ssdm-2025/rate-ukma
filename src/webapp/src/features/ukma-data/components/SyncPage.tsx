@@ -29,8 +29,10 @@ export function SyncPage() {
 						key={item}
 						type="button"
 						role="tab"
+						id={`sync-tab-${item}`}
+						aria-controls="sync-tabpanel"
 						aria-selected={tab === item}
-						onClick={() => setTab(item)}
+						onClick={() => void setTab(item, { history: "push" })}
 						className={cn(
 							"rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
 							tab === item
@@ -42,9 +44,15 @@ export function SyncPage() {
 					</button>
 				))}
 			</div>
-			{tab === "pending" ? <SyncPendingTab /> : null}
-			{tab === "history" ? <SyncHistoryTab /> : null}
-			{tab === "rules" ? <SyncRulesTab /> : null}
+			<div
+				id="sync-tabpanel"
+				role="tabpanel"
+				aria-labelledby={`sync-tab-${tab}`}
+			>
+				{tab === "pending" ? <SyncPendingTab /> : null}
+				{tab === "history" ? <SyncHistoryTab /> : null}
+				{tab === "rules" ? <SyncRulesTab /> : null}
+			</div>
 		</div>
 	);
 }

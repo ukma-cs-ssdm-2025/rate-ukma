@@ -1,7 +1,10 @@
+import { useState } from "react";
+
 import { Inbox } from "lucide-react";
 import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
 
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
 	Empty,
@@ -27,14 +30,17 @@ import {
 	formatAge,
 	GROUP_LABELS,
 	KIND_LABELS,
+	kindLabel,
 	PAGE_SIZE,
 	RUN_STATUS_LABELS,
 	runStatusVariant,
 	SOURCE_LABELS,
 	SYNC_GROUPS,
-	SYNC_SOURCES,
 } from "../sync";
-import { SyncChangeCard } from "./SyncChangeCard";
+import { kindGroup, kindSource } from "../syncActions";
+import { useSyncActions } from "../useSyncActions";
+import { SyncActionDialog } from "./SyncActionDialog";
+import { SyncPendingGroups } from "./SyncPendingGroups";
 import { SyncPagination } from "./SyncPagination";
 import { UkmaDataError } from "./UkmaDataError";
 
@@ -139,57 +145,6 @@ function PendingFilters({
 	);
 }
 
-function GroupedChanges({ changes }: Readonly<{ changes: SyncChange[] }>) {
-	return (
-		<div className="space-y-6">
-			{SYNC_SOURCES.map((source) => {
-				const sourceChanges = changes.filter((item) => item.source === source);
-				if (sourceChanges.length === 0) {
-					return null;
-				}
-				return (
-					<section
-						key={source}
-						aria-label={SOURCE_LABELS[source]}
-						className="space-y-3"
-					>
-						<h2 className="text-lg font-semibold">{SOURCE_LABELS[source]}</h2>
-						{SYNC_GROUPS.map((group) => {
-							const items = sourceChanges.filter(
-								(item) => item.group === group,
-							);
-							if (items.length === 0) {
-								return null;
-							}
-							return (
-								<div key={group} className="space-y-2">
-									<h3 className="flex items-center gap-2 text-sm font-medium">
-										{GROUP_LABELS[group]}
-										<Badge variant="secondary">
-											{items.length}
-											<span className="sr-only"> на цій сторінці</span>
-										</Badge>
-									</h3>
-									<ul
-										className="space-y-3"
-										aria-label={`${SOURCE_LABELS[source]}: ${GROUP_LABELS[group]}`}
-									>
-										{items.map((change) => (
-											<li key={change.id}>
-												<SyncChangeCard change={change} />
-											</li>
-										))}
-									</ul>
-								</div>
-							);
-						})}
-					</section>
-				);
-			})}
-		</div>
-	);
-}
-
 export function SyncPendingTab() {
 	const [{ group, kind, page }, setParams] = useQueryStates(pendingParams);
 	const { data, isLoading, error, refetch, isRefetching } =
@@ -202,7 +157,24 @@ export function SyncPendingTab() {
 			},
 			{ query: { retry: false } },
 		);
+	const [selected, setSelected] = useState<Map<number, SyncChange>>(new Map());
+	const actions = useSyncActions(() => setSelected(new Map()));
 	const filtered = group !== ALL || kind !== ALL;
+	const selectedKindSource = kind === ALL ? null : kindSource(kind);
+	const selectedKindGroup = kind === ALL ? null : kindGroup(kind);
+
+	const select = (change: SyncChange, next: boolean) => {
+		setSelected((previous) => {
+			const copy = new Map(previous);
+			if (next) {
+				copy.set(change.id, change);
+			} else {
+				copy.delete(change.id);
+			}
+			return copy;
+		});
+	};
+
 	return (
 		<div className="space-y-4">
 			<CurrentRuns runs={data?.runs ?? []} />
@@ -211,13 +183,82 @@ export function SyncPendingTab() {
 				kind={kind}
 				groups={data?.groups}
 				kinds={data?.kinds}
-				onGroupChange={(value) =>
-					setParams({ group: pendingParams.group.parse(value), page: 1 })
-				}
-				onKindChange={(value) =>
-					setParams({ kind: pendingParams.kind.parse(value), page: 1 })
-				}
+				onGroupChange={(value) => {
+					setSelected(new Map());
+					void setParams({
+						group: pendingParams.group.parse(value),
+						page: 1,
+					});
+				}}
+				onKindChange={(value) => {
+					setSelected(new Map());
+					void setParams({
+						kind: pendingParams.kind.parse(value),
+						page: 1,
+					});
+				}}
 			/>
+			{selectedKindSource !== null && selectedKindGroup !== null ? (
+				<Card className="flex flex-wrap items-center gap-2 p-3 text-sm">
+					<span>
+						Тип «{kindLabel(kind)}»: {data?.kinds[kind] ?? 0} у черзі
+					</span>
+					<Button
+						size="sm"
+						disabled={actions.busy}
+						onClick={() =>
+							void actions.approveFilter(
+								selectedKindSource,
+								selectedKindGroup,
+								kind,
+							)
+						}
+					>
+						Переглянути й застосувати тип
+					</Button>
+					<Button
+						size="sm"
+						variant="outline"
+						disabled={actions.busy}
+						onClick={() =>
+							void actions.rejectFilter(
+								selectedKindSource,
+								selectedKindGroup,
+								kind,
+							)
+						}
+					>
+						Відхилити тип
+					</Button>
+				</Card>
+			) : null}
+			{selected.size > 0 ? (
+				<Card className="flex flex-wrap items-center gap-2 p-3 text-sm">
+					<span>Вибрано: {selected.size}</span>
+					<Button
+						size="sm"
+						disabled={actions.busy}
+						onClick={() => void actions.approveSelected([...selected.values()])}
+					>
+						Підтвердити вибране
+					</Button>
+					<Button
+						size="sm"
+						variant="outline"
+						disabled={actions.busy}
+						onClick={() => void actions.rejectSelected([...selected.values()])}
+					>
+						Відхилити вибране
+					</Button>
+					<Button
+						size="sm"
+						variant="ghost"
+						onClick={() => setSelected(new Map())}
+					>
+						Зняти вибір
+					</Button>
+				</Card>
+			) : null}
 			{data && !error ? (
 				<p className="text-sm text-muted-foreground">
 					{filtered
@@ -225,6 +266,11 @@ export function SyncPendingTab() {
 						: `Очікують підтвердження: ${data.total}`}
 				</p>
 			) : null}
+			{actions.message === null ? null : (
+				<p role="alert" className="text-sm text-destructive">
+					{actions.message}
+				</p>
+			)}
 			{isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
 			{error ? (
 				<UkmaDataError
@@ -251,11 +297,26 @@ export function SyncPendingTab() {
 			) : null}
 			{data && !error && data.items.length > 0 ? (
 				<>
-					<GroupedChanges changes={data.items} />
-					<p className="text-sm text-muted-foreground">
-						Підтвердження, відхилення й відповіді на питання зʼявляться
-						наступним оновленням.
-					</p>
+					<SyncPendingGroups
+						changes={data.items}
+						selected={new Set(selected.keys())}
+						busy={actions.busy}
+						onSelect={select}
+						onApprove={(change) => void actions.approveChange(change)}
+						onReject={(change) => void actions.rejectChange(change)}
+						onApproveMany={(changes) => void actions.approveSelected(changes)}
+						onRejectMany={(changes) => void actions.rejectSelected(changes)}
+						onAnswer={(change, answer, into) =>
+							void actions.answer(change.id, answer, into)
+						}
+						onApproveFilter={(source, target, item) =>
+							void actions.approveFilter(source, target, item)
+						}
+						onRejectFilter={(source, target, item) =>
+							void actions.rejectFilter(source, target, item)
+						}
+						onKeepApart={actions.openKeepApart}
+					/>
 					<SyncPagination
 						page={data.page}
 						totalPages={data.total_pages}
@@ -265,6 +326,11 @@ export function SyncPendingTab() {
 					/>
 				</>
 			) : null}
+			<SyncActionDialog
+				dialog={actions.dialog}
+				onClose={actions.closeDialog}
+				onConfirm={() => void actions.confirmDialog()}
+			/>
 		</div>
 	);
 }
