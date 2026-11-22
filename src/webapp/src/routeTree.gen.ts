@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyRatingsRouteImport } from './routes/my-ratings'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as DataIndexRouteImport } from './routes/data.index'
+import { Route as DataSyncRouteImport } from './routes/data.sync'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginFailedRouteImport } from './routes/login.failed'
 import { Route as DataCasesIndexRouteImport } from './routes/data.cases.index'
@@ -68,6 +69,11 @@ const DataIndexRoute = DataIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DataRoute,
 } as any)
+const DataSyncRoute = DataSyncRouteImport.update({
+  id: '/sync',
+  path: '/sync',
+  getParentRoute: () => DataRoute,
+} as any)
 const LoginIndexRoute = LoginIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/data/sync': typeof DataSyncRoute
   '/login/failed': typeof LoginFailedRoute
   '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/feed': typeof FeedRoute
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/data/sync': typeof DataSyncRoute
   '/login/failed': typeof LoginFailedRoute
   '/data': typeof DataIndexRoute
   '/login': typeof LoginIndexRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRouteWithChildren
   '/my-ratings': typeof MyRatingsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
+  '/data/sync': typeof DataSyncRoute
   '/login/failed': typeof LoginFailedRoute
   '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ratings'
     | '/courses/$courseId'
+    | '/data/sync'
     | '/login/failed'
     | '/data/'
     | '/login/'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/my-ratings'
     | '/courses/$courseId'
+    | '/data/sync'
     | '/login/failed'
     | '/data'
     | '/login'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ratings'
     | '/courses/$courseId'
+    | '/data/sync'
     | '/login/failed'
     | '/data/'
     | '/login/'
@@ -255,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DataIndexRouteImport
       parentRoute: typeof DataRoute
     }
+    '/data/sync': {
+      id: '/data/sync'
+      path: '/sync'
+      fullPath: '/data/sync'
+      preLoaderRoute: typeof DataSyncRouteImport
+      parentRoute: typeof DataRoute
+    }
     '/login/': {
       id: '/login/'
       path: '/'
@@ -287,12 +306,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface DataRouteChildren {
+  DataSyncRoute: typeof DataSyncRoute
   DataIndexRoute: typeof DataIndexRoute
   DataCasesCaseIdRoute: typeof DataCasesCaseIdRoute
   DataCasesIndexRoute: typeof DataCasesIndexRoute
 }
 
 const DataRouteChildren: DataRouteChildren = {
+  DataSyncRoute: DataSyncRoute,
   DataIndexRoute: DataIndexRoute,
   DataCasesCaseIdRoute: DataCasesCaseIdRoute,
   DataCasesIndexRoute: DataCasesIndexRoute,
