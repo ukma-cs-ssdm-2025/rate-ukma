@@ -28,8 +28,12 @@ from django.utils import timezone
 
 import structlog
 
+from rateukma.caching import instances as caching
+from rateukma.caching.cache_manager import SESSION_KEY_MARKER
 from rating_app.models import (
     Course,
+    CourseOffering,
+    Department,
     PlannedCourse,
     Rating,
     SyncApproval,
@@ -40,6 +44,7 @@ from rating_app.models import (
     SyncChangeGroup,
     SyncChangeState,
     SyncChangeStateReason,
+    SyncCursor,
     SyncPolicyMode,
     SyncRun,
     SyncRunStatus,
@@ -48,9 +53,15 @@ from rating_app.models import (
 from rating_app.scheduler.jobs import job_named
 from rating_app.scheduler.lock import advisory_lock
 from rating_app.sync import constants
-from rating_app.sync.drafts import is_stale
+from rating_app.sync.drafts import (
+    Identity,
+    changed_identity,
+    course_identity,
+    is_stale,
+)
 from rating_app.sync.handlers import Handler, handler_for
-from rating_app.sync.kinds import KIND_BY_NAME, NEVER_AUTO_KINDS
+from rating_app.sync.kinds import KIND_BY_NAME, KIND_LISTS, NEVER_AUTO_KINDS
+from rating_app.sync.payloads import NewCoursePayload
 from rating_app.sync.policies import mode_for
 from rating_app.sync.runs import sweep_interrupted_approvals
 from rating_app.sync.snapshot import RateUkmaSnapshot, load_rate_ukma_snapshot
@@ -71,6 +82,9 @@ _UNIT_LINK_KINDS = frozenset({"teacher_link_added", "teacher_link_removed"})
 _FACULTY_OR_DEPARTMENT_KINDS = frozenset(
     {"link_faculty", "change_faculty", "link_department", "change_department"}
 )
+# Kinds whose payload changes a course identity and so can hit
+# ``course_identity_unique``.
+_IDENTITY_KINDS = frozenset({"new_course", "change_course"})
 
 
 class SyncApplyInputError(ValueError):
@@ -259,6 +273,7 @@ def apply_by_policy(run: SyncRun, *, lock_held: bool = False) -> SyncApproval | 
 
 def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> SyncApproval:
     applied = waiting = 0
+    catalog_applied: list[SyncChange] = []
     try:
         with transaction.atomic():  # a stale link and the rest of its unit retire together
             stale = _supersede_stale(units)
@@ -267,7 +282,10 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
                 superseded += _supersede_dependents(run.source, stale.dead_requirements)
                 _refresh_states(units)
         with transaction.atomic():
-            for unit in _ordered(units):
+            catalog_applied, catalog_waiting = _apply_catalog(units, approval)
+            applied += len(catalog_applied)
+            waiting += catalog_waiting
+            for unit in _ordered(_unit_teacher_units(units)):
                 outcome, members = _apply_unit(
                     unit, approval, blocked=unit.key in stale.blocked_units
                 )
@@ -286,7 +304,140 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
         _fail_approval(approval, run, failure.change, failure.original)
     except Exception as exc:  # the pre-pass or a handler failed; sanitize it
         _fail_approval(approval, run, None, exc)
+    else:
+        if catalog_applied:
+            _after_catalog_apply(run, {change.kind for change in catalog_applied})
     return approval
+
+
+def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> tuple[list[SyncChange], int]:
+    """Write the selection's catalog changes in batches, one kind at a time.
+
+    Kinds run in the registry's order, so a ``new_department`` finds its faculty
+    and a ``new_offering`` its course. Each change's ``requires`` is checked
+    inside the transaction, just before its kind is written; one that is unmet
+    stays proposed and waits.
+    """
+    by_kind: dict[str, list[SyncChange]] = defaultdict(list)
+    for change in _unit_members(units):
+        if change.source == SyncSource.CATALOG and change.state == SyncChangeState.PROPOSED:
+            by_kind[change.kind].append(change)
+
+    applied: list[SyncChange] = []
+    waiting = 0
+    for kind in sorted(by_kind, key=_kind_order):
+        batch = sorted(by_kind[kind], key=lambda change: change.pk)
+        handler = handler_for(kind)
+        if handler is None:
+            for change in batch:
+                logger.info(
+                    "sync_change_left_proposed",
+                    change_id=change.pk,
+                    kind=change.kind,
+                    reason="no_handler",
+                )
+            waiting += len(batch)
+            continue
+        ready: list[SyncChange] = []
+        try:
+            with transaction.atomic():
+                for change in batch:
+                    unmet = _unmet_requirements(change)
+                    if unmet:
+                        _record_waiting([change], _waiting_on(unmet))
+                        logger.info(
+                            "sync_change_waiting",
+                            change_id=change.pk,
+                            kind=change.kind,
+                            waiting_on=_waiting_on(unmet),
+                        )
+                        waiting += 1
+                        continue
+                    ready.append(change)
+                if not ready:
+                    continue
+                if handler.apply_many is not None:
+                    handler.apply_many(ready)
+                else:
+                    for change in ready:
+                        try:
+                            handler.apply(change)
+                        except Exception as exc:
+                            raise _ApplyFailedError(change, exc) from exc
+                _mark_applied(ready, approval)
+        except _UnitChangedError:
+            logger.info(
+                "sync_changes_left_proposed",
+                change_ids=[change.pk for change in ready],
+                kind=kind,
+                reason="changed",
+            )
+            waiting += len(ready)
+            continue
+        except _ApplyFailedError:
+            raise
+        except Exception as exc:
+            # A handler names the change whose row it could not find; a plain
+            # database error leaves the first change of the failing batch.
+            culprit = getattr(exc, "change", None) or (ready[0] if ready else batch[0])
+            raise _ApplyFailedError(culprit, exc) from exc
+        applied.extend(ready)
+    return applied, waiting
+
+
+def _unit_teacher_units(units: list[_Unit]) -> list[_Unit]:
+    return [
+        unit
+        for unit in units
+        if any(change.source != SyncSource.CATALOG for change in unit.changes)
+    ]
+
+
+def _after_catalog_apply(run: SyncRun, applied_kinds: set[str]) -> None:
+    """Clear the cache except sessions and save the cursors of the lists the
+    applied kinds came from (D2).
+
+    Separate try blocks: a cache failure must not skip the cursor save. A
+    ``removed_*`` acknowledgement writes nothing and saves nothing, and neither
+    does an approval that applied no change.
+    """
+    try:
+        caching.redis_cache_manager().invalidate_pattern("*", skip_keys=[SESSION_KEY_MARKER])
+    except Exception as exc:
+        # The catalog is committed; a cache failure must not undo it.
+        logger.error("sync_catalog_cache_clear_failed", run_id=run.pk, error=type(exc).__name__)
+    lists = sorted({name for kind in applied_kinds for name in KIND_LISTS.get(kind, ())})
+    if not lists:
+        return
+    try:
+        saved = {list_name: _cursor_no(run.cursor_to, list_name) for list_name in lists}
+        with transaction.atomic():
+            for list_name, change_no in saved.items():
+                SyncCursor.objects.update_or_create(
+                    source=run.source,
+                    list_name=list_name,
+                    defaults={"change_no": change_no},
+                )
+            run.cursor_saved = saved
+            run.save(update_fields=["cursor_saved"])
+        logger.info("sync_catalog_applied", run_id=run.pk, cursors=saved)
+    except Exception as exc:
+        # The catalog is committed; a cursor failure must not undo it either.
+        logger.error("sync_catalog_cursor_save_failed", run_id=run.pk, error=type(exc).__name__)
+
+
+def _cursor_no(cursor_to: dict[str, object], list_name: str) -> int:
+    value = cursor_to.get(list_name, cursor_to.get("after", 0))
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+    return 0
 
 
 def _refresh_states(units: list[_Unit]) -> None:
@@ -371,9 +522,12 @@ def _supersede_stale(units: list[_Unit]) -> _StalePass:
     blocked_units: set[str] = set()
     dead: set[tuple[str, str]] = set()
     with transaction.atomic():
+        collisions = _identity_collisions(members)
         for unit in units:
             for change in unit.changes:
                 reason = _stale_reason(change, snapshot)
+                if reason is None and change.pk in collisions:
+                    reason = SyncChangeStateReason.IDENTITY_COLLISION
                 if reason is None:
                     continue
                 updated = SyncChange.objects.filter(
@@ -388,8 +542,12 @@ def _supersede_stale(units: list[_Unit]) -> _StalePass:
                 change.state = SyncChangeState.SUPERSEDED
                 change.state_reason = reason
                 superseded += 1
-                if reason == SyncChangeStateReason.STALE:
-                    blocked_units.add(unit.key)
+                if reason in (
+                    SyncChangeStateReason.STALE,
+                    SyncChangeStateReason.IDENTITY_COLLISION,
+                ):
+                    if reason == SyncChangeStateReason.STALE:
+                        blocked_units.add(unit.key)
                     dead.add((change.kind, change.key))
                 logger.info(
                     "sync_change_superseded",
@@ -398,6 +556,107 @@ def _supersede_stale(units: list[_Unit]) -> _StalePass:
                     reason=reason,
                 )
     return _StalePass(superseded, blocked_units, dead)
+
+
+def _identity_collisions(changes: list[SyncChange]) -> set[int]:
+    """``new_course``/``change_course`` changes that would now break the unique
+    course identity, against the rows in the database or each other.
+
+    A change that keeps its course's identity cannot create a new collision, as
+    the builder does not propose one either.
+    """
+    linking = _departments_linked_by(changes)
+    identities: dict[Identity, list[SyncChange]] = defaultdict(list)
+    for change in changes:
+        if change.kind not in _IDENTITY_KINDS:
+            continue
+        identity = _collision_identity(change, linking)
+        if identity is not None:
+            identities[identity].append(change)
+    colliding: set[int] = set()
+    for identity, rows in identities.items():
+        existing = _existing_course_ids(identity)
+        for change in rows:
+            target = change.target_id if change.kind == "change_course" else None
+            if len(rows) > 1 or existing - {target}:
+                colliding.add(change.pk)
+    return colliding
+
+
+def _departments_linked_by(changes: list[SyncChange]) -> dict[str, str]:
+    """UKMA Data department id -> Rate UKMA department id for the
+    ``link_department`` changes applying in the same approval."""
+    linking: dict[str, str] = {}
+    for change in changes:
+        ukma_data_id = change.after.get("ukma_data_id")
+        if change.kind == "link_department" and change.target_id and isinstance(ukma_data_id, str):
+            linking[ukma_data_id] = change.target_id
+    return linking
+
+
+def _collision_identity(change: SyncChange, linking: dict[str, str]) -> Identity | None:
+    if change.kind == "new_course":
+        payload = NewCoursePayload.model_validate(change.after)
+        return course_identity(
+            payload.title,
+            _department_identity_id(payload.department_ukma_id, linking),
+            payload.level,
+        )
+    current = _course_identity(change.target_id)
+    if current is None:
+        return None
+    identity = changed_identity(current, _resolved_course_after(change.after, linking))
+    return identity if identity != current else None
+
+
+def _resolved_course_after(after: dict[str, object], linking: dict[str, str]) -> dict[str, object]:
+    """A ``change_course`` payload with its department id resolved like the
+    handler resolves it: by id, else by the UKMA Data id."""
+    department = after.get("department")
+    if not isinstance(department, dict) or department.get("id"):
+        return after
+    resolved = _department_identity_id(department.get("ukma_data_id"), linking)
+    return {**after, "department": {**department, "id": resolved}}
+
+
+def _department_identity_id(ukma_data_id: object, linking: dict[str, str]) -> str:
+    if not isinstance(ukma_data_id, str) or not ukma_data_id:
+        return ""
+    if ukma_data_id in linking:
+        return linking[ukma_data_id]
+    existing = (
+        Department.objects.filter(ukma_data_id=ukma_data_id).values_list("id", flat=True).first()
+    )
+    return str(existing) if existing is not None else f"new:{ukma_data_id}"
+
+
+def _course_identity(target_id: str | None) -> Identity | None:
+    if target_id is None:
+        return None
+    try:
+        pk = uuid.UUID(target_id)
+    except ValueError:
+        return None
+    row = Course.objects.filter(pk=pk).values("title", "department_id", "education_level").first()
+    if row is None:
+        return None
+    return course_identity(row["title"], str(row["department_id"]), row["education_level"])
+
+
+def _existing_course_ids(identity: Identity) -> set[str]:
+    title, department_id, level = identity
+    if not department_id or department_id.startswith("new:"):
+        return set()
+    try:
+        department = uuid.UUID(department_id)
+    except ValueError:
+        return set()
+    return {
+        str(course_id)
+        for course_id in Course.objects.filter(
+            title=title, department_id=department, education_level=level
+        ).values_list("id", flat=True)
+    }
 
 
 def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str | None:
@@ -411,6 +670,8 @@ def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str 
         and handler.exists(change.key)
     ):
         return SyncChangeStateReason.EXISTS
+    if change.kind == "new_offering" and _saz_code_taken(change.after.get("saz_code")):
+        return SyncChangeStateReason.EXISTS
     if _teacher_missing_without_creation(change):
         return SyncChangeStateReason.STALE
     if change.target_id is None or snapshot is None:
@@ -418,6 +679,12 @@ def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str 
     if is_stale(change.kind, snapshot, change.target_id, change.before):
         return SyncChangeStateReason.STALE
     return None
+
+
+def _saz_code_taken(code: object) -> bool:
+    """A new offering whose САЗ code a Rate UKMA offering already holds would
+    hit the unique code and roll back the whole approval."""
+    return isinstance(code, str) and CourseOffering.objects.filter(code=code).exists()
 
 
 def _teacher_missing_without_creation(change: SyncChange) -> bool:

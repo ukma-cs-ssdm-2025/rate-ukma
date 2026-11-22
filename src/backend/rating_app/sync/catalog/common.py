@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from rating_app.application_schemas import ukma_data_api as ukma_data
-from rating_app.sync.drafts import ChangeDraft, make_before
+from rating_app.sync.drafts import ChangeDraft, Identity, course_identity, make_before
 from rating_app.sync.kinds import KIND_BY_NAME
 from rating_app.sync.matching import academic_year_of
 from rating_app.sync.snapshot import (
@@ -19,8 +19,6 @@ from rating_app.sync.snapshot import (
 )
 
 _TERM_RANK = {"FALL": 1, "SPRING": 2, "SUMMER": 3}
-
-Identity = tuple[str, str, str]
 
 
 @dataclass(frozen=True)
@@ -44,9 +42,9 @@ class CatalogIndex:
 
         identities: dict[Identity, list[str]] = defaultdict(list)
         for course in ru.courses.values():
-            identities[(course.title, course.department_id, course.education_level)].append(
-                course.id
-            )
+            identities[
+                course_identity(course.title, course.department_id, course.education_level)
+            ].append(course.id)
 
         return cls(
             ru=ru,

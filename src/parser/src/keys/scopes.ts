@@ -6,6 +6,7 @@ import { Schema } from "effect";
  *  the check on `api_keys.scopes`. */
 export const SCOPES = [
 	"catalog:read",
+	"review:read",
 	"review:decide",
 	"instructors:read",
 ] as const;

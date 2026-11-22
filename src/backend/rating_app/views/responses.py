@@ -98,6 +98,15 @@ EX_403 = OpenApiExample(
     },
     status_codes=["403"],
 )
+EX_403_UKMA_DATA = OpenApiExample(
+    "UKMA Data key refused",
+    value={
+        "detail": "Ключ UKMA Data цього сервера не має доступу до цього розділу",
+        "code": "ukma_data_forbidden",
+        "status": 403,
+    },
+    status_codes=["403"],
+)
 EX_502_UKMA_DATA = OpenApiExample(
     "UKMA Data unavailable",
     value={"detail": "UKMA Data did not answer in time.", "status": 502},
@@ -322,6 +331,7 @@ def ukma_data_responses(serializer, include_400=True) -> dict:
     return {
         200: OpenApiResponse(serializer, "OK"),
         **common_errors(include_400=include_400),
+        403: OpenApiResponse(Err, FORBIDDEN, [EX_403_UKMA_DATA]),
         502: OpenApiResponse(Err, "UKMA Data is down or failed", [EX_502_UKMA_DATA]),
         503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
     }

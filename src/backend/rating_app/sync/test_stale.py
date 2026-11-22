@@ -243,3 +243,27 @@ def test_a_kind_that_writes_no_existing_row_records_nothing(kind):
 
     assert before == {}
     assert not is_stale(kind, _snapshot(), None, before)
+
+
+def test_a_change_course_compares_its_department_by_rate_ukma_id():
+    after = {"department": {"id": "ru-dept", "ukma_data_id": "ud-dept", "name": "Кафедра"}}
+    before = _stored_before("change_course", "ru-course", after)
+    linked = _department(ukma_data_id="ud-linked", name="Перейменована кафедра")(_snapshot())
+
+    assert not is_stale("change_course", linked, "ru-course", before)
+
+
+def test_a_change_course_on_another_department_is_stale():
+    after = {"department": {"id": "ru-dept", "ukma_data_id": "ud-dept", "name": "Кафедра"}}
+    before = _stored_before("change_course", "ru-course", after)
+    other = replace(
+        _snapshot(),
+        courses={"ru-course": replace(_snapshot().courses["ru-course"], department_id="ru-other")},
+        departments={
+            "ru-other": RuDepartment(
+                id="ru-other", name="Інша кафедра", faculty_id="ru-fac", ukma_data_id=None
+            )
+        },
+    )
+
+    assert is_stale("change_course", other, "ru-course", before)

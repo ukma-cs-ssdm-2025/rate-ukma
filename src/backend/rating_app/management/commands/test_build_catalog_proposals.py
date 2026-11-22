@@ -11,6 +11,7 @@ from structlog.testing import capture_logs
 from rating_app.application_schemas import ukma_data_api as ud
 from rating_app.application_schemas.ukma_data_params import UkmaDataKey, UkmaDataStatus
 from rating_app.exception.ukma_data_exceptions import (
+    UkmaDataForbiddenError,
     UkmaDataNotConfiguredError,
     UkmaDataUnavailableError,
 )
@@ -301,6 +302,23 @@ def test_fails_the_run_when_ukma_data_stops_answering():
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_fails_the_run_when_ukma_data_refuses_the_key():
+    fake = FakeUkmaData()
+    with (
+        patch(f"{COMMAND}.waffle.switch_is_active", return_value=True),
+        patch(f"{COMMAND}.advisory_lock", lock_free),
+        patch(f"{COMMAND}.UkmaDataService", return_value=fake),
+        patch.object(fake, "list_faculties", side_effect=UkmaDataForbiddenError()),
+    ):
+        call_command("build_catalog_proposals")
+
+    run = SyncRun.objects.get()
+    assert (run.status, run.error) == (SyncRunStatus.FAILED, "ukma_data_forbidden")
+    assert SyncChange.objects.count() == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_a_builder_failure_fails_the_run_and_writes_no_changes():
     with (
         patch(f"{COMMAND}.waffle.switch_is_active", return_value=True),
@@ -394,3 +412,27 @@ def test_a_dropped_year_that_held_linked_offerings_is_still_short():
     )
 
     assert short_read_years(ud_snapshot, ru_snapshot) == [2024]  # pyright: ignore[reportArgumentType] - duck-typed snapshot
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_failed_auto_apply_is_logged_by_type_and_the_run_still_succeeds():
+    fake = FakeUkmaData(faculties=(_faculty(name="Факультет тестових даних"),))
+    secret = "teacher.person@example.test"
+
+    with (
+        patch(f"{COMMAND}.waffle.switch_is_active", return_value=True),
+        patch(f"{COMMAND}.advisory_lock", lock_free),
+        patch(f"{COMMAND}.UkmaDataService", return_value=fake),
+        patch(f"{COMMAND}.apply_by_policy", side_effect=RuntimeError(secret)),
+        capture_logs() as logs,
+    ):
+        call_command("build_catalog_proposals")
+
+    run = SyncRun.objects.get()
+    assert run.status == SyncRunStatus.SUCCEEDED
+    assert SyncChange.objects.count() == 1
+    failed = [log for log in logs if log["event"] == "catalog_proposals_auto_apply_failed"]
+    assert len(failed) == 1
+    assert failed[0]["error"] == "RuntimeError"
+    assert secret not in repr(logs)

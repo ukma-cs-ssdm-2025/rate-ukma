@@ -22,7 +22,7 @@ from rating_app.sync.constants import (
     TITLE_TOO_LONG,
     UNKNOWN_PROGRAMME,
 )
-from rating_app.sync.drafts import ChangeDraft, DecisionView, make_before
+from rating_app.sync.drafts import ChangeDraft, DecisionView, course_identity, make_before
 from rating_app.sync.kinds import KIND_BY_NAME
 from rating_app.sync.matching import (
     academic_year_of,
@@ -232,7 +232,7 @@ class _Builder:
                 else None
             )
             identity = (
-                identities.get((course.title, department_id, self._level(course)))
+                identities.get(course_identity(course.title, department_id, self._level(course)))
                 if department_id is not None
                 else None
             )
@@ -257,11 +257,16 @@ class _Builder:
 
     def _propose_new_courses(self, courses: list[tuple[ukma.Course, list[ukma.Offering]]]) -> None:
         """Two new courses with one identity would break ``course_identity_unique``."""
-        identities = Counter(
-            (course.title, course.department_id, self._level(course)) for course, _ in courses
-        )
+        identities: Counter[tuple[str, str, str]] = Counter()
+        for course, _ in courses:
+            assert course.department_id is not None  # checked by _new_course_reason
+            identities[
+                course_identity(course.title, course.department_id, self._level(course))
+            ] += 1
         for course, unmatched in courses:
-            if identities[(course.title, course.department_id, self._level(course))] > 1:
+            assert course.department_id is not None  # checked by _new_course_reason
+            identity = course_identity(course.title, course.department_id, self._level(course))
+            if identities[identity] > 1:
                 self._skip_course(course, unmatched, IDENTITY_COLLISION)
                 continue
             self.new_courses.add(course.id)
@@ -286,8 +291,11 @@ class _Builder:
         identities: dict[tuple[str, str, str], str] = {}
         for course_id in sorted(self.ru.courses):
             course = self.ru.courses[course_id]
+            if course.department_id is None:
+                continue
             identities.setdefault(
-                (course.title, course.department_id, course.education_level), course_id
+                course_identity(course.title, course.department_id, course.education_level),
+                course_id,
             )
         return identities
 
