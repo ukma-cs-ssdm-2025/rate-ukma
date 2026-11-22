@@ -19,7 +19,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -260,8 +260,10 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
     applied = waiting = 0
     try:
         stale = _supersede_stale(units)
+        superseded = stale.superseded
         if stale.dead_requirements:
-            _supersede_dependents(run.source, stale.dead_requirements)
+            superseded += _supersede_dependents(run.source, stale.dead_requirements)
+            _refresh_states(units)
         with transaction.atomic():
             for unit in _ordered(units):
                 outcome, members = _apply_unit(
@@ -274,7 +276,7 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
             approval.outcome = SyncApprovalOutcome.APPLIED
             approval.counts = {
                 "applied": applied,
-                "superseded": stale.superseded,
+                "superseded": superseded,
                 "waiting": waiting,
             }
             approval.save(update_fields=["outcome", "counts"])
@@ -283,6 +285,17 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
     except Exception as exc:  # the pre-pass or a handler failed; sanitize it
         _fail_approval(approval, run, None, exc)
     return approval
+
+
+def _refresh_states(units: list[_Unit]) -> None:
+    members = list(_unit_members(units))
+    states = dict(
+        SyncChange.objects.filter(pk__in=[change.pk for change in members]).values_list(
+            "pk", "state"
+        )
+    )
+    for change in members:
+        change.state = states.get(change.pk, change.state)
 
 
 def _apply_unit(
@@ -430,35 +443,101 @@ def _teacher_missing_without_creation(change: SyncChange) -> bool:
 
 
 def _supersede_dependents(source: str, dead: set[tuple[str, str]]) -> int:
-    """Supersede every proposed change waiting on a dead requirement, transitively."""
+    """Supersede every proposed change waiting on a dead requirement, transitively.
+
+    A dead teacher link also retires the rest of its offering's unit, and a
+    ``teacher_created`` no live link needs any more goes with it, so no later
+    approval applies part of a link set no run proposed.
+    """
     superseded = 0
     now = timezone.now()
-    while dead:
+    dead_links = _dead_links(source, dead)
+    dead_offerings = _offerings_of(dead_links)
+    orphan_teachers = _teachers_required_by(dead_links)
+    while dead or dead_offerings:
         rows = list(SyncChange.objects.filter(source=source, state=SyncChangeState.PROPOSED))
-        doomed = [
-            row
-            for row in rows
-            if any(
-                pair is not None and pair in dead
-                for pair in (_requirement_pair(entry) for entry in row.requires)
-            )
-        ]
+        doomed = [row for row in rows if _is_doomed(row, dead, dead_offerings)]
         if not doomed:
             break
-        ids = [row.pk for row in doomed]
-        superseded += SyncChange.objects.filter(pk__in=ids, state=SyncChangeState.PROPOSED).update(
-            state=SyncChangeState.SUPERSEDED,
-            state_reason=SyncChangeStateReason.DEPENDENCY_REJECTED,
-            decided_at=now,
-        )
+        superseded += _supersede_as_dependency_rejected(doomed, now)
         dead = {(row.kind, row.key) for row in doomed}
-        logger.info(
-            "sync_changes_superseded",
-            change_ids=ids,
-            kinds=sorted({row.kind for row in doomed}),
-            reason=SyncChangeStateReason.DEPENDENCY_REJECTED,
+        doomed_links = [row for row in doomed if row.kind in _UNIT_LINK_KINDS]
+        dead_offerings = _offerings_of(doomed_links)
+        orphan_teachers |= _teachers_required_by(doomed_links)
+    return superseded + _supersede_orphan_teachers(source, orphan_teachers, now)
+
+
+def _dead_links(source: str, dead: set[tuple[str, str]]) -> list[SyncChange]:
+    keys = [key for kind, key in dead if kind in _UNIT_LINK_KINDS]
+    if not keys:
+        return []
+    rows = SyncChange.objects.filter(
+        source=source,
+        kind__in=_UNIT_LINK_KINDS,
+        key__in=keys,
+        state__in=[SyncChangeState.SUPERSEDED, SyncChangeState.REJECTED],
+    )
+    return [row for row in rows if (row.kind, row.key) in dead]
+
+
+def _offerings_of(links: list[SyncChange]) -> set[tuple[int, str]]:
+    return {(row.run_id, row.target_id) for row in links if row.target_id is not None}
+
+
+def _teachers_required_by(links: list[SyncChange]) -> set[tuple[int, str]]:
+    return {
+        (row.run_id, pair[1])
+        for row in links
+        for entry in row.requires
+        if (pair := _requirement_pair(entry)) is not None and pair[0] == "teacher_created"
+    }
+
+
+def _is_doomed(
+    row: SyncChange, dead: set[tuple[str, str]], dead_offerings: set[tuple[int, str]]
+) -> bool:
+    if row.kind in _UNIT_LINK_KINDS and (row.run_id, row.target_id) in dead_offerings:
+        return True
+    return any(
+        pair is not None and pair in dead
+        for pair in (_requirement_pair(entry) for entry in row.requires)
+    )
+
+
+def _supersede_orphan_teachers(source: str, candidates: set[tuple[int, str]], now: datetime) -> int:
+    if not candidates:
+        return 0
+    still_needed = _teachers_required_by(
+        list(
+            SyncChange.objects.filter(
+                source=source, kind__in=_UNIT_LINK_KINDS, state=SyncChangeState.PROPOSED
+            )
         )
-    return superseded
+    )
+    orphans = [
+        row
+        for row in SyncChange.objects.filter(
+            source=source, kind="teacher_created", state=SyncChangeState.PROPOSED
+        )
+        if (row.run_id, row.key) in candidates and (row.run_id, row.key) not in still_needed
+    ]
+    return _supersede_as_dependency_rejected(orphans, now) if orphans else 0
+
+
+def _supersede_as_dependency_rejected(rows: list[SyncChange], now: datetime) -> int:
+    ids = [row.pk for row in rows]
+    count = SyncChange.objects.filter(pk__in=ids, state=SyncChangeState.PROPOSED).update(
+        state=SyncChangeState.SUPERSEDED,
+        state_reason=SyncChangeStateReason.DEPENDENCY_REJECTED,
+        decided_at=now,
+    )
+    logger.info(
+        "sync_changes_superseded",
+        change_ids=ids,
+        kinds=sorted({row.kind for row in rows}),
+        reason=SyncChangeStateReason.DEPENDENCY_REJECTED,
+    )
+    return count
 
 
 def _expand_units(selected: list[SyncChange], run: SyncRun) -> list[_Unit]:

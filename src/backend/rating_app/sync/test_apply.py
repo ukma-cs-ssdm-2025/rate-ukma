@@ -380,7 +380,7 @@ def test_apply_supersedes_stale_and_now_existing_changes_before_applying(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_a_unit_with_a_stale_member_leaves_the_rest_proposed(
+def test_a_stale_member_retires_the_rest_of_its_unit(
     user,
     make_run,
     make_change,
@@ -401,7 +401,6 @@ def test_a_unit_with_a_stale_member_leaves_the_rest_proposed(
         target_id=str(offering.pk),
         before={"links": []},
         after=_added(first.email),
-        requires=[{"kind": "teacher_created", "key": first.email}],
     )
     fresh = make_change(
         run,
@@ -410,7 +409,6 @@ def test_a_unit_with_a_stale_member_leaves_the_rest_proposed(
         target_id=str(offering.pk),
         before=_links((existing.pk, ROLE)),
         after=_added(second.email),
-        requires=[{"kind": "teacher_created", "key": second.email}],
     )
 
     approval = approve([fresh.pk], user)
@@ -418,13 +416,163 @@ def test_a_unit_with_a_stale_member_leaves_the_rest_proposed(
     stale.refresh_from_db()
     fresh.refresh_from_db()
     assert approval.outcome == SyncApprovalOutcome.APPLIED
-    assert approval.counts == {"applied": 0, "superseded": 1, "waiting": 1}
+    assert approval.counts == {"applied": 0, "superseded": 2, "waiting": 0}
     assert stale.state == SyncChangeState.SUPERSEDED
     assert stale.state_reason == SyncChangeStateReason.STALE
-    assert fresh.state == SyncChangeState.PROPOSED
+    assert fresh.state == SyncChangeState.SUPERSEDED
+    assert fresh.state_reason == SyncChangeStateReason.DEPENDENCY_REJECTED
     assert not CourseInstructor.objects.filter(
         course_offering=offering, instructor__in=[first, second]
     ).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_rejected_shared_teacher_leaves_no_part_of_another_unit_to_approve(
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+    course_instructor_factory,
+    instructor_factory,
+):
+    run = make_run()
+    first_offering = course_offering_factory()
+    second_offering = course_offering_factory()
+    kept = instructor_factory()
+    course_instructor_factory(course_offering=second_offering, instructor=kept, role=ROLE)
+    email = "shared.teacher@example.com"
+    make_change(run, kind="teacher_created", key=email, after=_created(email))
+    first_added = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{first_offering.pk}|teacher:{email}",
+        target_id=str(first_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{second_offering.pk}|teacher:{email}",
+        target_id=str(second_offering.pk),
+        before=_links((kept.pk, ROLE)),
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    second_removed = make_change(
+        run,
+        kind="teacher_link_removed",
+        key=f"offering:{second_offering.pk}|remove:{kept.pk}",
+        target_id=str(second_offering.pk),
+        before=_links((kept.pk, ROLE)),
+        after=_removed(kept.pk),
+    )
+
+    reject([first_added.pk], user)
+    again = approve([second_removed.pk], user)
+
+    second_removed.refresh_from_db()
+    assert again.outcome == SyncApprovalOutcome.REFUSED
+    assert second_removed.state != SyncChangeState.PROPOSED
+    assert set(
+        CourseInstructor.objects.filter(course_offering=second_offering).values_list(
+            "instructor_id", flat=True
+        )
+    ) == {kept.pk}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_link_whose_teacher_is_missing_retires_its_unit_and_a_second_approve_applies_nothing(
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+    course_instructor_factory,
+    instructor_factory,
+):
+    run = make_run()
+    offering = course_offering_factory()
+    kept = instructor_factory()
+    course_instructor_factory(course_offering=offering, instructor=kept, role=ROLE)
+    links = _links((kept.pk, ROLE))
+    added = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:missing@example.com",
+        target_id=str(offering.pk),
+        before=links,
+        after=_added("missing@example.com"),
+    )
+    removed = make_change(
+        run,
+        kind="teacher_link_removed",
+        key=f"offering:{offering.pk}|remove:{kept.pk}",
+        target_id=str(offering.pk),
+        before=links,
+        after=_removed(kept.pk),
+    )
+
+    first = approve([removed.pk], user)
+    second = approve([removed.pk], user)
+
+    added.refresh_from_db()
+    removed.refresh_from_db()
+    assert first.counts["applied"] == 0
+    assert added.state == SyncChangeState.SUPERSEDED
+    assert added.state_reason == SyncChangeStateReason.STALE
+    assert removed.state == SyncChangeState.SUPERSEDED
+    assert removed.state_reason == SyncChangeStateReason.DEPENDENCY_REJECTED
+    assert second.outcome == SyncApprovalOutcome.REFUSED
+    assert set(
+        CourseInstructor.objects.filter(course_offering=offering).values_list(
+            "instructor_id", flat=True
+        )
+    ) == {kept.pk}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_retired_unit_takes_the_teacher_no_other_link_needs(
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+    course_instructor_factory,
+    instructor_factory,
+):
+    run = make_run()
+    offering = course_offering_factory()
+    current = instructor_factory()
+    course_instructor_factory(course_offering=offering, instructor=current, role=ROLE)
+    stale = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:gone@example.com",
+        target_id=str(offering.pk),
+        before={"links": []},
+        after=_added("gone@example.com"),
+    )
+    email = "orphan.teacher@example.com"
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:{email}",
+        target_id=str(offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+
+    approve([stale.pk], user)
+
+    created.refresh_from_db()
+    assert created.state == SyncChangeState.SUPERSEDED
+    assert created.state_reason == SyncChangeStateReason.DEPENDENCY_REJECTED
+    assert not Instructor.objects.filter(email=email).exists()
 
 
 @pytest.mark.django_db
