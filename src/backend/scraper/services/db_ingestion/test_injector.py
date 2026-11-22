@@ -798,6 +798,30 @@ def test_enrollments_only_still_writes_enrollments_on_a_linked_catalog(
 
 @pytest.mark.django_db
 @patch("scraper.services.db_ingestion.injector.catalog_linked", return_value=True)
+def test_enrollments_only_does_not_create_a_speciality(catalog_linked, injector, repo_mocks):
+    repo_mocks.offering_repo.get_by_code.return_value = SimpleNamespace(id=uuid4())
+    repo_mocks.speciality_repo.get_by_name.return_value = None
+    injector.enrollments_only = True
+    models = [
+        create_mock_course(
+            offerings=[
+                create_mock_offering(
+                    code="ABC123",
+                    enrollments=[create_mock_enrollment(speciality="Unknown speciality")],
+                )
+            ]
+        )
+    ]
+
+    injector.execute(models)
+
+    repo_mocks.speciality_repo.get_or_create.assert_not_called()
+    repo_mocks.faculty_repo.get_by_speciality_name.assert_not_called()
+    repo_mocks.enrollment_repo.get_or_upsert.assert_not_called()
+
+
+@pytest.mark.django_db
+@patch("scraper.services.db_ingestion.injector.catalog_linked", return_value=True)
 def test_enrollments_only_skips_an_offering_that_does_not_exist(
     catalog_linked, injector, repo_mocks
 ):

@@ -31,7 +31,7 @@ from rating_app.sync import apply, handlers
 from rating_app.sync.apply import apply_by_policy, approve, reject
 from rating_app.sync.constants import UKMA_DATA_LISTS
 from rating_app.sync.handlers import Handler
-from rating_app.sync.kinds import KIND_BY_NAME
+from rating_app.sync.kinds import KIND_BY_NAME, KIND_LISTS, KINDS
 
 ROLE = InstructorRole.LECTURE_INSTRUCTOR.value
 
@@ -1463,6 +1463,80 @@ def test_approving_new_rows_applies_them_in_dependency_order(user, make_run, mak
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_a_new_course_whose_identity_now_exists_is_superseded_with_its_offerings(
+    user, make_run, make_change, department_factory, course_factory
+):
+    department = department_factory(ukma_data_id="ud-dept")
+    existing = course_factory(
+        department=department,
+        title="Основи числових методів",
+        education_level="BACHELOR",
+    )
+    run = make_run(source=SyncSource.CATALOG)
+    course = make_change(
+        run,
+        kind="new_course",
+        key="ud-course",
+        after={
+            "title": existing.title,
+            "level": "BACHELOR",
+            "department_ukma_id": "ud-dept",
+            "status": "ACTIVE",
+            "description": "",
+        },
+    )
+    offering = make_change(
+        run,
+        kind="new_offering",
+        key="ud-offering",
+        after=_offering_after(course_ukma_id="ud-course"),
+        requires=[{"kind": "new_course", "key": "ud-course"}],
+    )
+
+    approval = approve([course.pk, offering.pk], user)
+
+    course.refresh_from_db()
+    offering.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 0, "superseded": 2, "waiting": 0}
+    assert course.state == SyncChangeState.SUPERSEDED
+    assert course.state_reason == SyncChangeStateReason.IDENTITY_COLLISION
+    assert offering.state == SyncChangeState.SUPERSEDED
+    assert offering.state_reason == SyncChangeStateReason.DEPENDENCY_REJECTED
+    assert not Course.objects.filter(ukma_data_id="ud-course").exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_change_course_whose_identity_now_exists_is_superseded(
+    user, make_run, make_change, department_factory, course_factory
+):
+    department = department_factory(ukma_data_id="ud-dept")
+    taken = course_factory(department=department, title="Зайнята назва", education_level="BACHELOR")
+    course = course_factory(department=department, title="Стара назва")
+    run = make_run(source=SyncSource.CATALOG)
+    change = make_change(
+        run,
+        kind="change_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        before={"title": course.title},
+        after={"title": taken.title},
+    )
+
+    approval = approve([change.pk], user)
+
+    change.refresh_from_db()
+    course.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 0, "superseded": 1, "waiting": 0}
+    assert change.state == SyncChangeState.SUPERSEDED
+    assert change.state_reason == SyncChangeStateReason.IDENTITY_COLLISION
+    assert course.title == "Стара назва"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_a_new_row_whose_dependency_is_missing_waits(user, make_run, make_change):
     run = make_run(source=SyncSource.CATALOG)
     course = make_change(
@@ -1515,9 +1589,72 @@ def test_a_catalog_apply_clears_the_cache_but_keeps_sessions(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_a_catalog_apply_saves_the_runs_cursor_per_list(
-    user, make_run, make_change, faculty_factory
+def test_a_catalog_apply_saves_only_the_lists_its_kinds_came_from(
+    user, make_run, make_change, faculty_factory, department_factory, course_factory
 ):
+    faculty = faculty_factory()
+    course = course_factory(department=department_factory(faculty=faculty))
+    run = make_run(source=SyncSource.CATALOG, cursor_to={"faculties": 7, "courses": 9})
+    faculty_change = make_change(
+        run,
+        kind="link_faculty",
+        key=str(faculty.pk),
+        target_id=str(faculty.pk),
+        after={"ukma_data_id": "ud-fac"},
+    )
+    course_change = make_change(
+        run,
+        kind="link_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        after={"ukma_data_id": "ud-course"},
+    )
+
+    approval = approve([faculty_change.pk, course_change.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    run.refresh_from_db()
+    expected = {"faculties": 7, "courses": 9}
+    assert run.cursor_saved == expected
+    assert (
+        dict(
+            SyncCursor.objects.filter(source=SyncSource.CATALOG).values_list(
+                "list_name", "change_no"
+            )
+        )
+        == expected
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_an_acknowledgement_saves_no_cursor(user, make_run, make_change, course_factory):
+    course = course_factory()
+    run = make_run(source=SyncSource.CATALOG, cursor_to={"after": 7})
+    change = make_change(
+        run,
+        kind="removed_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        after={"ukma_data_id": "ud-course", "title": course.title, "removed_at": None},
+    )
+
+    assert approve([change.pk], user).outcome == SyncApprovalOutcome.APPLIED
+
+    run.refresh_from_db()
+    assert run.cursor_saved == {}
+    assert not SyncCursor.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_cache_failure_does_not_skip_the_cursor_save(
+    user, make_run, make_change, faculty_factory, mock_cache_manager, monkeypatch
+):
+    def fail(*_args: object, **_kwargs: object) -> int:
+        raise RuntimeError("cache down")
+
+    monkeypatch.setattr(mock_cache_manager, "invalidate_pattern", fail)
     faculty = faculty_factory()
     run = make_run(source=SyncSource.CATALOG, cursor_to={"after": 7})
     change = make_change(
@@ -1531,16 +1668,12 @@ def test_a_catalog_apply_saves_the_runs_cursor_per_list(
     assert approve([change.pk], user).outcome == SyncApprovalOutcome.APPLIED
 
     run.refresh_from_db()
-    expected = dict.fromkeys(UKMA_DATA_LISTS, 7)
-    assert run.cursor_saved == expected
-    assert (
-        dict(
-            SyncCursor.objects.filter(source=SyncSource.CATALOG).values_list(
-                "list_name", "change_no"
-            )
-        )
-        == expected
-    )
+    assert run.cursor_saved == {"faculties": 7}
+
+
+def test_every_kind_names_the_lists_its_cursors_advance():
+    assert set(KIND_LISTS) == {kind.name for kind in KINDS}
+    assert all(list_name in UKMA_DATA_LISTS for lists in KIND_LISTS.values() for list_name in lists)
 
 
 @pytest.mark.django_db

@@ -12,7 +12,7 @@ import uuid
 from collections.abc import Callable
 from decimal import Decimal
 
-from django.db import models
+from django.db import connection, models
 
 from rating_app.models import (
     Course,
@@ -25,7 +25,7 @@ from rating_app.models import (
     Speciality,
     SyncChange,
 )
-from rating_app.sync.handlers import register
+from rating_app.sync.handlers import MissingRowError, register
 from rating_app.sync.payloads import (
     ChangeCoursePayload,
     ChangeOfferingPayload,
@@ -81,16 +81,58 @@ class _Semesters:
 # Links
 
 
+_LINK_BATCH_SIZE = 1000
+
+
 def _set_ukma_data_ids(model: type[models.Model], changes: list[SyncChange]) -> None:
+    """Link a batch with ``UPDATE ... FROM (VALUES ...)``.
+
+    One statement per :data:`_LINK_BATCH_SIZE` rows: a ``bulk_update`` becomes
+    one ``CASE WHEN`` with a branch per row, which is minutes on the first
+    ~29k-row ``link`` group.
+    """
     rows = []
     for change in changes:
         payload = UkmaDataIdPayload.model_validate(change.after)
         pk = _uuid(change.target_id)
         if pk is None:
             continue
-        rows.append(model(id=pk, ukma_data_id=payload.ukma_data_id))
-    if rows:
-        model.objects.bulk_update(rows, ["ukma_data_id"])
+        rows.append((pk, payload.ukma_data_id))
+    table = connection.ops.quote_name(model._meta.db_table)
+    pk_field = model._meta.pk
+    id_column = connection.ops.quote_name(pk_field.attname if pk_field is not None else "id")
+    value_column = connection.ops.quote_name("ukma_data_id")
+    for start in range(0, len(rows), _LINK_BATCH_SIZE):
+        _set_ukma_data_ids_batch(
+            table, id_column, value_column, rows[start : start + _LINK_BATCH_SIZE]
+        )
+
+
+def _set_ukma_data_ids_batch(
+    table: str,
+    id_column: str,
+    value_column: str,
+    rows: list[tuple[uuid.UUID, str]],
+) -> None:
+    if not rows:
+        return
+    if connection.vendor == "sqlite":
+        # SQLite names a VALUES row column1, column2 and stores a UUIDField as hex.
+        placeholders = ", ".join(["(%s, %s)"] * len(rows))
+        sql = (
+            f"UPDATE {table} AS t SET {value_column} = v.column2 "
+            f"FROM (VALUES {placeholders}) AS v WHERE t.{id_column} = v.column1"
+        )
+        params = [value for pk, ukma_data_id in rows for value in (pk.hex, ukma_data_id)]
+    else:
+        placeholders = ", ".join(["(%s::uuid, %s)"] * len(rows))
+        sql = (
+            f"UPDATE {table} AS t SET {value_column} = v.ud "
+            f"FROM (VALUES {placeholders}) AS v(id, ud) WHERE t.{id_column} = v.id"
+        )
+        params = [value for pk, ukma_data_id in rows for value in (str(pk), ukma_data_id)]
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
 
 
 def _apply_link_faculties(changes: list[SyncChange]) -> None:
@@ -159,7 +201,7 @@ def _apply_new_departments(changes: list[SyncChange]) -> None:
     for change, payload in payloads:
         faculty_id = faculty_by_ud.get(payload.faculty_ukma_id)
         if faculty_id is None:
-            raise LookupError("faculty_missing")
+            raise MissingRowError(change, "faculty_missing")
         rows.append(Department(ukma_data_id=change.key, name=payload.name, faculty_id=faculty_id))
     Department.objects.bulk_create(rows, ignore_conflicts=True)
 
@@ -180,7 +222,7 @@ def _apply_new_courses(changes: list[SyncChange]) -> None:
     for change, payload in payloads:
         department_id = department_by_ud.get(payload.department_ukma_id)
         if department_id is None:
-            raise LookupError("department_missing")
+            raise MissingRowError(change, "department_missing")
         rows.append(
             Course(
                 ukma_data_id=change.key,
@@ -191,7 +233,7 @@ def _apply_new_courses(changes: list[SyncChange]) -> None:
                 department_id=department_id,
             )
         )
-    Course.objects.bulk_create(rows, ignore_conflicts=True)
+    Course.objects.bulk_create(rows)
 
 
 @register("new_course", exists=_created_exists(Course), apply_many=_apply_new_courses)
@@ -237,7 +279,7 @@ def _apply_new_offerings(changes: list[SyncChange]) -> None:
             else course_by_ud.get(payload.course_ukma_id or "")
         )
         if course_id is None:
-            raise LookupError("course_missing")
+            raise MissingRowError(change, "course_missing")
         offering = CourseOffering(
             id=uuid.uuid4(),
             ukma_data_id=change.key,
@@ -253,7 +295,9 @@ def _apply_new_offerings(changes: list[SyncChange]) -> None:
         )
         offerings.append(offering)
         terms.extend(_term_rows(offering.id, payload.terms, semesters))
-        specialities.extend(_speciality_rows(offering.id, payload.specialities, speciality_by_name))
+        specialities.extend(
+            _speciality_rows(change, offering.id, payload.specialities, speciality_by_name)
+        )
     CourseOffering.objects.bulk_create(offerings)
     CourseOfferingTerm.objects.bulk_create(terms, ignore_conflicts=True)
     CourseOfferingSpeciality.objects.bulk_create(specialities, ignore_conflicts=True)
@@ -327,7 +371,7 @@ def _apply_change_courses(changes: list[SyncChange]) -> None:
                 payload.department.ukma_data_id
             )
             if department_id is None:
-                raise LookupError("department_missing")
+                raise MissingRowError(change, "department_missing")
             course.department_id = department_id
             updated.add("department")
         if "education_level" in fields and payload.education_level is not None:
@@ -395,7 +439,9 @@ def _apply_change_offerings(changes: list[SyncChange]) -> None:
             term_rows.extend(_term_rows(offering.id, payload.terms, semesters))
         if "specialities_added" in fields and payload.specialities_added:
             added_specialities.extend(
-                _speciality_rows(offering.id, payload.specialities_added, speciality_by_name)
+                _speciality_rows(
+                    change, offering.id, payload.specialities_added, speciality_by_name
+                )
             )
 
     if offerings and updated:
@@ -446,13 +492,16 @@ def _term_rows(
 
 
 def _speciality_rows(
-    offering_id: uuid.UUID, specialities: list, speciality_by_name: dict
+    change: SyncChange,
+    offering_id: uuid.UUID,
+    specialities: list,
+    speciality_by_name: dict,
 ) -> list[CourseOfferingSpeciality]:
     rows = []
     for speciality in specialities:
         speciality_id = speciality_by_name.get(speciality.name)
         if speciality_id is None:
-            raise LookupError("speciality_missing")
+            raise MissingRowError(change, "speciality_missing")
         rows.append(
             CourseOfferingSpeciality(
                 offering_id=offering_id,

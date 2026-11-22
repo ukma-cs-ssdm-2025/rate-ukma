@@ -23,6 +23,18 @@ HandlerFunction = Callable[[SyncChange], None]
 ManyHandlerFunction = Callable[[list[SyncChange]], None]
 
 
+class MissingRowError(LookupError):
+    """A batch handler could not find a row one change needs.
+
+    It carries that change so the apply names the change that failed instead of
+    the batch's first row.
+    """
+
+    def __init__(self, change: SyncChange, reason: str) -> None:
+        super().__init__(reason)
+        self.change = change
+
+
 @dataclass(frozen=True)
 class Handler:
     apply: HandlerFunction
