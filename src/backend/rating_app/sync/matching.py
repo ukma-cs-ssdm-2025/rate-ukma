@@ -118,7 +118,11 @@ def course_majority(
     def pick(ru_course_id: str, course_counts: Counter[str]) -> str:
         # A tie keeps the stored link, so an even split does not ask to relink every night.
         course = ru.courses.get(ru_course_id)
-        stored = course.ukma_data_id if course is not None else None
+        stored = (
+            resolve_course(ud, course.ukma_data_id)
+            if course is not None and course.ukma_data_id is not None
+            else None
+        )
         return min(course_counts, key=lambda ud_id: (-course_counts[ud_id], ud_id != stored, ud_id))
 
     return {
