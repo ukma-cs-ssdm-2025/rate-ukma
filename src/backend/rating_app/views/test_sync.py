@@ -23,6 +23,10 @@ ENDPOINTS = [
     ("get", "ukma-data-sync-policies", {}),
     ("get", "ukma-data-sync-policy-changes", {}),
     ("put", "ukma-data-sync-policy", {"kind": "new_offering"}),
+    ("post", "ukma-data-sync-approve", {}),
+    ("post", "ukma-data-sync-reject", {}),
+    ("post", "ukma-data-sync-change-answer", {"change_id": 1}),
+    ("post", "ukma-data-sync-keep-apart-unrated", {}),
 ]
 
 
@@ -367,7 +371,7 @@ def test_policy_update_refuses_auto_for_every_never_auto_kind(superuser_client, 
     response = superuser_client.put(_policy_url(kind), {"mode": "auto"}, format="json")
 
     assert response.status_code == 400
-    assert "always needs approval" in response.json()["fields"]["mode"][0]
+    assert "завжди потребує підтвердження" in response.json()["fields"]["mode"][0]
     assert not SyncPolicy.objects.filter(kind=kind).exists()
     assert not SyncPolicyChange.objects.filter(kind=kind).exists()
 

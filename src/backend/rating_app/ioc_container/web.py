@@ -376,6 +376,26 @@ def sync_policy_changes_view():
 
 
 @once
+def sync_approve_view():
+    return SyncViewSet.as_view({"post": "approve"})
+
+
+@once
+def sync_reject_view():
+    return SyncViewSet.as_view({"post": "reject"})
+
+
+@once
+def sync_answer_change_view():
+    return SyncViewSet.as_view({"post": "answer_change"})
+
+
+@once
+def sync_keep_apart_unrated_view():
+    return SyncViewSet.as_view({"post": "keep_apart_unrated"})
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -607,6 +627,26 @@ def rest_urlpatterns() -> list:
             "ukma-data/sync/policies/<str:kind>/",
             sync_policy_view(),
             name="ukma-data-sync-policy",
+        ),
+        path(
+            "ukma-data/sync/approve/",
+            sync_approve_view(),
+            name="ukma-data-sync-approve",
+        ),
+        path(
+            "ukma-data/sync/reject/",
+            sync_reject_view(),
+            name="ukma-data-sync-reject",
+        ),
+        path(
+            "ukma-data/sync/changes/<int:change_id>/answer/",
+            sync_answer_change_view(),
+            name="ukma-data-sync-change-answer",
+        ),
+        path(
+            "ukma-data/sync/mapping/keep-apart-unrated/",
+            sync_keep_apart_unrated_view(),
+            name="ukma-data-sync-keep-apart-unrated",
         ),
     ]
 
