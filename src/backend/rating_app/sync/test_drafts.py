@@ -101,12 +101,12 @@ def test_to_model_sets_group_and_source_from_the_registry(kind, group, source):
 def test_to_model_copies_the_draft_and_puts_display_in_after():
     draft = ChangeDraft(
         kind="move_offering",
-        key="offering:1|teacher:teacher@example.test|role:move",
+        key="ru-offering",
         ukma_data_id="ud-1",
         target_id="ru-offering",
         before={"from_course": "ru-a"},
-        after={"from_course": "ru-a", "to_course_id": "ru-b"},
-        requires=[{"kind": "link_course", "key": "course:ru-b"}],
+        after={"from_course": "ru-a", "to_course_ukma_id": "ud-b"},
+        requires=[{"kind": "new_course", "key": "ud-b"}],
         ratings=2,
         display={"course": {"title": "Аналіз даних"}},
     )
@@ -115,11 +115,11 @@ def test_to_model_copies_the_draft_and_puts_display_in_after():
 
     assert model.after == {
         "from_course": "ru-a",
-        "to_course_id": "ru-b",
+        "to_course_ukma_id": "ud-b",
         "display": {"course": {"title": "Аналіз даних"}},
     }
     assert model.before == {"from_course": "ru-a"}
-    assert model.requires == [{"kind": "link_course", "key": "course:ru-b"}]
+    assert model.requires == [{"kind": "new_course", "key": "ud-b"}]
     assert model.ratings == 2
     assert model.ukma_data_id == "ud-1"
     assert model.target_id == "ru-offering"
