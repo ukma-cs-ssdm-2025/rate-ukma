@@ -147,6 +147,8 @@ graph LR
 
 **UKMA Data keys:** `create-key --name <holder> [--scope <scope> ...] [--all-scopes] [--expires-in-days 365]`, `revoke-key <key id>` and `list-keys` run with only `DATABASE_URL`. `create-key` prints the token once to stdout and stores only its hash, so run it through `kubectl exec`, not a Job: a Job's stdout is its pod log, which a log collector keeps. Copy the token into the reader's secret. `revoke-key` and `list-keys` print no token and may run as a Job.
 
+**UKMA Data review decisions:** `cases list [--kind <kind>] [--status <status>]`, `cases show <id>`, `cases decide <id> same_person [--yes]`, `courses merge <id> --into <id> [--yes]` and `courses unmerge <id> [--yes]` run with only `DATABASE_URL`. They call the services behind the review endpoints. Without `--yes` a write command runs the write in a transaction, prints the changes and rolls it back. An error prints one line to stderr and exits non-zero. The audit log records these decisions with no key.
+
 ### 8. Ingress & TLS
 
 | Option                                 | Pros                                                                                                    | Cons                                                                                     | Decision      |

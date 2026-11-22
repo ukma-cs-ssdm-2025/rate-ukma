@@ -12,6 +12,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 
 - `src/main.ts`: the `api`, `worker`, `migrate`, `reparse` and `crawl-smart` commands. `reparse` rebuilds the parsed tables from stored snapshots and sends nothing to САЗ; `crawl-smart` stores the smart.ukma lists once.
 - `src/keys/`: API keys, their scopes, and the `create-key`, `revoke-key` and `list-keys` commands. `src/audit/Audit.ts` writes the audit log.
+- `src/students/commands.ts` and `src/courses/commands.ts`: the `cases list|show|decide` and `courses merge|unmerge` commands, on the services the review endpoints use. A write command is a dry run unless `--yes`: `ChangeLog.rehearse` runs the same write and rolls it back, and the command prints what it would change. Its audit row has no key, as for every command-line action.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
 - A permission is a route's `RequiredScopes` (every listed scope) or `RequiredAnyScopes` (any one of them, e.g. `review:read` or `review:decide` to read cases); handlers never branch on the caller's scopes. Data a scope guards gets its own route.
 - `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
@@ -34,7 +35,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - A list endpoint takes `PageQuery` and returns `Page(item)`: rows above `after` ordered by `change_no`, removed rows included, so readers apply removals. Never page by time or offset (spec rule 5).
 - A write endpoint (start a run, decide a case) records its audit row inside its own transaction, so a failed audit write cannot leave work done behind a 500.
 - A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
-- The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`crawl-smart`/`create-key`/`revoke-key`/`list-keys`, `DATABASE_URL`, `PORT`, the university account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
+- The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`crawl-smart`/`create-key`/`revoke-key`/`list-keys`/`cases`/`courses`, `DATABASE_URL`, `PORT`, the university account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
 
 ## Conventions
 

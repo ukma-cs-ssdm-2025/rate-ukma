@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { SqlClient, SqlError, type Statement } from "effect/sql";
+import { SqlClient, SqlError, SqlSchema, type Statement } from "effect/sql";
 import { TURN_LOCK } from "../db/locks.ts";
 
 /** Present only inside `ChangeLog.withTurn`. A write that numbers rows requires
@@ -45,6 +45,9 @@ export const ChangeCount = Schema.Struct({
 
 export type ChangeCount = typeof ChangeCount.Type;
 
+/** Fails a rehearsal's transaction on purpose, so it rolls back. */
+class RolledBack extends Schema.TaggedError<RolledBack>()("RolledBack", {}) {}
+
 export class ChangeLog extends Context.Service<
 	ChangeLog,
 	{
@@ -57,6 +60,16 @@ export class ChangeLog extends Context.Service<
 		withTurn<A, E, R>(
 			effect: Effect.Effect<A, E, R>,
 		): Effect.Effect<A, Exclude<E, SqlError.SqlError>, Exclude<R, Turn>>;
+		/** Runs the effect as `withTurn` would, then rolls it back: a dry run
+		 *  of a write, with its result and the rows it numbered. Sequence
+		 *  numbers it took stay used, a gap readers already allow. */
+		rehearse<A, E, R>(
+			effect: Effect.Effect<A, E, R>,
+		): Effect.Effect<
+			{ readonly result: A; readonly written: ReadonlyArray<ChangeCount> },
+			Exclude<E, SqlError.SqlError>,
+			Exclude<R, Turn>
+		>;
 		/** Runs a write that returns `id`, `change_no` and `action` of each row it
 		 *  numbered, and adds the trail row of each to `changes`. */
 		track(
@@ -100,7 +113,51 @@ export class ChangeLog extends Context.Service<
 					RETURNING row_id AS "rowId", action
 				`.pipe(Effect.flatMap(decode), Effect.orDie);
 
-			return ChangeLog.of({ withTurn, track });
+			const lastChange = SqlSchema.findOne({
+				Request: Schema.Void,
+				Result: Schema.Struct({ last: Schema.Number }),
+				execute: () => sql`
+					SELECT coalesce(max(change_no), 0)::float8 AS last FROM changes
+				`,
+			});
+
+			const countSince = SqlSchema.findAll({
+				Request: Schema.Number,
+				Result: ChangeCount,
+				execute: (last) => sql`
+					SELECT table_name AS "table", action, count(*)::int AS rows
+					FROM changes WHERE change_no > ${last}
+					GROUP BY table_name, action ORDER BY table_name, action
+				`,
+			});
+
+			const rehearse = <A, E, R>(effect: Effect.Effect<A, E, R>) => {
+				let outcome:
+					| { readonly result: A; readonly written: ReadonlyArray<ChangeCount> }
+					| undefined;
+
+				return withTurn(
+					Effect.gen(function* () {
+						// The turn keeps other writers out, so every change above
+						// `last` is this effect's.
+						const { last } = yield* lastChange().pipe(Effect.orDie);
+						const result = yield* effect;
+						const written = yield* countSince(last).pipe(Effect.orDie);
+
+						outcome = { result, written };
+
+						return yield* new RolledBack();
+					}),
+				).pipe(
+					Effect.catchTag("RolledBack", () =>
+						outcome === undefined
+							? Effect.die("ChangeLog.rehearse rolled back without an outcome")
+							: Effect.succeed(outcome),
+					),
+				);
+			};
+
+			return ChangeLog.of({ withTurn, rehearse, track });
 		}),
 	);
 }

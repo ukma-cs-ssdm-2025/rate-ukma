@@ -125,29 +125,34 @@ export const studentCase = Effect.fn("Students.studentCase")(function* (
 	};
 });
 
+/** Closes a `student_match` case as the same person inside the writers'
+ *  turn: `decideSamePerson` commits it, the CLI's dry run rehearses it. */
+export const closeSamePerson = Effect.fn("Students.closeSamePerson")(function* (
+	keyId: string | null,
+	id: string,
+) {
+	const store = yield* StudentCaseStore;
+	const audit = yield* Audit;
+	const found = yield* studentMatch(id);
+
+	if (!(yield* store.close(id))) {
+		return yield* new ReviewCaseRefused({ reason: "not_open" });
+	}
+
+	yield* audit.record({
+		action: "student_case_decided",
+		keyId,
+		targetId: id,
+		relatedId: found.studentId ?? undefined,
+	});
+});
+
 /** Staff confirm the safe answer: the record is the student it joined. The
- *  case closes; the record stays where it is. */
+ *  case closes; the record stays where it is. `keyId` is null from the CLI. */
 export const decideSamePerson = Effect.fn("Students.decideSamePerson")(
-	function* (keyId: string, id: string) {
-		const store = yield* StudentCaseStore;
+	function* (keyId: string | null, id: string) {
 		const changes = yield* ChangeLog;
-		const audit = yield* Audit;
 
-		return yield* changes.withTurn(
-			Effect.gen(function* () {
-				const found = yield* studentMatch(id);
-
-				if (!(yield* store.close(id))) {
-					return yield* new ReviewCaseRefused({ reason: "not_open" });
-				}
-
-				yield* audit.record({
-					action: "student_case_decided",
-					keyId,
-					targetId: id,
-					relatedId: found.studentId ?? undefined,
-				});
-			}),
-		);
+		return yield* changes.withTurn(closeSamePerson(keyId, id));
 	},
 );

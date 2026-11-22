@@ -228,14 +228,18 @@ export const Course = Schema.Struct({
 	removedAt,
 }).annotate({ identifier: "Course" });
 
-const ReviewCaseKind = Schema.Literals([
+export const REVIEW_CASE_KINDS = [
 	"course_match",
 	"instructor_match",
 	"student_match",
 	"removals_held",
-]);
+] as const;
 
-const ReviewCaseStatus = Schema.Literals(["open", "decided", "obsolete"]);
+export const REVIEW_CASE_STATUSES = ["open", "decided", "obsolete"] as const;
+
+const ReviewCaseKind = Schema.Literals(REVIEW_CASE_KINDS);
+
+const ReviewCaseStatus = Schema.Literals(REVIEW_CASE_STATUSES);
 
 /** `PageQuery` plus optional `?status=` and `?kind=`: only matching cases. */
 export const ReviewCaseQuery = {
