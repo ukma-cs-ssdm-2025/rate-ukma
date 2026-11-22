@@ -99,3 +99,12 @@ export function formatHoursAgo(hours: number): string {
 
 export const hoursSince = (iso: string, now: number = Date.now()): number =>
 	Math.max(0, Math.floor((now - Date.parse(iso)) / 3_600_000));
+
+const DAY_MONTH = new Intl.DateTimeFormat("uk-UA", {
+	day: "numeric",
+	month: "long",
+	timeZone: "Europe/Kyiv",
+});
+
+export const formatDayMonthTime = (iso: string): string =>
+	`${DAY_MONTH.format(new Date(iso))}, ${formatTime(iso)}`;

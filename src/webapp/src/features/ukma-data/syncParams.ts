@@ -1,54 +1,47 @@
 import {
-	parseAsArrayOf,
 	parseAsBoolean,
 	parseAsInteger,
 	parseAsString,
 	parseAsStringEnum,
 } from "nuqs";
 
-import { SyncChangeStateEnum, SyncSourceEnum } from "@/lib/api/generated";
-import { SYNC_KINDS } from "./syncLabels";
-import { REVIEW_STEPS } from "./syncReview";
+import { SyncChangeStateEnum } from "@/lib/api/generated";
+import { SYNC_VIEWS } from "./syncGroups";
+import { YEAR_RANGES } from "./syncRows";
 
-export const SYNC_TABS = ["review", "history", "rules"] as const;
+export const SYNC_TABS = ["pending", "history", "rules"] as const;
 
 export const URL_OPTIONS = { history: "push" } as const;
 
 export const tabParser = parseAsStringEnum([...SYNC_TABS])
-	.withDefault("review")
+	.withDefault("pending")
 	.withOptions(URL_OPTIONS);
 
-export const reviewParams = {
-	source: parseAsStringEnum(Object.values(SyncSourceEnum))
-		.withDefault("catalog")
-		.withOptions(URL_OPTIONS),
-	run: parseAsInteger.withOptions(URL_OPTIONS),
-	group: parseAsStringEnum([...REVIEW_STEPS]).withOptions(URL_OPTIONS),
-	question: parseAsString.withOptions(URL_OPTIONS),
-};
+export const LIST_SEGMENTS = ["courses", "offerings"] as const;
 
-export const listParams = {
-	kind: parseAsStringEnum([...SYNC_KINDS]).withOptions(URL_OPTIONS),
-	facet: parseAsStringEnum(["similar"]).withOptions(URL_OPTIONS),
+export type ListSegment = (typeof LIST_SEGMENTS)[number];
+
+export const viewParams = {
+	view: parseAsStringEnum([...SYNC_VIEWS])
+		.withDefault("overview")
+		.withOptions(URL_OPTIONS),
+	segment: parseAsStringEnum([...LIST_SEGMENTS]).withOptions(URL_OPTIONS),
+	years: parseAsStringEnum([...YEAR_RANGES])
+		.withDefault("all")
+		.withOptions(URL_OPTIONS),
 	q: parseAsString.withDefault("").withOptions(URL_OPTIONS),
-	rated: parseAsBoolean.withDefault(false).withOptions(URL_OPTIONS),
-	view: parseAsStringEnum(["sample", "all"])
-		.withDefault("sample")
-		.withOptions(URL_OPTIONS),
-	seed: parseAsInteger.withDefault(1).withOptions(URL_OPTIONS),
 	page: parseAsInteger.withDefault(1).withOptions(URL_OPTIONS),
-	ids: parseAsArrayOf(parseAsInteger).withDefault([]).withOptions(URL_OPTIONS),
+	field: parseAsString.withOptions(URL_OPTIONS),
+	blanks: parseAsBoolean.withOptions(URL_OPTIONS),
 };
 
-export const LIST_RESET = {
-	kind: null,
-	facet: null,
+export const VIEW_RESET = {
+	segment: null,
+	years: null,
 	q: null,
-	rated: null,
-	view: null,
-	seed: null,
 	page: null,
-	ids: null,
+	field: null,
+	blanks: null,
 } as const;
 
 export const historyParams = {

@@ -165,7 +165,7 @@ export const SKIP_REASON_LABELS = {
 	bad_saz_code: "Некоректний код САЗ",
 	no_department: "Немає кафедри",
 	unknown_programme: "Невідома програма",
-	identity_collision: "Ідентифікатор UKMA Data уже зайнятий",
+	identity_collision: "Дві дисципліни з однаковою назвою й кафедрою",
 } satisfies Record<SkipReason, string>;
 
 export const SUPERSEDED_REASONS = [
@@ -182,7 +182,7 @@ export const SUPERSEDED_REASON_LABELS = {
 	replaced: "замінено новішою зміною",
 	stale: "дані в Rate UKMA уже інші",
 	exists: "запис уже існує",
-	identity_collision: "ідентифікатор UKMA Data уже зайнятий",
+	identity_collision: "дві дисципліни з однаковою назвою й кафедрою",
 	dependency_rejected: "відхилено зміну, від якої вона залежить",
 } satisfies Record<SupersededReason, string>;
 

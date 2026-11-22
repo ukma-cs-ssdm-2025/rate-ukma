@@ -1,174 +1,222 @@
-import { ChevronDown, Inbox } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/Collapsible";
-import {
-	Empty,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyMedia,
-	EmptyTitle,
-} from "@/components/ui/Empty";
-import type { SyncSummary, SyncSummaryAnswers } from "@/lib/api/generated";
-import { useUkmaDataSyncRunApprovalsList } from "@/lib/api/generated";
-import { formatCount } from "../syncFormat";
-import { ANSWER_LABELS } from "../syncLabels";
-import {
-	answersTotal,
-	isReviewStep,
-	ANSWER_KEYS,
-	latestApplied,
-	summaryTotal,
-} from "../syncReview";
+import type { SyncSummary } from "@/lib/api/generated";
+import { cn } from "@/lib/utils";
+import type { DoneBanner } from "../syncConfirm";
+import { formatCount, formatDayMonthTime, formatTime } from "../syncFormat";
+import type { DoneLine, GroupLine, SyncView } from "../syncGroups";
 import { skipReasonLabel } from "../syncReasons";
-import type { ReviewStep } from "../syncReview";
-import { SyncStepRow } from "./SyncStepRow";
+import { RECORDS, word } from "../syncWords";
+import { SyncChip } from "./SyncBits";
+import { SyncExplainer } from "./SyncExplainer";
 
-function AnswersRow({
-	answers,
-	onOpen,
-}: Readonly<{ answers: SyncSummaryAnswers; onOpen: () => void }>) {
-	const parts = ANSWER_KEYS.flatMap((key) =>
-		answers[key] > 0
-			? [`${formatCount(answers[key])} ${ANSWER_LABELS[key]}`]
-			: [],
-	);
-	const tomorrow = answers.place > 0 || answers.move > 0;
+export function SyncDoneBanner({
+	banner,
+	onHistory,
+	onDismiss,
+}: Readonly<{
+	banner: DoneBanner;
+	onHistory: () => void;
+	onDismiss: () => void;
+}>) {
 	return (
-		<section
-			aria-label="Ваші відповіді"
-			className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+		<div
+			role="status"
+			className="flex items-start gap-3 rounded-xl border border-success/40 bg-tint-success px-4 py-3"
 		>
-			<div className="space-y-1">
-				<p className="text-sm tabular-nums">
-					<span className="font-medium">Ваші відповіді:</span>{" "}
-					{parts.join(" · ")}
+			<CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" />
+			<div className="min-w-0 flex-1 text-sm">
+				<p className="font-semibold">{banner.title}</p>
+				<p className="text-muted-foreground">
+					{banner.detail}{" "}
+					<button
+						type="button"
+						onClick={onHistory}
+						className="text-primary hover:underline"
+					>
+						Відкрити в історії
+					</button>
 				</p>
-				{tomorrow ? (
-					<p className="text-xs text-muted-foreground">
-						Відповіді про курси в семестрі зʼявляться у завтрашньому запуску.
-					</p>
-				) : null}
 			</div>
-			<Button className="w-full sm:w-auto" onClick={onOpen}>
-				Переглянути й застосувати
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				aria-label="Закрити"
+				onClick={onDismiss}
+			>
+				<X />
 			</Button>
-		</section>
+		</div>
 	);
 }
 
-function NotProposed({ summary }: Readonly<{ summary: SyncSummary }>) {
-	const entries = Object.entries(summary.not_proposed).filter(
-		([, value]) => value.count > 0,
+function Lead({
+	summary,
+	remaining,
+}: Readonly<{ summary: SyncSummary; remaining: number }>) {
+	const { run } = summary;
+	const updated = run.data_updated_at ?? run.finished_at;
+	return (
+		<div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+			<div className="space-y-1">
+				<h2 className="text-2xl font-semibold tracking-tight">
+					Що змінилось у САЗ
+				</h2>
+				<p className="text-sm text-muted-foreground">
+					{updated ? `Дані САЗ станом на ${formatDayMonthTime(updated)}` : null}
+					{run.finished_at
+						? ` · перевірено о ${formatTime(run.finished_at)}`
+						: null}
+				</p>
+			</div>
+			<p className="text-sm text-muted-foreground">
+				Залишилось вирішити{" "}
+				<span className="ml-1 text-2xl font-semibold text-foreground tabular-nums">
+					{formatCount(remaining)}
+				</span>
+			</p>
+		</div>
 	);
-	if (entries.length === 0) {
+}
+
+function Line({
+	line,
+	primary,
+	onAction,
+	onOpen,
+}: Readonly<{
+	line: GroupLine;
+	primary: boolean;
+	onAction: (line: GroupLine) => void;
+	onOpen: (view: SyncView) => void;
+}>) {
+	return (
+		<li className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+			<div className="min-w-0 max-w-3xl space-y-1.5">
+				<h3 className="text-lg font-semibold">{line.title}</h3>
+				<p className="text-sm text-muted-foreground">{line.effect}</p>
+				<SyncChip chip={line.chip} />
+			</div>
+			<div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+				<Button
+					size="lg"
+					variant={primary ? "default" : "outline"}
+					onClick={() => onAction(line)}
+				>
+					{line.action.label}
+				</Button>
+				{line.link ? (
+					<Button
+						variant="link"
+						className="h-auto p-0"
+						onClick={() => {
+							if (line.link) {
+								onOpen(line.link.view);
+							}
+						}}
+					>
+						{line.link.label}
+					</Button>
+				) : null}
+			</div>
+		</li>
+	);
+}
+
+function Done({
+	line,
+	onHistory,
+}: Readonly<{ line: DoneLine; onHistory: (runId: number) => void }>) {
+	return (
+		<li className="flex flex-col gap-2 bg-tint-success px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+			<div className="space-y-1">
+				<h3 className="text-lg font-semibold text-tint-success-foreground">
+					{line.title}
+				</h3>
+				<p className="text-sm text-muted-foreground">{line.detail}</p>
+			</div>
+			<Button
+				variant="link"
+				className="h-auto justify-start p-0"
+				onClick={() => onHistory(line.runId)}
+			>
+				Відкрити в історії
+			</Button>
+		</li>
+	);
+}
+
+function NotTaken({ summary }: Readonly<{ summary: SyncSummary }>) {
+	const reasons = Object.entries(summary.not_proposed).filter(
+		([, item]) => item.count > 0,
+	);
+	const total = reasons.reduce((sum, [, item]) => sum + item.count, 0);
+	if (total === 0) {
 		return null;
 	}
-	const total = entries.reduce((sum, [, value]) => sum + value.count, 0);
 	return (
-		<Collapsible className="rounded-lg border p-3">
-			<CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-md text-left text-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-				<span>
-					<span className="font-medium">Не запропоновано:</span>{" "}
-					<span className="tabular-nums">{formatCount(total)}</span>
-				</span>
-				<ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-			</CollapsibleTrigger>
-			<CollapsibleContent>
-				<ul
-					className="mt-3 space-y-1.5 text-sm"
-					aria-label="Не запропоновано за причиною"
-				>
-					{entries.map(([reason, value]) => (
-						<li
-							key={reason}
-							className="flex flex-wrap items-center justify-between gap-2"
-						>
-							<span>{skipReasonLabel(reason)}</span>
-							<span className="flex items-center gap-2 tabular-nums">
-								{formatCount(value.count)}
-								{value.rated > 0 ? (
-									<Badge variant="caution">
-										з оцінками: {formatCount(value.rated)}
-									</Badge>
-								) : null}
-							</span>
-						</li>
-					))}
-				</ul>
-			</CollapsibleContent>
-		</Collapsible>
+		<details className="text-sm text-muted-foreground">
+			<summary className="cursor-pointer">
+				Ще {formatCount(total)} {word(total, RECORDS)} САЗ не потрапили сюди —
+				чому
+			</summary>
+			<ul className="mt-2 list-disc space-y-1 pl-6">
+				{reasons.map(([reason, item]) => (
+					<li key={reason}>
+						{formatCount(item.count)} — {skipReasonLabel(reason).toLowerCase()}
+					</li>
+				))}
+			</ul>
+			<p className="mt-2">
+				Вони з'являться тут, щойно в САЗ виправлять ці поля.
+			</p>
+		</details>
 	);
 }
 
 export function SyncOverview({
 	summary,
-	onOpenStep,
-	onOpenAnswers,
+	remaining,
+	lines,
+	done,
+	onAction,
+	onOpen,
+	onHistory,
 }: Readonly<{
 	summary: SyncSummary;
-	onOpenStep: (step: ReviewStep) => void;
-	onOpenAnswers: () => void;
+	remaining: number;
+	lines: readonly GroupLine[];
+	done: readonly DoneLine[];
+	onAction: (line: GroupLine) => void;
+	onOpen: (view: SyncView) => void;
+	onHistory: (runId: number) => void;
 }>) {
-	const approvals = useUkmaDataSyncRunApprovalsList(
-		summary.run.id,
-		{ page_size: 100 },
-		{ query: { retry: false } },
-	);
-	const items = approvals.data?.items ?? [];
-	const total = summaryTotal(summary);
-	const answers = answersTotal(summary);
-	if (total === 0 && answers === 0) {
-		return (
-			<div className="space-y-4">
-				<Empty className="border">
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<Inbox />
-						</EmptyMedia>
-						<EmptyTitle>Нічого не чекає</EmptyTitle>
-						<EmptyDescription>
-							Наступний запуск каталогу о 02:30, викладачів о 02:00.
-						</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
-				<NotProposed summary={summary} />
-			</div>
-		);
-	}
-	const steps = summary.steps.flatMap((item) =>
-		isReviewStep(item.step) ? [{ step: item.step, item }] : [],
-	);
-	const firstOpen = steps.find(({ item }) => item.count > 0)?.step;
 	return (
-		<div className="space-y-4">
-			<section aria-labelledby="sync-path" className="space-y-2">
-				<h2 id="sync-path" className="text-base font-semibold">
-					Порядок роботи
-				</h2>
-				<ol className="space-y-2" aria-label="Порядок роботи">
-					{steps.map(({ step, item }, index) => (
-						<SyncStepRow
-							key={step}
-							number={index + 1}
-							step={step}
-							summary={item}
-							primary={step === firstOpen}
-							applied={latestApplied(items, item.group)}
-							onOpen={() => onOpenStep(step)}
-						/>
-					))}
-				</ol>
-			</section>
-			{answers > 0 ? (
-				<AnswersRow answers={summary.answers} onOpen={onOpenAnswers} />
-			) : null}
-			<NotProposed summary={summary} />
+		<div className="space-y-6">
+			<Lead summary={summary} remaining={remaining} />
+			<SyncExplainer />
+			<ul
+				aria-label="Групи змін"
+				className={cn(
+					"divide-y overflow-hidden rounded-xl border bg-card",
+					lines.length + done.length === 0 && "hidden",
+				)}
+			>
+				{lines.map((line, index) => (
+					<Line
+						key={line.key}
+						line={line}
+						primary={index === 0}
+						onAction={onAction}
+						onOpen={onOpen}
+					/>
+				))}
+				{done.map((line) => (
+					<Done key={line.key} line={line} onHistory={onHistory} />
+				))}
+			</ul>
+			<NotTaken summary={summary} />
 		</div>
 	);
 }
