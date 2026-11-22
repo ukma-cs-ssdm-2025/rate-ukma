@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Sequence
+from dataclasses import replace
 
 from rating_app.application_schemas import ukma_data_api as ukma_data
-from rating_app.sync.catalog.changes_and_mapping import propose_changes_and_mapping
+from rating_app.sync.catalog.changes import propose_changes
 from rating_app.sync.drafts import ChangeDraft, DecisionView
 from rating_app.sync.kinds import KIND_BY_NAME
 from rating_app.sync.payloads import PAYLOADS
@@ -22,9 +24,6 @@ PROPOSED_KINDS = {
     "change_department",
     "change_course",
     "change_offering",
-    "relink_course",
-    "move_offering",
-    "merge_courses",
     "removed_course",
     "removed_offering",
 }
@@ -333,32 +332,7 @@ def _propose(
     *,
     academic_year: int = 2025,
 ) -> tuple[list[ChangeDraft], dict[str, list[str]]]:
-    return propose_changes_and_mapping(ud, ru, decisions, academic_year=academic_year)
-
-
-def _decision(
-    kind: str,
-    key: str,
-    answer: str,
-    premise: dict[str, object],
-    *,
-    ukma_course_id: str = "ud-course",
-    saz_code: str = "",
-    course_id: str | None = None,
-    offering_id: str | None = None,
-    into_id: str | None = None,
-) -> DecisionView:
-    return DecisionView(
-        kind=kind,
-        question_key=key,
-        ukma_course_id=ukma_course_id,
-        saz_code=saz_code,
-        course_id=course_id,
-        offering_id=offering_id,
-        answer=answer,
-        into_id=into_id,
-        premise=premise,
-    )
+    return propose_changes(ud, ru, decisions, academic_year=academic_year)
 
 
 def _by_kind(drafts: Sequence[ChangeDraft], kind: str) -> list[ChangeDraft]:
@@ -369,6 +343,18 @@ def _only(drafts: Sequence[ChangeDraft], kind: str) -> ChangeDraft:
     matches = _by_kind(drafts, kind)
     assert len(matches) == 1
     return matches[0]
+
+
+class _CountingOfferings(dict[str, RuOffering]):
+    """Counts whole-catalog scans; the builders must read the index instead."""
+
+    def __init__(self, rows: dict[str, RuOffering]) -> None:
+        super().__init__(rows)
+        self.values_calls = 0
+
+    def values(self):
+        self.values_calls += 1
+        return super().values()
 
 
 def test_faculty_and_department_renames_are_change_drafts():
@@ -643,282 +629,6 @@ def test_offering_specialities_are_only_added_when_the_name_exists_in_rate_ukma(
     ]
 
 
-def _merge_scenario(
-    *, merge_source: str | None = None
-) -> tuple[UkmaDataSnapshot, RateUkmaSnapshot]:
-    ud = _ud_snapshot(
-        courses=[_ud_course("ud-a", merge_source=merge_source)],
-        offerings=[
-            _ud_offering("ud-1", course_id="ud-a", saz_code="100001"),
-            _ud_offering("ud-2", course_id="ud-a", saz_code="100002"),
-        ],
-    )
-    ru = _ru_snapshot(
-        courses=[
-            _ru_course("ru-a", ukma_data_id="ud-a", ratings=2),
-            _ru_course("ru-b", ukma_data_id="ud-a", ratings=3),
-        ],
-        offerings=[
-            _ru_offering("ru-1", code="100001", course_id="ru-a", ukma_data_id="ud-1"),
-            _ru_offering("ru-2", code="100002", course_id="ru-b", ukma_data_id="ud-2"),
-        ],
-    )
-    return ud, ru
-
-
-MERGE_PREMISE = {
-    "course_ids": ["ru-a", "ru-b"],
-    "ukma_course_id": "ud-a",
-    "merge_source": None,
-    "ratings": 5,
-}
-
-
-def test_merge_question_lists_the_courses_and_the_ratings_that_would_move():
-    ud, ru = _merge_scenario()
-
-    draft = _only(_propose(ud, ru)[0], "merge_courses")
-
-    assert (draft.key, draft.ukma_data_id, draft.target_id) == ("ud-a", "ud-a", None)
-    assert draft.ratings == 5
-    assert draft.after["merge_source"] is None
-    assert [course["id"] for course in draft.after["courses"]] == ["ru-a", "ru-b"]
-    assert [course["ratings"] for course in draft.after["courses"]] == [2, 3]
-    assert len(draft.display["courses"]) == 2
-    assert draft.display["ukma_course"]["title"] == "Курс"
-
-
-def test_a_live_decision_with_the_same_premise_answers_the_merge_question():
-    ud, ru = _merge_scenario()
-
-    keep_apart = _decision(
-        "merge_courses", "ud-a", "keep_apart", MERGE_PREMISE, ukma_course_id="ud-a"
-    )
-    merge = _decision(
-        "merge_courses",
-        "ud-a",
-        "merge",
-        MERGE_PREMISE,
-        ukma_course_id="ud-a",
-        into_id="ru-a",
-    )
-
-    assert _by_kind(_propose(ud, ru, [keep_apart])[0], "merge_courses") == []
-    assert _by_kind(_propose(ud, ru, [merge])[0], "merge_courses") == []
-
-
-def test_a_rule_merge_keeps_its_merge_source_in_the_question_and_the_premise():
-    ud, ru = _merge_scenario(merge_source="rule")
-    premise = {**MERGE_PREMISE, "merge_source": "rule"}
-
-    draft = _only(_propose(ud, ru)[0], "merge_courses")
-    answered = _decision("merge_courses", "ud-a", "keep_apart", premise, ukma_course_id="ud-a")
-    changed = _decision(
-        "merge_courses",
-        "ud-a",
-        "keep_apart",
-        {**premise, "merge_source": "decision"},
-        ukma_course_id="ud-a",
-    )
-
-    assert draft.after["merge_source"] == "rule"
-    assert _by_kind(_propose(ud, ru, [answered])[0], "merge_courses") == []
-    assert len(_by_kind(_propose(ud, ru, [changed])[0], "merge_courses")) == 1
-
-
-def test_a_merge_decision_with_a_changed_premise_asks_the_question_again():
-    ud, ru = _merge_scenario()
-    changed = _decision(
-        "merge_courses",
-        "ud-a",
-        "keep_apart",
-        {**MERGE_PREMISE, "course_ids": ["ru-a"], "ratings": 2},
-        ukma_course_id="ud-a",
-    )
-
-    assert len(_by_kind(_propose(ud, ru, [changed])[0], "merge_courses")) == 1
-
-
-def _move_scenario() -> tuple[UkmaDataSnapshot, RateUkmaSnapshot]:
-    ud = _ud_snapshot(
-        courses=[_ud_course("ud-a"), _ud_course("ud-b")],
-        offerings=[
-            _ud_offering("ud-1", course_id="ud-a", saz_code="100001"),
-            _ud_offering("ud-2", course_id="ud-b", saz_code="100002"),
-        ],
-    )
-    ru = _ru_snapshot(
-        departments=[_ru_department()],
-        courses=[
-            _ru_course("ru-a", ukma_data_id="ud-a"),
-            _ru_course("ru-b", ukma_data_id="ud-b", status="FINISHED"),
-        ],
-        offerings=[
-            _ru_offering("ru-1", code="100001", course_id="ru-a", ukma_data_id="ud-1"),
-            _ru_offering("ru-2", code="100002", course_id="ru-a", ukma_data_id="ud-2", ratings=4),
-        ],
-    )
-    return ud, ru
-
-
-MOVE_PREMISE = {
-    "course_ids": ["ru-a", "ru-b"],
-    "ukma_course_id": "ud-b",
-    "merge_source": None,
-    "saz_code": "100002",
-    "ratings": 4,
-}
-
-
-def test_a_stray_offering_asks_where_to_move_and_lists_both_courses():
-    ud, ru = _move_scenario()
-
-    draft = _only(_propose(ud, ru)[0], "move_offering")
-
-    assert (draft.key, draft.target_id, draft.ukma_data_id) == ("ru-2", "ru-2", "ud-b")
-    assert draft.after == {"from_course": "ru-a", "to_course_id": "ru-b"}
-    assert draft.before == {"from_course": "ru-a"}
-    assert draft.ratings == 4
-    assert draft.requires == [{"kind": "link_course", "key": "ud-b"}]
-    assert [course["title"] for course in draft.display["courses"]] == ["Курс", "Курс"]
-
-
-def test_a_live_keep_decision_answers_the_move_question():
-    ud, ru = _move_scenario()
-    keep = _decision(
-        "move_offering",
-        "ru-2",
-        "keep",
-        MOVE_PREMISE,
-        ukma_course_id="ud-b",
-        saz_code="100002",
-    )
-
-    assert _by_kind(_propose(ud, ru, [keep])[0], "move_offering") == []
-
-
-def test_a_move_decision_with_changed_ratings_asks_the_question_again():
-    ud, ru = _move_scenario()
-    changed = _decision(
-        "move_offering",
-        "ru-2",
-        "keep",
-        {**MOVE_PREMISE, "ratings": 0},
-        ukma_course_id="ud-b",
-        saz_code="100002",
-    )
-
-    assert len(_by_kind(_propose(ud, ru, [changed])[0], "move_offering")) == 1
-
-
-def test_a_move_question_is_not_asked_when_two_courses_share_the_destination():
-    ud = _ud_snapshot(
-        courses=[_ud_course("ud-a"), _ud_course("ud-b")],
-        offerings=[
-            _ud_offering("ud-1", course_id="ud-a", saz_code="100001"),
-            _ud_offering("ud-2", course_id="ud-b", saz_code="100002"),
-        ],
-    )
-    ru = _ru_snapshot(
-        departments=[_ru_department()],
-        courses=[
-            _ru_course("ru-a", ukma_data_id="ud-a"),
-            _ru_course("ru-b", ukma_data_id="ud-b", status="FINISHED"),
-            _ru_course("ru-c", ukma_data_id="ud-b", status="FINISHED"),
-        ],
-        offerings=[
-            _ru_offering("ru-1", code="100001", course_id="ru-a", ukma_data_id="ud-1"),
-            _ru_offering("ru-2", code="100002", course_id="ru-a", ukma_data_id="ud-2"),
-        ],
-    )
-
-    assert _by_kind(_propose(ud, ru)[0], "move_offering") == []
-
-
-def test_a_stray_offering_moves_to_a_course_created_in_the_same_run():
-    ud = _ud_snapshot(
-        departments=[_ud_department()],
-        courses=[_ud_course("ud-a"), _ud_course("ud-b", title="Інший курс")],
-        offerings=[
-            _ud_offering("ud-1", course_id="ud-a", saz_code="100001"),
-            _ud_offering("ud-2", course_id="ud-b", saz_code="100002", title="Інший курс"),
-        ],
-    )
-    ru = _ru_snapshot(
-        departments=[_ru_department()],
-        courses=[_ru_course("ru-a", ukma_data_id="ud-a")],
-        offerings=[
-            _ru_offering("ru-1", code="100001", course_id="ru-a", ukma_data_id="ud-1"),
-            _ru_offering("ru-2", code="100002", course_id="ru-a", ukma_data_id="ud-2"),
-        ],
-    )
-
-    draft = _only(_propose(ud, ru)[0], "move_offering")
-
-    assert draft.after == {"from_course": "ru-a", "to_course_ukma_id": "ud-b"}
-    assert draft.requires == [{"kind": "new_course", "key": "ud-b"}]
-
-
-RELINK_PREMISE = {
-    "course_ids": ["ru-course"],
-    "ukma_course_id": "ud-new",
-    "merge_source": None,
-    "ratings": 6,
-}
-
-
-def _relink_scenario() -> tuple[UkmaDataSnapshot, RateUkmaSnapshot]:
-    ud = _ud_snapshot(
-        courses=[_ud_course("ud-old"), _ud_course("ud-new")],
-        offerings=[
-            _ud_offering("ud-1", course_id="ud-new", saz_code="100001"),
-            _ud_offering("ud-2", course_id="ud-new", saz_code="100002"),
-        ],
-    )
-    ru = _ru_snapshot(
-        departments=[_ru_department()],
-        courses=[_ru_course(ukma_data_id="ud-old", ratings=6, status="FINISHED")],
-        offerings=[
-            _ru_offering("ru-1", code="100001", ukma_data_id="ud-1"),
-            _ru_offering("ru-2", code="100002", ukma_data_id="ud-2"),
-        ],
-    )
-    return ud, ru
-
-
-def test_a_majority_different_from_the_stored_link_asks_to_relink():
-    ud, ru = _relink_scenario()
-
-    draft = _only(_propose(ud, ru)[0], "relink_course")
-
-    assert (draft.key, draft.target_id, draft.ukma_data_id) == ("ru-course", "ru-course", "ud-new")
-    assert draft.before == {"ukma_data_id": "ud-old"}
-    assert draft.after == {"ukma_data_id": "ud-new"}
-    assert draft.ratings == 6
-
-
-def test_a_live_relink_decision_answers_the_question():
-    ud, ru = _relink_scenario()
-    relink = _decision(
-        "relink_course", "ru-course", "relink", RELINK_PREMISE, ukma_course_id="ud-new"
-    )
-
-    assert _by_kind(_propose(ud, ru, [relink])[0], "relink_course") == []
-
-
-def test_a_relink_decision_with_a_changed_premise_asks_the_question_again():
-    ud, ru = _relink_scenario()
-    changed = _decision(
-        "relink_course",
-        "ru-course",
-        "relink",
-        {**RELINK_PREMISE, "ukma_course_id": "ud-old"},
-        ukma_course_id="ud-new",
-    )
-
-    assert len(_by_kind(_propose(ud, ru, [changed])[0], "relink_course")) == 1
-
-
 def test_a_course_ukma_data_lacks_is_a_removed_course():
     ud = _ud_snapshot(departments=[_ud_department()])
     ru = _ru_snapshot(
@@ -1005,24 +715,17 @@ def _complete_scenario() -> tuple[UkmaDataSnapshot, RateUkmaSnapshot]:
         terms=[_ud_term()],
         courses=[
             _ud_course("ud-a"),
-            _ud_course("ud-b"),
             _ud_course("ud-c"),
             _ud_course("ud-moved", title="Нова назва", department_id="ud-other"),
-            _ud_course("ud-old"),
-            _ud_course("ud-new"),
             _ud_course("ud-removed", title="Зниклий", removed_at="2026-01-01T00:00:00Z"),
         ],
         offerings=[
             _ud_offering("ud-1", course_id="ud-a", saz_code="100001"),
-            _ud_offering("ud-2", course_id="ud-a", saz_code="100002"),
-            _ud_offering("ud-3", course_id="ud-b", saz_code="100003"),
-            _ud_offering("ud-4", course_id="ud-new", saz_code="100004"),
-            _ud_offering("ud-5", course_id="ud-new", saz_code="100005"),
-            _ud_offering("ud-6", course_id="ud-c", saz_code="100006"),
+            _ud_offering("ud-2", course_id="ud-c", saz_code="100002", max_students=40),
             _ud_offering(
-                "ud-7",
+                "ud-3",
                 course_id="ud-a",
-                saz_code="100007",
+                saz_code="100003",
                 removed_at="2026-02-02T00:00:00Z",
             ),
         ],
@@ -1034,33 +737,30 @@ def _complete_scenario() -> tuple[UkmaDataSnapshot, RateUkmaSnapshot]:
             _ru_department("ru-other", name="Інша кафедра", ukma_data_id="ud-other"),
         ],
         courses=[
-            _ru_course("ru-a", ukma_data_id="ud-a", ratings=2),
-            _ru_course("ru-b", ukma_data_id="ud-a", ratings=3),
-            _ru_course("ru-target", ukma_data_id="ud-b"),
-            _ru_course("ru-course", ukma_data_id="ud-c"),
+            _ru_course("ru-a", ukma_data_id="ud-a", status="FINISHED", description="Опис"),
+            _ru_course("ru-c", ukma_data_id="ud-c"),
             _ru_course("ru-moved", title="Стара назва", ukma_data_id="ud-moved"),
-            _ru_course("ru-relink", ukma_data_id="ud-old", ratings=6),
             _ru_course("ru-removed", title="Зниклий", ukma_data_id="ud-removed"),
         ],
         offerings=[
-            _ru_offering("ru-1", code="100001", course_id="ru-a", ukma_data_id="ud-1"),
-            _ru_offering("ru-2", code="100002", course_id="ru-b", ukma_data_id="ud-2"),
-            _ru_offering("ru-3", code="100003", course_id="ru-a", ukma_data_id="ud-3", ratings=4),
-            _ru_offering("ru-4", code="100004", course_id="ru-relink", ukma_data_id="ud-4"),
-            _ru_offering("ru-5", code="100005", course_id="ru-relink", ukma_data_id="ud-5"),
-            _ru_offering("ru-6", code="100006", course_id="ru-course", ukma_data_id="ud-6"),
-            _ru_offering("ru-7", code="100007", course_id="ru-a"),
+            _ru_offering(
+                "ru-1", code="100001", course_id="ru-a", ukma_data_id="ud-1", terms=(_ru_term(),)
+            ),
+            _ru_offering(
+                "ru-2", code="100002", course_id="ru-c", ukma_data_id="ud-2", terms=(_ru_term(),)
+            ),
+            _ru_offering("ru-3", code="100003", course_id="ru-a", ukma_data_id="ud-3"),
+            _ru_offering("ru-4", code="100004", course_id="ru-a"),
         ],
     )
     return ud, ru
 
 
-def test_every_draft_after_validates_against_its_payload():
+def test_every_change_draft_after_validates_against_its_payload():
     ud, ru = _complete_scenario()
 
     drafts, _ = _propose(ud, ru)
 
-    assert {draft.kind for draft in drafts} <= PROPOSED_KINDS
     assert {draft.kind for draft in drafts} == PROPOSED_KINDS
     for draft in drafts:
         PAYLOADS[draft.kind].model_validate({**draft.after, "display": draft.display})
@@ -1075,3 +775,54 @@ def test_drafts_are_sorted_by_kind_order_then_key():
         ((draft.kind, draft.key) for draft in drafts),
         key=lambda item: (KIND_BY_NAME[item[0]].order, item[1]),
     )
+
+
+def test_the_builder_stays_linear_in_the_catalog_size():
+    courses = 2_000
+    offerings_per_course = 5
+    ud_courses = []
+    ud_offerings = []
+    ru_courses = []
+    ru_offerings = []
+    for i in range(courses):
+        ud_course_id = f"ud-{i:05d}"
+        ru_course_id = f"ru-{i:05d}"
+        ud_courses.append(_ud_course(ud_course_id))
+        ru_courses.append(_ru_course(ru_course_id, ukma_data_id=ud_course_id, status="FINISHED"))
+        for j in range(offerings_per_course):
+            saz_code = f"{i * offerings_per_course + j:06d}"
+            ud_offering_id = f"ud-offering-{i}-{j}"
+            ud_offerings.append(
+                _ud_offering(ud_offering_id, course_id=ud_course_id, saz_code=saz_code)
+            )
+            ru_offerings.append(
+                _ru_offering(
+                    f"ru-offering-{i}-{j}",
+                    code=saz_code,
+                    course_id=ru_course_id,
+                    ukma_data_id=ud_offering_id,
+                    terms=(_ru_term(),),
+                )
+            )
+
+    ud = _ud_snapshot(
+        departments=[_ud_department()],
+        terms=[_ud_term()],
+        courses=ud_courses,
+        offerings=ud_offerings,
+    )
+    ru = _ru_snapshot(
+        departments=[_ru_department()],
+        courses=ru_courses,
+        offerings=ru_offerings,
+    )
+    offerings = _CountingOfferings(dict(ru.offerings))
+    ru = replace(ru, offerings=offerings)
+
+    started = time.perf_counter()
+    drafts, _ = _propose(ud, ru)
+    elapsed = time.perf_counter() - started
+
+    assert len(_by_kind(drafts, "change_course")) == courses
+    assert offerings.values_calls <= 2
+    assert elapsed < 5.0
