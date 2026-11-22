@@ -295,7 +295,7 @@ export const ANSWER_KEYS = [
 	"move",
 ] as const satisfies readonly (keyof SyncSummaryAnswers)[];
 
-export const answersTotal = (summary: SyncSummary): number =>
+export const answersTotal = (summary: Pick<SyncSummary, "answers">): number =>
 	ANSWER_KEYS.reduce((sum, key) => sum + summary.answers[key], 0);
 
 export function latestApplied(

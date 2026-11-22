@@ -23,7 +23,12 @@ import { useUkmaDataSyncRunsList } from "@/lib/api/generated";
 import { formatDateTime } from "../reviewCases";
 import { ALL, countsSummary, runStatusVariant, SYNC_SOURCES } from "../sync";
 import { PAGE_SIZE, RUN_STATUS_LABELS, SOURCE_LABELS } from "../syncLabels";
-import { historyParams, URL_OPTIONS } from "../syncParams";
+import {
+	changeParams,
+	changeUrlKeys,
+	historyParams,
+	URL_OPTIONS,
+} from "../syncParams";
 import { SyncPagination } from "./SyncPagination";
 import { SyncRunPage } from "./SyncRunPage";
 import { UkmaDataError } from "./UkmaDataError";
@@ -78,9 +83,12 @@ function RunRow({
 
 export function SyncHistoryTab() {
 	const [{ source, page }, setParams] = useQueryStates(runsParams, runsUrlKeys);
-	const [{ openRun: selectedRun }, setSelected] = useQueryStates(historyParams);
+	const [{ openRun: selectedRun }, setSelected] = useQueryStates(
+		{ ...historyParams, ...changeParams },
+		changeUrlKeys,
+	);
 	const openRun = (run: number | null) => {
-		void setSelected({ openRun: run, mine: null });
+		void setSelected({ openRun: run, mine: null, state: null, page: null });
 	};
 	const { data, isLoading, error, refetch, isRefetching } =
 		useUkmaDataSyncRunsList(

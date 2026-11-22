@@ -1,5 +1,5 @@
 import { History } from "lucide-react";
-import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
+import { useQueryStates } from "nuqs";
 
 import {
 	Empty,
@@ -19,21 +19,10 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useUkmaDataSyncRunChangesList } from "@/lib/api/generated";
 import { ALL, SYNC_STATES } from "../sync";
 import { PAGE_SIZE, STATE_LABELS } from "../syncLabels";
-import { URL_OPTIONS } from "../syncParams";
+import { changeParams, changeUrlKeys } from "../syncParams";
 import { SyncChangeCard } from "./SyncChangeCard";
 import { SyncPagination } from "./SyncPagination";
 import { UkmaDataError } from "./UkmaDataError";
-
-const changeParams = {
-	state: parseAsStringEnum([...SYNC_STATES, ALL])
-		.withDefault(ALL)
-		.withOptions(URL_OPTIONS),
-	page: parseAsInteger.withDefault(1).withOptions(URL_OPTIONS),
-};
-
-const changeUrlKeys = {
-	urlKeys: { page: "changesPage", state: "changesState" },
-} as const;
 
 export function SyncRunChanges({ runId }: Readonly<{ runId: number }>) {
 	const [{ state, page }, setParams] = useQueryStates(

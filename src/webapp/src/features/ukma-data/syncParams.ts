@@ -6,7 +6,7 @@ import {
 	parseAsStringEnum,
 } from "nuqs";
 
-import { SyncSourceEnum } from "@/lib/api/generated";
+import { SyncChangeStateEnum, SyncSourceEnum } from "@/lib/api/generated";
 import { SYNC_KINDS } from "./syncLabels";
 import { REVIEW_STEPS } from "./syncReview";
 
@@ -55,3 +55,14 @@ export const historyParams = {
 	openRun: parseAsInteger.withOptions(URL_OPTIONS),
 	mine: parseAsBoolean.withDefault(false).withOptions(URL_OPTIONS),
 };
+
+export const changeParams = {
+	state: parseAsStringEnum([...Object.values(SyncChangeStateEnum), "all"])
+		.withDefault("all")
+		.withOptions(URL_OPTIONS),
+	page: parseAsInteger.withDefault(1).withOptions(URL_OPTIONS),
+};
+
+export const changeUrlKeys = {
+	urlKeys: { page: "changesPage", state: "changesState" },
+} as const;
