@@ -244,21 +244,34 @@ def _load_courses(
     return courses
 
 
+def _sort_key(row: Question) -> tuple[bool, int, int]:
+    return (row.answer is not None, -row.ratings, row.change.pk)
+
+
+def _cursor(row: Question) -> str:
+    answered, ratings, pk = _sort_key(row)
+    return f"{int(answered)}.{-ratings}.{pk}"
+
+
+def _parse_cursor(cursor: str) -> tuple[bool, int, int]:
+    answered, ratings, pk = cursor.split(".")
+    return (answered == "1", -int(ratings), int(pk))
+
+
 def page(
-    run: SyncRun, *, rated: bool | None, after: int | None, limit: int
-) -> tuple[list[Question], int | None]:
+    run: SyncRun, *, rated: bool | None, after: str | None, limit: int
+) -> tuple[list[Question], str | None]:
+    """The cursor is the last row's sort key, not its id: answering a question moves
+    it to the end, and an id cursor would then skip every question still to answer."""
     rows = question_rows(run)
     if rated is not None:
         rows = [row for row in rows if (row.ratings > 0 or row.plans > 0) is rated]
-    rows.sort(key=lambda row: (row.answer is not None, -row.ratings, row.change.pk))
-    start = 0
+    rows.sort(key=_sort_key)
     if after is not None:
-        for index, row in enumerate(rows):
-            if row.change.pk == after:
-                start = index + 1
-                break
-    items = rows[start : start + limit]
-    next_after = items[-1].change.pk if rows[start + limit :] else None
+        last = _parse_cursor(after)
+        rows = [row for row in rows if _sort_key(row) > last]
+    items = rows[:limit]
+    next_after = _cursor(items[-1]) if len(rows) > limit else None
     return items, next_after
 
 

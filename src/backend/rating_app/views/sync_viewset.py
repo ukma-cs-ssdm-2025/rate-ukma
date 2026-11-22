@@ -64,6 +64,8 @@ from rating_app.views.responses import (
 )
 from rating_app.views.sync_base import SyncViewSetBase, input_error_text
 
+PREVIEW_FIRST = "Спочатку перегляньте вибірку"
+
 logger = structlog.get_logger(__name__)
 to_openapi = pydantic_to_openapi_request_mapper().map
 
@@ -409,6 +411,8 @@ class SyncViewSet(SyncViewSetBase):
             run = None if parsed is None else SyncRun.objects.filter(pk=parsed[0]).first()
             if parsed is None or run is None:
                 raise ValidationError({"token": ["Некоректний токен"]})
+            if not selection.was_previewed(token, run, request.user):
+                raise ValidationError({"token": [PREVIEW_FIRST]})
             if selection_data is None:
                 raise ValidationError({"selection": ["Потрібна вибірка для перевірки токена"]})
             ids = self._selection_ids(selection_data, run, data["source"])
@@ -426,22 +430,15 @@ class SyncViewSet(SyncViewSetBase):
                     status=status.HTTP_409_CONFLICT,
                 )
             return ids
-        if selection_data is not None:
-            raise ValidationError({"token": ["Спочатку перегляньте вибірку"]})
+        if selection_data is not None or not data.get("change_ids"):
+            raise ValidationError({"token": [PREVIEW_FIRST]})
         return self._approve_selection(data)
 
     def _approve_selection(self, data: dict[str, Any]) -> list[int]:
         source = data["source"]
         group = data["group"]
         kind = data.get("kind")
-        given = data.get("change_ids")
-        if given:
-            queryset = SyncChange.objects.filter(pk__in=given, source=source, group=group)
-        else:
-            run = self._current_run(source)
-            if run is None:
-                raise ValidationError({"source": ["Немає успішного запуску для цього джерела"]})
-            queryset = SyncChange.objects.filter(run=run, source=source, group=group)
+        queryset = SyncChange.objects.filter(pk__in=data["change_ids"], source=source, group=group)
         if kind:
             queryset = queryset.filter(kind=kind)
 

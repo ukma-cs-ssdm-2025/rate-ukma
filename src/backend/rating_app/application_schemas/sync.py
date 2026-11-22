@@ -82,7 +82,9 @@ class SyncQuestionListParams(BaseModel):
     rated: bool | None = Field(
         default=None, description="Only questions with ratings or plans (`true`) or without"
     )
-    after: int | None = Field(
-        default=None, ge=1, description="Keyset cursor: the id of the last question seen"
+    after: str | None = Field(
+        default=None,
+        pattern=r"^[01]\.\d+\.\d+$",
+        description="Keyset cursor: `next_after` from the previous page",
     )
     limit: int = Field(default=20, ge=1, le=100, description="Questions per page")

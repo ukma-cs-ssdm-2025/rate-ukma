@@ -107,6 +107,10 @@ def record_preview(token: str, run: SyncRun, user: User, count: int) -> None:
     )
 
 
+def was_previewed(token: str, run: SyncRun, user: User) -> bool:
+    return SyncPreview.objects.filter(token=token, run=run, user=user).exists()
+
+
 def preview_count(token: str) -> int | None:
     count = SyncPreview.objects.filter(token=token).values_list("count", flat=True).first()
     return None if count is None else int(count)
