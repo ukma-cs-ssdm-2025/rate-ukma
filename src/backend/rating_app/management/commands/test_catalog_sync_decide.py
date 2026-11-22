@@ -184,6 +184,7 @@ def test_apply_reports_a_change_applied_earlier_as_left_out(
     assert "1 зміна: уже застосована" in dry
     assert f"#{earlier.pk}" in dry.split("Не увійде:")[1]
     assert "Застосовано 1 зміну: зміни курсів 1." in out
+    assert "Не увійшло:" in out
     assert "1 зміна: уже застосована" in out
 
 
@@ -235,4 +236,31 @@ def test_dry_run_failure_logs_a_tagged_warning_and_writes_nothing(
     assert failed
     assert failed[0]["log_level"] == "warning"
     assert all(entry.get("dry_run") is True for entry in logs)
+    assert not SyncApproval.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("flag", [("--kind", "change_course"), ("--q", "Тест"), ("--rated",)])
+def test_apply_refuses_a_filter_next_to_ids(
+    run_catalog_sync, admin, make_catalog_run, make_title_change, flag
+):
+    _, change = make_title_change(make_catalog_run())
+
+    with pytest.raises(CommandError, match="З --ids не вказуйте"):
+        run_catalog_sync("apply", "--ids", str(change.pk), *flag, "--by", admin.username)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_reject_refuses_ids_outside_the_named_group(
+    run_catalog_sync, admin, make_catalog_run, make_title_change
+):
+    _, change = make_title_change(make_catalog_run())
+
+    with pytest.raises(CommandError, match=f"Не в групі new: #{change.pk}"):
+        run_catalog_sync(
+            "reject", "--group", "new", "--ids", str(change.pk), "--by", admin.username
+        )
+
     assert not SyncApproval.objects.exists()

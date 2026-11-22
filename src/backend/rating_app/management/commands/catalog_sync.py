@@ -19,6 +19,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Count, Q
 from django.utils import timezone
 
+import structlog
 import waffle
 
 from rating_app.models import (
@@ -38,6 +39,8 @@ from rating_app.sync.constants import SWITCH_NAME
 from rating_app.sync.kinds import KIND_BY_NAME, KINDS, NEVER_AUTO_KINDS
 
 GROUPS = ("new", "link", "change", "mapping", "removed", review.OTHER_GROUP)
+logger = structlog.get_logger(__name__)
+
 DRY_RUN = "Пробний запуск, нічого не записано."
 TO_WRITE = "Щоб записати: додайте --yes."
 
@@ -226,7 +229,8 @@ class Command(BaseCommand):
         self._say(*text.decision_lines(result, limit=options["limit"]))
         superseded = int(result.counts.get("superseded") or 0)
         if reject and superseded:
-            self._say(f"Разом із ними неактуальними стануть залежні: {superseded}.")
+            verb = "стануть" if dry_run else "стали"
+            self._say(f"Разом із ними неактуальними {verb} залежні: {superseded}.")
         if dry_run:
             self._say(TO_WRITE)
             return
@@ -248,8 +252,11 @@ class Command(BaseCommand):
             count = _maybe_rolled_back(lambda: answers.keep_apart_unrated(user), dry_run)
             if dry_run:
                 self._say(DRY_RUN)
-            verb = "Позначило б" if dry_run else "Позначено"
-            self._say(f"{verb} «лишити окремо» {text.number(count)} питань без оцінок і планів.")
+            verb = "Закрило б" if dry_run else "Закрито"
+            self._say(
+                f"{verb} {text.questions_word(count)} без оцінок і планів: "
+                "об'єднання — «лишити окремо», перенесення й переприв'язки — «залишити»."
+            )
             if dry_run:
                 self._say(TO_WRITE)
             return
@@ -269,6 +276,15 @@ class Command(BaseCommand):
             )
         except answers.MappingAnswerError as exc:
             raise CommandError(str(exc)) from exc
+        if not dry_run:
+            logger.info(
+                "sync_change_answered",
+                change_id=change.pk,
+                kind=change.kind,
+                answer=decision.answer,
+                decision_id=decision.pk,
+                user_id=user.pk,
+            )
         if dry_run:
             self._say(DRY_RUN)
         verb = "Записало б" if dry_run else "Відповідь записано"
@@ -304,6 +320,8 @@ class Command(BaseCommand):
             _maybe_rolled_back(lambda: policies.set_mode(kind, mode, user), dry_run)
         except ValueError as exc:
             raise CommandError(str(exc)) from exc
+        if not dry_run and old != mode:
+            logger.info("sync_policy_updated", kind=kind, mode=mode, user_id=user.pk)
         if dry_run:
             self._say(DRY_RUN)
         verb = "Змінило б" if dry_run else "Змінено"
@@ -402,11 +420,38 @@ def _narrow(changes: Any, options: dict[str, Any]) -> Any:
     return changes
 
 
+def _check_ids_selection(run: SyncRun, ids: list[int], options: dict[str, Any]) -> None:
+    """`--ids` names the changes exactly: a filter next to it would be ignored, and
+    a group the ids are not in would be recorded on the decision."""
+    ignored = [
+        flag
+        for flag, value in (
+            ("--kind", options["kind"]),
+            ("--q", options["q"]),
+            ("--rated/--unrated", options["rated"]),
+        )
+        if value is not None
+    ]
+    if ignored:
+        raise CommandError(
+            f"З --ids не вказуйте {', '.join(ignored)}: --ids уже точно називає зміни."
+        )
+    group = options["group"]
+    if not group:
+        return
+    changes = SyncChange.objects.filter(run=run, pk__in=ids)
+    outside = sorted(set(ids) - set(review.in_group(changes, group).values_list("pk", flat=True)))
+    if outside:
+        listed = ", ".join(f"#{change_id}" for change_id in outside[:12])
+        raise CommandError(f"Не в групі {group}: {listed}. Приберіть --group або ці id.")
+
+
 def _selected(run: SyncRun, options: dict[str, Any]) -> tuple[list[int], list[int]]:
     """The ids an apply or reject takes: `--ids`, or the waiting changes of a group."""
     excluded = _ids(options["exclude"])
     ids = _ids(options["ids"])
     if ids:
+        _check_ids_selection(run, ids, options)
         return [change_id for change_id in ids if change_id not in excluded], excluded
     if not options["group"]:
         raise CommandError("Виберіть зміни: --group <група> або --ids 1,2,3.")

@@ -237,3 +237,45 @@ def test_current_run_is_the_newest_succeeded_run(sync_run_factory, catalog_run):
 @pytest.mark.integration
 def test_refusal_text_names_the_flag_for_a_stale_run(catalog_run):
     assert "--confirm-stale" in decisions.refusal_text("run_too_old", catalog_run)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_moved_counts_leave_out_a_merge_applied_earlier(
+    admin, catalog_run, sync_change_factory, sync_approval_factory, course_factory, monkeypatch
+):
+    earlier = sync_approval_factory(run=catalog_run, user=admin, change_ids=[])
+    merged = sync_change_factory(
+        run=catalog_run,
+        source=SyncSource.CATALOG,
+        group="mapping",
+        kind="merge_courses",
+        key="ud-course-test-merged",
+        state=SyncChangeState.APPLIED,
+        approval=earlier,
+        decided_at=timezone.now(),
+        after={"merge_source": None, "courses": []},
+    )
+    course = course_factory(title="Тестова дисципліна А")
+    fresh = sync_change_factory(
+        run=catalog_run,
+        source=SyncSource.CATALOG,
+        group="change",
+        kind="change_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        before={"title": "Тестова дисципліна А"},
+        after={"title": "Тестова дисципліна Б"},
+    )
+    counted: list[list[int]] = []
+
+    def moved_counts(changes):
+        counted.append([change.pk for change in changes])
+        return 0, 0
+
+    monkeypatch.setattr(decisions.review, "moved_counts", moved_counts)
+
+    result = decisions.approve([merged.pk, fresh.pk], admin, dry_run=True, group="change")
+
+    assert [item.change.pk for item in result.decided("applied")] == [fresh.pk]
+    assert counted == [[]]

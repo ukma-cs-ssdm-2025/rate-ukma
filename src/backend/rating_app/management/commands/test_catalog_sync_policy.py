@@ -5,6 +5,7 @@ import json
 from django.core.management.base import CommandError
 
 import pytest
+from structlog.testing import capture_logs
 
 from rating_app.models import SyncPolicy, SyncPolicyChange, SyncPolicyMode
 
@@ -79,3 +80,19 @@ def test_policy_yes_requires_by(run_catalog_sync):
 def test_policy_rejects_an_unknown_kind(run_catalog_sync, admin):
     with pytest.raises(CommandError, match="Невідомий тип змін: nope"):
         run_catalog_sync("policy", "nope", "auto", "--by", admin.username)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_policy_yes_logs_the_update(run_catalog_sync, admin):
+    with capture_logs() as logs:
+        run_catalog_sync("policy", "change_course", "auto", "--by", admin.username, "--yes")
+
+    [entry] = [entry for entry in logs if entry["event"] == "sync_policy_updated"]
+    assert entry == {
+        "event": "sync_policy_updated",
+        "kind": "change_course",
+        "mode": "auto",
+        "user_id": admin.pk,
+        "log_level": "info",
+    }

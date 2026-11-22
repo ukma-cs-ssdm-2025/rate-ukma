@@ -185,6 +185,10 @@ def decisions_word(count: int) -> str:
     return f"{number(count)} {plural(count, 'рішення', 'рішення', 'рішень')}"
 
 
+def questions_word(count: int) -> str:
+    return f"{number(count)} {plural(count, 'питання', 'питання', 'питань')}"
+
+
 def ratings_word(count: int) -> str:
     return f"{number(count)} {plural(count, 'оцінка', 'оцінки', 'оцінок')}"
 
@@ -415,7 +419,7 @@ def decision_lines(result: DecisionResult, *, limit: int) -> list[str]:
             "на інші сторінки курсів."
         )
     lines.extend(_listed(done, limit))
-    lines.extend(_left_out(result.outcomes, done, limit))
+    lines.extend(_left_out(result.outcomes, done, limit, dry_run=result.dry_run))
     return lines
 
 
@@ -431,7 +435,9 @@ def _listed(items: list[ChangeOutcome], limit: int) -> list[str]:
     return lines
 
 
-def _left_out(outcomes: list[ChangeOutcome], done: list[ChangeOutcome], limit: int) -> list[str]:
+def _left_out(
+    outcomes: list[ChangeOutcome], done: list[ChangeOutcome], limit: int, *, dry_run: bool
+) -> list[str]:
     done_ids = {item.change.pk for item in done}
     reasons: dict[str, list[ChangeOutcome]] = {}
     for item in outcomes:
@@ -440,7 +446,8 @@ def _left_out(outcomes: list[ChangeOutcome], done: list[ChangeOutcome], limit: i
         reasons.setdefault(why_left(item), []).append(item)
     if not reasons:
         return ["Пропущено 0, чекають 0."]
-    lines = ["Не увійде:" if outcomes else "Нічого не вибрано."]
+    head = "Не увійде:" if dry_run else "Не увійшло:"
+    lines = [head if outcomes else "Нічого не вибрано."]
     for reason, items in reasons.items():
         lines.append(f"  {changes_word(len(items))}: {reason}")
         ids = [item.change.pk for item in items]

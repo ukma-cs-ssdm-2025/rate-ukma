@@ -211,10 +211,9 @@ def _result(approval: SyncApproval, selected: Sequence[int], *, dry_run: bool) -
         for change in changes
     ]
     moved = [
-        change
-        for change in changes
-        if change.state == SyncChangeState.APPLIED
-        and change.kind in {"merge_courses", "move_offering"}
+        item.change
+        for item in result.decided(SyncChangeState.APPLIED)
+        if item.change.kind in {"merge_courses", "move_offering"}
     ]
     result.ratings_moved, result.plans_moved = review.moved_counts(moved)
     counts.setdefault("skipped", 0)
