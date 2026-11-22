@@ -308,7 +308,9 @@ def _shared_course(
     *,
     decisions: list[DecisionView] | None = None,
     offering_department: str = "ud-dept-a",
+    course_ratings: dict[str, int] | None = None,
 ) -> tuple[UkmaDataSnapshot, RateUkmaSnapshot]:
+    ratings = course_ratings or {}
     terms = [_ud_term()]
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
@@ -335,8 +337,12 @@ def _shared_course(
             _ru_department("ru-dept-c", name="Кафедра В", ukma_data_id="ud-dept-c"),
         ],
         courses=[
-            _ru_course("ru-a", title="Курс А", department_id="ru-dept-a"),
-            _ru_course("ru-b", title="Курс Б", department_id="ru-dept-b"),
+            _ru_course(
+                "ru-a", title="Курс А", department_id="ru-dept-a", ratings=ratings.get("ru-a", 0)
+            ),
+            _ru_course(
+                "ru-b", title="Курс Б", department_id="ru-dept-b", ratings=ratings.get("ru-b", 0)
+            ),
         ],
         offerings=[
             _ru_offering("ru-off-a", code="100001", course_id="ru-a"),
@@ -834,6 +840,80 @@ def test_propose_links_and_new_ignores_a_place_decision_when_the_question_key_di
 
     assert _of_kind(drafts, "new_offering") == []
     assert _one(drafts, "place_offering").after["candidates"] == ["ru-a", "ru-b"]
+
+
+@pytest.mark.parametrize(
+    "premise",
+    [
+        {
+            "course_ids": ["ru-a", "ru-b"],
+            "ukma_course_id": "ud-course",
+            "merge_source": None,
+        },
+        {
+            "course_ids": ["ru-a", "ru-b"],
+            "ukma_course_id": "ud-course",
+            "ratings": 0,
+        },
+        {
+            "course_ids": ["ru-a", "ru-b"],
+            "ukma_course_id": "ud-course",
+            "merge_source": None,
+            "ratings": {"ru-a": 1, "ru-b": 0},
+        },
+    ],
+)
+def test_propose_links_and_new_asks_again_when_a_place_premise_is_incomplete(premise):
+    snapshot, ru = _shared_course()
+    decision = DecisionView(
+        kind="place_offering",
+        question_key="ud-new",
+        ukma_course_id="ud-course",
+        saz_code="100003",
+        course_id=None,
+        offering_id=None,
+        answer="place",
+        into_id="ru-b",
+        premise=premise,
+    )
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [decision], academic_year=2025)
+
+    assert _of_kind(drafts, "new_offering") == []
+    assert _one(drafts, "place_offering").after["candidates"] == ["ru-a", "ru-b"]
+
+
+def test_propose_links_and_new_counts_the_candidate_ratings_when_asking_where_an_offering_goes():
+    snapshot, ru = _shared_course(course_ratings={"ru-a": 2, "ru-b": 3})
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [], academic_year=2025)
+
+    assert _one(drafts, "place_offering").ratings == 5
+
+
+def test_propose_links_and_new_answers_a_place_question_when_the_premise_counts_the_candidates():
+    snapshot, ru = _shared_course(course_ratings={"ru-a": 2, "ru-b": 3})
+    decision = DecisionView(
+        kind="place_offering",
+        question_key="ud-new",
+        ukma_course_id="ud-course",
+        saz_code="100003",
+        course_id=None,
+        offering_id=None,
+        answer="place",
+        into_id="ru-b",
+        premise={
+            "course_ids": ["ru-a", "ru-b"],
+            "ukma_course_id": "ud-course",
+            "merge_source": None,
+            "ratings": 5,
+        },
+    )
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [decision], academic_year=2025)
+
+    assert _of_kind(drafts, "place_offering") == []
+    assert _one(drafts, "new_offering").after["course_id"] == "ru-b"
 
 
 def test_propose_links_and_new_ignores_removed_rows():

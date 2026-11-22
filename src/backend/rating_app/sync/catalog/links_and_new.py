@@ -461,6 +461,7 @@ class _Builder:
             key=offering.id,
             ukma_data_id=course.id,
             after=after,
+            ratings=sum(self.ru.courses[course_id].ratings for course_id in candidates),
             display=Display(
                 courses=[self._course_card(course_id) for course_id in candidates],
                 ukma_course=self._ukma_course_card(course),
