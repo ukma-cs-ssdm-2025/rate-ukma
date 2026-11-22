@@ -8,6 +8,7 @@ way, so those helpers live here.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from typing import Any
 
 from django.db import transaction
@@ -40,6 +41,7 @@ from rating_app.models.sync import (
 )
 from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.sync import apply, review, selection
+from rating_app.sync import fields as field_pairs
 from rating_app.sync.apply import SyncApplyInputError
 from rating_app.views.ukma_data_viewset import IsSuperuser
 
@@ -50,6 +52,15 @@ INPUT_ERROR_TEXT = {
     "unknown change ids": "Деяких вибраних змін не існує",
     "changes from several runs": "Вибрані зміни належать різним запускам",
 }
+
+
+@dataclass
+class DryRun:
+    counts: dict[str, dict[str, int]]
+    reasons: dict[str, int]
+    ratings: int
+    plans: int
+    fields: dict[str, int]
 
 
 def input_error_text(exc: SyncApplyInputError) -> str:
@@ -77,12 +88,12 @@ class SyncViewSetBase(viewsets.ViewSet):
         return selection.filter_ids(run, source, filters)
 
     def _dry_run(
-        self, run: SyncRun, ids: list[int], user: Any
-    ) -> tuple[dict[str, dict[str, int]], dict[str, int], int, int] | Response:
+        self, run: SyncRun, ids: list[int], user: Any, excluded: list[int]
+    ) -> DryRun | Response:
         del run
         try:
             with transaction.atomic():
-                approval = apply.approve(ids, user, confirm_old_run=True)
+                approval = apply.approve(ids, user, confirm_old_run=True, excluded=excluded)
                 if approval.outcome == SyncApprovalOutcome.REFUSED:
                     transaction.set_rollback(True)
                     return self._refusal(approval, user)
@@ -110,10 +121,20 @@ class SyncViewSetBase(viewsets.ViewSet):
                 )
                 ratings, plans = review.moved_counts(moved)
                 counts, reasons = self._preview_counts(rows)
+                fields = self._preview_fields(approval.change_ids)
                 transaction.set_rollback(True)
         except SyncApplyInputError as exc:
             raise ValidationError({"change_ids": [input_error_text(exc)]}) from exc
-        return counts, reasons, ratings, plans
+        return DryRun(counts, reasons, ratings, plans, fields)
+
+    def _preview_fields(self, change_ids: list[int]) -> dict[str, int]:
+        """How many of the selected changes set each field: a change applies or is
+        rejected whole, so every field it carries goes with it."""
+        fields: Counter[str] = Counter()
+        pairs = field_pairs.change_pairs(SyncChange.objects.filter(pk__in=change_ids))
+        for rows in pairs.values():
+            fields.update({pair[0] for pair in rows})
+        return dict(fields)
 
     def _preview_counts(
         self, rows: list[dict[str, Any]]

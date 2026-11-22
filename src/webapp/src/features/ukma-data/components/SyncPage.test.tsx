@@ -9,7 +9,6 @@ import { authorizedHttpClient } from "@/lib/api/apiClient";
 import type {
 	SyncChange,
 	SyncChangeListResponse,
-	SyncPendingResponse,
 	SyncPolicy,
 	SyncPolicyChangeListResponse,
 	SyncPolicyListResponse,
@@ -17,8 +16,9 @@ import type {
 	SyncRunListResponse,
 } from "@/lib/api/generated";
 import { SyncPage } from "./SyncPage";
+import { appliedApproval, catalogSummary } from "./syncTestData";
 
-const PENDING_URL = "/api/v1/ukma-data/sync/pending/";
+const APPROVALS_URL = "/api/v1/ukma-data/sync/runs/7/approvals/";
 const RUNS_URL = "/api/v1/ukma-data/sync/runs/";
 const RUN_CHANGES_URL = "/api/v1/ukma-data/sync/runs/7/changes/";
 const POLICIES_URL = "/api/v1/ukma-data/sync/policies/";
@@ -45,6 +45,9 @@ const teacherRun: SyncRun = {
 	source: "teachers",
 	counts: { change: { proposed: 1 } },
 };
+
+const changeCalls = () =>
+	mockAxios.history.get.filter((call) => call.url === RUN_CHANGES_URL);
 
 const courseChange: SyncChange = {
 	id: 11,
@@ -76,61 +79,6 @@ const courseChange: SyncChange = {
 	decided_at: null,
 };
 
-const teacherChange: SyncChange = {
-	id: 12,
-	run_id: 8,
-	source: "teachers",
-	group: "change",
-	kind: "teacher_link_added",
-	key: "offering:test-1|teacher:test@example.invalid|role:LECTURER",
-	ukma_data_id: null,
-	target_id: "offering-1",
-	before: { links: [] },
-	after: {
-		teacher_email: "test@example.invalid",
-		role: "LECTURER",
-		display: { teacher: { name: "Тестовий Викладач" } },
-	},
-	waiting_on: [],
-	ratings: 0,
-	state: "proposed",
-	state_reason: "",
-	never_auto: false,
-	decided_at: null,
-};
-
-const mappingChange: SyncChange = {
-	id: 13,
-	run_id: 7,
-	source: "catalog",
-	group: "mapping",
-	kind: "merge_courses",
-	key: "ud-course-2",
-	ukma_data_id: "ud-course-2",
-	target_id: null,
-	before: {},
-	after: {
-		merge_source: "handoff",
-		courses: [],
-		display: {
-			courses: [
-				{
-					title: "Суміжний курс",
-					department: "Кафедра тестів",
-					years: [2030],
-					saz_codes: ["TEST02"],
-				},
-			],
-		},
-	},
-	waiting_on: [],
-	ratings: 1,
-	state: "proposed",
-	state_reason: "",
-	never_auto: true,
-	decided_at: null,
-};
-
 const page = <T,>(items: T[]) => ({
 	items,
 	page: 1,
@@ -140,13 +88,6 @@ const page = <T,>(items: T[]) => ({
 	next_page: null,
 	previous_page: null,
 });
-
-const pending: SyncPendingResponse = {
-	...page([courseChange, teacherChange, mappingChange]),
-	groups: { new: 1, change: 1, mapping: 1 },
-	kinds: { new_course: 1, teacher_link_added: 1, merge_courses: 1 },
-	runs: [teacherRun, catalogRun],
-};
 
 const runs: SyncRunListResponse = page([catalogRun, teacherRun]);
 
@@ -192,12 +133,15 @@ function renderPage(search = "") {
 	return { queryClient };
 }
 
-function mockPending(data: SyncPendingResponse = pending) {
-	mockAxios.onGet(PENDING_URL).reply(200, data);
-}
-
 beforeEach(() => {
 	mockAxios = new MockAdapter(authorizedHttpClient);
+	mockAxios
+		.onGet("/api/v1/ukma-data/sync/approvals/active/")
+		.reply(200, { item: null });
+	mockAxios.onGet(APPROVALS_URL).reply(200, page([appliedApproval]));
+	mockAxios
+		.onGet("/api/v1/ukma-data/sync/summary/")
+		.reply(200, { ...catalogSummary, run: catalogRun });
 });
 
 afterEach(() => {
@@ -205,89 +149,6 @@ afterEach(() => {
 });
 
 describe("sync section", () => {
-	it("renders the pending tab from the API grouped by source and group", async () => {
-		mockPending();
-
-		renderPage("?tab=pending");
-
-		const catalog = await screen.findByRole("list", {
-			name: "Каталог: Нові записи",
-		});
-		expect(within(catalog).getAllByText("Аналіз даних").length).toBeGreaterThan(
-			0,
-		);
-		expect(within(catalog).getByText(/САЗ TEST01/)).toBeInTheDocument();
-		expect(within(catalog).getByText("2 оцінки")).toBeInTheDocument();
-		expect(screen.getByText("Потрібне підтвердження")).toBeInTheDocument();
-		expect(
-			screen.getByRole("list", { name: "Викладачі: Зміни" }),
-		).toHaveTextContent("Тестовий Викладач");
-		expect(screen.getAllByText(/дані UKMA Data/)).toHaveLength(2);
-		expect(screen.getByText("Очікують підтвердження: 3")).toBeInTheDocument();
-		expect(mockAxios.history.get[0].params).toEqual({
-			page: 1,
-			page_size: 20,
-		});
-	});
-
-	it("asks for the group, kind and page in the URL", async () => {
-		mockPending();
-
-		renderPage("?tab=pending&group=new&kind=new_course&page=2");
-
-		await screen.findByRole("list", { name: "Каталог: Нові записи" });
-		expect(mockAxios.history.get[0].params).toEqual({
-			page: 2,
-			page_size: 20,
-			group: "new",
-			kind: "new_course",
-		});
-	});
-
-	it("shows empty states before the first run", async () => {
-		mockPending({
-			...page([]),
-			groups: {},
-			kinds: {},
-			runs: [],
-		});
-
-		renderPage("?tab=pending");
-
-		expect(
-			await screen.findByText("Немає змін, що очікують"),
-		).toBeInTheDocument();
-		expect(
-			screen.getByText("Ще немає успішних запусків синхронізації."),
-		).toBeInTheDocument();
-	});
-
-	it("shows the error state when the pending request fails", async () => {
-		mockAxios.onGet(PENDING_URL).reply(500, { detail: "x", status: 500 });
-
-		renderPage("?tab=pending");
-
-		expect(
-			await screen.findByText("Не вдалося завантажити зміни"),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Спробувати знову" }),
-		).toBeInTheDocument();
-	});
-
-	it("renders the pending tab while review cases are forbidden", async () => {
-		mockAxios
-			.onGet("/api/v1/ukma-data/review-cases/")
-			.reply(403, { detail: "x", code: "ukma_data_forbidden", status: 403 });
-		mockPending();
-
-		renderPage("?tab=pending");
-
-		expect(
-			await screen.findByRole("list", { name: "Каталог: Нові записи" }),
-		).toBeInTheDocument();
-	});
-
 	it("opens a run from history and shows its changes", async () => {
 		const user = userEvent.setup();
 		mockAxios.onGet(RUNS_URL).reply(200, runs);
@@ -299,14 +160,14 @@ describe("sync section", () => {
 			name: "Запуски синхронізації",
 		});
 		expect(
-			within(list).getByText(/Нові записи · Очікує: 2/),
+			within(list).getByText(/Нові записи · Чекає: 2/),
 		).toBeInTheDocument();
 		await user.click(within(list).getAllByRole("button")[0]);
 
 		expect(
 			await screen.findByRole("list", { name: "Зміни запуску 7" }),
 		).toHaveTextContent("Застосовано");
-		expect(mockAxios.history.get.at(-1)?.params).toEqual({
+		expect(changeCalls().at(-1)?.params).toEqual({
 			page: 1,
 			page_size: 20,
 		});
@@ -315,10 +176,10 @@ describe("sync section", () => {
 	it("filters a run's changes by state from the URL", async () => {
 		mockAxios.onGet(RUN_CHANGES_URL).reply(200, runChanges);
 
-		renderPage("?tab=history&run=7&changesState=applied");
+		renderPage("?tab=history&openRun=7&changesState=applied");
 
 		await screen.findByRole("list", { name: "Зміни запуску 7" });
-		expect(mockAxios.history.get[0].params).toEqual({
+		expect(changeCalls()[0].params).toEqual({
 			state: "applied",
 			page: 1,
 			page_size: 20,
@@ -335,47 +196,72 @@ describe("sync section", () => {
 		const list = await screen.findByRole("list", {
 			name: "Запуски синхронізації",
 		});
-		expect(mockAxios.history.get[0].params).toMatchObject({ page: 2 });
+		expect(
+			mockAxios.history.get.find((call) => call.url === RUNS_URL)?.params,
+		).toMatchObject({ page: 2 });
 		await user.click(within(list).getAllByRole("button")[0]);
 
 		await screen.findByRole("list", { name: "Зміни запуску 7" });
-		expect(mockAxios.history.get.at(-1)?.params).toEqual({
+		expect(changeCalls().at(-1)?.params).toEqual({
 			page: 1,
 			page_size: 20,
 		});
 	});
 
-	it("names a lone candidate course of a place question", async () => {
-		const placeChange: SyncChange = {
-			...mappingChange,
-			id: 14,
-			kind: "place_offering",
-			key: "ud-offering-1",
-			after: {
-				display: {
-					ukma_course: { title: "Курс у UKMA Data", department: null },
-					courses: [
-						{
-							title: "Кандидат",
-							department: "Кафедра тестів",
-							years: [2030],
-							saz_codes: ["TEST03"],
-						},
-					],
-				},
-			},
-		};
-		mockPending({
-			...pending,
-			...page([placeChange]),
-			groups: { mapping: 1 },
-			kinds: { place_offering: 1 },
+	it("shows the run's decisions, a session filter and the CSV link", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mockAxios.onGet(RUN_CHANGES_URL).reply(200, runChanges);
+
+		// Act
+		renderPage("?tab=history&openRun=7");
+		const decisions = await screen.findByRole("list", {
+			name: "Рішення запуску",
 		});
 
-		renderPage();
+		// Assert
+		expect(decisions).toHaveTextContent("Звʼязки з точним збігом: курси");
+		expect(decisions).toHaveTextContent("reviewer@example.invalid");
+		expect(decisions).toHaveTextContent(
+			/застосовано 4\s828 · уже неактуальні 2/,
+		);
+		expect(
+			screen.getByRole("link", { name: "Завантажити CSV" }),
+		).toHaveAttribute(
+			"href",
+			expect.stringMatching(
+				/\/api\/v1\/ukma-data\/sync\/runs\/7\/export\.csv$/,
+			),
+		);
+		await user.click(screen.getByRole("checkbox", { name: "Ця сесія" }));
+		expect(
+			await screen.findByText(
+				"Сьогодні ви нічого не застосовували в цьому запуску.",
+			),
+		).toBeInTheDocument();
+	});
 
-		expect(await screen.findByText("Курс у UKMA Data")).toBeInTheDocument();
-		expect(screen.getByText(/^Кандидат/)).toBeInTheDocument();
+	it("labels each rule by risk and explains auto mode", async () => {
+		// Arrange
+		mockAxios.onGet(POLICIES_URL).reply(200, {
+			items: [
+				{ ...policies[0], kind: "link_offering", group: "link", mode: "auto" },
+				policies[1],
+			],
+		});
+		mockAxios.onGet(POLICY_CHANGES_URL).reply(200, policyChanges);
+
+		// Act
+		renderPage("?tab=rules");
+
+		// Assert
+		const rules = await screen.findByRole("list", { name: "Правила: Каталог" });
+		expect(rules).toHaveTextContent("Без видимих змін");
+		expect(rules).toHaveTextContent("Переносить оцінки");
+		expect(rules).toHaveTextContent("завжди з підтвердженням");
+		expect(rules).toHaveTextContent(
+			"Застосовується щоночі без вас, крім змін, що зачіпають оцінки чи плани.",
+		);
 	});
 
 	it("lists policies and disables the toggle for a never-auto kind", async () => {
@@ -388,7 +274,7 @@ describe("sync section", () => {
 
 		expect(
 			screen.getByText(
-				"Питання зіставлення та зміни, що переносять оцінки, завжди потребують підтвердження.",
+				"Питання й зміни, що переносять оцінки, завжди потребують підтвердження.",
 			),
 		).toBeInTheDocument();
 		expect(

@@ -88,12 +88,13 @@ class SyncReviewViewSet(SyncViewSetBase):
         serializer.is_valid(raise_exception=True)
         data = cast(dict[str, Any], serializer.validated_data)
         run = self._request_run(data["source"], data.get("run"))
-        ids = self._selection_ids(cast(dict[str, Any], data["selection"]), run, data["source"])
-        token = selection.token_for(run.pk, ids)
-        outcome = self._dry_run(run, ids, request.user)
+        selection_data = cast(dict[str, Any], data["selection"])
+        ids = self._selection_ids(selection_data, run, data["source"])
+        excluded = selection.selection_excluded(selection_data)
+        token = selection.token_for(run.pk, ids, excluded)
+        outcome = self._dry_run(run, ids, request.user, excluded)
         if isinstance(outcome, Response):
             return outcome
-        counts, reasons, ratings, plans = outcome
         selection.record_preview(token, run, request.user, len(ids))
         logger.info(
             "sync_preview_created",
@@ -106,10 +107,11 @@ class SyncReviewViewSet(SyncViewSetBase):
             {
                 "token": token,
                 "count": len(ids),
-                "counts": counts,
-                "superseded_reasons": reasons,
-                "ratings_moved": ratings,
-                "plans_moved": plans,
+                "counts": outcome.counts,
+                "superseded_reasons": outcome.reasons,
+                "ratings_moved": outcome.ratings,
+                "plans_moved": outcome.plans,
+                "field_counts": outcome.fields,
                 "run_age_hours": self._age_hours(run),
             }
         )
@@ -118,8 +120,11 @@ class SyncReviewViewSet(SyncViewSetBase):
     @extend_schema(
         summary="List mapping questions",
         description="The run's mapping questions in answer order: unanswered first, then "
-        "most ratings. Each course carries its live ratings, plans and offerings; a "
-        "suggested merge target and the live answer are included. Superusers only.",
+        "most ratings, narrowed by `kinds`, `rated` and a title `q`. Each course carries "
+        "its live ratings, plans and offerings; the САЗ title and department, the "
+        "semester a placement or move is about, a suggested merge target (the page with "
+        "ratings, then the one whose department is as in САЗ) and the live answer are "
+        "included. Superusers only.",
         parameters=to_openapi((SyncQuestionListParams, OpenApiParameter.QUERY)),
         responses=R_SYNC_QUESTIONS,
         operation_id="ukma_data_sync_questions_list",
@@ -128,7 +133,12 @@ class SyncReviewViewSet(SyncViewSetBase):
         params = self._query(request, SyncQuestionListParams)
         run = self._request_run(params.source, params.run)
         items, next_after = questions.page(
-            run, rated=params.rated, after=params.after, limit=params.limit
+            run,
+            rated=params.rated,
+            after=params.after,
+            limit=params.limit,
+            kinds=frozenset((params.kinds or "").split(",")) - {""},
+            q=params.q,
         )
         payload = SyncQuestionListResponseSerializer(
             {"items": [questions.payload(item) for item in items], "next_after": next_after}

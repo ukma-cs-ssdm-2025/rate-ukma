@@ -23,6 +23,7 @@ const badgeVariants = cva(
 				"soft-destructive":
 					"border-transparent bg-destructive/10 text-destructive",
 				success: "border-transparent bg-success/10 text-success",
+				caution: "border-transparent bg-caution text-caution-foreground",
 			},
 		},
 		defaultVariants: {

@@ -9,17 +9,14 @@ import { cn } from "@/lib/utils";
 const TABS = [
 	{ to: "/data", label: "Огляд", exact: true },
 	{ to: "/data/cases", label: "Справи", exact: false },
-	{ to: "/data/sync", label: "Синхронізація", exact: false },
+	{ to: "/data/sync", label: "Оновлення з САЗ", exact: false },
 ] as const;
 
 export function DataSectionHeader() {
 	return (
 		<div className="space-y-4">
-			<PageHeader
-				title="UKMA Data"
-				description="Синхронізація з САЗ і справи, які сервіс не вирішив сам"
-			/>
-			<nav aria-label="Розділи UKMA Data" className="flex gap-1 border-b">
+			<PageHeader title="Дані САЗ" />
+			<nav aria-label="Розділи даних САЗ" className="flex gap-1 border-b">
 				{TABS.map((tab) => (
 					<Link
 						key={tab.to}

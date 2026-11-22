@@ -601,7 +601,7 @@ def test_questions_return_course_state_and_a_suggested_target(
     assert matching_card["offerings"][0]["year"] == 2025
     assert matching_card["offerings"][0]["term"] == "FALL"
     assert matching_card["offerings"][0]["ratings"] == 1
-    assert question["suggested_into"] == str(matching.pk)
+    assert question["suggested_into"] == str(other.pk)
     answered = next(item for item in body["items"] if item["id"] == quiet.pk)
     assert answered["answer"]["answer"] == "keep_apart"
 

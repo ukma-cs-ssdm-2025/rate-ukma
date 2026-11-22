@@ -1,8 +1,9 @@
-import { Inbox } from "lucide-react";
-import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
+import { useState } from "react";
 
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import axios from "axios";
+import { CalendarClock } from "lucide-react";
+import { useQueryStates } from "nuqs";
+
 import {
 	Empty,
 	EmptyDescription,
@@ -10,261 +11,162 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@/components/ui/Empty";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { SyncChange, SyncRun } from "@/lib/api/generated";
-import { useUkmaDataSyncPendingList } from "@/lib/api/generated";
-import { formatDateTime } from "../reviewCases";
+import type { SyncSummary } from "@/lib/api/generated";
 import {
-	ALL,
-	dataAgeSeconds,
-	formatAge,
-	GROUP_LABELS,
-	KIND_LABELS,
-	PAGE_SIZE,
-	RUN_STATUS_LABELS,
-	runStatusVariant,
-	SOURCE_LABELS,
-	SYNC_GROUPS,
-	SYNC_SOURCES,
-} from "../sync";
-import { SyncChangeCard } from "./SyncChangeCard";
-import { SyncPagination } from "./SyncPagination";
+	useUkmaDataSyncRunApprovalsList,
+	useUkmaDataSyncSummary,
+} from "@/lib/api/generated";
+import { useCurrentEmail } from "../hooks/useSyncApplyLock";
+import type { ConfirmRequest, DoneBanner } from "../syncConfirm";
+import { doneLines, openLines, pendingTotal } from "../syncGroups";
+import type { GroupLine, SyncView } from "../syncGroups";
+import {
+	historyParams,
+	tabParser,
+	VIEW_RESET,
+	viewParams,
+} from "../syncParams";
+import { linksRequest, removedRequest } from "../syncRequests";
+import { SyncAllDone } from "./SyncAllDone";
+import { SyncConfirmDialog } from "./SyncConfirmDialog";
+import { SyncDoneBanner, SyncOverview } from "./SyncOverview";
+import { SyncViews } from "./SyncViews";
 import { UkmaDataError } from "./UkmaDataError";
 
-const pendingParams = {
-	group: parseAsStringEnum([...SYNC_GROUPS, ALL]).withDefault(ALL),
-	kind: parseAsStringEnum([...Object.keys(KIND_LABELS), ALL]).withDefault(ALL),
-	page: parseAsInteger.withDefault(1),
-};
+const APPROVALS_PAGE = 50;
 
-function CurrentRuns({ runs }: Readonly<{ runs: SyncRun[] }>) {
-	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="text-base">Поточні запуски</CardTitle>
-			</CardHeader>
-			<CardContent className="space-y-2 text-sm">
-				{runs.length === 0 ? (
-					<p className="text-muted-foreground">
-						Ще немає успішних запусків синхронізації.
-					</p>
-				) : (
-					<ul className="space-y-2" aria-label="Поточні запуски синхронізації">
-						{runs.map((run) => {
-							const age = dataAgeSeconds(run.data_updated_at);
-							return (
-								<li
-									key={run.id}
-									className="flex flex-wrap items-center gap-x-3 gap-y-1"
-								>
-									<Badge variant={runStatusVariant(run.status)}>
-										{RUN_STATUS_LABELS[run.status]}
-									</Badge>
-									<span className="font-medium">
-										{SOURCE_LABELS[run.source]}
-									</span>
-									<span className="text-muted-foreground">
-										завершено{" "}
-										{run.finished_at ? formatDateTime(run.finished_at) : "—"}
-									</span>
-									<span className="text-muted-foreground">
-										дані UKMA Data{" "}
-										{run.data_updated_at === null || age === null
-											? "невідомі"
-											: `${formatDateTime(run.data_updated_at)} (${formatAge(age)} тому)`}
-									</span>
-								</li>
-							);
-						})}
-					</ul>
-				)}
-			</CardContent>
-		</Card>
-	);
-}
+const isNotFound = (error: unknown): boolean =>
+	axios.isAxiosError(error) && error.response?.status === 404;
 
-function PendingFilters({
-	group,
-	kind,
-	groups,
-	kinds,
-	onGroupChange,
-	onKindChange,
-}: Readonly<{
-	group: string;
-	kind: string;
-	groups: { [key: string]: number } | undefined;
-	kinds: { [key: string]: number } | undefined;
-	onGroupChange: (value: string) => void;
-	onKindChange: (value: string) => void;
-}>) {
+function OverviewSkeleton() {
 	return (
-		<div className="flex flex-col gap-2 sm:flex-row">
-			<Select value={group} onValueChange={(value) => onGroupChange(value)}>
-				<SelectTrigger aria-label="Група змін" className="w-full sm:w-56">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value={ALL}>Усі групи</SelectItem>
-					{SYNC_GROUPS.map((item) => (
-						<SelectItem key={item} value={item}>
-							{GROUP_LABELS[item]}
-							{groups?.[item] ? ` (${groups[item]})` : ""}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-			<Select value={kind} onValueChange={(value) => onKindChange(value)}>
-				<SelectTrigger aria-label="Тип зміни" className="w-full sm:w-64">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value={ALL}>Усі типи</SelectItem>
-					{Object.entries(KIND_LABELS).map(([item, label]) => (
-						<SelectItem key={item} value={item}>
-							{label}
-							{kinds?.[item] ? ` (${kinds[item]})` : ""}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+		<div className="space-y-3" aria-busy="true" aria-label="Завантаження">
+			<Skeleton className="h-16 rounded-lg" />
+			{Array.from({ length: 4 }, (_, index) => (
+				<Skeleton key={index} className="h-28 rounded-lg" />
+			))}
 		</div>
 	);
 }
 
-function GroupedChanges({ changes }: Readonly<{ changes: SyncChange[] }>) {
+function NeverRun() {
+	return (
+		<Empty className="border">
+			<EmptyHeader>
+				<EmptyMedia variant="icon">
+					<CalendarClock />
+				</EmptyMedia>
+				<EmptyTitle>Порівняння з САЗ ще не запускалось</EmptyTitle>
+				<EmptyDescription>
+					Перша нічна перевірка покаже тут, що змінилось у САЗ.
+				</EmptyDescription>
+			</EmptyHeader>
+		</Empty>
+	);
+}
+
+function requestFor(
+	line: GroupLine,
+	summary: SyncSummary,
+): ConfirmRequest | null {
+	if (line.key === "links") {
+		return linksRequest(summary.groups);
+	}
+	return line.key === "removed" ? removedRequest(summary.groups) : null;
+}
+
+function PendingBody({ summary }: Readonly<{ summary: SyncSummary }>) {
+	const [params, setParams] = useQueryStates(viewParams);
+	const [, setHistory] = useQueryStates({ tab: tabParser, ...historyParams });
+	const [request, setRequest] = useState<ConfirmRequest | null>(null);
+	const [banner, setBanner] = useState<DoneBanner | null>(null);
+	const email = useCurrentEmail();
+	const runId = summary.run.id;
+	const approvals = useUkmaDataSyncRunApprovalsList(
+		runId,
+		{ page_size: APPROVALS_PAGE },
+		{ query: { retry: false } },
+	);
+	const lines = openLines(summary.groups);
+	const done = doneLines(summary.groups, approvals.data?.items ?? [], email);
+	const open = (view: SyncView) => void setParams({ ...VIEW_RESET, view });
+	const history = (run: number | null) =>
+		void setHistory({ tab: "history", openRun: run });
+	const finish = (next: DoneBanner) => {
+		setRequest(null);
+		setBanner(next);
+		void setParams({ ...VIEW_RESET, view: null });
+	};
+	const action = (line: GroupLine) => {
+		if (line.action.view !== null) {
+			open(line.action.view);
+			return;
+		}
+		setRequest(requestFor(line, summary));
+	};
 	return (
 		<div className="space-y-6">
-			{SYNC_SOURCES.map((source) => {
-				const sourceChanges = changes.filter((item) => item.source === source);
-				if (sourceChanges.length === 0) {
-					return null;
-				}
-				return (
-					<section
-						key={source}
-						aria-label={SOURCE_LABELS[source]}
-						className="space-y-3"
-					>
-						<h2 className="text-lg font-semibold">{SOURCE_LABELS[source]}</h2>
-						{SYNC_GROUPS.map((group) => {
-							const items = sourceChanges.filter(
-								(item) => item.group === group,
-							);
-							if (items.length === 0) {
-								return null;
-							}
-							return (
-								<div key={group} className="space-y-2">
-									<h3 className="flex items-center gap-2 text-sm font-medium">
-										{GROUP_LABELS[group]}
-										<Badge variant="secondary">
-											{items.length}
-											<span className="sr-only"> на цій сторінці</span>
-										</Badge>
-									</h3>
-									<ul
-										className="space-y-3"
-										aria-label={`${SOURCE_LABELS[source]}: ${GROUP_LABELS[group]}`}
-									>
-										{items.map((change) => (
-											<li key={change.id}>
-												<SyncChangeCard change={change} />
-											</li>
-										))}
-									</ul>
-								</div>
-							);
-						})}
-					</section>
-				);
-			})}
+			{banner === null ? null : (
+				<SyncDoneBanner
+					banner={banner}
+					onHistory={() => history(banner.runId)}
+					onDismiss={() => setBanner(null)}
+				/>
+			)}
+			{params.view === "overview" && lines.length === 0 ? (
+				<SyncAllDone done={done} onHistory={history} />
+			) : null}
+			{params.view === "overview" && lines.length > 0 ? (
+				<SyncOverview
+					summary={summary}
+					remaining={pendingTotal(summary.groups)}
+					lines={lines}
+					done={done}
+					onAction={action}
+					onOpen={open}
+					onHistory={history}
+				/>
+			) : null}
+			{params.view === "overview" ? null : (
+				<SyncViews
+					summary={summary}
+					onBack={() => open("overview")}
+					onConfirm={setRequest}
+				/>
+			)}
+			{request === null ? null : (
+				<SyncConfirmDialog
+					request={request}
+					run={runId}
+					onClose={() => setRequest(null)}
+					onDone={finish}
+				/>
+			)}
 		</div>
 	);
 }
 
 export function SyncPendingTab() {
-	const [{ group, kind, page }, setParams] = useQueryStates(pendingParams);
-	const { data, isLoading, error, refetch, isRefetching } =
-		useUkmaDataSyncPendingList(
-			{
-				page,
-				page_size: PAGE_SIZE,
-				group: group === ALL ? undefined : group,
-				kind: kind === ALL ? undefined : kind,
-			},
-			{ query: { retry: false } },
-		);
-	const filtered = group !== ALL || kind !== ALL;
-	return (
-		<div className="space-y-4">
-			<CurrentRuns runs={data?.runs ?? []} />
-			<PendingFilters
-				group={group}
-				kind={kind}
-				groups={data?.groups}
-				kinds={data?.kinds}
-				onGroupChange={(value) =>
-					setParams({ group: pendingParams.group.parse(value), page: 1 })
-				}
-				onKindChange={(value) =>
-					setParams({ kind: pendingParams.kind.parse(value), page: 1 })
-				}
-			/>
-			{data && !error ? (
-				<p className="text-sm text-muted-foreground">
-					{filtered
-						? `Змін у вибірці: ${data.total}`
-						: `Очікують підтвердження: ${data.total}`}
-				</p>
-			) : null}
-			{isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
-			{error ? (
-				<UkmaDataError
-					error={error}
-					title="Не вдалося завантажити зміни"
-					onRetry={refetch}
-					isRetrying={isRefetching}
-				/>
-			) : null}
-			{data && !error && data.items.length === 0 ? (
-				<Empty className="border">
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<Inbox />
-						</EmptyMedia>
-						<EmptyTitle>Немає змін, що очікують</EmptyTitle>
-						<EmptyDescription>
-							{filtered
-								? "За цим фільтром нічого не очікує."
-								: "Наступний запуск синхронізації додасть зміни сюди."}
-						</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
-			) : null}
-			{data && !error && data.items.length > 0 ? (
-				<>
-					<GroupedChanges changes={data.items} />
-					<p className="text-sm text-muted-foreground">
-						Підтвердження, відхилення й відповіді на питання зʼявляться
-						наступним оновленням.
-					</p>
-					<SyncPagination
-						page={data.page}
-						totalPages={data.total_pages}
-						nextPage={data.next_page}
-						previousPage={data.previous_page}
-						onPageChange={(next) => setParams({ page: next })}
-					/>
-				</>
-			) : null}
-		</div>
+	const summary = useUkmaDataSyncSummary(
+		{ source: "catalog" },
+		{ query: { retry: false } },
 	);
+	if (summary.isLoading) {
+		return <OverviewSkeleton />;
+	}
+	if (summary.error && isNotFound(summary.error)) {
+		return <NeverRun />;
+	}
+	if (summary.error) {
+		return (
+			<UkmaDataError
+				error={summary.error}
+				title="Не вдалося завантажити зміни з САЗ"
+				onRetry={() => void summary.refetch()}
+				isRetrying={summary.isRefetching}
+			/>
+		);
+	}
+	return summary.data ? <PendingBody summary={summary.data} /> : null;
 }

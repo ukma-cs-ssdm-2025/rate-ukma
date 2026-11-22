@@ -83,14 +83,26 @@ class SyncPolicyUpdateSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=SyncPolicyMode.choices)
 
 
+SELECTION_GROUP_CHOICES = [*SyncChangeGroup.choices, ("other", "Other")]
+
+
 class SyncSelectionFilterSerializer(serializers.Serializer):
-    group = serializers.ChoiceField(choices=SyncChangeGroup.choices)
+    group = serializers.ChoiceField(choices=SELECTION_GROUP_CHOICES)
     kind = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     q = serializers.CharField(required=False, allow_null=True, allow_blank=True, max_length=200)
     rated = serializers.BooleanField(required=False, allow_null=True)
     match = serializers.ChoiceField(choices=["exact", "review"], required=False, allow_null=True)
     similar_existing = serializers.BooleanField(required=False, allow_null=True)
     fields_subset = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    changed_field = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=50
+    )
+    blanks = serializers.BooleanField(required=False, allow_null=True)
+    year_from = serializers.IntegerField(required=False, allow_null=True, min_value=2000)
+    year_to = serializers.IntegerField(required=False, allow_null=True, min_value=2000)
+    exclude_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), required=False, max_length=500
+    )
 
 
 class SyncSelectionSerializer(serializers.Serializer):
@@ -104,10 +116,6 @@ class SyncSelectionSerializer(serializers.Serializer):
         filters = attrs.get("filter")
         if (given is None) == (filters is None):
             raise serializers.ValidationError("Вкажіть або зміни, або фільтр")
-        if given is not None and len(given) > 200:  # pyright: ignore[reportArgumentType]  # ListField output
-            raise serializers.ValidationError(
-                {"change_ids": ["За ідентифікаторами можна застосувати до 200 змін"]}
-            )
         return attrs
 
 
@@ -150,8 +158,16 @@ class SyncApproveRequestSerializer(serializers.Serializer):
 
 class SyncRejectRequestSerializer(serializers.Serializer):
     change_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), allow_empty=False
+        child=serializers.IntegerField(min_value=1), required=False, allow_empty=False
     )
+    source = serializers.ChoiceField(choices=SyncSource.choices, default=SyncSource.CATALOG)
+    selection = SyncSelectionSerializer(required=False, allow_null=True)
+    token = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
+        if (attrs.get("change_ids") is None) == (attrs.get("selection") is None):
+            raise serializers.ValidationError({"selection": ["Вкажіть або зміни, або вибірку"]})
+        return attrs
 
 
 class SyncAnswerRequestSerializer(serializers.Serializer):
