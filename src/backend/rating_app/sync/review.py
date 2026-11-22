@@ -28,6 +28,7 @@ from rating_app.models import (
     SyncRun,
     SyncRunStatus,
 )
+from rating_app.sync import fields as field_pairs
 from rating_app.sync.kinds import KIND_BY_NAME
 from rating_app.sync.matching import normalise_title, same_title
 
@@ -42,6 +43,9 @@ NEW_KINDS: frozenset[str] = frozenset(
 )
 CHANGE_KINDS: frozenset[str] = frozenset(
     kind.name for kind in KIND_BY_NAME.values() if kind.group == SyncChangeGroup.CHANGE
+)
+REMOVED_KINDS: frozenset[str] = frozenset(
+    kind.name for kind in KIND_BY_NAME.values() if kind.group == SyncChangeGroup.REMOVED
 )
 _COURSE_KINDS = frozenset({"link_course", "change_course", "relink_course", "removed_course"})
 _OFFERING_KINDS = frozenset({"link_offering", "change_offering", "removed_offering"})
@@ -441,9 +445,70 @@ def summary_payload(run: SyncRun) -> dict[str, Any]:
     return {
         "run": run,
         "newer_run_id": newer_run_id(run),
+        "groups": _groups(base, mapping_rows, rated_question_ids, change_rows),
         "steps": steps,
         "answers": answer_counts(mapping_rows),
         "not_proposed": _not_proposed(run),
+    }
+
+
+def _groups(
+    base: Sequence[tuple[int, str, str | None, int]],
+    mapping_rows: Sequence[dict[str, Any]],
+    rated_question_ids: set[int],
+    change_rows: dict[int, tuple[dict[str, Any], dict[str, Any], int]],
+) -> dict[str, Any]:
+    """The parts each line of the sync page names, so its words and its confirm
+    dialog count the same rows."""
+    kinds: Counter[str] = Counter(str(kind) for _, kind, _, _ in base)
+
+    def total(names: Iterable[str]) -> int:
+        return sum(kinds[name] for name in names)
+
+    merges = [row for row in mapping_rows if row["kind"] == "merge_courses"]
+    rated = [row for row in merges if row["id"] in rated_question_ids]
+    fields, blanking = field_pairs.field_rows(
+        {
+            change_id: field_pairs.value_pairs(after, before)
+            for change_id, (after, before, _) in change_rows.items()
+        }
+    )
+    grouped = LINK_KINDS | NEW_KINDS | CHANGE_KINDS | MAPPING_KINDS | REMOVED_KINDS
+    return {
+        "links": _parts(kinds, "link", total(LINK_KINDS)),
+        "new": _parts(kinds, "new", total(NEW_KINDS)),
+        "changes": {
+            "total": total(CHANGE_KINDS),
+            "offerings": kinds["change_offering"],
+            "by_field": fields,
+            "blanking": blanking,
+        },
+        "merges": {
+            "total": len(merges),
+            "rated": len(rated),
+            "ratings": sum(int(row["ratings"]) for row in rated),
+            "unrated": len(merges) - len(rated),
+        },
+        "placements": {
+            "total": kinds["place_offering"] + kinds["move_offering"],
+            "place": kinds["place_offering"],
+            "move": kinds["move_offering"],
+        },
+        "removed": {"total": total(REMOVED_KINDS)},
+        "other": {
+            "total": kinds["relink_course"]
+            + sum(count for name, count in kinds.items() if name not in grouped)
+        },
+    }
+
+
+def _parts(kinds: Counter[str], prefix: str, total: int) -> dict[str, int]:
+    return {
+        "courses": kinds[f"{prefix}_course"],
+        "offerings": kinds[f"{prefix}_offering"],
+        "faculties": kinds[f"{prefix}_faculty"],
+        "departments": kinds[f"{prefix}_department"],
+        "total": total,
     }
 
 

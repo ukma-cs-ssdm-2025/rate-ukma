@@ -3839,6 +3839,16 @@ paths:
       summary: List the changes waiting for approval
       parameters:
       - in: query
+        name: blanks
+        schema:
+          type: boolean
+        description: Change rows that blank a field (`true`) or blank none
+      - in: query
+        name: changed_field
+        schema:
+          type: string
+        description: Change rows with a value pair on this field, terms included
+      - in: query
         name: field
         schema:
           type: string
@@ -3933,6 +3943,16 @@ paths:
           - all
           - sample
         description: '`sample` takes up to 20 rows per faculty'
+      - in: query
+        name: year_from
+        schema:
+          type: integer
+        description: Semesters from this academic year (Осінь 2025 = 2025)
+      - in: query
+        name: year_to
+        schema:
+          type: integer
+        description: Semesters up to this academic year
       tags:
       - ukma-data
       security:
@@ -4261,8 +4281,11 @@ paths:
     get:
       operationId: ukma_data_sync_questions_list
       description: 'The run''s mapping questions in answer order: unanswered first,
-        then most ratings. Each course carries its live ratings, plans and offerings;
-        a suggested merge target and the live answer are included. Superusers only.'
+        then most ratings, narrowed by `kinds`, `rated` and a title `q`. Each course
+        carries its live ratings, plans and offerings; the САЗ title and department,
+        the semester a placement or move is about, a suggested merge target (the page
+        with ratings, then the one whose department is as in САЗ) and the live answer
+        are included. Superusers only.'
       summary: List mapping questions
       parameters:
       - in: query
@@ -4271,10 +4294,20 @@ paths:
           type: string
         description: 'Keyset cursor: `next_after` from the previous page'
       - in: query
+        name: kinds
+        schema:
+          type: string
+        description: Comma-separated mapping kinds, e.g. `place_offering,move_offering`
+      - in: query
         name: limit
         schema:
           type: integer
         description: Questions per page
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Match a course title
       - in: query
         name: rated
         schema:
@@ -4426,7 +4459,10 @@ paths:
     post:
       operationId: ukma_data_sync_reject
       description: Mark the selected proposed changes rejected and supersede the changes
-        waiting on them. Superusers only.
+        waiting on them. Select by `change_ids`, or by a `selection` confirmed with
+        the `token` from `preview/`; a changed set answers 409 `selection_changed`.
+        A rejected change comes back with the next run if САЗ still differs. Superusers
+        only.
       summary: Reject sync changes
       tags:
       - ukma-data
@@ -4441,7 +4477,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/SyncRejectRequest'
-        required: true
       security:
       - cookieAuth: []
       - tokenAuth: []
@@ -7496,6 +7531,26 @@ components:
         * `change` - Change
         * `mapping` - Mapping
         * `removed` - Removed
+    SyncChangeGroupParts:
+      type: object
+      properties:
+        total:
+          type: integer
+        offerings:
+          type: integer
+        by_field:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncFieldRow'
+        blanking:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncFieldRow'
+      required:
+      - blanking
+      - by_field
+      - offerings
+      - total
     SyncChangeListResponse:
       type: object
       properties:
@@ -7539,6 +7594,63 @@ components:
         * `applied` - Applied
         * `rejected` - Rejected
         * `superseded` - Superseded
+    SyncFieldRow:
+      type: object
+      properties:
+        field:
+          type: string
+        count:
+          type: integer
+        pairs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncValuePair'
+      required:
+      - count
+      - field
+      - pairs
+    SyncGroupParts:
+      type: object
+      properties:
+        courses:
+          type: integer
+        offerings:
+          type: integer
+        faculties:
+          type: integer
+        departments:
+          type: integer
+        total:
+          type: integer
+      required:
+      - courses
+      - departments
+      - faculties
+      - offerings
+      - total
+    SyncGroupTotal:
+      type: object
+      properties:
+        total:
+          type: integer
+      required:
+      - total
+    SyncMergeGroupParts:
+      type: object
+      properties:
+        total:
+          type: integer
+        rated:
+          type: integer
+        ratings:
+          type: integer
+        unrated:
+          type: integer
+      required:
+      - rated
+      - ratings
+      - total
+      - unrated
     SyncMergedCourse:
       type: object
       properties:
@@ -7613,6 +7725,19 @@ components:
       - runs
       - total
       - total_pages
+    SyncPlacementGroupParts:
+      type: object
+      properties:
+        total:
+          type: integer
+        place:
+          type: integer
+        move:
+          type: integer
+      required:
+      - move
+      - place
+      - total
     SyncPolicy:
       type: object
       properties:
@@ -7812,6 +7937,20 @@ components:
         ukma_data_id:
           type: string
           nullable: true
+        ukma_title:
+          type: string
+          nullable: true
+        ukma_department:
+          type: string
+          nullable: true
+        offering:
+          allOf:
+          - $ref: '#/components/schemas/SyncQuestionSemester'
+          nullable: true
+        move_into:
+          type: string
+          format: uuid
+          nullable: true
         ratings:
           type: integer
         plans:
@@ -7834,10 +7973,14 @@ components:
       - id
       - key
       - kind
+      - move_into
+      - offering
       - plans
       - ratings
       - suggested_into
       - ukma_data_id
+      - ukma_department
+      - ukma_title
     SyncQuestionAnswer:
       type: object
       properties:
@@ -7931,6 +8074,19 @@ components:
       - saz_code
       - term
       - year
+    SyncQuestionSemester:
+      type: object
+      properties:
+        saz_code:
+          type: string
+        year:
+          type: integer
+        term:
+          type: string
+      required:
+      - saz_code
+      - term
+      - year
     SyncRejectRequest:
       type: object
       properties:
@@ -7939,8 +8095,17 @@ components:
           items:
             type: integer
             minimum: 1
-      required:
-      - change_ids
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          default: catalog
+        selection:
+          allOf:
+          - $ref: '#/components/schemas/SyncSelection'
+          nullable: true
+        token:
+          type: string
+          nullable: true
     SyncRun:
       type: object
       properties:
@@ -8074,6 +8239,27 @@ components:
         fields_subset:
           type: string
           nullable: true
+        changed_field:
+          type: string
+          nullable: true
+          maxLength: 50
+        blanks:
+          type: boolean
+          nullable: true
+        year_from:
+          type: integer
+          minimum: 2000
+          nullable: true
+        year_to:
+          type: integer
+          minimum: 2000
+          nullable: true
+        exclude_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          maxItems: 500
       required:
       - group
     SyncSourceEnum:
@@ -8092,6 +8278,8 @@ components:
         newer_run_id:
           type: integer
           nullable: true
+        groups:
+          $ref: '#/components/schemas/SyncSummaryGroups'
         steps:
           type: array
           items:
@@ -8104,6 +8292,7 @@ components:
             $ref: '#/components/schemas/SyncNotProposed'
       required:
       - answers
+      - groups
       - newer_run_id
       - not_proposed
       - run
@@ -8127,6 +8316,31 @@ components:
       - merge
       - move
       - place
+    SyncSummaryGroups:
+      type: object
+      properties:
+        links:
+          $ref: '#/components/schemas/SyncGroupParts'
+        new:
+          $ref: '#/components/schemas/SyncGroupParts'
+        changes:
+          $ref: '#/components/schemas/SyncChangeGroupParts'
+        merges:
+          $ref: '#/components/schemas/SyncMergeGroupParts'
+        placements:
+          $ref: '#/components/schemas/SyncPlacementGroupParts'
+        removed:
+          $ref: '#/components/schemas/SyncGroupTotal'
+        other:
+          $ref: '#/components/schemas/SyncGroupTotal'
+      required:
+      - changes
+      - links
+      - merges
+      - new
+      - other
+      - placements
+      - removed
     SyncSummaryStep:
       type: object
       properties:
@@ -8159,6 +8373,19 @@ components:
       - ratings
       - step
       - waiting
+    SyncValuePair:
+      type: object
+      properties:
+        before:
+          type: string
+        after:
+          type: string
+        count:
+          type: integer
+      required:
+      - after
+      - before
+      - count
     UkmaDataDepartment:
       type: object
       properties:

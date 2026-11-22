@@ -73,9 +73,64 @@ class SyncNotProposedSerializer(serializers.Serializer):
     rated = serializers.IntegerField()
 
 
+class SyncGroupPartsSerializer(serializers.Serializer):
+    courses = serializers.IntegerField()
+    offerings = serializers.IntegerField()
+    faculties = serializers.IntegerField()
+    departments = serializers.IntegerField()
+    total = serializers.IntegerField()
+
+
+class SyncValuePairSerializer(serializers.Serializer):
+    before = serializers.CharField(allow_blank=True)
+    after = serializers.CharField(allow_blank=True)
+    count = serializers.IntegerField()
+
+
+class SyncFieldRowSerializer(serializers.Serializer):
+    field = serializers.CharField()
+    count = serializers.IntegerField()
+    pairs = SyncValuePairSerializer(many=True)
+
+
+class SyncChangeGroupPartsSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    offerings = serializers.IntegerField()
+    by_field = SyncFieldRowSerializer(many=True)
+    blanking = SyncFieldRowSerializer(many=True)
+
+
+class SyncMergeGroupPartsSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    rated = serializers.IntegerField()
+    ratings = serializers.IntegerField()
+    unrated = serializers.IntegerField()
+
+
+class SyncPlacementGroupPartsSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    place = serializers.IntegerField()
+    move = serializers.IntegerField()
+
+
+class SyncGroupTotalSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+
+
+class SyncSummaryGroupsSerializer(serializers.Serializer):
+    links = SyncGroupPartsSerializer()
+    new = SyncGroupPartsSerializer()
+    changes = SyncChangeGroupPartsSerializer()
+    merges = SyncMergeGroupPartsSerializer()
+    placements = SyncPlacementGroupPartsSerializer()
+    removed = SyncGroupTotalSerializer()
+    other = SyncGroupTotalSerializer()
+
+
 class SyncSummarySerializer(serializers.Serializer):
     run = SyncRunSerializer()
     newer_run_id = serializers.IntegerField(allow_null=True)
+    groups = SyncSummaryGroupsSerializer()
     steps = SyncSummaryStepSerializer(many=True)
     answers = SyncSummaryAnswersSerializer()
     not_proposed = serializers.DictField(child=SyncNotProposedSerializer())
@@ -107,11 +162,21 @@ class SyncQuestionAnswerSerializer(serializers.Serializer):
     decided_at = serializers.DateTimeField()
 
 
+class SyncQuestionSemesterSerializer(serializers.Serializer):
+    saz_code = serializers.CharField(allow_blank=True)
+    year = serializers.IntegerField()
+    term = serializers.CharField()
+
+
 class SyncQuestionSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     kind = serializers.CharField()
     key = serializers.CharField()
     ukma_data_id = serializers.CharField(allow_null=True)
+    ukma_title = serializers.CharField(allow_null=True)
+    ukma_department = serializers.CharField(allow_null=True)
+    offering = SyncQuestionSemesterSerializer(allow_null=True)
+    move_into = serializers.UUIDField(allow_null=True)
     ratings = serializers.IntegerField()
     plans = serializers.IntegerField()
     courses = SyncQuestionCourseSerializer(many=True)

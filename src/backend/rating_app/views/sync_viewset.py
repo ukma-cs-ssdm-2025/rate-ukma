@@ -173,6 +173,13 @@ class SyncViewSet(SyncViewSetBase):
             fields_subset=params.fields_subset,
             q=params.q,
         )
+        changes = selection.narrow(
+            changes,
+            changed_field=params.changed_field,
+            blanks=params.blanks,
+            year_from=params.year_from,
+            year_to=params.year_to,
+        )
         if params.view == "sample":
             items, metadata = self._sample_page(review.sample_ids(changes, params.seed), params)
         else:
@@ -297,7 +304,10 @@ class SyncViewSet(SyncViewSetBase):
     @extend_schema(
         summary="Reject sync changes",
         description="Mark the selected proposed changes rejected and supersede the "
-        "changes waiting on them. Superusers only.",
+        "changes waiting on them. Select by `change_ids`, or by a `selection` confirmed "
+        "with the `token` from `preview/`; a changed set answers 409 `selection_changed`. "
+        "A rejected change comes back with the next run if САЗ still differs. "
+        "Superusers only.",
         request=SyncRejectRequestSerializer,
         responses=R_SYNC_APPROVE,
         operation_id="ukma_data_sync_reject",
@@ -306,7 +316,15 @@ class SyncViewSet(SyncViewSetBase):
         serializer = SyncRejectRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated = cast(dict[str, Any], serializer.validated_data)
-        ids = cast(list[int], validated["change_ids"])
+        if validated.get("selection") is not None:
+            if not validated.get("token"):
+                raise ValidationError({"token": [PREVIEW_FIRST]})
+            resolved = self._token_ids(validated, request)
+            if isinstance(resolved, Response):
+                return resolved
+            ids = resolved
+        else:
+            ids = cast(list[int], validated["change_ids"])
         try:
             approval = apply.reject(ids, request.user)
         except SyncApplyInputError as exc:
@@ -414,8 +432,17 @@ class SyncViewSet(SyncViewSetBase):
         }
 
     def _resolve_approve_ids(self, data: dict[str, Any], request: Request) -> list[int] | Response:
+        if data.get("token"):
+            return self._token_ids(data, request)
+        if data.get("selection") is not None or not data.get("change_ids"):
+            raise ValidationError({"token": [PREVIEW_FIRST]})
+        return self._approve_selection(data)
+
+    def _token_ids(self, data: dict[str, Any], request: Request) -> list[int] | Response:
+        """The selection a recorded preview of this user confirmed; a changed set
+        answers 409 `selection_changed` and nothing is written."""
         selection_data = data.get("selection")
-        token = data.get("token") or None
+        token = str(data.get("token") or "")
         if token:
             parsed = selection.parse_token(token)
             run = None if parsed is None else SyncRun.objects.filter(pk=parsed[0]).first()
@@ -440,9 +467,7 @@ class SyncViewSet(SyncViewSetBase):
                     status=status.HTTP_409_CONFLICT,
                 )
             return ids
-        if selection_data is not None or not data.get("change_ids"):
-            raise ValidationError({"token": [PREVIEW_FIRST]})
-        return self._approve_selection(data)
+        raise ValidationError({"token": [PREVIEW_FIRST]})
 
     def _approve_selection(self, data: dict[str, Any]) -> list[int]:
         source = data["source"]

@@ -118,8 +118,11 @@ class SyncReviewViewSet(SyncViewSetBase):
     @extend_schema(
         summary="List mapping questions",
         description="The run's mapping questions in answer order: unanswered first, then "
-        "most ratings. Each course carries its live ratings, plans and offerings; a "
-        "suggested merge target and the live answer are included. Superusers only.",
+        "most ratings, narrowed by `kinds`, `rated` and a title `q`. Each course carries "
+        "its live ratings, plans and offerings; the САЗ title and department, the "
+        "semester a placement or move is about, a suggested merge target (the page with "
+        "ratings, then the one whose department is as in САЗ) and the live answer are "
+        "included. Superusers only.",
         parameters=to_openapi((SyncQuestionListParams, OpenApiParameter.QUERY)),
         responses=R_SYNC_QUESTIONS,
         operation_id="ukma_data_sync_questions_list",
@@ -128,7 +131,12 @@ class SyncReviewViewSet(SyncViewSetBase):
         params = self._query(request, SyncQuestionListParams)
         run = self._request_run(params.source, params.run)
         items, next_after = questions.page(
-            run, rated=params.rated, after=params.after, limit=params.limit
+            run,
+            rated=params.rated,
+            after=params.after,
+            limit=params.limit,
+            kinds=frozenset((params.kinds or "").split(",")) - {""},
+            q=params.q,
         )
         payload = SyncQuestionListResponseSerializer(
             {"items": [questions.payload(item) for item in items], "next_after": next_after}

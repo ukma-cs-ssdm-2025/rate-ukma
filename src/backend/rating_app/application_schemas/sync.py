@@ -61,6 +61,20 @@ class SyncPendingParams(SyncChangeListParams):
     fields_subset: str | None = Field(
         default=None, description="Comma-separated fields the change must stay within"
     )
+    changed_field: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Change rows with a value pair on this field, terms included",
+    )
+    blanks: bool | None = Field(
+        default=None, description="Change rows that blank a field (`true`) or blank none"
+    )
+    year_from: int | None = Field(
+        default=None, ge=2000, description="Semesters from this academic year (Осінь 2025 = 2025)"
+    )
+    year_to: int | None = Field(
+        default=None, ge=2000, description="Semesters up to this academic year"
+    )
     view: Literal["all", "sample"] = Field(
         default="all", description="`sample` takes up to 20 rows per faculty"
     )
@@ -88,3 +102,9 @@ class SyncQuestionListParams(BaseModel):
         description="Keyset cursor: `next_after` from the previous page",
     )
     limit: int = Field(default=20, ge=1, le=100, description="Questions per page")
+    kinds: str | None = Field(
+        default=None,
+        pattern=r"^[a-z_]+(,[a-z_]+)*$",
+        description="Comma-separated mapping kinds, e.g. `place_offering,move_offering`",
+    )
+    q: str | None = Field(default=None, max_length=200, description="Match a course title")

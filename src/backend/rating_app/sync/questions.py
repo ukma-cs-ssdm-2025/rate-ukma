@@ -19,7 +19,7 @@ from rating_app.models import (
     SyncChangeState,
     SyncRun,
 )
-from rating_app.sync.matching import academic_year_of, same_title
+from rating_app.sync.matching import academic_year_of, normalise_title, same_title
 from rating_app.sync.review import MAPPING_KINDS, target_refs
 
 
@@ -31,6 +31,8 @@ class Question:
     plans: int = 0
     suggested_into: str | None = None
     answer: dict[str, Any] | None = None
+    ukma_department: str | None = None
+    offering: dict[str, Any] | None = None
 
 
 def _after(value: object) -> dict[str, Any]:
@@ -70,6 +72,40 @@ def _ukma_title(change: SyncChange) -> str | None:
     return _text(_after(display.get("ukma_course")).get("title"))
 
 
+def _ukma_department(change: SyncChange) -> str | None:
+    display = _after(_after(change.after).get("display"))
+    return _text(_after(display.get("ukma_course")).get("department"))
+
+
+def _offering(change: SyncChange, moved: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    """The semester a placement or a move is about: from САЗ for a placement, from
+    the site's row for a move."""
+    after = _after(change.after)
+    if change.kind == "place_offering":
+        semester = _after(after.get("semester"))
+        year = semester.get("year")
+        if not isinstance(year, int):
+            return None
+        return {
+            "saz_code": str(after.get("saz_code") or ""),
+            "year": year,
+            "term": str(semester.get("term") or ""),
+        }
+    if change.kind == "move_offering" and change.target_id is not None:
+        return moved.get(change.target_id)
+    return None
+
+
+def _moved_offerings(changes: Sequence[SyncChange]) -> dict[str, dict[str, Any]]:
+    ids = _uuids(change.target_id for change in changes if change.kind == "move_offering")
+    return {
+        str(offering_id): {"saz_code": code or "", "year": year, "term": term}
+        for offering_id, code, year, term in CourseOffering.objects.filter(pk__in=ids).values_list(
+            "id", "code", "semester__year", "semester__term"
+        )
+    }
+
+
 def _display_flags(change: SyncChange) -> dict[str, dict[str, Any]]:
     display = _after(_after(change.after).get("display"))
     flags: dict[str, dict[str, Any]] = {}
@@ -98,9 +134,15 @@ def question_rows(run: SyncRun) -> list[Question]:
         (course_id for course_ids, _ in refs.values() for course_id in course_ids),
         (offering_id for _, offering_ids in refs.values() for offering_id in offering_ids),
     )
+    moved = _moved_offerings(changes)
     questions = []
     for change in changes:
-        question = Question(change=change, answer=answers.get((change.kind, change.key)))
+        question = Question(
+            change=change,
+            answer=answers.get((change.kind, change.key)),
+            ukma_department=_ukma_department(change),
+            offering=_offering(change, moved),
+        )
         ukma_title = _ukma_title(change)
         ukma_id = ukma_course_id(change)
         flags = _display_flags(change)
@@ -135,28 +177,28 @@ def question_rows(run: SyncRun) -> list[Question]:
             )
             question.ratings += int(stats["ratings"])
             question.plans += int(stats["plans"])
-        question.suggested_into = _suggested(question.courses)
+        question.suggested_into = _suggested(question.courses, question.ukma_department)
         questions.append(question)
     return questions
 
 
-def _suggested(courses: Sequence[dict[str, Any]]) -> str | None:
+def _suggested(courses: Sequence[dict[str, Any]], ukma_department: str | None) -> str | None:
+    """The page that stays: the one with ratings, then the one whose department is
+    as in САЗ, then the one that already matches САЗ, then the newest."""
     if not courses:
         return None
-    both = [
-        course for course in courses if course["title_matches_ukma"] and course["holds_ukma_id"]
-    ]
-    pool = both or list(courses)
-    return str(
-        max(
-            pool,
-            key=lambda course: (
-                int(course["ratings"]),
-                int(course["latest_year"]),
-                str(course["id"]),
-            ),
-        )["id"]
-    )
+    department = normalise_title(ukma_department or "")
+
+    def rank(course: dict[str, Any]) -> tuple[int, bool, bool, int, str]:
+        return (
+            int(course["ratings"]),
+            bool(department) and normalise_title(str(course["department"])) == department,
+            bool(course["title_matches_ukma"] and course["holds_ukma_id"]),
+            int(course["latest_year"]),
+            str(course["id"]),
+        )
+
+    return str(max(courses, key=rank)["id"])
 
 
 def _answers(keys: Sequence[tuple[str, str]]) -> dict[tuple[str, str], dict[str, Any]]:
@@ -259,11 +301,26 @@ def _parse_cursor(cursor: str) -> tuple[bool, int, int]:
 
 
 def page(
-    run: SyncRun, *, rated: bool | None, after: str | None, limit: int
+    run: SyncRun,
+    *,
+    rated: bool | None,
+    after: str | None,
+    limit: int,
+    kinds: frozenset[str] = frozenset(),
+    q: str | None = None,
 ) -> tuple[list[Question], str | None]:
     """The cursor is the last row's sort key, not its id: answering a question moves
     it to the end, and an id cursor would then skip every question still to answer."""
     rows = question_rows(run)
+    if kinds:
+        rows = [row for row in rows if row.change.kind in kinds]
+    needle = normalise_title(q or "")
+    if needle:
+        rows = [
+            row
+            for row in rows
+            if any(needle in normalise_title(str(course["title"])) for course in row.courses)
+        ]
     if rated is not None:
         rows = [row for row in rows if (row.ratings > 0 or row.plans > 0) is rated]
     rows.sort(key=_sort_key)
@@ -286,6 +343,12 @@ def payload(question: Question) -> dict[str, Any]:
         "kind": change.kind,
         "key": change.key,
         "ukma_data_id": ukma_course_id(change),
+        "ukma_title": _ukma_title(change),
+        "ukma_department": question.ukma_department,
+        "offering": question.offering,
+        "move_into": _text(_after(change.after).get("to_course_id"))
+        if change.kind == "move_offering"
+        else None,
         "ratings": question.ratings,
         "plans": question.plans,
         "courses": courses,
