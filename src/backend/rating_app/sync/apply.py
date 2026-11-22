@@ -423,7 +423,8 @@ def _apply_ready(handler: Handler, ready: list[SyncChange]) -> _ReadyResult:
         return outcome
     for change in ready:
         try:
-            report = handler.apply(change)
+            with transaction.atomic():
+                report = handler.apply(change)
         except ChangeNotReadyError:
             logger.info(
                 "sync_change_waiting",
@@ -772,7 +773,9 @@ def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str 
         and handler.exists(change.key)
     ):
         return SyncChangeStateReason.EXISTS
-    if change.kind == "new_offering" and _saz_code_taken(change.after.get("saz_code")):
+    if change.kind in {"new_offering", "place_offering"} and _saz_code_taken(
+        change.after.get("saz_code")
+    ):
         return SyncChangeStateReason.EXISTS
     if _teacher_missing_without_creation(change):
         return SyncChangeStateReason.STALE

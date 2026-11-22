@@ -688,6 +688,98 @@ def test_a_merge_whose_course_set_changed_is_superseded(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_a_merge_whose_later_source_is_gone_moves_nothing(
+    user,
+    make_run,
+    make_change,
+    course_factory,
+    course_offering_factory,
+    catalog_mapping_decision_factory,
+):
+    target = course_factory(ukma_data_id="ud-course")
+    sources = sorted(
+        [course_factory(ukma_data_id="ud-course"), course_factory(ukma_data_id="ud-course")],
+        key=lambda course: str(course.pk),
+    )
+    first_offering = course_offering_factory(course=sources[0])
+    run = make_run()
+    change = make_change(
+        run,
+        kind="merge_courses",
+        key="ud-course",
+        after=_merge_after([target, *sources]),
+        before={},
+    )
+    change.ukma_data_id = "ud-course"
+    change.save(update_fields=["ukma_data_id"])
+    catalog_mapping_decision_factory(
+        kind="merge_courses",
+        question_key="ud-course",
+        ukma_course_id="ud-course",
+        course=None,
+        into=target,
+        answer=MappingAnswer.MERGE,
+        premise=_merge_premise([target, *sources]),
+    )
+    Course.objects.filter(pk=sources[1].pk).delete()
+
+    approve([change.pk], user)
+
+    change.refresh_from_db()
+    first_offering.refresh_from_db()
+    assert change.state == SyncChangeState.SUPERSEDED
+    assert change.state_reason == SyncChangeStateReason.STALE
+    assert Course.objects.filter(pk=sources[0].pk).exists()
+    assert first_offering.course_id == sources[0].pk
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_merge_premise_with_per_course_ratings_including_zero_still_holds(
+    user,
+    make_run,
+    make_change,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    catalog_mapping_decision_factory,
+):
+    target = course_factory(ukma_data_id="ud-course")
+    source = course_factory(ukma_data_id="ud-course")
+    rating_factory(course_offering=course_offering_factory(course=target))
+    course_offering_factory(course=source)
+    run = make_run()
+    change = make_change(
+        run,
+        kind="merge_courses",
+        key="ud-course",
+        after=_merge_after([target, source]),
+        before={},
+    )
+    change.ukma_data_id = "ud-course"
+    change.save(update_fields=["ukma_data_id"])
+    catalog_mapping_decision_factory(
+        kind="merge_courses",
+        question_key="ud-course",
+        ukma_course_id="ud-course",
+        course=None,
+        into=target,
+        answer=MappingAnswer.MERGE,
+        premise={
+            **_merge_premise([target, source]),
+            "ratings": {str(target.pk): 1, str(source.pk): 0},
+        },
+    )
+
+    approve([change.pk], user)
+
+    change.refresh_from_db()
+    assert change.state == SyncChangeState.APPLIED
+    assert not Course.objects.filter(pk=source.pk).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_a_merge_without_an_answer_stays_proposed(user, make_run, make_change, course_factory):
     courses = [course_factory(ukma_data_id="ud-course") for _ in range(2)]
     run = make_run()

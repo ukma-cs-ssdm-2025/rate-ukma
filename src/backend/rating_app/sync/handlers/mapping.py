@@ -125,6 +125,15 @@ def apply_merge_courses(change: SyncChange) -> dict[str, object]:
     source_ids = _source_ids(payload.courses, target_id)
     if source_ids is None:
         raise ChangeNotReadyError
+    wanted = {target_id, *source_ids}
+    locked = set(
+        Course.objects.select_for_update()
+        .filter(id__in=wanted)
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
+    if locked != wanted:
+        raise ChangeStaleError
 
     plans = 0
     snapshots: dict[uuid.UUID, dict[str, object]] = {}
@@ -405,13 +414,16 @@ def _ratings_by_course(change: SyncChange) -> dict[str, int] | None:
     """Per-course counts, so a premise recorded as a map also compares."""
     if change.kind not in {"merge_courses", "place_offering"}:
         return None
+    course_ids = _valid_ids(_course_ids(change))
+    by_course = {str(course_id): 0 for course_id in course_ids}
     counts = (
-        Rating.objects.filter(course_offering__course_id__in=_valid_ids(_course_ids(change)))
+        Rating.objects.filter(course_offering__course_id__in=course_ids)
         .values("course_offering__course_id")
         .annotate(count=Count("id"))
         .values_list("course_offering__course_id", "count")
     )
-    return {str(course_id): count for course_id, count in counts}
+    by_course.update({str(course_id): count for course_id, count in counts})
+    return by_course
 
 
 def _valid_ids(values: Iterable[str]) -> list[uuid.UUID]:
