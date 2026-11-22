@@ -32,6 +32,7 @@ from rateukma.caching import instances as caching
 from rateukma.caching.cache_manager import SESSION_KEY_MARKER
 from rating_app.models import (
     Course,
+    CourseOffering,
     Department,
     PlannedCourse,
     Rating,
@@ -655,6 +656,8 @@ def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str 
         and handler.exists(change.key)
     ):
         return SyncChangeStateReason.EXISTS
+    if change.kind == "new_offering" and _saz_code_taken(change.after.get("saz_code")):
+        return SyncChangeStateReason.EXISTS
     if _teacher_missing_without_creation(change):
         return SyncChangeStateReason.STALE
     if change.target_id is None or snapshot is None:
@@ -662,6 +665,12 @@ def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str 
     if is_stale(change.kind, snapshot, change.target_id, change.before):
         return SyncChangeStateReason.STALE
     return None
+
+
+def _saz_code_taken(code: object) -> bool:
+    """A new offering whose САЗ code a Rate UKMA offering already holds would
+    hit the unique code and roll back the whole approval."""
+    return isinstance(code, str) and CourseOffering.objects.filter(code=code).exists()
 
 
 def _teacher_missing_without_creation(change: SyncChange) -> bool:

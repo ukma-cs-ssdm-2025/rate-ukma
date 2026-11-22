@@ -1463,6 +1463,34 @@ def test_approving_new_rows_applies_them_in_dependency_order(user, make_run, mak
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_a_new_offering_whose_saz_code_is_taken_is_superseded_and_the_rest_applies(
+    user, make_run, make_change, course_factory, course_offering_factory
+):
+    course = course_factory(ukma_data_id="ud-course")
+    course_offering_factory(code="315421")
+    run = make_run(source=SyncSource.CATALOG)
+    taken = make_change(
+        run,
+        kind="new_offering",
+        key="ud-offering",
+        after=_offering_after(course_ukma_id="ud-course", saz_code="315421"),
+    )
+    faculty = make_change(run, kind="new_faculty", key="ud-fac", after={"name": "Факультет даних"})
+
+    approval = approve([taken.pk, faculty.pk], user)
+
+    taken.refresh_from_db()
+    faculty.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert taken.state == SyncChangeState.SUPERSEDED
+    assert taken.state_reason == SyncChangeStateReason.EXISTS
+    assert faculty.state == SyncChangeState.APPLIED
+    assert not CourseOffering.objects.filter(ukma_data_id="ud-offering").exists()
+    assert course.offerings.count() == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_a_new_course_whose_identity_now_exists_is_superseded_with_its_offerings(
     user, make_run, make_change, department_factory, course_factory
 ):
