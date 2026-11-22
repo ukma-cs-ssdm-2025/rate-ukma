@@ -367,33 +367,8 @@ def sync_policies_view():
 
 
 @once
-def sync_policy_view():
-    return SyncViewSet.as_view({"put": "update_policy"})
-
-
-@once
 def sync_policy_changes_view():
     return SyncViewSet.as_view({"get": "policy_changes"})
-
-
-@once
-def sync_approve_view():
-    return SyncViewSet.as_view({"post": "approve"})
-
-
-@once
-def sync_reject_view():
-    return SyncViewSet.as_view({"post": "reject"})
-
-
-@once
-def sync_answer_change_view():
-    return SyncViewSet.as_view({"post": "answer_change"})
-
-
-@once
-def sync_keep_apart_unrated_view():
-    return SyncViewSet.as_view({"post": "keep_apart_unrated"})
 
 
 @once
@@ -402,23 +377,8 @@ def sync_summary_view():
 
 
 @once
-def sync_preview_view():
-    return SyncReviewViewSet.as_view({"post": "preview"})
-
-
-@once
 def sync_questions_view():
     return SyncReviewViewSet.as_view({"get": "questions"})
-
-
-@once
-def sync_bulk_answers_view():
-    return SyncReviewViewSet.as_view({"post": "bulk_answers"})
-
-
-@once
-def sync_approvals_active_view():
-    return SyncReviewViewSet.as_view({"get": "approvals_active"})
 
 
 @once
@@ -655,24 +615,9 @@ def rest_urlpatterns() -> list:
             name="ukma-data-sync-summary",
         ),
         path(
-            "ukma-data/sync/preview/",
-            sync_preview_view(),
-            name="ukma-data-sync-preview",
-        ),
-        path(
             "ukma-data/sync/questions/",
             sync_questions_view(),
             name="ukma-data-sync-questions",
-        ),
-        path(
-            "ukma-data/sync/questions/answers/",
-            sync_bulk_answers_view(),
-            name="ukma-data-sync-questions-answers",
-        ),
-        path(
-            "ukma-data/sync/approvals/active/",
-            sync_approvals_active_view(),
-            name="ukma-data-sync-approvals-active",
         ),
         path(
             "ukma-data/sync/runs/<str:run_id>/approvals/",
@@ -693,31 +638,6 @@ def rest_urlpatterns() -> list:
             "ukma-data/sync/policies/changes/",
             sync_policy_changes_view(),
             name="ukma-data-sync-policy-changes",
-        ),
-        path(
-            "ukma-data/sync/policies/<str:kind>/",
-            sync_policy_view(),
-            name="ukma-data-sync-policy",
-        ),
-        path(
-            "ukma-data/sync/approve/",
-            sync_approve_view(),
-            name="ukma-data-sync-approve",
-        ),
-        path(
-            "ukma-data/sync/reject/",
-            sync_reject_view(),
-            name="ukma-data-sync-reject",
-        ),
-        path(
-            "ukma-data/sync/changes/<int:change_id>/answer/",
-            sync_answer_change_view(),
-            name="ukma-data-sync-change-answer",
-        ),
-        path(
-            "ukma-data/sync/mapping/keep-apart-unrated/",
-            sync_keep_apart_unrated_view(),
-            name="ukma-data-sync-keep-apart-unrated",
         ),
     ]
 

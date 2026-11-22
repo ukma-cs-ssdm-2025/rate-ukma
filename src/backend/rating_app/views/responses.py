@@ -33,21 +33,14 @@ from rating_app.serializers.notification import (
     UnreadCountSerializer,
 )
 from rating_app.serializers.sync import (
-    SyncAnswerResponseSerializer,
-    SyncApprovalSerializer,
-    SyncBulkAnswerResponseSerializer,
     SyncChangeListResponseSerializer,
     SyncPendingResponseSerializer,
     SyncPolicyChangeListResponseSerializer,
     SyncPolicyListResponseSerializer,
-    SyncPolicySerializer,
     SyncRunListResponseSerializer,
 )
 from rating_app.serializers.sync_review import (
-    SyncActiveApprovalSerializer,
     SyncApprovalListResponseSerializer,
-    SyncPreviewResponseSerializer,
-    SyncQuestionBulkAnswerResponseSerializer,
     SyncQuestionListResponseSerializer,
     SyncSummarySerializer,
 )
@@ -371,20 +364,10 @@ R_SYNC_PENDING = sync_responses(
     forced_singular_serializer(SyncPendingResponseSerializer), include_400=True
 )
 R_SYNC_POLICIES = sync_responses(forced_singular_serializer(SyncPolicyListResponseSerializer))
-R_SYNC_POLICY = sync_responses(SyncPolicySerializer, include_400=True, include_404=True)
 R_SYNC_POLICY_CHANGES = sync_responses(
     forced_singular_serializer(SyncPolicyChangeListResponseSerializer), include_400=True
 )
-R_SYNC_APPROVE = {
-    200: OpenApiResponse(SyncApprovalSerializer, "Approved, rejected or previewed"),
-    **common_errors(include_400=True),
-    409: OpenApiResponse(Err, "Sync running or the run is too old"),
-    500: OpenApiResponse(Err, "The apply failed"),
-}
-R_SYNC_ANSWER = sync_responses(SyncAnswerResponseSerializer, include_404=True)
-R_SYNC_BULK_ANSWER = sync_responses(SyncBulkAnswerResponseSerializer)
 R_SYNC_SUMMARY = sync_responses(SyncSummarySerializer, include_404=True)
-R_SYNC_PREVIEW = sync_responses(SyncPreviewResponseSerializer, include_400=True)
 R_SYNC_QUESTIONS = sync_responses(
     forced_singular_serializer(SyncQuestionListResponseSerializer),
     include_400=True,
@@ -395,10 +378,6 @@ R_SYNC_APPROVALS = sync_responses(
     include_400=True,
     include_404=True,
 )
-R_SYNC_ACTIVE_APPROVAL = sync_responses(SyncActiveApprovalSerializer)
-R_SYNC_QUESTION_ANSWERS = sync_responses(SyncQuestionBulkAnswerResponseSerializer)
-
-
 R_PERSONAL_PLAN = {
     200: OpenApiResponse(PersonalPlanSerializer, "OK"),
     **common_errors(include_400=False),

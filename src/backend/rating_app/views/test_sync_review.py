@@ -8,7 +8,6 @@ from django.utils import timezone
 import pytest
 
 from rating_app.models import (
-    CatalogMappingDecision,
     MappingAnswer,
     SyncRunStatus,
     SyncSource,
@@ -17,10 +16,7 @@ from rating_app.sync.kinds import KIND_BY_NAME
 
 ENDPOINTS = [
     ("get", "ukma-data-sync-summary", {}),
-    ("post", "ukma-data-sync-preview", {}),
     ("get", "ukma-data-sync-questions", {}),
-    ("post", "ukma-data-sync-questions-answers", {}),
-    ("get", "ukma-data-sync-approvals-active", {}),
     ("get", "ukma-data-sync-run-approvals", {"run_id": 1}),
     ("get", "ukma-data-sync-run-export", {"run_id": 1}),
 ]
@@ -723,123 +719,6 @@ def test_questions_rated_filter(review_fixture, superuser_client):
 
     assert [item["id"] for item in rated["items"]] == [review_fixture["merge"].pk]
     assert all(item["id"] != review_fixture["merge"].pk for item in unrated["items"])
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_bulk_answers_merge_into_the_suggested_course(
-    review_fixture,
-    superuser_client,
-    catalog_run,
-    course_factory,
-    department_factory,
-    sync_change_factory,
-    catalog_mapping_decision_factory,
-):
-    department = department_factory()
-    matching = course_factory(title="Спільний курс", department=department)
-    left = course_factory(title="Лівий курс", department=department)
-    right = course_factory(title="Правий курс", department=department)
-    for course in (matching, left, right):
-        _change(
-            sync_change_factory,
-            catalog_run,
-            kind="link_course",
-            key=f"link:{course.pk}",
-            target_id=str(course.pk),
-            after={"ukma_data_id": f"ud-{course.pk}", "majority_share": 1.0},
-        )
-    matching.ukma_data_id = "ud-common"
-    matching.save(update_fields=["ukma_data_id"])
-    question = _merge_change(
-        sync_change_factory,
-        catalog_run,
-        "ud-common",
-        [(matching, 1), (left, 0)],
-        ratings=1,
-    )
-    question.after["display"]["ukma_course"]["title"] = "Спільний курс"
-    question.save(update_fields=["after"])
-
-    response = superuser_client.post(
-        reverse("ukma-data-sync-questions-answers"),
-        {"change_ids": [question.pk, 999_999], "answer": "merge", "into": "suggested"},
-        format="json",
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"answered": 1, "failed": 1}
-    decision = CatalogMappingDecision.objects.get(kind="merge_courses", question_key=question.key)
-    assert decision.answer == MappingAnswer.MERGE
-    assert decision.into_ref == str(matching.pk)
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_bulk_answers_reject_an_answer_that_does_not_fit(review_fixture, superuser_client):
-    response = superuser_client.post(
-        reverse("ukma-data-sync-questions-answers"),
-        {"change_ids": [review_fixture["merge"].pk], "answer": "place"},
-        format="json",
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"answered": 0, "failed": 1}
-    assert not CatalogMappingDecision.objects.exists()
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_answer_merge_records_the_chosen_into_course(
-    catalog_run, superuser_client, sync_change_factory, course_factory
-):
-    first = course_factory(title="Перший курс")
-    second = course_factory(title="Другий курс")
-    question = _merge_change(
-        sync_change_factory,
-        catalog_run,
-        "ud-answer-merge",
-        [(first, 1), (second, 2)],
-        ratings=3,
-    )
-
-    response = superuser_client.post(
-        reverse("ukma-data-sync-change-answer", kwargs={"change_id": question.pk}),
-        {"answer": "merge", "into": str(second.pk)},
-        format="json",
-    )
-
-    assert response.status_code == 200
-    decision = CatalogMappingDecision.objects.get(pk=response.json()["decision_id"])
-    assert decision.answer == MappingAnswer.MERGE
-    assert decision.into_ref == str(second.pk)
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_answer_merge_refuses_a_course_outside_the_question(
-    catalog_run, superuser_client, sync_change_factory, course_factory
-):
-    first = course_factory(title="Перший курс")
-    second = course_factory(title="Другий курс")
-    outside = course_factory(title="Сторонній курс")
-    question = _merge_change(
-        sync_change_factory,
-        catalog_run,
-        "ud-answer-outside",
-        [(first, 1), (second, 2)],
-        ratings=3,
-    )
-
-    response = superuser_client.post(
-        reverse("ukma-data-sync-change-answer", kwargs={"change_id": question.pk}),
-        {"answer": "merge", "into": str(outside.pk)},
-        format="json",
-    )
-
-    assert response.status_code == 400
-    assert "Оберіть курс із запропонованих" in response.json()["fields"]["answer"][0]
-    assert not CatalogMappingDecision.objects.exists()
 
 
 @pytest.mark.django_db
