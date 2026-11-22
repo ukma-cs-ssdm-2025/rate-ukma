@@ -33,6 +33,9 @@ from rating_app.serializers.notification import (
     UnreadCountSerializer,
 )
 from rating_app.serializers.sync import (
+    SyncAnswerResponseSerializer,
+    SyncApprovalSerializer,
+    SyncBulkAnswerResponseSerializer,
     SyncChangeListResponseSerializer,
     SyncPendingResponseSerializer,
     SyncPolicyChangeListResponseSerializer,
@@ -91,6 +94,15 @@ EX_403 = OpenApiExample(
     "Forbidden",
     value={
         "detail": "You do not have permission to perform this action",
+        "status": 403,
+    },
+    status_codes=["403"],
+)
+EX_403_UKMA_DATA = OpenApiExample(
+    "UKMA Data key refused",
+    value={
+        "detail": "Ключ UKMA Data цього сервера не має доступу до цього розділу",
+        "code": "ukma_data_forbidden",
         "status": 403,
     },
     status_codes=["403"],
@@ -319,6 +331,7 @@ def ukma_data_responses(serializer, include_400=True) -> dict:
     return {
         200: OpenApiResponse(serializer, "OK"),
         **common_errors(include_400=include_400),
+        403: OpenApiResponse(Err, FORBIDDEN, [EX_403_UKMA_DATA]),
         502: OpenApiResponse(Err, "UKMA Data is down or failed", [EX_502_UKMA_DATA]),
         503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
     }
@@ -354,6 +367,14 @@ R_SYNC_POLICY = sync_responses(SyncPolicySerializer, include_400=True, include_4
 R_SYNC_POLICY_CHANGES = sync_responses(
     forced_singular_serializer(SyncPolicyChangeListResponseSerializer), include_400=True
 )
+R_SYNC_APPROVE = {
+    200: OpenApiResponse(SyncApprovalSerializer, "Approved, rejected or previewed"),
+    **common_errors(include_400=True),
+    409: OpenApiResponse(Err, "Sync running or the run is too old"),
+    500: OpenApiResponse(Err, "The apply failed"),
+}
+R_SYNC_ANSWER = sync_responses(SyncAnswerResponseSerializer, include_404=True)
+R_SYNC_BULK_ANSWER = sync_responses(SyncBulkAnswerResponseSerializer)
 
 
 R_PERSONAL_PLAN = {

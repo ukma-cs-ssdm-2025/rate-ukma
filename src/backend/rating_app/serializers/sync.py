@@ -12,6 +12,9 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from rating_app.models.sync import (
+    MappingAnswer,
+    SyncApprovalAction,
+    SyncApprovalOutcome,
     SyncChange,
     SyncChangeGroup,
     SyncChangeState,
@@ -20,7 +23,7 @@ from rating_app.models.sync import (
     SyncRunStatus,
     SyncSource,
 )
-from rating_app.sync.kinds import NEVER_AUTO_KINDS
+from rating_app.sync.kinds import KIND_BY_NAME, NEVER_AUTO_KINDS
 
 
 class SyncRunSerializer(serializers.Serializer):
@@ -78,6 +81,53 @@ class SyncPolicySerializer(serializers.Serializer):
 
 class SyncPolicyUpdateSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=SyncPolicyMode.choices)
+
+
+class SyncApproveRequestSerializer(serializers.Serializer):
+    source = serializers.ChoiceField(choices=SyncSource.choices)
+    group = serializers.ChoiceField(choices=SyncChangeGroup.choices)
+    kind = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    change_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), required=False, allow_empty=False
+    )
+    dry_run = serializers.BooleanField(default=False)
+    confirm_stale = serializers.BooleanField(default=False)
+
+    def validate_kind(self, value: str | None) -> str | None:
+        if value and value not in KIND_BY_NAME:
+            raise serializers.ValidationError("Невідомий вид зміни")
+        return value or None
+
+
+class SyncRejectRequestSerializer(serializers.Serializer):
+    change_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), allow_empty=False
+    )
+
+
+class SyncAnswerRequestSerializer(serializers.Serializer):
+    answer = serializers.ChoiceField(choices=MappingAnswer.choices)
+    into = serializers.UUIDField(required=False, allow_null=True)
+
+
+class SyncApprovalSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True, allow_null=True)
+    action = serializers.ChoiceField(choices=SyncApprovalAction.choices, read_only=True)
+    outcome = serializers.ChoiceField(choices=SyncApprovalOutcome.choices, read_only=True)
+    counts = serializers.JSONField(read_only=True)
+    error = serializers.CharField(read_only=True, allow_blank=True)
+
+
+class SyncAnswerResponseSerializer(serializers.Serializer):
+    decision_id = serializers.IntegerField(read_only=True)
+    change_id = serializers.IntegerField(read_only=True)
+    kind = serializers.CharField(read_only=True)
+    answer = serializers.ChoiceField(choices=MappingAnswer.choices, read_only=True)
+    ratings = serializers.IntegerField(read_only=True)
+
+
+class SyncBulkAnswerResponseSerializer(serializers.Serializer):
+    count = serializers.IntegerField(read_only=True)
 
 
 class SyncPolicyChangeSerializer(serializers.Serializer):

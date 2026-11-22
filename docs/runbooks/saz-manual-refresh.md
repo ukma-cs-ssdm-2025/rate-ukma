@@ -14,6 +14,7 @@ Runbook for refreshing Rate UKMA's courses, offerings, students and enrollments 
 - Rehearse every step on a local copy of live first. Run staging, check it, then live.
 - The scraped files and the database copy hold student names and emails. Keep them outside the repository, never attach them to an issue or PR, and delete them from the hosts when the run ends.
 - The SQL in steps 6 and 9 is specific to the faculty reorganisation and the new specialities of 2026. Before the next run, check what changed in САЗ and write the SQL for that.
+- **Catalog writes stop once UKMA Data links a row.** `insert_scraped` holds catalog lock `768_001` for its whole run, so it cannot interleave with a catalog apply. Once any offering has a `ukma_data_id`, it refuses catalog writes and exits; enrollments are the only thing the scraper still writes. See [Catalog sync is live](#catalog-sync-is-live).
 
 ## Prerequisites
 
@@ -221,6 +222,17 @@ WHERE f.name = '';
 ```
 
 Then delete the uploaded files from both containers and the host folder, and the local files with student data: `scraper/state/` (except `storage_state.json`), `reused_emails.txt`, the snapshots and the live dump of step 4.
+
+### Catalog sync is live
+
+Once the catalog sync (ADR-0022) has applied its first links, the scraper must not write the catalog again: it would undo the apply or race it. `insert_scraped` checks before every batch and refuses as soon as one offering has a `ukma_data_id`. To add enrollments for offerings the sync created, run it in enrollments-only mode:
+
+```bash
+docker exec rate_ukma_django_backend_release \
+  python manage.py insert_scraped --file "/tmp/saz-refresh/$y.grouped.jsonl" --enrollments-only
+```
+
+This writes enrollments by САЗ code for offerings that already exist, and nothing else (no faculties, departments, courses, offerings, terms or specialities). Steps 6 and 9 do not apply then.
 
 ## Result of 2026-10-31
 

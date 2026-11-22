@@ -55,6 +55,7 @@
 												"type": "string",
 												"enum": [
 													"catalog:read",
+													"review:read",
 													"review:decide",
 													"instructors:read"
 												]
@@ -2581,7 +2582,7 @@
 		},
 		{
 			"name": "review",
-			"description": "Review cases and course decisions: `review:decide`"
+			"description": "Review cases: `review:read` or `review:decide`; decisions: `review:decide`"
 		}
 	],
 	"servers": [

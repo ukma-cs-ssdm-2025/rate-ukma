@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 from decimal import Decimal
 from typing import TypeVar
@@ -24,6 +25,7 @@ from rating_app.application_schemas.faculty import FacultyInput
 from rating_app.application_schemas.semester import SemesterInput
 from rating_app.application_schemas.speciality import SpecialityInput
 from rating_app.application_schemas.student import StudentInput
+from rating_app.exception.course_exceptions import CourseOfferingNotFoundError
 from rating_app.models import (
     Course,
     CourseOffering,
@@ -59,6 +61,19 @@ from ...models.deduplicated import (
 )
 
 logger = structlog.get_logger(__name__)
+
+
+class CatalogWritesRefusedError(RuntimeError):
+    """A catalog row is linked to UKMA Data; only enrollments may be written.
+
+    The old scraper must not undo a catalog apply or interleave with one. Its
+    enrollments-only mode still writes enrollments, by САЗ code, for offerings
+    that exist.
+    """
+
+
+def catalog_linked() -> bool:
+    return CourseOffering.objects.filter(ukma_data_id__isnull=False).exists()
 
 
 _T = TypeVar("_T", bound=BaseModel, contravariant=True)
@@ -110,14 +125,21 @@ class CourseDbInjector(IDbInjector):
         self._semester_cache: dict[tuple[int, str], Semester] = {}
         self._student_cache: dict[tuple[str, str, str, str, str], Student] = {}
         self._batch_number: int | None = None
+        self.enrollments_only = False
 
     @transaction.atomic
     @implements
     def execute(self, models: Sequence[DeduplicatedCourse]) -> None:
+        if not self.enrollments_only and catalog_linked():
+            raise CatalogWritesRefusedError("catalog rows are linked to UKMA Data")
+
         self.tracker.start(len(models))
 
         try:
-            self._inject_to_db(models)
+            if self.enrollments_only:
+                self._inject_enrollments_only(models)
+            else:
+                self._inject_to_db(models)
         except Exception as e:
             self.tracker.fail(str(e))
             raise e
@@ -161,6 +183,18 @@ class CourseDbInjector(IDbInjector):
             course = self._process_course(course_data, faculty)
             self._process_specialities(course, course_data)
             self._process_offerings(course, course_data)
+
+    def _inject_enrollments_only(self, models: Sequence[DeduplicatedCourse]) -> None:
+        """Write enrollments for offerings that exist, by САЗ code, and nothing else."""
+        for course_data in models:
+            self.tracker.increment()
+            for offering_data in course_data.offerings:
+                try:
+                    offering = self.course_offering_repository.get_by_code(offering_data.code)
+                except CourseOfferingNotFoundError:
+                    logger.info("enrollments_only_offering_missing", code=offering_data.code)
+                    continue
+                self._write_enrollments(offering.id, offering_data.enrollments)
 
     def _process_faculty(self, course_data: DeduplicatedCourse) -> Faculty:
         faculty_name = course_data.faculty
@@ -368,6 +402,13 @@ class CourseDbInjector(IDbInjector):
         course_offering: CourseOffering,
         enrollments_data: Sequence[DeduplicatedEnrollment],
     ) -> None:
+        self._write_enrollments(course_offering.id, enrollments_data)
+
+    def _write_enrollments(
+        self,
+        offering_id: uuid.UUID,
+        enrollments_data: Sequence[DeduplicatedEnrollment],
+    ) -> None:
         for enrollment_data in enrollments_data:
             student = self._create_student(enrollment_data.student)
             if not student:
@@ -375,7 +416,7 @@ class CourseDbInjector(IDbInjector):
 
             enrollment_input = EnrollmentInput(
                 student_id=student.id,
-                offering_id=course_offering.id,
+                offering_id=offering_id,
                 status=enrollment_data.status.value,
             )
             self.enrollment_repository.get_or_upsert(enrollment_input)
@@ -455,6 +496,12 @@ class CourseDbInjector(IDbInjector):
             speciality = Speciality.objects.get(id=speciality_dto.id)
             self._speciality_cache[speciality_name] = speciality
             return speciality
+
+        if self.enrollments_only:
+            # Enrollments-only writes enrollments and nothing else, as the runbook
+            # promises: an unknown speciality is left for the full import.
+            self._speciality_cache[speciality_name] = None
+            return None
 
         faculty = self.faculty_repository.get_by_speciality_name(speciality_name)
         if not faculty:

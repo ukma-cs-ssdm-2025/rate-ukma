@@ -29,7 +29,7 @@ def set_mode(kind: str, mode: str, user: User) -> SyncPolicy | None:
     if mode not in SyncPolicyMode.values:
         raise ValueError(f"Unknown sync policy mode: {mode}")
     if mode == SyncPolicyMode.AUTO and registry_kind.name in NEVER_AUTO_KINDS:
-        raise NeverAutoKindError(f"{kind} always needs approval")
+        raise NeverAutoKindError("Цей вид змін завжди потребує підтвердження")
 
     with transaction.atomic():
         policy = SyncPolicy.objects.filter(kind=kind).first()
