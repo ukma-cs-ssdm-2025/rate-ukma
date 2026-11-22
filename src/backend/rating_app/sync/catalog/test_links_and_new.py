@@ -492,6 +492,42 @@ def test_propose_links_and_new_requires_parents_when_they_are_new_in_the_same_ru
     assert offering.after.get("course_id") is None
 
 
+def test_propose_links_and_new_requires_parents_when_they_are_only_linked_in_the_same_run():
+    snapshot = _ud_snapshot(
+        faculties=[_ud_faculty()],
+        departments=[_ud_department(), _ud_department("ud-dept-new", name="Нова кафедра")],
+        terms=[_ud_term()],
+        courses=[_ud_course(title="Новий курс")],
+        offerings=[_ud_offering()],
+    )
+    ru = _ru_snapshot(faculties=[_ru_faculty()], departments=[_ru_department()])
+
+    drafts, skipped = propose_links_and_new(snapshot, ru, [], academic_year=2025)
+
+    assert skipped == {}
+    assert _one(drafts, "new_department").requires == [{"kind": "link_faculty", "key": "ru-fac"}]
+    assert _one(drafts, "new_course").requires == [{"kind": "link_department", "key": "ru-dept"}]
+
+
+def test_propose_links_and_new_skips_new_courses_that_would_share_one_identity():
+    snapshot = _ud_snapshot(
+        faculties=[_ud_faculty()],
+        departments=[_ud_department()],
+        terms=[_ud_term()],
+        courses=[_ud_course("ud-a", title="Курс"), _ud_course("ud-b", title="Курс")],
+        offerings=[
+            _ud_offering("ud-1", course_id="ud-a", saz_code="111111"),
+            _ud_offering("ud-2", course_id="ud-b", saz_code="222222"),
+        ],
+    )
+
+    drafts, skipped = propose_links_and_new(snapshot, _linked_base(), [], academic_year=2025)
+
+    assert _of_kind(drafts, "new_course") == []
+    assert _of_kind(drafts, "new_offering") == []
+    assert skipped == {IDENTITY_COLLISION: ["ud-1", "ud-2", "ud-a", "ud-b"]}
+
+
 def test_propose_links_and_new_links_a_new_course_when_an_identity_exists():
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],

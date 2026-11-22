@@ -8,7 +8,7 @@ and description; M14 maps a UKMA Data term to a Rate UKMA semester.
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 from decimal import Decimal
 
@@ -165,11 +165,7 @@ class _Builder:
             faculty_id = department.faculty_id
             if faculty_id is None or not self._faculty_ready(faculty_id):
                 continue
-            requires = (
-                [{"kind": "new_faculty", "key": faculty_id}]
-                if faculty_id in self.new_faculties
-                else []
-            )
+            requires = self._faculty_requires(faculty_id)
             self.new_departments.add(department.id)
             self.department_ready.add(department.id)
             self._add(
@@ -180,6 +176,24 @@ class _Builder:
                 requires=requires,
                 display=Display(name=department.name),
             )
+
+    def _faculty_requires(self, faculty_id: str) -> list[dict[str, str]]:
+        """The faculty is created, or only linked, in this run."""
+        if faculty_id in self.new_faculties:
+            return [{"kind": "new_faculty", "key": faculty_id}]
+        target = self.faculty_match.get(faculty_id)
+        if target is not None and self.ru.faculties[target].ukma_data_id is None:
+            return [{"kind": "link_faculty", "key": target}]
+        return []
+
+    def _department_requires(self, department_id: str) -> list[dict[str, str]]:
+        """The department is created, or only linked, in this run."""
+        if department_id in self.new_departments:
+            return [{"kind": "new_department", "key": department_id}]
+        target = self.department_match.get(department_id)
+        if target is not None and self.ru.departments[target].ukma_data_id is None:
+            return [{"kind": "link_department", "key": target}]
+        return []
 
     def _faculty_ready(self, faculty_id: str) -> bool:
         faculty = self.ud.faculties.get(faculty_id)
@@ -195,6 +209,7 @@ class _Builder:
     def _match_courses(self) -> None:
         identities = self._identities()
         claimed: set[str] = set()
+        new_courses: list[tuple[ukma.Course, list[ukma.Offering]]] = []
         for course in sorted(self.ud.courses.values(), key=lambda row: row.id):
             if course.removed_at is not None or course.merged_into is not None:
                 continue
@@ -237,14 +252,21 @@ class _Builder:
             if reason is not None:
                 self._skip_course(course, unmatched, reason)
                 continue
+            new_courses.append((course, unmatched))
+        self._propose_new_courses(new_courses)
+
+    def _propose_new_courses(self, courses: list[tuple[ukma.Course, list[ukma.Offering]]]) -> None:
+        """Two new courses with one identity would break ``course_identity_unique``."""
+        identities = Counter(
+            (course.title, course.department_id, self._level(course)) for course, _ in courses
+        )
+        for course, unmatched in courses:
+            if identities[(course.title, course.department_id, self._level(course))] > 1:
+                self._skip_course(course, unmatched, IDENTITY_COLLISION)
+                continue
             self.new_courses.add(course.id)
             department_ukma_id = course.department_id
             assert department_ukma_id is not None  # checked by _new_course_reason
-            requires = (
-                [{"kind": "new_department", "key": department_ukma_id}]
-                if department_ukma_id in self.new_departments
-                else []
-            )
             self._add(
                 "new_course",
                 key=course.id,
@@ -256,7 +278,7 @@ class _Builder:
                     "status": self._status(course.id),
                     "description": self._description(course.id),
                 },
-                requires=requires,
+                requires=self._department_requires(department_ukma_id),
                 display=Display(course=self._new_course_card(course)),
             )
 
