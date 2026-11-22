@@ -35,7 +35,7 @@ function DisplayRows({ display }: Readonly<{ display: SyncDisplay }>) {
 	}
 	if (display.ukmaCourse !== null) {
 		rows.push(
-			["UKMA Data", display.ukmaCourse.department]
+			["САЗ", display.ukmaCourse.department]
 				.filter((part): part is string => part !== null)
 				.join(" · "),
 		);

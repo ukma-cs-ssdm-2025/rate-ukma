@@ -15,23 +15,18 @@ import { viewParams } from "../syncParams";
 import { NEW_KINDS, newRequest, SELECTION_LIMIT } from "../syncRequests";
 import { tableRow, YEAR_RANGES, yearFilter, yearRangeLabel } from "../syncRows";
 import { DISCIPLINES, SEMESTERS } from "../syncWords";
-import {
-	SyncBack,
-	SyncPager,
-	SyncSegments,
-	SyncToggle,
-	SyncViewHead,
-} from "./SyncBits";
+import { DataBack, DataPager, DataSegments, DataViewHead } from "./DataBits";
+import { SyncToggle } from "./SyncBits";
 import { LIST_PAGE } from "./SyncChangeList";
 import {
-	SyncSearch,
-	SyncTableEmpty,
-	SyncTableFrame,
-	SyncTableSkeleton,
-	SyncTd,
-	SyncTh,
-	SyncTitleCell,
-} from "./SyncTable";
+	DataSearch,
+	DataTableEmpty,
+	DataTableFrame,
+	DataTableSkeleton,
+	DataTd,
+	DataTh,
+	DataTitleCell,
+} from "./DataTable";
 import { UkmaDataError } from "./UkmaDataError";
 
 export function defaultSegment(groups: SyncSummaryGroups): ListSegment {
@@ -98,8 +93,8 @@ export function SyncNewList({
 	const from = data ? (data.page - 1) * data.page_size + 1 : 0;
 	return (
 		<div className="space-y-5">
-			<SyncBack onBack={onBack} />
-			<SyncViewHead
+			<DataBack onBack={onBack}>Усі групи</DataBack>
+			<DataViewHead
 				title="Нове на сайті"
 				action={
 					<Button
@@ -119,9 +114,9 @@ export function SyncNewList({
 				Цих дисциплін і семестрів на сайті ще немає. Серед них є й минулі
 				семестри (з 2018 року), яких сайт раніше не мав — вони з'являться в
 				історії дисципліни.
-			</SyncViewHead>
+			</DataViewHead>
 			<div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-				<SyncSegments
+				<DataSegments
 					label="Що показати"
 					value={segment}
 					onChange={(value) => reset({ segment: value })}
@@ -139,7 +134,7 @@ export function SyncNewList({
 					]}
 				/>
 				{byYear ? (
-					<SyncSegments
+					<DataSegments
 						label="Роки"
 						value={params.years}
 						onChange={(value) => reset({ years: value })}
@@ -149,13 +144,13 @@ export function SyncNewList({
 						}))}
 					/>
 				) : null}
-				<SyncSearch
+				<DataSearch
 					value={params.q}
 					placeholder="Пошук за назвою або кодом САЗ"
 					onChange={(value) => reset({ q: value })}
 				/>
 			</div>
-			{list.isLoading ? <SyncTableSkeleton /> : null}
+			{list.isLoading ? <DataTableSkeleton /> : null}
 			{list.error ? (
 				<UkmaDataError
 					error={list.error}
@@ -165,20 +160,20 @@ export function SyncNewList({
 				/>
 			) : null}
 			{data && data.items.length === 0 ? (
-				<SyncTableEmpty>Нічого не знайдено</SyncTableEmpty>
+				<DataTableEmpty>Нічого не знайдено</DataTableEmpty>
 			) : null}
 			{data && data.items.length > 0 ? (
 				<>
-					<SyncTableFrame>
+					<DataTableFrame>
 						<thead>
 							<tr>
-								<SyncTh>Дисципліна</SyncTh>
-								<SyncTh className="hidden w-32 md:table-cell">Семестр</SyncTh>
-								<SyncTh className="hidden w-32 md:table-cell">
+								<DataTh>Дисципліна</DataTh>
+								<DataTh className="hidden w-32 md:table-cell">Семестр</DataTh>
+								<DataTh className="hidden w-32 md:table-cell">
 									Рік навчання
-								</SyncTh>
-								<SyncTh className="hidden w-28 md:table-cell">Код САЗ</SyncTh>
-								<SyncTh className="w-32 text-right sm:w-56">Рішення</SyncTh>
+								</DataTh>
+								<DataTh className="hidden w-28 md:table-cell">Код САЗ</DataTh>
+								<DataTh className="w-32 text-right sm:w-56">Рішення</DataTh>
 							</tr>
 						</thead>
 						<tbody className="divide-y">
@@ -198,8 +193,8 @@ export function SyncNewList({
 										key={row.id}
 										className={skip ? "text-muted-foreground" : undefined}
 									>
-										<SyncTd>
-											<SyncTitleCell
+										<DataTd>
+											<DataTitleCell
 												title={row.title}
 												detail={row.department}
 											/>
@@ -208,29 +203,29 @@ export function SyncNewList({
 													.filter(Boolean)
 													.join(" · ")}
 											</p>
-										</SyncTd>
-										<SyncTd className="hidden md:table-cell">
+										</DataTd>
+										<DataTd className="hidden md:table-cell">
 											{row.semester}
-										</SyncTd>
-										<SyncTd className="hidden md:table-cell">
+										</DataTd>
+										<DataTd className="hidden md:table-cell">
 											{row.studyYear}
-										</SyncTd>
-										<SyncTd className="hidden tabular-nums md:table-cell">
+										</DataTd>
+										<DataTd className="hidden tabular-nums md:table-cell">
 											{row.sazCode}
-										</SyncTd>
-										<SyncTd className="text-right">{decision}</SyncTd>
+										</DataTd>
+										<DataTd className="text-right">{decision}</DataTd>
 									</tr>
 								);
 							})}
 						</tbody>
-					</SyncTableFrame>
+					</DataTableFrame>
 					{skipFull ? (
 						<p className="text-muted-foreground text-sm">
 							За один раз можна пропустити до {formatCount(SELECTION_LIMIT)}{" "}
 							записів. Додайте ці, а решту пропустіть наступним кроком.
 						</p>
 					) : null}
-					<SyncPager
+					<DataPager
 						summary={`${formatCount(from)}–${formatCount(from + data.items.length - 1)} з ${formatCount(total)} · пропущено ${formatCount(skipped.size)}`}
 						page={data.page}
 						totalPages={data.total_pages}

@@ -8,16 +8,16 @@ import { otherChangeText } from "../syncOther";
 import { viewParams } from "../syncParams";
 import { otherRequest, otherSkipRequest } from "../syncRequests";
 import { tableRow } from "../syncRows";
-import { SyncBack, SyncPager, SyncViewHead } from "./SyncBits";
+import { DataBack, DataPager, DataViewHead } from "./DataBits";
 import { LIST_PAGE } from "./SyncChangeList";
 import {
-	SyncTableEmpty,
-	SyncTableFrame,
-	SyncTableSkeleton,
-	SyncTd,
-	SyncTh,
-	SyncTitleCell,
-} from "./SyncTable";
+	DataTableEmpty,
+	DataTableFrame,
+	DataTableSkeleton,
+	DataTd,
+	DataTh,
+	DataTitleCell,
+} from "./DataTable";
 import { UkmaDataError } from "./UkmaDataError";
 
 export function SyncOtherList({
@@ -40,8 +40,8 @@ export function SyncOtherList({
 	const from = data ? (data.page - 1) * data.page_size + 1 : 0;
 	return (
 		<div className="space-y-5">
-			<SyncBack onBack={onBack} />
-			<SyncViewHead
+			<DataBack onBack={onBack}>Усі групи</DataBack>
+			<DataViewHead
 				title="Інші зміни"
 				action={
 					<div className="flex flex-col gap-2 sm:flex-row">
@@ -65,8 +65,8 @@ export function SyncOtherList({
 			>
 				Зміни з САЗ, що не належать до жодної групи. Кожна зміниться на сайті
 				так, як описано в рядку.
-			</SyncViewHead>
-			{list.isLoading ? <SyncTableSkeleton /> : null}
+			</DataViewHead>
+			{list.isLoading ? <DataTableSkeleton /> : null}
 			{list.error ? (
 				<UkmaDataError
 					error={list.error}
@@ -76,15 +76,15 @@ export function SyncOtherList({
 				/>
 			) : null}
 			{data && data.items.length === 0 ? (
-				<SyncTableEmpty>Нічого не знайдено</SyncTableEmpty>
+				<DataTableEmpty>Нічого не знайдено</DataTableEmpty>
 			) : null}
 			{data && data.items.length > 0 ? (
 				<>
-					<SyncTableFrame>
+					<DataTableFrame>
 						<thead>
 							<tr>
-								<SyncTh className="w-1/2">Дисципліна</SyncTh>
-								<SyncTh>Що зміниться</SyncTh>
+								<DataTh className="w-1/2">Дисципліна</DataTh>
+								<DataTh>Що зміниться</DataTh>
 							</tr>
 						</thead>
 						<tbody className="divide-y">
@@ -92,19 +92,19 @@ export function SyncOtherList({
 								const row = tableRow(change, null);
 								return (
 									<tr key={row.id}>
-										<SyncTd>
-											<SyncTitleCell
+										<DataTd>
+											<DataTitleCell
 												title={row.title || "Без назви"}
 												detail={row.department}
 											/>
-										</SyncTd>
-										<SyncTd>{otherChangeText(change.kind)}</SyncTd>
+										</DataTd>
+										<DataTd>{otherChangeText(change.kind)}</DataTd>
 									</tr>
 								);
 							})}
 						</tbody>
-					</SyncTableFrame>
-					<SyncPager
+					</DataTableFrame>
+					<DataPager
 						summary={`${formatCount(from)}–${formatCount(from + data.items.length - 1)} з ${formatCount(data.total)}`}
 						page={data.page}
 						totalPages={data.total_pages}

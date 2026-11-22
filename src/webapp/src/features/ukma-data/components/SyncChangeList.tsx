@@ -5,16 +5,16 @@ import { useUkmaDataSyncPendingList } from "@/lib/api/generated";
 import { formatCount } from "../syncFormat";
 import { viewParams } from "../syncParams";
 import { tableRow } from "../syncRows";
-import { SyncBack, SyncPager, SyncViewHead } from "./SyncBits";
+import { DataBack, DataPager, DataViewHead } from "./DataBits";
 import {
-	SyncSearch,
-	SyncTableEmpty,
-	SyncTableFrame,
-	SyncTableSkeleton,
-	SyncTd,
-	SyncTh,
-	SyncTitleCell,
-} from "./SyncTable";
+	DataSearch,
+	DataTableEmpty,
+	DataTableFrame,
+	DataTableSkeleton,
+	DataTd,
+	DataTh,
+	DataTitleCell,
+} from "./DataTable";
 import { UkmaDataError } from "./UkmaDataError";
 
 export const LIST_PAGE = 12;
@@ -58,17 +58,17 @@ export function SyncChangeList({
 	const from = data ? (data.page - 1) * data.page_size + 1 : 0;
 	return (
 		<div className="space-y-5">
-			<SyncBack onBack={onBack} />
-			<SyncViewHead title={title} action={action}>
+			<DataBack onBack={onBack}>Усі групи</DataBack>
+			<DataViewHead title={title} action={action}>
 				{description}
-			</SyncViewHead>
-			<SyncSearch
+			</DataViewHead>
+			<DataSearch
 				value={q}
 				placeholder="Пошук за назвою або кодом САЗ"
 				onChange={(value) => void setParams({ q: value, page: null })}
 				className="max-w-xl"
 			/>
-			{list.isLoading ? <SyncTableSkeleton /> : null}
+			{list.isLoading ? <DataTableSkeleton /> : null}
 			{list.error ? (
 				<UkmaDataError
 					error={list.error}
@@ -78,17 +78,17 @@ export function SyncChangeList({
 				/>
 			) : null}
 			{data && data.items.length === 0 ? (
-				<SyncTableEmpty>Нічого не знайдено</SyncTableEmpty>
+				<DataTableEmpty>Нічого не знайдено</DataTableEmpty>
 			) : null}
 			{data && data.items.length > 0 ? (
 				<>
-					<SyncTableFrame>
+					<DataTableFrame>
 						<thead>
 							<tr>
-								<SyncTh className="w-1/2">Дисципліна</SyncTh>
-								<SyncTh className="hidden sm:table-cell">Семестр</SyncTh>
-								<SyncTh className="hidden sm:table-cell">Код САЗ</SyncTh>
-								{scope.field ? <SyncTh>Зміна</SyncTh> : null}
+								<DataTh className="w-1/2">Дисципліна</DataTh>
+								<DataTh className="hidden sm:table-cell">Семестр</DataTh>
+								<DataTh className="hidden sm:table-cell">Код САЗ</DataTh>
+								{scope.field ? <DataTh>Зміна</DataTh> : null}
 							</tr>
 						</thead>
 						<tbody className="divide-y">
@@ -96,8 +96,8 @@ export function SyncChangeList({
 								const row = tableRow(change, scope.field);
 								return (
 									<tr key={row.id}>
-										<SyncTd>
-											<SyncTitleCell
+										<DataTd>
+											<DataTitleCell
 												title={row.title}
 												detail={row.department}
 											/>
@@ -106,20 +106,20 @@ export function SyncChangeList({
 													.filter(Boolean)
 													.join(" · ")}
 											</p>
-										</SyncTd>
-										<SyncTd className="hidden sm:table-cell">
+										</DataTd>
+										<DataTd className="hidden sm:table-cell">
 											{row.semester}
-										</SyncTd>
-										<SyncTd className="hidden tabular-nums sm:table-cell">
+										</DataTd>
+										<DataTd className="hidden tabular-nums sm:table-cell">
 											{row.sazCode}
-										</SyncTd>
-										{scope.field ? <SyncTd>{row.change}</SyncTd> : null}
+										</DataTd>
+										{scope.field ? <DataTd>{row.change}</DataTd> : null}
 									</tr>
 								);
 							})}
 						</tbody>
-					</SyncTableFrame>
-					<SyncPager
+					</DataTableFrame>
+					<DataPager
 						summary={`${formatCount(from)}–${formatCount(from + data.items.length - 1)} з ${formatCount(data.total)}`}
 						page={data.page}
 						totalPages={data.total_pages}

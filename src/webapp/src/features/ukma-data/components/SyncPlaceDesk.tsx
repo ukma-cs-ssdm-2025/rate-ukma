@@ -19,14 +19,10 @@ import {
 import type { DeskAnswer } from "../syncDesk";
 import { placeDecisionsRequest } from "../syncRequests";
 import { cleanTitle, ratingsText } from "../syncWords";
-import { SyncBack, SyncOutcome } from "./SyncBits";
-import {
-	DecisionsBar,
-	DeskHead,
-	LaterButton,
-	useDeskKeys,
-} from "./SyncDeskBits";
-import { SyncTableEmpty, SyncTableSkeleton } from "./SyncTable";
+import { DataBack, DataOutcome } from "./DataBits";
+import { DeskHead, useDeskKeys } from "./DataDesk";
+import { DecisionsBar, LaterButton } from "./SyncDeskBits";
+import { DataTableEmpty, DataTableSkeleton } from "./DataTable";
 import { UkmaDataError } from "./UkmaDataError";
 
 const NONE = "none";
@@ -123,7 +119,7 @@ function PlaceQuestion({
 					detail="Семестр не з'явиться на сайті; питання повернеться, якщо в САЗ щось зміниться"
 				/>
 			</fieldset>
-			<SyncOutcome title="Що буде:">{PLACE_OUTCOME}</SyncOutcome>
+			<DataOutcome title="Що буде:">{PLACE_OUTCOME}</DataOutcome>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 				<Button size="lg" disabled={chosen === null} onClick={attach}>
 					Прикріпити
@@ -162,13 +158,13 @@ export function SyncPlaceDesk({
 	const count = placed.length + none.length;
 	return (
 		<div className="space-y-5">
-			<SyncBack onBack={onBack} />
+			<DataBack onBack={onBack}>Усі групи</DataBack>
 			<DeskHead
 				title="Семестр без дисципліни"
 				progress={deskProgress(current, items.length)}
 				label={progressLabel(current, items.length, "")}
 			/>
-			{questions.isLoading ? <SyncTableSkeleton /> : null}
+			{questions.isLoading ? <DataTableSkeleton /> : null}
 			{questions.error ? (
 				<UkmaDataError
 					error={questions.error}
@@ -178,7 +174,7 @@ export function SyncPlaceDesk({
 				/>
 			) : null}
 			{questions.data && items.length === 0 ? (
-				<SyncTableEmpty>Семестрів без дисципліни не залишилось</SyncTableEmpty>
+				<DataTableEmpty>Семестрів без дисципліни не залишилось</DataTableEmpty>
 			) : null}
 			{question ? (
 				<PlaceQuestion

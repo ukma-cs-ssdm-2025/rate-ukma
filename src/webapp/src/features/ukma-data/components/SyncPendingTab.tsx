@@ -11,7 +11,6 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@/components/ui/Empty";
-import { Skeleton } from "@/components/ui/Skeleton";
 import type { SyncSummary } from "@/lib/api/generated";
 import {
 	useUkmaDataSyncRunApprovalsList,
@@ -28,6 +27,7 @@ import {
 	viewParams,
 } from "../syncParams";
 import { linksRequest, removedRequest } from "../syncRequests";
+import { DataLinesSkeleton } from "./DataLines";
 import { SyncAllDone } from "./SyncAllDone";
 import { SyncConfirmDialog } from "./SyncConfirmDialog";
 import { SyncDoneBanner, SyncOverview } from "./SyncOverview";
@@ -38,17 +38,6 @@ const APPROVALS_PAGE = 50;
 
 const isNotFound = (error: unknown): boolean =>
 	axios.isAxiosError(error) && error.response?.status === 404;
-
-function OverviewSkeleton() {
-	return (
-		<div className="space-y-3" aria-busy="true" aria-label="Завантаження">
-			<Skeleton className="h-16 rounded-lg" />
-			{Array.from({ length: 4 }, (_, index) => (
-				<Skeleton key={index} className="h-28 rounded-lg" />
-			))}
-		</div>
-	);
-}
 
 function NeverRun() {
 	return (
@@ -153,7 +142,7 @@ export function SyncPendingTab() {
 		{ query: { retry: false } },
 	);
 	if (summary.isLoading) {
-		return <OverviewSkeleton />;
+		return <DataLinesSkeleton />;
 	}
 	if (summary.error && isNotFound(summary.error)) {
 		return <NeverRun />;

@@ -1,80 +1,162 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, SearchX } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight, SearchX } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { CaseDetails } from "./CaseDetails";
-import { UkmaDataError } from "./UkmaDataError";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import {
-	kindLabel,
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/Empty";
+import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
+import type { UkmaDataReviewCase } from "@/lib/api/generated";
+import { stepIndex } from "../caseScreen";
+import {
+	caseDetail,
+	caseListParams,
+	caseTitle,
+	DECIDED_ELSEWHERE,
+	filterCases,
 	NO_RETRY,
 	PAGE,
-	SAFE_ANSWER_LABELS,
-	statusLabel,
+	STATUS_LABELS,
+	sortCases,
+	STATUS_TONES,
 } from "../reviewCases";
-import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
+import { formatCount } from "../syncFormat";
+import { CaseOutcome, CaseSides, CaseTechDetails } from "./CaseDetails";
+import { DataBack, DataChip, Kbd } from "./DataBits";
+import { DeskHead, useDeskKeys } from "./DataDesk";
+import { DataTableSkeleton } from "./DataTable";
+import { useCaseFilterParams, useCaseSearch } from "./ReviewCaseList";
+import { UkmaDataError } from "./UkmaDataError";
+
+function useCaseLookup(caseId: string) {
+	const [filters] = useCaseFilterParams();
+	const filtered = useUkmaDataReviewCasesList(
+		caseListParams(filters),
+		NO_RETRY,
+	);
+	const order = sortCases(filterCases(filtered.data?.items ?? [], filters));
+	const inOrder = order.find((item) => item.id === caseId);
+	const needsAll = filtered.isSuccess && inOrder === undefined;
+	const all = useUkmaDataReviewCasesList(PAGE, {
+		query: { retry: false, enabled: needsAll },
+	});
+	const source = needsAll ? all : filtered;
+	const reviewCase =
+		inOrder ?? all.data?.items.find((item) => item.id === caseId);
+	return {
+		source,
+		reviewCase,
+		order: (inOrder ? order : sortCases(all.data?.items ?? [])).map(
+			(item) => item.id,
+		),
+	};
+}
+
+function CaseDesk({
+	reviewCase,
+	order,
+}: Readonly<{ reviewCase: UkmaDataReviewCase; order: readonly string[] }>) {
+	const navigate = useNavigate();
+	const search = useCaseSearch();
+	const index = order.indexOf(reviewCase.id);
+	const previous = stepIndex(order, reviewCase.id, -1);
+	const next = stepIndex(order, reviewCase.id, 1);
+	const open = (caseId: string | null) => {
+		if (caseId !== null) {
+			void navigate({ to: "/data/cases/$caseId", params: { caseId }, search });
+		}
+	};
+	const toList = () => void navigate({ to: "/data/cases", search });
+	useDeskKeys(
+		{
+			ArrowRight: () => open(next),
+			ArrowLeft: () => open(previous),
+			Escape: toList,
+		},
+		true,
+	);
+	return (
+		<div className="space-y-5">
+			<DataBack onBack={toList}>Усі справи</DataBack>
+			<DeskHead
+				title={caseTitle(reviewCase)}
+				progress={((index + 1) / Math.max(order.length, 1)) * 100}
+				label={`Справа ${formatCount(index + 1)} з ${formatCount(order.length)}`}
+			/>
+			<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+				<DataChip tone={STATUS_TONES[reviewCase.status]}>
+					{STATUS_LABELS[reviewCase.status]}
+				</DataChip>
+				<span>{caseDetail(reviewCase)}</span>
+			</div>
+			<CaseSides reviewCase={reviewCase} />
+			<CaseOutcome reviewCase={reviewCase} />
+			<p className="text-sm text-muted-foreground">{DECIDED_ELSEWHERE}</p>
+			<div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
+				<Button
+					size="lg"
+					variant="outline"
+					disabled={previous === null}
+					onClick={() => open(previous)}
+				>
+					<ArrowLeft /> Попередня <Kbd>←</Kbd>
+				</Button>
+				<Button size="lg" disabled={next === null} onClick={() => open(next)}>
+					Наступна <ArrowRight /> <Kbd>→</Kbd>
+				</Button>
+			</div>
+			<CaseTechDetails reviewCase={reviewCase} />
+		</div>
+	);
+}
+
+function CaseNotFound({ searchedSome }: Readonly<{ searchedSome: boolean }>) {
+	const search = useCaseSearch();
+	return (
+		<Empty className="border-0 py-16">
+			<EmptyHeader>
+				<EmptyMedia variant="icon" className="text-destructive">
+					<SearchX />
+				</EmptyMedia>
+				<EmptyTitle>Справи не знайдено</EmptyTitle>
+				<EmptyDescription>
+					{searchedSome
+						? `Шукали серед перших ${formatCount(PAGE.limit)} справ.`
+						: "Можливо, її вже прибрали."}
+				</EmptyDescription>
+			</EmptyHeader>
+			<EmptyContent>
+				<Link to="/data/cases" search={search} className={buttonVariants()}>
+					До списку справ
+				</Link>
+			</EmptyContent>
+		</Empty>
+	);
+}
 
 export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
-	const { data, isLoading, error, refetch, isRefetching } =
-		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
-
-	if (isLoading) {
-		return <Skeleton className="h-96 rounded-xl" />;
+	const { source, reviewCase, order } = useCaseLookup(caseId);
+	const { data, isLoading, isPending, error, refetch, isRefetching } = source;
+	if (isLoading || (isPending && !error)) {
+		return <DataTableSkeleton />;
 	}
 	if (error || !data) {
 		return (
 			<UkmaDataError
 				error={error}
 				title="Не вдалося відкрити справу"
-				onRetry={refetch}
+				onRetry={() => void refetch()}
 				isRetrying={isRefetching}
 			/>
 		);
 	}
-	const reviewCase = data.items.find((item) => item.id === caseId);
 	if (!reviewCase) {
-		return (
-			<ErrorState
-				icon={SearchX}
-				title="Справи не знайдено"
-				description={
-					data.has_more
-						? `Шукали серед перших ${PAGE.limit} справ.`
-						: "UKMA Data не має такої справи."
-				}
-			/>
-		);
+		return <CaseNotFound searchedSome={data.has_more} />;
 	}
-
-	return (
-		<div className="space-y-6">
-			<Link
-				to="/data/cases"
-				className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-			>
-				<ArrowLeft className="size-4" />
-				Усі справи
-			</Link>
-			<div className="space-y-2">
-				<div className="flex flex-wrap items-center gap-2">
-					<Badge variant="soft">{kindLabel(reviewCase.kind)}</Badge>
-					<Badge variant="outline">{statusLabel(reviewCase.status)}</Badge>
-				</div>
-				<h2 className="text-xl font-semibold break-words">
-					Справа {reviewCase.id}
-				</h2>
-				{reviewCase.status === "open" ? (
-					<p className="text-sm text-muted-foreground">
-						Поки справа відкрита, опубліковано безпечну відповідь:{" "}
-						{SAFE_ANSWER_LABELS[reviewCase.kind]}.
-					</p>
-				) : null}
-			</div>
-			<CaseDetails reviewCase={reviewCase} />
-			<p className="text-sm text-muted-foreground">
-				Ухвалити рішення з Rate UKMA поки не можна: тут лише перегляд.
-			</p>
-		</div>
-	);
+	return <CaseDesk reviewCase={reviewCase} order={order} />;
 }

@@ -24,14 +24,10 @@ import type { DeskAnswer } from "../syncDesk";
 import { countWith } from "../syncFormat";
 import { mergeDecisionsRequest } from "../syncRequests";
 import { cleanTitle, ratingsText, SEMESTERS } from "../syncWords";
-import { Kbd, SyncBack, SyncOutcome } from "./SyncBits";
-import {
-	DecisionsBar,
-	DeskHead,
-	LaterButton,
-	useDeskKeys,
-} from "./SyncDeskBits";
-import { SyncTableEmpty, SyncTableSkeleton } from "./SyncTable";
+import { DataBack, DataOutcome, Kbd } from "./DataBits";
+import { DeskHead, useDeskKeys } from "./DataDesk";
+import { DecisionsBar, LaterButton } from "./SyncDeskBits";
+import { DataTableEmpty, DataTableSkeleton } from "./DataTable";
 import { UkmaDataError } from "./UkmaDataError";
 
 function answerText(answer: DeskAnswer | undefined): string | null {
@@ -144,7 +140,7 @@ function PairDesk({
 					</button>
 				) : null}
 			</p>
-			<SyncOutcome title="Якщо об'єднати:">{mergeOutcome(pair)}</SyncOutcome>
+			<DataOutcome title="Якщо об'єднати:">{mergeOutcome(pair)}</DataOutcome>
 			{answerText(answer) === null ? null : (
 				<p className="text-sm font-medium" role="status">
 					{answerText(answer)}
@@ -195,13 +191,13 @@ export function SyncMergeDesk({
 	};
 	return (
 		<div className="space-y-5">
-			<SyncBack onBack={onBack} />
+			<DataBack onBack={onBack}>Усі групи</DataBack>
 			<DeskHead
 				title="Схожі на дублікати"
 				progress={deskProgress(current, items.length)}
 				label={`Пара ${progressLabel(current, items.length, " з оцінками")}`}
 			/>
-			{questions.isLoading ? <SyncTableSkeleton /> : null}
+			{questions.isLoading ? <DataTableSkeleton /> : null}
 			{questions.error ? (
 				<UkmaDataError
 					error={questions.error}
@@ -211,7 +207,7 @@ export function SyncMergeDesk({
 				/>
 			) : null}
 			{questions.data && items.length === 0 ? (
-				<SyncTableEmpty>Пар з оцінками не залишилось</SyncTableEmpty>
+				<DataTableEmpty>Пар з оцінками не залишилось</DataTableEmpty>
 			) : null}
 			{question ? (
 				<PairDesk
