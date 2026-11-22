@@ -10,6 +10,9 @@ once it applied.
 Catalog writes are set-based, so a catalog handler also registers
 ``apply_many``: the apply passes it every ready change of that kind and it
 writes them in a few statements instead of one per row.
+
+A handler returns an optional report (counts a person should see, such as a
+merge's old -> new course ids); the apply folds it into the approval's counts.
 """
 
 from __future__ import annotations
@@ -19,8 +22,17 @@ from dataclasses import dataclass
 
 from rating_app.models import SyncChange
 
-HandlerFunction = Callable[[SyncChange], None]
-ManyHandlerFunction = Callable[[list[SyncChange]], None]
+HandlerReport = dict[str, object]
+HandlerFunction = Callable[[SyncChange], HandlerReport | None]
+ManyHandlerFunction = Callable[[list[SyncChange]], HandlerReport | None]
+
+
+class ChangeNotReadyError(Exception):
+    """The handler cannot apply this change yet; the apply leaves it proposed."""
+
+
+class ChangeStaleError(Exception):
+    """The change's premise no longer holds; the apply supersedes it as stale."""
 
 
 class MissingRowError(LookupError):
@@ -62,4 +74,4 @@ def handler_for(kind: str) -> Handler | None:
     return HANDLERS.get(kind)
 
 
-from rating_app.sync.handlers import catalog, teachers  # noqa: E402,F401  # register kinds
+from rating_app.sync.handlers import catalog, mapping, teachers  # noqa: E402,F401  # register kinds
