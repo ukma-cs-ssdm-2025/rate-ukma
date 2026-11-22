@@ -33,6 +33,9 @@ from rating_app.serializers.notification import (
     UnreadCountSerializer,
 )
 from rating_app.serializers.sync import (
+    SyncAnswerResponseSerializer,
+    SyncApprovalSerializer,
+    SyncBulkAnswerResponseSerializer,
     SyncChangeListResponseSerializer,
     SyncPendingResponseSerializer,
     SyncPolicyChangeListResponseSerializer,
@@ -354,6 +357,14 @@ R_SYNC_POLICY = sync_responses(SyncPolicySerializer, include_400=True, include_4
 R_SYNC_POLICY_CHANGES = sync_responses(
     forced_singular_serializer(SyncPolicyChangeListResponseSerializer), include_400=True
 )
+R_SYNC_APPROVE = {
+    200: OpenApiResponse(SyncApprovalSerializer, "Approved, rejected or previewed"),
+    **common_errors(include_400=True),
+    409: OpenApiResponse(Err, "Sync running or the run is too old"),
+    500: OpenApiResponse(Err, "The apply failed"),
+}
+R_SYNC_ANSWER = sync_responses(SyncAnswerResponseSerializer, include_404=True)
+R_SYNC_BULK_ANSWER = sync_responses(SyncBulkAnswerResponseSerializer)
 
 
 R_PERSONAL_PLAN = {
