@@ -166,6 +166,7 @@ class MergeCoursesPayload(Payload):
 
 class MoveOfferingPayload(Payload):
     from_course: str
+    ukma_course_id: str
     to_course_id: str | None = None
     to_course_ukma_id: str | None = None
 

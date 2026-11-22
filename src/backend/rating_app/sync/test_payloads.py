@@ -112,4 +112,6 @@ def test_new_offering_accepts_an_existing_course():
 
 def test_move_offering_requires_exactly_one_target():
     with pytest.raises(ValidationError, match="exactly one of to_course_id"):
-        PAYLOADS["move_offering"].model_validate({"from_course": "ru-course"})
+        PAYLOADS["move_offering"].model_validate(
+            {"from_course": "ru-course", "ukma_course_id": "ud-course"}
+        )
