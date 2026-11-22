@@ -200,7 +200,7 @@ for (const width of [1440, 390]) {
 			.click();
 		await expect(page.getByText("2 схожі викладачі")).toBeVisible();
 		await expect(
-			page.getByText("Рішення ухвалюють у САЗ-даних; тут — перегляд."),
+			page.getByText(/^Рішення ухвалюють у сервісі даних САЗ/),
 		).toBeVisible();
 		await shot(page, `case-instructor-${width}`);
 

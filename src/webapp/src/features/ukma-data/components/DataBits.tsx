@@ -139,7 +139,7 @@ export function DataSegments<T extends string>({
 					tabIndex={index === active ? 0 : -1}
 					onClick={() => onChange(item.value)}
 					className={cn(
-						"flex shrink-0 items-center gap-1.5 px-2 py-1.5 whitespace-nowrap sm:gap-2 sm:px-3",
+						"flex shrink-0 items-center gap-1.5 px-2 py-1.5 whitespace-nowrap outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:gap-2 sm:px-3",
 						index > 0 && "border-l",
 						value === item.value
 							? "bg-muted font-medium"
