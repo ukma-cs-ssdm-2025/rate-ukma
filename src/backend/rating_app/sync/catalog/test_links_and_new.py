@@ -711,6 +711,32 @@ def test_propose_links_and_new_places_an_offering_on_the_merge_target_when_kept_
     assert _one(drafts, "new_offering").after["course_id"] == "ru-b"
 
 
+def test_propose_links_and_new_links_no_course_of_an_unanswered_shared_course():
+    snapshot, ru = _shared_course()
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [], academic_year=2025)
+
+    assert _of_kind(drafts, "link_course") == []
+
+
+def test_propose_links_and_new_links_every_kept_apart_course():
+    snapshot, ru = _shared_course()
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [_keep_apart()], academic_year=2025)
+
+    assert sorted(draft.target_id for draft in _of_kind(drafts, "link_course")) == ["ru-a", "ru-b"]
+
+
+def test_propose_links_and_new_links_only_the_merge_target():
+    snapshot, ru = _shared_course()
+
+    drafts, _ = propose_links_and_new(
+        snapshot, ru, [_keep_apart(answer="merge", into_id="ru-b")], academic_year=2025
+    )
+
+    assert [draft.target_id for draft in _of_kind(drafts, "link_course")] == ["ru-b"]
+
+
 def test_propose_links_and_new_answers_a_place_question_when_a_live_decision_matches():
     snapshot, ru = _shared_course()
     decision = DecisionView(

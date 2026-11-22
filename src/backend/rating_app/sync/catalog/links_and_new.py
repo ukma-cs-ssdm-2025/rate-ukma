@@ -312,7 +312,7 @@ class _Builder:
             ud_course_id = self.majority.get(course_id)
             if ud_course_id is None:
                 continue
-            if len(self.majority_groups.get(ud_course_id, [])) > 1:
+            if not self._links_in_group(course_id, ud_course_id):
                 continue
             self._link(
                 "link_course",
@@ -329,6 +329,22 @@ class _Builder:
                 Display(course=self._course_card(course_id)),
                 self.ru.courses[course_id].ratings,
             )
+
+    def _links_in_group(self, course_id: str, ud_course_id: str) -> bool:
+        """A course alone on its UKMA Data course links; several link only once a
+        live merge decision answers them: each for keep apart, the target for a merge (M3)."""
+        group = self.majority_groups.get(ud_course_id, [])
+        if len(group) <= 1:
+            return True
+        course = self.ud.courses.get(ud_course_id)
+        if course is None:
+            return False
+        decision = self._merge_decision(course, group)
+        if decision is None:
+            return False
+        if decision.answer == "keep_apart":
+            return True
+        return decision.answer == "merge" and decision.into_id == course_id
 
     def _link_offerings(self) -> None:
         for ud_offering_id, ru_offering_id in sorted(self.offering_match.items()):
