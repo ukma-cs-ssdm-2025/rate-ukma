@@ -1565,6 +1565,47 @@ def test_a_change_course_whose_identity_now_exists_is_superseded(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_a_new_course_colliding_in_a_department_linked_in_the_same_approval_is_superseded(
+    user, make_run, make_change, department_factory, course_factory
+):
+    department = department_factory(ukma_data_id=None)
+    course_factory(department=department, title="Зайнята назва", education_level="BACHELOR")
+    run = make_run(source=SyncSource.CATALOG)
+    link = make_change(
+        run,
+        kind="link_department",
+        key=str(department.pk),
+        target_id=str(department.pk),
+        before={"ukma_data_id": None},
+        after={"ukma_data_id": "ud-dept"},
+    )
+    new_course = make_change(
+        run,
+        kind="new_course",
+        key="ud-course",
+        after={
+            "title": "Зайнята назва",
+            "level": "BACHELOR",
+            "department_ukma_id": "ud-dept",
+            "status": "ACTIVE",
+            "description": "",
+        },
+        requires=[{"kind": "link_department", "key": str(department.pk)}],
+    )
+
+    approval = approve([link.pk, new_course.pk], user)
+
+    link.refresh_from_db()
+    new_course.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert link.state == SyncChangeState.APPLIED
+    assert new_course.state == SyncChangeState.SUPERSEDED
+    assert new_course.state_reason == SyncChangeStateReason.IDENTITY_COLLISION
+    assert not Course.objects.filter(ukma_data_id="ud-course").exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_a_new_row_whose_dependency_is_missing_waits(user, make_run, make_change):
     run = make_run(source=SyncSource.CATALOG)
     course = make_change(

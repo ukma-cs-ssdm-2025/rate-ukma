@@ -565,11 +565,12 @@ def _identity_collisions(changes: list[SyncChange]) -> set[int]:
     A change that keeps its course's identity cannot create a new collision, as
     the builder does not propose one either.
     """
+    linking = _departments_linked_by(changes)
     identities: dict[Identity, list[SyncChange]] = defaultdict(list)
     for change in changes:
         if change.kind not in _IDENTITY_KINDS:
             continue
-        identity = _collision_identity(change)
+        identity = _collision_identity(change, linking)
         if identity is not None:
             identities[identity].append(change)
     colliding: set[int] = set()
@@ -582,34 +583,47 @@ def _identity_collisions(changes: list[SyncChange]) -> set[int]:
     return colliding
 
 
-def _collision_identity(change: SyncChange) -> Identity | None:
+def _departments_linked_by(changes: list[SyncChange]) -> dict[str, str]:
+    """UKMA Data department id -> Rate UKMA department id for the
+    ``link_department`` changes applying in the same approval."""
+    linking: dict[str, str] = {}
+    for change in changes:
+        ukma_data_id = change.after.get("ukma_data_id")
+        if change.kind == "link_department" and change.target_id and isinstance(ukma_data_id, str):
+            linking[ukma_data_id] = change.target_id
+    return linking
+
+
+def _collision_identity(change: SyncChange, linking: dict[str, str]) -> Identity | None:
     if change.kind == "new_course":
         payload = NewCoursePayload.model_validate(change.after)
         return course_identity(
             payload.title,
-            _department_identity_id(payload.department_ukma_id),
+            _department_identity_id(payload.department_ukma_id, linking),
             payload.level,
         )
     current = _course_identity(change.target_id)
     if current is None:
         return None
-    identity = changed_identity(current, _resolved_course_after(change.after))
+    identity = changed_identity(current, _resolved_course_after(change.after, linking))
     return identity if identity != current else None
 
 
-def _resolved_course_after(after: dict[str, object]) -> dict[str, object]:
+def _resolved_course_after(after: dict[str, object], linking: dict[str, str]) -> dict[str, object]:
     """A ``change_course`` payload with its department id resolved like the
     handler resolves it: by id, else by the UKMA Data id."""
     department = after.get("department")
     if not isinstance(department, dict) or department.get("id"):
         return after
-    resolved = _department_identity_id(department.get("ukma_data_id"))
+    resolved = _department_identity_id(department.get("ukma_data_id"), linking)
     return {**after, "department": {**department, "id": resolved}}
 
 
-def _department_identity_id(ukma_data_id: object) -> str:
+def _department_identity_id(ukma_data_id: object, linking: dict[str, str]) -> str:
     if not isinstance(ukma_data_id, str) or not ukma_data_id:
         return ""
+    if ukma_data_id in linking:
+        return linking[ukma_data_id]
     existing = (
         Department.objects.filter(ukma_data_id=ukma_data_id).values_list("id", flat=True).first()
     )
