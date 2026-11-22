@@ -1,10 +1,9 @@
 import { useQueryState } from "nuqs";
 
 import { useUkmaDataSyncSummary } from "@/lib/api/generated";
-import { cn } from "@/lib/utils";
-import { formatCount } from "../syncFormat";
 import { pendingTotal } from "../syncGroups";
 import { SYNC_TABS, tabParser } from "../syncParams";
+import { DataSegments } from "./DataBits";
 import { SyncActiveBanner } from "./SyncActiveBanner";
 import { SyncHistoryTab } from "./SyncHistoryTab";
 import { SyncPendingTab } from "./SyncPendingTab";
@@ -26,34 +25,17 @@ export function SyncPage() {
 	return (
 		<div className="min-w-0 space-y-6">
 			<SyncActiveBanner />
-			<div
-				role="tablist"
-				aria-label="Вкладки оновлень"
-				className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1"
-			>
-				{SYNC_TABS.map((item) => (
-					<button
-						key={item}
-						type="button"
-						role="tab"
-						aria-selected={tab === item}
-						onClick={() => void setTab(item)}
-						className={cn(
-							"flex shrink-0 items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
-							tab === item
-								? "bg-background text-foreground shadow-xs"
-								: "text-muted-foreground hover:text-foreground",
-						)}
-					>
-						{TAB_LABELS[item]}
-						{item === "pending" && waiting !== null ? (
-							<span className="font-normal text-muted-foreground tabular-nums">
-								{formatCount(waiting)}
-							</span>
-						) : null}
-					</button>
-				))}
-			</div>
+			<DataSegments
+				tabs
+				label="Вкладки оновлень"
+				value={tab}
+				onChange={(value) => void setTab(value)}
+				items={SYNC_TABS.map((item) => ({
+					value: item,
+					label: TAB_LABELS[item],
+					count: item === "pending" && waiting !== null ? waiting : undefined,
+				}))}
+			/>
 			{tab === "pending" ? <SyncPendingTab /> : null}
 			{tab === "history" ? <SyncHistoryTab /> : null}
 			{tab === "rules" ? <SyncRulesTab /> : null}

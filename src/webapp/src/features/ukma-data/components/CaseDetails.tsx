@@ -1,6 +1,11 @@
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
 import { cn } from "@/lib/utils";
-import { caseMeanwhile, caseOptions, caseSides } from "../caseScreen";
+import {
+	caseMeanwhile,
+	caseOptions,
+	caseSides,
+	DIFFERENT_PEOPLE,
+} from "../caseScreen";
 import type { CaseSide } from "../caseScreen";
 import { candidateIds, formatDateTime } from "../reviewCases";
 import { DataOutcome } from "./DataBits";
@@ -53,7 +58,7 @@ export function CaseOutcome({
 	reviewCase,
 }: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
 	return (
-		<DataOutcome title="Що означає кожне рішення:">
+		<DataOutcome title="Що означає кожне рішення в сервісі даних САЗ:">
 			<ul className="mt-1 space-y-1">
 				{caseOptions(reviewCase.kind).map((option) => (
 					<li key={option.name}>
@@ -61,6 +66,9 @@ export function CaseOutcome({
 					</li>
 				))}
 			</ul>
+			{reviewCase.kind === "student_match" ? (
+				<p className="mt-2">{DIFFERENT_PEOPLE}</p>
+			) : null}
 			<p className="mt-2">{caseMeanwhile(reviewCase)}</p>
 		</DataOutcome>
 	);

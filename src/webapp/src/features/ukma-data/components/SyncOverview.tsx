@@ -52,6 +52,9 @@ export function SyncDoneBanner({
 	);
 }
 
+const CONFIRM_FIRST =
+	"Спершу покажемо, що саме зміниться; на сайті нічого не зміниться, доки ви не підтвердите.";
+
 function Line({
 	line,
 	primary,
@@ -78,6 +81,11 @@ function Line({
 					>
 						{line.action.label}
 					</Button>
+					{line.key === "links" ? (
+						<p className="max-w-64 text-xs text-muted-foreground sm:text-right">
+							{CONFIRM_FIRST}
+						</p>
+					) : null}
 					{link ? (
 						<Button
 							variant="link"

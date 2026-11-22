@@ -1,7 +1,13 @@
 import type { ComponentType } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MockAdapter from "axios-mock-adapter";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -13,6 +19,7 @@ import type { Session, UkmaDataReviewCasePage } from "@/lib/api/generated";
 import {
 	casePage,
 	removalCase,
+	serveCases,
 	studentCase,
 } from "@/features/ukma-data/components/caseTestData";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
@@ -66,7 +73,7 @@ afterEach(() => {
 
 describe("/data/cases", () => {
 	it("lists open cases as compact rows named in words", async () => {
-		mockAxios.onGet(URL).reply(200, PAGE);
+		serveCases(mockAxios, PAGE.items);
 
 		renderCases("");
 
@@ -75,7 +82,9 @@ describe("/data/cases", () => {
 		expect(rows[1]).toHaveTextContent(
 			"Новий запис студента схожий на наявного",
 		);
-		expect(rows[1]).toHaveTextContent("Збігся з 2 студентами");
+		expect(rows[1]).toHaveTextContent(
+			"Збігся з 2 студентами · Отримано 2 вер.",
+		);
 		expect(rows[1]).toHaveTextContent("Чекає рішення");
 		expect(rows[2]).toHaveTextContent(
 			"САЗ більше не показує 3 семестри 2029–2030",
@@ -83,17 +92,28 @@ describe("/data/cases", () => {
 		expect(document.body).not.toHaveTextContent("case-st-1");
 		expect(document.body).not.toHaveTextContent("UKMA Data");
 		expect(screen.getByText("Залишилось вирішити")).toHaveTextContent("2");
-		expect(mockAxios.history.get[0].params).toEqual({ limit: 1000 });
+		expect(mockAxios.history.get[0].params).toEqual({
+			limit: 1000,
+			status: "open",
+		});
 	});
 
 	it("filters by status and kind segments from the URL", async () => {
-		mockAxios.onGet(URL).reply(200, PAGE);
+		serveCases(mockAxios, PAGE.items);
 
 		renderCases("?status=all&kind=student_match");
 
 		const rows = await screen.findAllByRole("row");
 		expect(rows).toHaveLength(3);
 		expect(rows[2]).toHaveTextContent("Вирішено");
+		expect(
+			mockAxios.history.get.some(
+				(request) =>
+					request.params.limit === 1000 &&
+					request.params.kind === "student_match" &&
+					request.params.status === undefined,
+			),
+		).toBe(true);
 		expect(screen.getByRole("radio", { name: /Студенти/ })).toHaveAttribute(
 			"aria-checked",
 			"true",
@@ -101,19 +121,19 @@ describe("/data/cases", () => {
 	});
 
 	it("switches the status segment", async () => {
-		mockAxios.onGet(URL).reply(200, PAGE);
+		serveCases(mockAxios, PAGE.items);
 		renderCases("");
 		await screen.findAllByRole("row");
 
 		await userEvent.click(screen.getByRole("radio", { name: /Вирішені/ }));
 
+		await waitFor(() => expect(screen.getAllByRole("row")).toHaveLength(2));
 		const rows = screen.getAllByRole("row");
-		expect(rows).toHaveLength(2);
 		expect(rows[1]).toHaveTextContent("Вирішено");
 	});
 
 	it("searches by the words of a case", async () => {
-		mockAxios.onGet(URL).reply(200, PAGE);
+		serveCases(mockAxios, PAGE.items);
 		renderCases("");
 		await screen.findAllByRole("row");
 
@@ -143,17 +163,100 @@ describe("/data/cases", () => {
 	});
 
 	it("says when nothing is waiting", async () => {
-		mockAxios.onGet(URL).reply(200, casePage([]));
+		serveCases(mockAxios, []);
 
 		renderCases("");
 
 		expect(
 			await screen.findByText(/Справ немає: усе, що прийшло з САЗ/),
 		).toBeInTheDocument();
+		expect(screen.queryByText("Нічого не знайдено")).not.toBeInTheDocument();
+	});
+
+	it("keeps the filters with real counts when no case is open", async () => {
+		serveCases(mockAxios, [
+			{ ...studentCase(1), status: "decided" },
+			{ ...studentCase(2), status: "decided" },
+			{ ...removalCase, status: "obsolete" },
+		]);
+
+		renderCases("");
+
+		expect(
+			await screen.findByText("За цим фільтром справ немає"),
+		).toBeInTheDocument();
+		expect(screen.queryByText("Нічого не знайдено")).not.toBeInTheDocument();
+		const state = screen.getByRole("radiogroup", { name: "Стан" });
+		await waitFor(() =>
+			expect(state).toHaveTextContent("Чекають0Вирішені2Неактуальні1Усі3"),
+		);
+		expect(screen.getByRole("radiogroup", { name: "Тип" })).toHaveTextContent(
+			/^Усі0.*Студенти0/,
+		);
+		expect(screen.getByText("Стан")).toBeVisible();
+		expect(screen.getByText("Тип")).toBeVisible();
+	});
+
+	it("asks the server for the filter and counts what remains from the open total", async () => {
+		const open = Array.from({ length: 1200 }, (_, index) =>
+			studentCase(index, {
+				opened_at: new Date(
+					Date.UTC(2030, 0, 1) + index * 60_000,
+				).toISOString(),
+			}),
+		);
+		serveCases(mockAxios, open);
+
+		renderCases("");
+
+		await screen.findAllByRole("row");
+		await waitFor(() =>
+			expect(screen.getByText("Залишилось вирішити")).toHaveTextContent(
+				"1 200",
+			),
+		);
+		expect(
+			mockAxios.history.get.filter(
+				(request) =>
+					request.params.limit === 1000 && request.params.status === "open",
+			),
+		).not.toHaveLength(0);
+	});
+
+	it("puts open cases oldest first", async () => {
+		serveCases(mockAxios, [
+			studentCase(1, { opened_at: "2030-09-05T10:00:00Z" }),
+			studentCase(2, { opened_at: "2030-09-01T10:00:00Z" }),
+			studentCase(3, { opened_at: "2030-09-03T10:00:00Z" }),
+		]);
+
+		renderCases("");
+
+		const rows = await screen.findAllByRole("row");
+		expect(rows.slice(1).map((row) => row.textContent)).toEqual([
+			expect.stringContaining("Отримано 1 вер."),
+			expect.stringContaining("Отримано 3 вер."),
+			expect.stringContaining("Отримано 5 вер."),
+		]);
+	});
+
+	it("links each case with the list's page and filters", async () => {
+		serveCases(
+			mockAxios,
+			Array.from({ length: 25 }, (_, index) => studentCase(index)),
+		);
+
+		renderCases("?page=2&q=запис");
+
+		const rows = await screen.findAllByRole("row");
+		expect(within(rows[1]).getByRole("link")).toHaveAttribute(
+			"data-search",
+			JSON.stringify({ kind: "all", status: "open", q: "запис", page: 2 }),
+		);
 	});
 
 	it("explains what a case is", async () => {
-		mockAxios.onGet(URL).reply(200, PAGE);
+		serveCases(mockAxios, PAGE.items);
 
 		renderCases("");
 
@@ -223,7 +326,7 @@ describe("/data/cases", () => {
 			await screen.findByText("Немає доступу до цих даних"),
 		).toBeInTheDocument();
 		expect(
-			screen.getByText(/не дає права бачити цей розділ/),
+			screen.getByText(/У сайту немає дозволу бачити цей розділ/),
 		).toBeInTheDocument();
 		expect(
 			screen.queryByText("Розділ лише для суперкористувачів"),
@@ -296,7 +399,11 @@ describe("/data/cases", () => {
 		);
 
 		const { queryClient, unmount } = renderCases();
-		await waitFor(() => expect(mockAxios.history.get).toHaveLength(2));
+		await waitFor(() =>
+			expect(
+				mockAxios.history.get.some((request) => request.url === SESSION_URL),
+			).toBe(true),
+		);
 		unmount();
 		answer();
 		await new Promise((resolve) => setTimeout(resolve, 20));

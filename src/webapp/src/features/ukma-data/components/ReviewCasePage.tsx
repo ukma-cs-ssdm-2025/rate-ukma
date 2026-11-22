@@ -1,18 +1,28 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, SearchX } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
-import { ErrorState } from "@/components/ui/ErrorState";
+import { Button, buttonVariants } from "@/components/ui/Button";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/Empty";
 import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
 import { stepIndex } from "../caseScreen";
 import {
 	caseDetail,
+	caseListParams,
 	caseTitle,
+	DECIDED_ELSEWHERE,
 	filterCases,
 	NO_RETRY,
 	PAGE,
 	STATUS_LABELS,
+	sortCases,
 	STATUS_TONES,
 } from "../reviewCases";
 import { formatCount } from "../syncFormat";
@@ -20,16 +30,31 @@ import { CaseOutcome, CaseSides, CaseTechDetails } from "./CaseDetails";
 import { DataBack, DataChip, Kbd } from "./DataBits";
 import { DeskHead, useDeskKeys } from "./DataDesk";
 import { DataTableSkeleton } from "./DataTable";
-import { useCaseFilterParams } from "./ReviewCaseList";
+import { useCaseFilterParams, useCaseSearch } from "./ReviewCaseList";
 import { UkmaDataError } from "./UkmaDataError";
 
-function useCaseOrder(
-	cases: readonly UkmaDataReviewCase[],
-	caseId: string,
-): string[] {
+function useCaseLookup(caseId: string) {
 	const [filters] = useCaseFilterParams();
-	const filtered = filterCases(cases, filters).map((item) => item.id);
-	return filtered.includes(caseId) ? filtered : cases.map((item) => item.id);
+	const filtered = useUkmaDataReviewCasesList(
+		caseListParams(filters),
+		NO_RETRY,
+	);
+	const order = sortCases(filterCases(filtered.data?.items ?? [], filters));
+	const inOrder = order.find((item) => item.id === caseId);
+	const needsAll = filtered.isSuccess && inOrder === undefined;
+	const all = useUkmaDataReviewCasesList(PAGE, {
+		query: { retry: false, enabled: needsAll },
+	});
+	const source = needsAll ? all : filtered;
+	const reviewCase =
+		inOrder ?? all.data?.items.find((item) => item.id === caseId);
+	return {
+		source,
+		reviewCase,
+		order: (inOrder ? order : sortCases(all.data?.items ?? [])).map(
+			(item) => item.id,
+		),
+	};
 }
 
 function CaseDesk({
@@ -37,8 +62,7 @@ function CaseDesk({
 	order,
 }: Readonly<{ reviewCase: UkmaDataReviewCase; order: readonly string[] }>) {
 	const navigate = useNavigate();
-	const [filters] = useCaseFilterParams();
-	const search = { kind: filters.kind, status: filters.status, q: filters.q };
+	const search = useCaseSearch();
 	const index = order.indexOf(reviewCase.id);
 	const previous = stepIndex(order, reviewCase.id, -1);
 	const next = stepIndex(order, reviewCase.id, 1);
@@ -72,9 +96,7 @@ function CaseDesk({
 			</div>
 			<CaseSides reviewCase={reviewCase} />
 			<CaseOutcome reviewCase={reviewCase} />
-			<p className="text-sm text-muted-foreground">
-				Рішення ухвалюють у САЗ-даних; тут — перегляд.
-			</p>
+			<p className="text-sm text-muted-foreground">{DECIDED_ELSEWHERE}</p>
 			<div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
 				<Button
 					size="lg"
@@ -93,12 +115,34 @@ function CaseDesk({
 	);
 }
 
+function CaseNotFound({ searchedSome }: Readonly<{ searchedSome: boolean }>) {
+	const search = useCaseSearch();
+	return (
+		<Empty className="border-0 py-16">
+			<EmptyHeader>
+				<EmptyMedia variant="icon" className="text-destructive">
+					<SearchX />
+				</EmptyMedia>
+				<EmptyTitle>Справи не знайдено</EmptyTitle>
+				<EmptyDescription>
+					{searchedSome
+						? `Шукали серед перших ${formatCount(PAGE.limit)} справ.`
+						: "Можливо, її вже прибрали."}
+				</EmptyDescription>
+			</EmptyHeader>
+			<EmptyContent>
+				<Link to="/data/cases" search={search} className={buttonVariants()}>
+					До списку справ
+				</Link>
+			</EmptyContent>
+		</Empty>
+	);
+}
+
 export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
-	const { data, isLoading, error, refetch, isRefetching } =
-		useUkmaDataReviewCasesList(PAGE, NO_RETRY);
-	const cases = data && !error ? data.items : [];
-	const order = useCaseOrder(cases, caseId);
-	if (isLoading) {
+	const { source, reviewCase, order } = useCaseLookup(caseId);
+	const { data, isLoading, isPending, error, refetch, isRefetching } = source;
+	if (isLoading || (isPending && !error)) {
 		return <DataTableSkeleton />;
 	}
 	if (error || !data) {
@@ -111,19 +155,8 @@ export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 			/>
 		);
 	}
-	const reviewCase = cases.find((item) => item.id === caseId);
 	if (!reviewCase) {
-		return (
-			<ErrorState
-				icon={SearchX}
-				title="Справи не знайдено"
-				description={
-					data.has_more
-						? `Шукали серед перших ${formatCount(PAGE.limit)} справ.`
-						: "Можливо, її вже прибрали. Поверніться до списку справ."
-				}
-			/>
-		);
+		return <CaseNotFound searchedSome={data.has_more} />;
 	}
 	return <CaseDesk reviewCase={reviewCase} order={order} />;
 }

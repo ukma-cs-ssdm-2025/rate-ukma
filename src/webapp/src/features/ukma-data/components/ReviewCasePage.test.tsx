@@ -5,7 +5,12 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
-import { casePage, CASES_URL, removalCase, studentCase } from "./caseTestData";
+import {
+	CASES_URL,
+	removalCase,
+	serveCases,
+	studentCase,
+} from "./caseTestData";
 import { ReviewCasePage } from "./ReviewCasePage";
 
 const navigate = vi.fn();
@@ -34,7 +39,7 @@ function renderCase(caseId: string, search = "") {
 
 beforeEach(() => {
 	mock = new MockAdapter(authorizedHttpClient);
-	mock.onGet(CASES_URL).reply(200, casePage(CASES));
+	serveCases(mock, CASES);
 });
 
 afterEach(() => {
@@ -61,14 +66,21 @@ describe("case screen", () => {
 		expect(screen.getByText("Запис із САЗ")).toBeInTheDocument();
 		expect(screen.getByText("З ким зіставлено")).toBeInTheDocument();
 		expect(screen.getByText("2 наявні студенти")).toBeInTheDocument();
-		expect(screen.getByText("Що означає кожне рішення:")).toBeInTheDocument();
+		expect(
+			screen.getByText("Що означає кожне рішення в сервісі даних САЗ:"),
+		).toBeInTheDocument();
 		expect(
 			screen.getByText(
 				"Поки рішення немає, запис приєднано до найближчого наявного студента.",
 			),
 		).toBeInTheDocument();
 		expect(
-			screen.getByText("Рішення ухвалюють у САЗ-даних; тут — перегляд."),
+			screen.getByText(
+				"Рішення ухвалюють у сервісі даних САЗ, не на цьому сайті. Тут видно, що сталося і що показано студентам тим часом.",
+			),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/Якщо це різні люди — залиште справу відкритою/),
 		).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: /Та сама людина/ })).toBeNull();
 		expect(
@@ -125,12 +137,44 @@ describe("case screen", () => {
 		expect(screen.getByText("Прибрати")).toBeInTheDocument();
 	});
 
-	it("says a case was not found", async () => {
+	it("says a case was not found and links back to the same list page", async () => {
 		// Arrange & Act
-		renderCase("case-missing");
+		renderCase("case-missing", "?status=decided&page=2");
 
 		// Assert
 		expect(await screen.findByText("Справи не знайдено")).toBeInTheDocument();
+		const back = screen.getByRole("link", { name: "До списку справ" });
+		expect(back).toHaveAttribute("href", "/data/cases");
+		expect(back).toHaveAttribute(
+			"data-search",
+			JSON.stringify({ kind: "all", status: "decided", q: "", page: 2 }),
+		);
+	});
+
+	it("keeps the list page and filters when moving between cases", async () => {
+		// Arrange
+		renderCase("case-st-1", "?status=open&page=2&q=sem");
+		await screen.findByRole("button", { name: /Наступна/ });
+
+		// Act
+		fireEvent.keyDown(document, { key: "Escape" });
+
+		// Assert
+		expect(navigate).toHaveBeenCalledWith({
+			to: "/data/cases",
+			search: { kind: "all", status: "open", q: "sem", page: 2 },
+		});
+	});
+
+	it("opens a case outside the list's filters from the whole list", async () => {
+		// Arrange
+		serveCases(mock, [...CASES, studentCase(9, { status: "decided" })]);
+
+		// Act
+		renderCase("case-st-9", "?status=open");
+
+		// Assert
+		expect(await screen.findByText("Справа 4 з 4")).toBeInTheDocument();
 	});
 
 	it("shows the error with retry", async () => {

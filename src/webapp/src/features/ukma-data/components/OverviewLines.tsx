@@ -47,10 +47,10 @@ export function CaseWaitingLine({
 			title={title}
 			effect={
 				kind === null
-					? "Справи — питання, які не вдалося вирішити автоматично. Поки їх не вирішено, діє безпечна відповідь."
+					? "Справи — питання, які не вдалося вирішити автоматично. Тим часом діє безпечна відповідь."
 					: kindMeaning(kind)
 			}
-			chip={<SyncChip chip="manual" />}
+			chip={<DataChip tone="muted">Вирішують поза сайтом</DataChip>}
 			action={
 				<Link
 					to="/data/cases"

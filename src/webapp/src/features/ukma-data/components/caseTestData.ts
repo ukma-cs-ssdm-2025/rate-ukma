@@ -1,3 +1,6 @@
+import type MockAdapter from "axios-mock-adapter";
+import * as z from "zod";
+
 import type {
 	UkmaDataReviewCase,
 	UkmaDataReviewCasePage,
@@ -70,3 +73,31 @@ export const forbidden = {
 	code: "ukma_data_forbidden",
 	status: 403,
 };
+
+const listParams = z.object({
+	status: z.string().optional(),
+	kind: z.string().optional(),
+	limit: z.number().optional(),
+});
+
+export function serveCases(
+	mock: MockAdapter,
+	cases: readonly UkmaDataReviewCase[],
+): void {
+	mock.onGet(CASES_URL).reply((config) => {
+		const params = listParams.parse(config.params ?? {});
+		const matching = cases.filter(
+			(item) =>
+				(params.status === undefined || item.status === params.status) &&
+				(params.kind === undefined || item.kind === params.kind),
+		);
+		const limit = params.limit ?? matching.length;
+		return [
+			200,
+			casePage(matching.slice(0, limit), {
+				has_more: matching.length > limit,
+				total: matching.length,
+			}),
+		];
+	});
+}

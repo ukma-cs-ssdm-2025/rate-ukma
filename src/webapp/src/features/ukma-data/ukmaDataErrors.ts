@@ -51,7 +51,7 @@ export function errorCopy(kind: UkmaErrorKind, title: string): ErrorCopy {
 			return {
 				title: "Немає доступу до цих даних",
 				description:
-					"Ключ доступу до даних САЗ на цьому сервері не дає права бачити цей розділ. Інші розділи працюють.",
+					"У сайту немає дозволу бачити цей розділ. Зверніться до розробників.",
 				retry: false,
 			};
 		case "staff":

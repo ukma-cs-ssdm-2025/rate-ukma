@@ -7,6 +7,7 @@ import {
 } from "nuqs";
 
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
+import type { CaseCounts } from "../hooks/useCaseCounts";
 import {
 	caseDetail,
 	caseKinds,
@@ -14,6 +15,7 @@ import {
 	caseTitle,
 	formatDateTime,
 	KIND_SEGMENTS,
+	receivedText,
 	sinceText,
 	STATUS_LABELS,
 	STATUS_SEGMENTS,
@@ -36,45 +38,56 @@ export function useCaseFilterParams() {
 	});
 }
 
-export function ReviewCaseFilters({
-	cases,
-}: Readonly<{ cases: readonly UkmaDataReviewCase[] }>) {
-	const [{ kind, status, q }, setParams] = useCaseFilterParams();
-	const inStatus = cases.filter(
-		(item) => status === ALL || item.status === status,
+function FilterRow({
+	label,
+	children,
+}: Readonly<{ label: string; children: React.ReactNode }>) {
+	return (
+		<div className="flex min-w-0 items-center gap-3">
+			<span className="w-10 shrink-0 text-sm text-muted-foreground">
+				{label}
+			</span>
+			{children}
+		</div>
 	);
+}
+
+export function ReviewCaseFilters({
+	counts,
+}: Readonly<{ counts: CaseCounts }>) {
+	const [{ kind, status, q }, setParams] = useCaseFilterParams();
 	return (
 		<div className="flex flex-col gap-3">
-			<div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+			<FilterRow label="Стан">
 				<DataSegments
-					label="Стан справи"
+					label="Стан"
 					value={status}
 					onChange={(value) => void setParams({ status: value, page: 1 })}
 					items={[
 						...caseStatuses.map((item) => ({
 							value: item,
 							label: STATUS_SEGMENTS[item],
-							count: cases.filter((one) => one.status === item).length,
+							count: counts.status[item],
 						})),
-						{ value: ALL, label: "Усі", count: cases.length },
+						{ value: ALL, label: "Усі", count: counts.status.all },
 					]}
 				/>
+			</FilterRow>
+			<FilterRow label="Тип">
 				<DataSegments
-					label="Про що справа"
+					label="Тип"
 					value={kind}
 					onChange={(value) => void setParams({ kind: value, page: 1 })}
 					items={[
-						{ value: ALL, label: "Усі", count: inStatus.length },
-						...caseKinds
-							.map((item) => ({
-								value: item,
-								label: KIND_SEGMENTS[item],
-								count: inStatus.filter((one) => one.kind === item).length,
-							}))
-							.filter((item) => item.count > 0 || item.value === kind),
+						{ value: ALL, label: "Усі", count: counts.kind.all },
+						...caseKinds.map((item) => ({
+							value: item,
+							label: KIND_SEGMENTS[item],
+							count: counts.kind[item],
+						})),
 					]}
 				/>
-			</div>
+			</FilterRow>
 			<DataSearch
 				value={q}
 				placeholder="Пошук у справах"
@@ -85,20 +98,27 @@ export function ReviewCaseFilters({
 	);
 }
 
+export function useCaseSearch() {
+	const [{ kind, status, q, page }] = useCaseFilterParams();
+	return { kind, status, q, page };
+}
+
 function CaseRow({ reviewCase }: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
-	const [{ kind, status, q }] = useCaseFilterParams();
+	const search = useCaseSearch();
 	return (
 		<tr className="border-t transition-colors hover:bg-muted/50">
 			<DataTd>
 				<Link
 					to="/data/cases/$caseId"
 					params={{ caseId: reviewCase.id }}
-					search={{ kind, status, q }}
+					search={search}
 					className="font-medium hover:underline"
 				>
 					{caseTitle(reviewCase)}
 				</Link>
-				<p className="text-muted-foreground">{caseDetail(reviewCase)}</p>
+				<p className="text-muted-foreground">
+					{caseDetail(reviewCase)} · {receivedText(reviewCase.opened_at)}
+				</p>
 				<p className="text-muted-foreground sm:hidden">
 					{sinceText(reviewCase.opened_at)}
 				</p>

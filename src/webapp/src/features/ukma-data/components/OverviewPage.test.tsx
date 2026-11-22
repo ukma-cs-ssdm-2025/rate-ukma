@@ -71,15 +71,18 @@ describe("/data overview", () => {
 		const list = await lines();
 		expect(
 			await list.findByText(
-				"9 справ про студентів чекають рішення (найстаріша — 8 днів)",
+				"9 справ про студентів чекають рішення в сервісі даних САЗ (найстаріша — 8 днів)",
 			),
 		).toBeInTheDocument();
 		expect(
 			list.getByText(
-				"1 справа про зниклі з САЗ семестри чекає рішення (найстаріша — 1 день)",
+				"1 справа про зниклі з САЗ семестри чекає рішення в сервісі даних САЗ (найстаріша — 1 день)",
 			),
 		).toBeInTheDocument();
 		expect(list.getByText(/змін із САЗ чекають рішення$/)).toBeInTheDocument();
+		expect(list.getAllByText("Вирішують поза сайтом")).toHaveLength(2);
+		expect(document.body).not.toHaveTextContent("Треба вибрати вручну");
+		expect(document.body).not.toHaveTextContent("Поки ви не вирішите");
 		const buttons = list.getAllByRole("link", { name: "Переглянути" });
 		expect(buttons.map((link) => link.getAttribute("href"))).toEqual([
 			"/data/sync",
@@ -127,7 +130,7 @@ describe("/data overview", () => {
 			await list.findByText("Справи не можна показати"),
 		).toBeInTheDocument();
 		expect(
-			list.getByText(/не дає права бачити цей розділ/),
+			list.getByText(/У сайту немає дозволу бачити цей розділ/),
 		).toBeInTheDocument();
 		expect(list.getByRole("link", { name: "Переглянути" })).toHaveAttribute(
 			"href",

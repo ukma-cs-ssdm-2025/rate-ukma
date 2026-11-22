@@ -251,7 +251,7 @@ describe("pending overview", () => {
 
 		// Assert
 		expect(
-			await screen.findByText(/не дає права бачити цей розділ/),
+			await screen.findByText(/У сайту немає дозволу бачити цей розділ/),
 		).toBeInTheDocument();
 		expect(screen.queryByText(/суперкористувач/)).not.toBeInTheDocument();
 	});

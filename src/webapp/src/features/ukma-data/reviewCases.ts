@@ -4,7 +4,10 @@ import {
 	UkmaDataReviewCaseKindEnum,
 	UkmaDataReviewCaseStatusEnum,
 } from "@/lib/api/generated";
-import type { UkmaDataReviewCase } from "@/lib/api/generated";
+import type {
+	UkmaDataReviewCase,
+	UkmaDataReviewCasesListParams,
+} from "@/lib/api/generated";
 import {
 	formatCount,
 	formatHoursAgo,
@@ -76,13 +79,13 @@ const ABOUT = {
 
 const KIND_MEANING = {
 	student_match:
-		"Новий запис зі списків САЗ схожий на студента, який уже є. Поки ви не вирішите, запис приєднано до найближчого збігу.",
+		"Новий запис зі списків САЗ схожий на студента, який уже є. Тим часом запис приєднано до найближчого збігу.",
 	removals_held:
-		"САЗ перестала показувати ці семестри. Поки ви не вирішите, сайт їх не прибирає.",
+		"САЗ перестала показувати ці семестри. Тим часом сайт їх не прибирає.",
 	course_match:
-		"Семестр із САЗ схожий на кілька дисциплін. Поки ви не вирішите, він стоїть як окрема дисципліна.",
+		"Семестр із САЗ схожий на кілька дисциплін. Тим часом він стоїть як окрема дисципліна.",
 	instructor_match:
-		"Викладача з САЗ не вдалося однозначно впізнати. Поки ви не вирішите, семестр показано без нього.",
+		"Викладача з САЗ не вдалося однозначно впізнати. Тим часом семестр показано без нього.",
 } satisfies Record<UkmaDataReviewCaseKindEnum, string>;
 
 const STUDENTS_WITH = {
@@ -97,11 +100,10 @@ const SEMESTERS = {
 	many: "семестрів",
 } satisfies PluralForms;
 
-const OPTIONS = {
-	one: "варіант",
-	few: "варіанти",
-	many: "варіантів",
-} satisfies PluralForms;
+export const ELSEWHERE = "в сервісі даних САЗ";
+
+export const DECIDED_ELSEWHERE =
+	"Рішення ухвалюють у сервісі даних САЗ, не на цьому сайті. Тут видно, що сталося і що показано студентам тим часом.";
 
 const DAYS = { one: "день", few: "дні", many: "днів" } satisfies PluralForms;
 
@@ -176,7 +178,7 @@ export function caseDetail(reviewCase: UkmaDataReviewCase): string {
 			return "Сайт їх поки не прибирає";
 		case "course_match":
 		case "instructor_match":
-			return `${countWord(count, OPTIONS)} на вибір`;
+			return `Схожих варіантів: ${formatCount(count)}`;
 	}
 }
 
@@ -193,14 +195,14 @@ export function openLineTitle(
 	});
 	const age =
 		oldest === null ? "" : ` (найстаріша — ${waitedFor(oldest, now)})`;
-	return `${countWord(count, CASES)} ${pluralForm(count, ABOUT[kind])} ${verb} рішення${age}`;
+	return `${countWord(count, CASES)} ${pluralForm(count, ABOUT[kind])} ${verb} рішення ${ELSEWHERE}${age}`;
 }
 
 export const kindMeaning = (kind: UkmaDataReviewCaseKindEnum): string =>
 	KIND_MEANING[kind];
 
 export const casesWaiting = (count: number): string =>
-	`${countWord(count, CASES)} ${pluralForm(count, { one: "чекає", few: "чекають", many: "чекають" })} рішення`;
+	`${countWord(count, CASES)} ${pluralForm(count, { one: "чекає", few: "чекають", many: "чекають" })} рішення ${ELSEWHERE}`;
 
 export interface CaseGroup {
 	kind: UkmaDataReviewCaseKindEnum;
@@ -215,7 +217,9 @@ export function openGroups(cases: readonly UkmaDataReviewCase[]): CaseGroup[] {
 		);
 		const oldest = open.reduce<string | null>(
 			(min, item) =>
-				min === null || item.opened_at < min ? item.opened_at : min,
+				min === null || Date.parse(item.opened_at) < Date.parse(min)
+					? item.opened_at
+					: min,
 			null,
 		);
 		return oldest === null ? [] : [{ kind, count: open.length, oldest }];
@@ -262,9 +266,6 @@ export function pageSlice<T>(items: readonly T[], page: number): PageSlice<T> {
 }
 
 export function rangeText(page: number, shown: number, total: number): string {
-	if (total === 0) {
-		return "Нічого не знайдено";
-	}
 	const start = (page - 1) * ROWS_PER_PAGE + 1;
 	return `${formatCount(start)}–${formatCount(start + shown - 1)} з ${formatCount(total)}`;
 }
@@ -276,3 +277,37 @@ const dateTime = new Intl.DateTimeFormat("uk-UA", {
 });
 
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
+
+const dayMonth = new Intl.DateTimeFormat("uk-UA", {
+	day: "numeric",
+	month: "short",
+	timeZone: "Europe/Kyiv",
+});
+
+export const receivedText = (iso: string): string =>
+	`Отримано ${dayMonth.format(new Date(iso))}`;
+
+const openedTime = (item: UkmaDataReviewCase): number =>
+	Date.parse(item.opened_at);
+
+export function sortCases(
+	cases: readonly UkmaDataReviewCase[],
+): UkmaDataReviewCase[] {
+	const open = cases.filter((item) => item.status === "open");
+	const closed = cases.filter((item) => item.status !== "open");
+	return [
+		...open.sort((a, b) => openedTime(a) - openedTime(b)),
+		...closed.sort((a, b) => openedTime(b) - openedTime(a)),
+	];
+}
+
+export function caseListParams({
+	kind,
+	status,
+}: Pick<CaseFilters, "kind" | "status">): UkmaDataReviewCasesListParams {
+	return {
+		...PAGE,
+		kind: kind === "all" ? undefined : kind,
+		status: status === "all" ? undefined : status,
+	};
+}

@@ -65,7 +65,7 @@ export function caseSides(
 					title: countWord(count, SIMILAR_STUDENTS),
 					rows: [
 						["Зараз", "Приєднано до найближчого збігу"],
-						["Імена", "Видно в САЗ-даних"],
+						["Імена", "Видно в сервісі даних САЗ"],
 					],
 				},
 			];
@@ -139,6 +139,9 @@ const OPTIONS = {
 		{ name: "Інша людина", effect: "семестр лишиться без цього зв'язку." },
 	],
 } satisfies Record<UkmaDataReviewCaseKindEnum, readonly CaseOption[]>;
+
+export const DIFFERENT_PEOPLE =
+	"Якщо це різні люди — залиште справу відкритою; сервіс даних САЗ запитає ще раз, коли з'являться нові дані.";
 
 const MEANWHILE = {
 	student_match: "запис приєднано до найближчого наявного студента.",
