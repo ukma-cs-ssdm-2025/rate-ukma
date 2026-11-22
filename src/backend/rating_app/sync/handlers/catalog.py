@@ -33,6 +33,7 @@ from rating_app.sync.payloads import (
     NewCoursePayload,
     NewDepartmentPayload,
     NewOfferingPayload,
+    OfferingPayload,
     UkmaDataIdPayload,
 )
 
@@ -238,25 +239,53 @@ def _apply_new_offerings(changes: list[SyncChange]) -> None:
         )
         if course_id is None:
             raise LookupError("course_missing")
-        offering = CourseOffering(
-            id=uuid.uuid4(),
-            ukma_data_id=change.key,
-            code=payload.saz_code,
-            course_id=course_id,
-            semester_id=semesters.id_for(payload.semester.year, payload.semester.term),
-            exam_type=payload.exam_type,
-            study_year=payload.study_year,
-            max_students=payload.max_students,
-            max_groups=payload.max_groups,
-            group_size_min=payload.group_size_min,
-            group_size_max=payload.group_size_max,
-        )
+        offering = _offering_row(change, payload, course_id, semesters)
         offerings.append(offering)
         terms.extend(_term_rows(offering.id, payload.terms, semesters))
         specialities.extend(_speciality_rows(offering.id, payload.specialities, speciality_by_name))
     CourseOffering.objects.bulk_create(offerings)
     CourseOfferingTerm.objects.bulk_create(terms, ignore_conflicts=True)
     CourseOfferingSpeciality.objects.bulk_create(specialities, ignore_conflicts=True)
+
+
+def _offering_row(
+    change: SyncChange,
+    payload: OfferingPayload,
+    course_id: uuid.UUID,
+    semesters: _Semesters,
+) -> CourseOffering:
+    return CourseOffering(
+        id=uuid.uuid4(),
+        ukma_data_id=change.key,
+        code=payload.saz_code,
+        course_id=course_id,
+        semester_id=semesters.id_for(payload.semester.year, payload.semester.term),
+        exam_type=payload.exam_type,
+        study_year=payload.study_year,
+        max_students=payload.max_students,
+        max_groups=payload.max_groups,
+        group_size_min=payload.group_size_min,
+        group_size_max=payload.group_size_max,
+    )
+
+
+def create_offering(change: SyncChange, payload: OfferingPayload, course_id: uuid.UUID) -> None:
+    """Write one offering, its terms and specialities; shared with ``place_offering``."""
+    semesters = _Semesters()
+    speciality_by_name = dict(
+        Speciality.objects.filter(
+            name__in={speciality.name for speciality in payload.specialities}
+        ).values_list("name", "id")
+    )
+    offering = _offering_row(change, payload, course_id, semesters)
+    CourseOffering.objects.bulk_create([offering])
+    CourseOfferingTerm.objects.bulk_create(
+        _term_rows(offering.id, payload.terms, semesters), ignore_conflicts=True
+    )
+    CourseOfferingSpeciality.objects.bulk_create(
+        _speciality_rows(offering.id, payload.specialities, speciality_by_name),
+        ignore_conflicts=True,
+    )
 
 
 @register("new_offering", exists=_created_exists(CourseOffering), apply_many=_apply_new_offerings)

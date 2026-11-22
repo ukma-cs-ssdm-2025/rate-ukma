@@ -19,7 +19,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
@@ -52,7 +52,13 @@ from rating_app.scheduler.jobs import job_named
 from rating_app.scheduler.lock import advisory_lock
 from rating_app.sync import constants
 from rating_app.sync.drafts import is_stale
-from rating_app.sync.handlers import Handler, handler_for
+from rating_app.sync.handlers import (
+    ChangeNotReadyError,
+    ChangeStaleError,
+    Handler,
+    HandlerReport,
+    handler_for,
+)
 from rating_app.sync.kinds import KIND_BY_NAME, NEVER_AUTO_KINDS
 from rating_app.sync.policies import mode_for
 from rating_app.sync.runs import sweep_interrupted_approvals
@@ -91,6 +97,21 @@ class _StalePass:
     superseded: int
     blocked_units: set[str]
     dead_requirements: set[tuple[str, str]]
+
+
+@dataclass
+class _CatalogPass:
+    applied: int = 0
+    waiting: int = 0
+    superseded: int = 0
+    counts: dict[str, object] = field(default_factory=dict)
+
+    def add(self, outcome: _ReadyResult) -> None:
+        self.applied += len(outcome.applied)
+        self.waiting += outcome.waiting
+        self.superseded += outcome.superseded
+        for report in outcome.reports:
+            _merge_report(self.counts, report)
 
 
 class _UnitWaitingError(Exception):
@@ -270,9 +291,10 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
                 superseded += _supersede_dependents(run.source, stale.dead_requirements)
                 _refresh_states(units)
         with transaction.atomic():
-            catalog_applied, catalog_waiting = _apply_catalog(units, approval)
-            applied += catalog_applied
-            waiting += catalog_waiting
+            catalog = _apply_catalog(units, approval)
+            applied += catalog.applied
+            waiting += catalog.waiting
+            superseded += catalog.superseded
             for unit in _ordered(_unit_teacher_units(units)):
                 outcome, members = _apply_unit(
                     unit, approval, blocked=unit.key in stale.blocked_units
@@ -282,11 +304,13 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
                 elif outcome == "waiting":
                     waiting += len(members)
             approval.outcome = SyncApprovalOutcome.APPLIED
-            approval.counts = {
+            counts: dict[str, object] = {
                 "applied": applied,
                 "superseded": superseded,
                 "waiting": waiting,
             }
+            counts.update(catalog.counts)
+            approval.counts = counts
             approval.save(update_fields=["outcome", "counts"])
     except _ApplyFailedError as failure:
         _fail_approval(approval, run, failure.change, failure.original)
@@ -298,20 +322,21 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
     return approval
 
 
-def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> tuple[int, int]:
+def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> _CatalogPass:
     """Write the selection's catalog changes in batches, one kind at a time.
 
     Kinds run in the registry's order, so a ``new_department`` finds its faculty
     and a ``new_offering`` its course. Each change's ``requires`` is checked
     inside the transaction, just before its kind is written; one that is unmet
-    stays proposed and waits.
+    stays proposed and waits. A mapping change without a live holding answer
+    also waits; one whose answer premise changed is superseded.
     """
     by_kind: dict[str, list[SyncChange]] = defaultdict(list)
     for change in _unit_members(units):
         if change.source == SyncSource.CATALOG and change.state == SyncChangeState.PROPOSED:
             by_kind[change.kind].append(change)
 
-    applied = waiting = 0
+    result = _CatalogPass()
     for kind in sorted(by_kind, key=_kind_order):
         batch = sorted(by_kind[kind], key=lambda change: change.pk)
         handler = handler_for(kind)
@@ -323,7 +348,7 @@ def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> tuple[int, int
                     kind=change.kind,
                     reason="no_handler",
                 )
-            waiting += len(batch)
+            result.waiting += len(batch)
             continue
         ready: list[SyncChange] = []
         try:
@@ -338,17 +363,15 @@ def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> tuple[int, int
                             kind=change.kind,
                             waiting_on=_waiting_on(unmet),
                         )
-                        waiting += 1
+                        result.waiting += 1
                         continue
                     ready.append(change)
                 if not ready:
                     continue
-                if handler.apply_many is not None:
-                    handler.apply_many(ready)
-                else:
-                    for change in ready:
-                        handler.apply(change)
-                _mark_applied(ready, approval)
+                outcome = _apply_ready(handler, ready)
+                if outcome.applied:
+                    _mark_applied(outcome.applied, approval)
+                result.add(outcome)
         except _UnitChangedError:
             logger.info(
                 "sync_changes_left_proposed",
@@ -356,12 +379,83 @@ def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> tuple[int, int
                 kind=kind,
                 reason="changed",
             )
-            waiting += len(ready)
+            result.waiting += len(ready)
             continue
         except Exception as exc:
             raise _ApplyFailedError(batch[0], exc) from exc
-        applied += len(ready)
-    return applied, waiting
+    return result
+
+
+@dataclass
+class _ReadyResult:
+    applied: list[SyncChange] = field(default_factory=list)
+    waiting: int = 0
+    superseded: int = 0
+    reports: list[HandlerReport] = field(default_factory=list)
+
+
+def _apply_ready(handler: Handler, ready: list[SyncChange]) -> _ReadyResult:
+    """Run one kind's ready changes; report what applied, waited or went stale."""
+    outcome = _ReadyResult()
+    if handler.apply_many is not None:
+        report = handler.apply_many(ready)
+        if report:
+            outcome.reports.append(report)
+        outcome.applied = ready
+        return outcome
+    for change in ready:
+        try:
+            report = handler.apply(change)
+        except ChangeNotReadyError:
+            logger.info(
+                "sync_change_waiting",
+                change_id=change.pk,
+                kind=change.kind,
+                reason="not_ready",
+            )
+            outcome.waiting += 1
+            continue
+        except ChangeStaleError:
+            if _supersede_change(change):
+                outcome.superseded += 1
+            continue
+        if report:
+            outcome.reports.append(report)
+        outcome.applied.append(change)
+    return outcome
+
+
+def _supersede_change(change: SyncChange) -> bool:
+    updated = SyncChange.objects.filter(pk=change.pk, state=SyncChangeState.PROPOSED).update(
+        state=SyncChangeState.SUPERSEDED,
+        state_reason=SyncChangeStateReason.STALE,
+        decided_at=timezone.now(),
+    )
+    if updated:
+        change.state = SyncChangeState.SUPERSEDED
+        change.state_reason = SyncChangeStateReason.STALE
+        logger.info(
+            "sync_change_superseded",
+            change_id=change.pk,
+            kind=change.kind,
+            reason=SyncChangeStateReason.STALE,
+        )
+    return bool(updated)
+
+
+def _merge_report(counts: dict[str, object], report: HandlerReport | None) -> None:
+    """Fold a handler's report (lists and counts) into the approval's counts."""
+    if not report:
+        return
+    for key, value in report.items():
+        if isinstance(value, list):
+            existing = counts.get(key)
+            counts[key] = [*(existing if isinstance(existing, list) else []), *value]
+        elif isinstance(value, int):
+            existing = counts.get(key)
+            counts[key] = (existing if isinstance(existing, int) else 0) + value
+        else:
+            counts[key] = value
 
 
 def _unit_teacher_units(units: list[_Unit]) -> list[_Unit]:
@@ -480,12 +574,21 @@ def _supersede_stale(units: list[_Unit]) -> _StalePass:
     """One pass over the selected units; a stale member blocks its unit."""
     members = [change for unit in units for change in unit.changes]
     target_ids = {change.target_id for change in members if change.target_id}
-    if not target_ids:
+    # A move's premise names its destination course, which is not its target row.
+    move_targets = {
+        text
+        for change in members
+        if change.kind == "move_offering" and isinstance(change.after, dict)
+        if isinstance(text := change.after.get("to_course_id"), str)
+    }
+    if not target_ids and not move_targets:
         snapshot = None
     elif any(change.kind in _FACULTY_OR_DEPARTMENT_KINDS for change in members):
         snapshot = load_rate_ukma_snapshot()
     else:
-        snapshot = load_rate_ukma_snapshot(offering_ids=target_ids, course_ids=target_ids)
+        snapshot = load_rate_ukma_snapshot(
+            offering_ids=target_ids, course_ids=target_ids | move_targets
+        )
     now = timezone.now()
     superseded = 0
     blocked_units: set[str] = set()
@@ -533,11 +636,26 @@ def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str 
         return SyncChangeStateReason.EXISTS
     if _teacher_missing_without_creation(change):
         return SyncChangeStateReason.STALE
+    if change.kind == "move_offering" and _move_target_lost(change, snapshot):
+        return SyncChangeStateReason.STALE
     if change.target_id is None or snapshot is None:
         return None
     if is_stale(change.kind, snapshot, change.target_id, change.before):
         return SyncChangeStateReason.STALE
     return None
+
+
+def _move_target_lost(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> bool:
+    """A move applies only while its destination still carries the expected id."""
+    after = change.after if isinstance(change.after, dict) else {}
+    target_id = after.get("to_course_id")
+    expected = after.get("ukma_course_id")
+    if not isinstance(target_id, str) or not isinstance(expected, str):
+        return False
+    if snapshot is None:
+        return True
+    course = snapshot.courses.get(target_id)
+    return course is None or course.ukma_data_id != expected
 
 
 def _teacher_missing_without_creation(change: SyncChange) -> bool:
