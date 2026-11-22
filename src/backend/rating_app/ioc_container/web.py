@@ -19,6 +19,7 @@ from ..views import (
     RatingViewSet,
     RatingVoteViewSet,
     StudentStatisticsViewSet,
+    SyncViewSet,
     UkmaDataViewSet,
 )
 from ..views.auth import csrf_token, login, logout, microsoft_login, session
@@ -345,6 +346,36 @@ def ukma_data_review_cases_view():
 
 
 @once
+def sync_runs_view():
+    return SyncViewSet.as_view({"get": "runs"})
+
+
+@once
+def sync_run_changes_view():
+    return SyncViewSet.as_view({"get": "run_changes"})
+
+
+@once
+def sync_pending_view():
+    return SyncViewSet.as_view({"get": "pending"})
+
+
+@once
+def sync_policies_view():
+    return SyncViewSet.as_view({"get": "policies"})
+
+
+@once
+def sync_policy_view():
+    return SyncViewSet.as_view({"put": "update_policy"})
+
+
+@once
+def sync_policy_changes_view():
+    return SyncViewSet.as_view({"get": "policy_changes"})
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -546,6 +577,36 @@ def rest_urlpatterns() -> list:
             "ukma-data/review-cases/",
             ukma_data_review_cases_view(),
             name="ukma-data-review-cases",
+        ),
+        path(
+            "ukma-data/sync/runs/",
+            sync_runs_view(),
+            name="ukma-data-sync-runs",
+        ),
+        path(
+            "ukma-data/sync/runs/<str:run_id>/changes/",
+            sync_run_changes_view(),
+            name="ukma-data-sync-run-changes",
+        ),
+        path(
+            "ukma-data/sync/pending/",
+            sync_pending_view(),
+            name="ukma-data-sync-pending",
+        ),
+        path(
+            "ukma-data/sync/policies/",
+            sync_policies_view(),
+            name="ukma-data-sync-policies",
+        ),
+        path(
+            "ukma-data/sync/policies/changes/",
+            sync_policy_changes_view(),
+            name="ukma-data-sync-policy-changes",
+        ),
+        path(
+            "ukma-data/sync/policies/<str:kind>/",
+            sync_policy_view(),
+            name="ukma-data-sync-policy",
         ),
     ]
 
