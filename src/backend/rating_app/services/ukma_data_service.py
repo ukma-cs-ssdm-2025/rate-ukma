@@ -43,6 +43,9 @@ class UkmaDataService:
     def list_programmes(self, params: UkmaDataPageParams) -> ud.ProgrammePage:
         return self._get_page("/v1/programmes", params, ud.ProgrammePage)
 
+    def list_courses(self, params: UkmaDataPageParams) -> ud.CoursePage:
+        return self._get_page("/v1/courses", params, ud.CoursePage)
+
     def list_offerings(self, params: UkmaDataPageParams) -> ud.OfferingPage:
         return self._get_page("/v1/offerings", params, ud.OfferingPage)
 

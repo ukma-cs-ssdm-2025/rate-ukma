@@ -9,6 +9,8 @@ manual run, never run one job at once. Adding a job is one line here.
 import datetime
 from dataclasses import dataclass
 
+from rating_app.sync.constants import CATALOG_SYNC_LOCK_KEY
+
 
 @dataclass(frozen=True)
 class Job:
@@ -17,7 +19,10 @@ class Job:
     lock_key: int
 
 
-JOBS: tuple[Job, ...] = (Job("sync_offering_instructors", datetime.time(2, 0), lock_key=864_001),)
+JOBS: tuple[Job, ...] = (
+    Job("sync_offering_instructors", datetime.time(2, 0), lock_key=864_001),
+    Job("build_catalog_proposals", datetime.time(2, 30), lock_key=CATALOG_SYNC_LOCK_KEY),
+)
 
 
 def job_named(command: str) -> Job:
