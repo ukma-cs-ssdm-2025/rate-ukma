@@ -259,11 +259,12 @@ def apply_by_policy(run: SyncRun, *, lock_held: bool = False) -> SyncApproval | 
 def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> SyncApproval:
     applied = waiting = 0
     try:
-        stale = _supersede_stale(units)
-        superseded = stale.superseded
-        if stale.dead_requirements:
-            superseded += _supersede_dependents(run.source, stale.dead_requirements)
-            _refresh_states(units)
+        with transaction.atomic():  # a stale link and the rest of its unit retire together
+            stale = _supersede_stale(units)
+            superseded = stale.superseded
+            if stale.dead_requirements:
+                superseded += _supersede_dependents(run.source, stale.dead_requirements)
+                _refresh_states(units)
         with transaction.atomic():
             for unit in _ordered(units):
                 outcome, members = _apply_unit(
@@ -320,13 +321,9 @@ def _apply_unit(
         handlers[member.pk] = handler
 
     if blocked:
-        _record_waiting(members, [])
-        logger.info(
-            "sync_unit_left_proposed",
-            change_ids=[member.pk for member in members],
-            reason="stale_member",
-        )
-        return "waiting", members
+        # Its links are retired; a teacher still proposed here is one another live
+        # link needs, so it applies with that link's unit or waits for it.
+        return "skipped", []
 
     try:
         with transaction.atomic():
@@ -390,12 +387,8 @@ def _supersede_stale(units: list[_Unit]) -> _StalePass:
                 change.state = SyncChangeState.SUPERSEDED
                 change.state_reason = reason
                 superseded += 1
-                if reason in (
-                    SyncChangeStateReason.STALE,
-                    SyncChangeStateReason.DEPENDENCY_REJECTED,
-                ):
-                    blocked_units.add(unit.key)
                 if reason == SyncChangeStateReason.STALE:
+                    blocked_units.add(unit.key)
                     dead.add((change.kind, change.key))
                 logger.info(
                     "sync_change_superseded",

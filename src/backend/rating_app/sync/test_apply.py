@@ -577,6 +577,100 @@ def test_a_retired_unit_takes_the_teacher_no_other_link_needs(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_a_retired_unit_keeps_the_teacher_another_live_link_needs(
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+    course_instructor_factory,
+    instructor_factory,
+):
+    run = make_run()
+    stale_offering = course_offering_factory()
+    current = instructor_factory()
+    course_instructor_factory(course_offering=stale_offering, instructor=current, role=ROLE)
+    live_offering = course_offering_factory()
+    email = "shared.teacher@example.com"
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    stale = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{stale_offering.pk}|teacher:{email}",
+        target_id=str(stale_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    live = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{live_offering.pk}|teacher:{email}",
+        target_id=str(live_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+
+    approval = approve([stale.pk, live.pk], user)
+
+    for change in (created, stale, live):
+        change.refresh_from_db()
+    assert approval.counts == {"applied": 2, "superseded": 1, "waiting": 0}
+    assert stale.state == SyncChangeState.SUPERSEDED
+    assert created.state == SyncChangeState.APPLIED
+    assert live.state == SyncChangeState.APPLIED
+    assert CourseInstructor.objects.filter(course_offering=live_offering).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_failed_retirement_leaves_the_stale_link_proposed(
+    user,
+    monkeypatch,
+    make_run,
+    make_change,
+    course_offering_factory,
+    course_instructor_factory,
+    instructor_factory,
+):
+    run = make_run()
+    offering = course_offering_factory()
+    kept = instructor_factory()
+    course_instructor_factory(course_offering=offering, instructor=kept, role=ROLE)
+    links = _links((kept.pk, ROLE))
+    added = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:missing@example.com",
+        target_id=str(offering.pk),
+        before=links,
+        after=_added("missing@example.com"),
+    )
+    removed = make_change(
+        run,
+        kind="teacher_link_removed",
+        key=f"offering:{offering.pk}|remove:{kept.pk}",
+        target_id=str(offering.pk),
+        before=links,
+        after=_removed(kept.pk),
+    )
+
+    def _fail(*_args: Any) -> int:
+        raise RuntimeError("database went away")
+
+    monkeypatch.setattr(apply, "_supersede_dependents", _fail)
+    approval = approve([removed.pk], user)
+
+    added.refresh_from_db()
+    removed.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.FAILED
+    assert added.state == SyncChangeState.PROPOSED
+    assert removed.state == SyncChangeState.PROPOSED
+    assert CourseInstructor.objects.filter(course_offering=offering, instructor=kept).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_apply_by_policy_applies_nothing_when_every_kind_needs_approval(
     make_run,
     make_change,
