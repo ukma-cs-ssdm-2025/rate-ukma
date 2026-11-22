@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 from functools import partial
 
 from django.contrib.auth.models import User
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 import structlog
@@ -148,8 +148,14 @@ def approve(
     user: User,
     *,
     confirm_old_run: bool = False,
+    client_key: uuid.UUID | None = None,
+    group: str = "",
+    kind: str = "",
 ) -> SyncApproval:
     """Apply the selected proposed changes, each expanded to its whole unit.
+
+    ``group`` and ``kind`` name what the person asked for, so history can say
+    «Зв'язки» even when a unit pulls in changes from other groups.
 
     The approval row is written ``started`` before anything else. A run over
     :data:`APPROVAL_MAX_AGE` old is refused as ``run_too_old`` unless
@@ -158,7 +164,16 @@ def approve(
     sweep_interrupted_approvals()
     ids = _selection_ids(change_ids)
     run = _selection_run(ids)
-    approval = _start_approval(run, ids, user=user, action=SyncApprovalAction.APPLY)
+    try:
+        approval = _start_approval(
+            run, ids, user=user, action=SyncApprovalAction.APPLY, client_key=client_key
+        )
+    except IntegrityError:
+        # A second request with the same client key lost the race to the first.
+        existing = SyncApproval.objects.filter(client_key=client_key).first()
+        if client_key is None or existing is None:
+            raise
+        return existing
     with _source_lock(run.source) as held:
         if not held:
             return _refuse(approval, "lock_held")
@@ -172,7 +187,7 @@ def approve(
             return _refuse(approval, "no_proposed_changes")
         if not confirm_old_run and _run_age(run) > APPROVAL_MAX_AGE:
             return _refuse(approval, "run_too_old")
-        _set_approval_changes(approval, _unit_members(units) or changes)
+        _set_approval_changes(approval, _unit_members(units) or changes, group=group, kind=kind)
         result = _run_apply(approval, run, units)
         if result.outcome == SyncApprovalOutcome.APPLIED:
             # A change auto-policy depended on may have just applied.
@@ -1172,21 +1187,36 @@ def _start_approval(
     user: User | None,
     action: str,
     scope: str = SyncApprovalScope.CHANGE,
+    client_key: uuid.UUID | None = None,
 ) -> SyncApproval:
-    return SyncApproval.objects.create(
-        run=run,
-        run_ref=run.pk,
-        action=action,
-        scope=scope,
-        change_ids=change_ids,
-        user=user,
-        outcome=SyncApprovalOutcome.STARTED,
-    )
+    with transaction.atomic():
+        return SyncApproval.objects.create(
+            run=run,
+            run_ref=run.pk,
+            action=action,
+            scope=scope,
+            change_ids=change_ids,
+            user=user,
+            client_key=client_key,
+            outcome=SyncApprovalOutcome.STARTED,
+        )
 
 
-def _set_approval_changes(approval: SyncApproval, changes: list[SyncChange]) -> None:
+def _set_approval_changes(
+    approval: SyncApproval, changes: list[SyncChange], *, group: str = "", kind: str = ""
+) -> None:
+    """Record the changes and what the approval was for: the requested group and
+    kind, else the one group and kind the changes share. History names an
+    approval by them («Зв'язки, 28 950 змін»)."""
     approval.change_ids = [change.pk for change in changes]
-    approval.save(update_fields=["change_ids"])
+    groups = {change.group for change in changes}
+    kinds = {change.kind for change in changes}
+    if group or kind:
+        approval.group, approval.kind = group, kind
+    else:
+        approval.group = groups.pop() if len(groups) == 1 else ""
+        approval.kind = kinds.pop() if len(kinds) == 1 else ""
+    approval.save(update_fields=["change_ids", "group", "kind"])
 
 
 def _refuse(approval: SyncApproval, reason: str) -> SyncApproval:

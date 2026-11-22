@@ -31,6 +31,7 @@ register(factories.SyncChangeFactory)
 register(factories.SyncPolicyFactory)
 register(factories.SyncPolicyChangeFactory)
 register(factories.SyncApprovalFactory)
+register(factories.SyncPreviewFactory)
 register(factories.CatalogMappingDecisionFactory)
 register(factories.SyncCursorFactory)
 

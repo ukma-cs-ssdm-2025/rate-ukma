@@ -1027,3 +1027,50 @@ def test_a_settled_decision_is_marked_applied(
     decision.refresh_from_db()
     assert decision.applied_at is not None
     assert CatalogMappingDecision.objects.filter(superseded_at__isnull=True).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_move_keeps_one_plan_per_student_on_the_target(
+    user,
+    make_run,
+    make_change,
+    course_factory,
+    course_offering_factory,
+    student_factory,
+    planned_course_factory,
+    catalog_mapping_decision_factory,
+):
+    source = course_factory(ukma_data_id="ud-source")
+    target = course_factory(ukma_data_id="ud-target")
+    offering = course_offering_factory(course=source)
+    student = student_factory()
+    planned_course_factory(offering=offering, student=student)
+    planned_course_factory(offering=course_offering_factory(course=target), student=student)
+    run = make_run()
+    change = make_change(
+        run,
+        kind="move_offering",
+        key=str(offering.pk),
+        target_id=str(offering.pk),
+        before={"from_course": str(source.pk)},
+        after={
+            "from_course": str(source.pk),
+            "ukma_course_id": "ud-target",
+            "to_course_id": str(target.pk),
+        },
+    )
+    catalog_mapping_decision_factory(
+        kind="move_offering",
+        question_key=str(offering.pk),
+        ukma_course_id="ud-target",
+        course=source,
+        offering=offering,
+        into=target,
+        answer=MappingAnswer.MOVE,
+        premise=_move_premise(offering, source, target),
+    )
+
+    approve([change.pk], user)
+
+    assert PlannedCourse.objects.filter(student=student, offering__course=target).count() == 1

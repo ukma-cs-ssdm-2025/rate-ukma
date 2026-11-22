@@ -291,6 +291,7 @@ HANDLED_BY_ANONYMISE = {
     "waffle_flag_users",
     "rating_app_syncapproval",
     "rating_app_syncchange",
+    "rating_app_syncpreview",
     "rating_app_syncrun",
 }
 NO_PERSONAL_DATA = {

@@ -109,6 +109,7 @@ def apply_move_offering(change: SyncChange) -> None:
     )
     if not moved:
         raise ChangeStaleError
+    _deduplicate_plans(target_id)
     for course_id in (source_id, target_id):
         _recompute_aggregates(course_id)
         transaction.on_commit(partial(_recompute_after_commit, course_id))
