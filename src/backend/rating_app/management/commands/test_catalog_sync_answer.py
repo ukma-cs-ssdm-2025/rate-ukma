@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.core.management.base import CommandError
 
 import pytest
+from structlog.testing import capture_logs
 
 from rating_app.models import CatalogMappingDecision, MappingAnswer, SyncChangeGroup, SyncSource
 
@@ -80,7 +81,7 @@ def test_answer_refuses_a_change_that_is_not_a_question(
 def test_answer_unrated_dry_run_counts_and_writes_nothing(run_catalog_sync, admin, merge_question):
     out = run_catalog_sync("answer", "--unrated", "keep_apart", "--by", admin.username)
 
-    assert "Позначило б «лишити окремо» 1 питань" in out
+    assert "Закрило б 1 питання без оцінок і планів" in out
     assert not CatalogMappingDecision.objects.exists()
 
 
@@ -92,3 +93,42 @@ def test_answer_unrated_yes_answers_every_unrated_question(run_catalog_sync, adm
     decision = CatalogMappingDecision.objects.get()
     assert decision.question_key == merge_question.key
     assert decision.answer == MappingAnswer.KEEP_APART
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_merge_refuses_a_course_outside_the_question(
+    run_catalog_sync, admin, merge_question, course_factory
+):
+    outside = course_factory()
+
+    with pytest.raises(CommandError, match="Оберіть курс із запропонованих"):
+        run_catalog_sync(
+            "answer",
+            str(merge_question.pk),
+            "merge",
+            "--into",
+            str(outside.pk),
+            "--by",
+            admin.username,
+            "--yes",
+        )
+
+    assert not CatalogMappingDecision.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_yes_logs_the_answer_and_a_dry_run_does_not(run_catalog_sync, admin, merge_question):
+    args = ("answer", str(merge_question.pk), "keep_apart", "--by", admin.username)
+
+    with capture_logs() as dry:
+        run_catalog_sync(*args)
+    with capture_logs() as written:
+        run_catalog_sync(*args, "--yes")
+
+    assert not [entry for entry in dry if entry["event"] == "sync_change_answered"]
+    [entry] = [entry for entry in written if entry["event"] == "sync_change_answered"]
+    assert entry["change_id"] == merge_question.pk
+    assert entry["answer"] == "keep_apart"
+    assert entry["user_id"] == admin.pk

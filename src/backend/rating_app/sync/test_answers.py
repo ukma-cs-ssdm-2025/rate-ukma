@@ -126,3 +126,42 @@ def test_keep_apart_unrated_re_answers_when_the_premise_changed(admin, make_ques
 @pytest.mark.integration
 def test_keep_apart_unrated_without_a_succeeded_run_does_nothing(admin):
     assert answers.keep_apart_unrated(admin) == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_change_records_a_move_with_its_refs_and_premise(
+    admin, catalog_run, sync_change_factory, course_factory, course_offering_factory
+):
+    source, target = course_factory(), course_factory()
+    offering = course_offering_factory(course=source)
+    change = sync_change_factory(
+        run=catalog_run,
+        source=SyncSource.CATALOG,
+        group=SyncChangeGroup.MAPPING,
+        kind="move_offering",
+        key=str(offering.pk),
+        target_id=str(offering.pk),
+        ukma_data_id="ud-course-target",
+        after={
+            "from_course": str(source.pk),
+            "ukma_course_id": "ud-course-target",
+            "to_course_id": str(target.pk),
+            "display": {"ukma_course": {"merge_source": None}},
+        },
+    )
+
+    decision = answers.answer_change(change, MappingAnswer.MOVE, admin, into=None)
+
+    assert decision.answer == MappingAnswer.MOVE
+    assert decision.offering == offering
+    assert decision.offering_ref == str(offering.pk)
+    assert decision.course_ref == str(source.pk)
+    assert decision.into_ref == str(target.pk)
+    assert decision.premise == {
+        "course_ids": sorted([str(source.pk), str(target.pk)]),
+        "ukma_course_id": "ud-course-target",
+        "merge_source": None,
+        "ratings": 0,
+        "saz_code": offering.code,
+    }
