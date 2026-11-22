@@ -23,7 +23,12 @@ function Hint({
 					{text}
 				</button>
 			</TooltipTrigger>
-			<TooltipContent side="top" sideOffset={4} className="max-w-xs">
+			<TooltipContent
+				side="bottom"
+				sideOffset={4}
+				collisionPadding={16}
+				className="max-w-xs"
+			>
 				{hint}
 			</TooltipContent>
 		</Tooltip>

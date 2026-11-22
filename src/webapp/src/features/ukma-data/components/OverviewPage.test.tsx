@@ -71,7 +71,9 @@ describe("/data overview", () => {
 		);
 		const items = list.getAllByRole("listitem");
 		expect(items).toHaveLength(5);
-		expect(items[0]).toHaveTextContent("Нові812курси в семестрі 772, курси 40");
+		expect(items[0]).toHaveTextContent(
+			"Нові812є в САЗ, ще немає на сайтікурси в семестрі 772, курси 40",
+		);
 		expect(items[2]).toHaveTextContent("з оцінками 4");
 		expect(screen.getByText("Разом 1 284 зміни.")).toBeInTheDocument();
 		expect(
@@ -136,8 +138,8 @@ describe("/data overview", () => {
 		renderOverview();
 
 		// Assert
-		expect(await screen.findByText(/не вдалося/)).toHaveTextContent(
-			"UKMA Data віддала неповні дані. Нижче — дані попереднього.",
+		expect(await screen.findByText(/не вдалася/)).toHaveTextContent(
+			"UKMA Data віддала неповні дані. Нижче — дані останнього вдалого.",
 		);
 	});
 

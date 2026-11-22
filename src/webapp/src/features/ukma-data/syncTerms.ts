@@ -83,7 +83,7 @@ export const TERMS = {
 	},
 	console: {
 		label: "консолі",
-		hint: "Адміністратор просить Claude показати зміни, перевіряє список і каже «ок». Claude застосовує їх командою manage.py catalog_sync.",
+		hint: "Адміністратор просить Claude показати зміни, перевіряє список і каже «ок». Claude застосовує їх командою manage.py catalog_sync. Кроки — у docs/runbooks/catalog-sync-console.md.",
 	},
 	cases: {
 		label: "справ",

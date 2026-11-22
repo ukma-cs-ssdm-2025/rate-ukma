@@ -6,6 +6,7 @@ import type { SyncSummary } from "@/lib/api/generated";
 import { formatCount } from "../syncFormat";
 import {
 	changesText,
+	GROUP_GLOSS,
 	groupCounts,
 	kindParts,
 	skippedReasons,
@@ -49,6 +50,11 @@ export function OverviewWaiting({
 			}
 		>
 			{loading ? <Skeleton className="h-40 rounded-xl" /> : null}
+			{summary === null && !loading ? (
+				<p className="text-sm text-muted-foreground">
+					Поки нічого не чекає: зміни з'являться після першого читання САЗ.
+				</p>
+			) : null}
 			{summary !== null && total === 0 ? (
 				<p className="rounded-xl border bg-tint-success px-4 py-3 text-sm text-tint-success-foreground">
 					Нічого не чекає. Наступне читання САЗ — уночі.
@@ -64,19 +70,22 @@ export function OverviewWaiting({
 							<Link
 								to="/data/sync"
 								search={{ group: group.group }}
-								className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 sm:px-5"
+								className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-accent/50 sm:flex-nowrap sm:px-5"
 							>
 								<span className="w-24 shrink-0 font-medium sm:w-28">
 									<Term name={group.group} />
 								</span>
-								<span className="w-16 shrink-0 text-right text-lg font-semibold tabular-nums sm:w-20">
+								<span className="ml-auto shrink-0 text-right text-lg font-semibold tabular-nums sm:ml-0 sm:w-20">
 									{formatCount(group.count)}
 								</span>
-								<span className="min-w-0 flex-1 text-sm text-muted-foreground">
-									{group.count === 0 ? "нічого" : kindParts(group.kinds)}
-									{group.rated > 0
-										? ` · з оцінками ${formatCount(group.rated)}`
-										: ""}
+								<span className="order-last w-full min-w-0 text-sm sm:order-none sm:w-auto sm:flex-1">
+									<span className="block">{GROUP_GLOSS[group.group]}</span>
+									<span className="block text-muted-foreground">
+										{group.count === 0 ? "нічого" : kindParts(group.kinds)}
+										{group.rated > 0
+											? ` · з оцінками ${formatCount(group.rated)}`
+											: ""}
+									</span>
 								</span>
 								<ChevronRight className="size-4 shrink-0 text-muted-foreground" />
 							</Link>

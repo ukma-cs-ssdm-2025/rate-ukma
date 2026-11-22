@@ -22,6 +22,14 @@ export const GROUP_ORDER = [
 	"removed",
 ] as const satisfies readonly SyncChangeGroupEnum[];
 
+export const GROUP_GLOSS = {
+	new: "є в САЗ, ще немає на сайті",
+	link: "той самий запис, на сайті нічого не зміниться",
+	change: "САЗ змінив назву, кафедру чи кредити",
+	mapping: "потрібна відповідь людини",
+	removed: "зникли з САЗ, сайт їх не видаляє",
+} satisfies Record<(typeof GROUP_ORDER)[number], string>;
+
 export interface GroupCount {
 	group: (typeof GROUP_ORDER)[number];
 	count: number;

@@ -33,8 +33,9 @@ function LatestFailure({
 	}
 	return (
 		<p className="text-sm text-destructive">
-			Останнє читання <Ago iso={latest.started_at} /> не вдалося:{" "}
-			{failedRunLabel(latest.error)}. Нижче — дані попереднього.
+			Остання спроба читання <Ago iso={latest.started_at} /> не вдалася:{" "}
+			{failedRunLabel(latest.error)}. Нижче — дані останнього вдалого. Якщо так
+			буде й завтра, скажіть власнику UKMA Data.
 		</p>
 	);
 }
@@ -89,7 +90,8 @@ export function OverviewPage() {
 				) : null}
 				{run === null ? null : (
 					<p className="text-sm">
-						Останнє читання <Ago iso={run.finished_at ?? run.started_at} />
+						Останнє вдале читання{" "}
+						<Ago iso={run.finished_at ?? run.started_at} />
 						{run.data_updated_at === null ? null : (
 							<>
 								{" "}
