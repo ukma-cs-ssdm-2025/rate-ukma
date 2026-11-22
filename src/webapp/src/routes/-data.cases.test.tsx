@@ -185,10 +185,10 @@ describe("/data/cases", () => {
 		renderCases();
 
 		expect(
-			await screen.findByText("Немає доступу до справ"),
+			await screen.findByText("Немає доступу до цих даних UKMA Data"),
 		).toBeInTheDocument();
 		expect(
-			screen.getByText(/не має дозволу на їх перегляд/),
+			screen.getByText(/не має дозволу на цей розділ/),
 		).toBeInTheDocument();
 		expect(
 			screen.queryByText("Розділ лише для суперкористувачів"),

@@ -72,8 +72,8 @@ export function UkmaDataError({
 			return ukmaDataForbidden ? (
 				<ErrorState
 					icon={ShieldAlert}
-					title="Немає доступу до справ"
-					description="Ключ UKMA Data цього сервера не має дозволу на їх перегляд."
+					title="Немає доступу до цих даних UKMA Data"
+					description="Ключ UKMA Data цього сервера не має дозволу на цей розділ. Інші розділи працюють."
 				/>
 			) : (
 				<StaffOnlyState />

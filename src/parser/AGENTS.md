@@ -13,7 +13,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/main.ts`: the `api`, `worker`, `migrate`, `reparse` and `crawl-smart` commands. `reparse` rebuilds the parsed tables from stored snapshots and sends nothing to САЗ; `crawl-smart` stores the smart.ukma lists once.
 - `src/keys/`: API keys, their scopes, and the `create-key`, `revoke-key` and `list-keys` commands. `src/audit/Audit.ts` writes the audit log.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
-- A permission is a route's `RequiredScopes`; handlers never branch on the caller's scopes. Data a scope guards gets its own route.
+- A permission is a route's `RequiredScopes` (every listed scope) or `RequiredAnyScopes` (any one of them, e.g. `review:read` or `review:decide` to read cases); handlers never branch on the caller's scopes. Data a scope guards gets its own route.
 - `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
 - `src/stats/`: the totals behind `/v1/stats`, counts only, never rows.
 - `docs/parser-service/openapi.json` is generated from `Api.ts` by `pnpm openapi`; `src/api/openapi.test.ts` fails when the committed file is stale.
@@ -30,7 +30,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - A new migration is added by hand to the `migrations` record in `src/db/database.ts`; `database.test.ts` checks that its keys are `NNNN_name`, unique by number and in order. Its number only grows: an id at or below the highest applied one is skipped silently.
 - The image ships one esbuild bundle (`dist/main.js`), so no code reads files or folders under `src` at runtime.
 - `/health` stays keyless and unlogged; Kubernetes probes call it every few seconds.
-- Every other endpoint sits in a group with `.middleware(ApiKeyAuth)` and is annotated with `RequiredScopes`; without the annotation it refuses every key. A list handler calls `Caller.countRows`, so the audit row has the count and never the values.
+- Every other endpoint sits in a group with `.middleware(ApiKeyAuth)` and is annotated with `RequiredScopes` or `RequiredAnyScopes`; without one it refuses every key. A list handler calls `Caller.countRows`, so the audit row has the count and never the values.
 - A list endpoint takes `PageQuery` and returns `Page(item)`: rows above `after` ordered by `change_no`, removed rows included, so readers apply removals. Never page by time or offset (spec rule 5).
 - A write endpoint (start a run, decide a case) records its audit row inside its own transaction, so a failed audit write cannot leave work done behind a 500.
 - A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
