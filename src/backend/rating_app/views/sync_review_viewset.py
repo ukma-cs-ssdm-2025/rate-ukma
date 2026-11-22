@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import csv
 import io
-import uuid
-from typing import Any, cast
+from typing import Any
 
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,27 +24,18 @@ from rating_app.application_schemas.sync import (
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models.sync import (
     SyncApproval,
-    SyncApprovalOutcome,
     SyncChange,
     SyncChangeState,
     SyncRun,
 )
 from rating_app.serializers.sync_review import (
-    SyncActiveApprovalSerializer,
     SyncApprovalListResponseSerializer,
-    SyncBulkAnswerRequestSerializer,
-    SyncPreviewRequestSerializer,
-    SyncPreviewResponseSerializer,
-    SyncQuestionBulkAnswerResponseSerializer,
     SyncQuestionListResponseSerializer,
     SyncSummarySerializer,
 )
-from rating_app.sync import answers, questions, review, selection
+from rating_app.sync import questions, review
 from rating_app.views.responses import (
-    R_SYNC_ACTIVE_APPROVAL,
     R_SYNC_APPROVALS,
-    R_SYNC_PREVIEW,
-    R_SYNC_QUESTION_ANSWERS,
     R_SYNC_QUESTIONS,
     R_SYNC_SUMMARY,
 )
@@ -75,49 +65,6 @@ class SyncReviewViewSet(SyncViewSetBase):
         return Response(payload.data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        summary="Preview a sync selection",
-        description="Resolve a filter or a list of changes, dry-run the same apply in a "
-        "rolled-back transaction and return a token that binds the confirm to this exact "
-        "set. Superusers only.",
-        request=SyncPreviewRequestSerializer,
-        responses=R_SYNC_PREVIEW,
-        operation_id="ukma_data_sync_preview",
-    )
-    def preview(self, request: Request) -> Response:
-        serializer = SyncPreviewRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = cast(dict[str, Any], serializer.validated_data)
-        run = self._request_run(data["source"], data.get("run"))
-        selection_data = cast(dict[str, Any], data["selection"])
-        ids = self._selection_ids(selection_data, run, data["source"])
-        excluded = selection.selection_excluded(selection_data)
-        token = selection.token_for(run.pk, ids, excluded)
-        outcome = self._dry_run(run, ids, request.user, excluded)
-        if isinstance(outcome, Response):
-            return outcome
-        selection.record_preview(token, run, request.user, len(ids))
-        logger.info(
-            "sync_preview_created",
-            run_id=run.pk,
-            token=token,
-            count=len(ids),
-            user_id=request.user.pk,
-        )
-        payload = SyncPreviewResponseSerializer(
-            {
-                "token": token,
-                "count": len(ids),
-                "counts": outcome.counts,
-                "superseded_reasons": outcome.reasons,
-                "ratings_moved": outcome.ratings,
-                "plans_moved": outcome.plans,
-                "field_counts": outcome.fields,
-                "run_age_hours": self._age_hours(run),
-            }
-        )
-        return Response(payload.data, status=status.HTTP_200_OK)
-
-    @extend_schema(
         summary="List mapping questions",
         description="The run's mapping questions in answer order: unanswered first, then "
         "most ratings, narrowed by `kinds`, `rated` and a title `q`. Each course carries "
@@ -142,79 +89,6 @@ class SyncReviewViewSet(SyncViewSetBase):
         )
         payload = SyncQuestionListResponseSerializer(
             {"items": [questions.payload(item) for item in items], "next_after": next_after}
-        )
-        return Response(payload.data, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="Answer mapping questions in bulk",
-        description="Apply the same validation as the single answer endpoint to every id "
-        "and return how many were answered. `into` may be `suggested` for merges and "
-        "placements. Superusers only.",
-        request=SyncBulkAnswerRequestSerializer,
-        responses=R_SYNC_QUESTION_ANSWERS,
-        operation_id="ukma_data_sync_questions_answer_bulk",
-    )
-    def bulk_answers(self, request: Request) -> Response:
-        serializer = SyncBulkAnswerRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = cast(dict[str, Any], serializer.validated_data)
-        ids = cast(list[int], data["change_ids"])
-        into = data.get("into") or None
-        if into is not None and into != "suggested":
-            try:
-                uuid.UUID(into)
-            except (ValueError, TypeError) as exc:
-                raise ValidationError({"into": ["Некоректний курс"]}) from exc
-        target = None if into in (None, "suggested") else into
-        changes = {change.pk: change for change in SyncChange.objects.filter(pk__in=set(ids))}
-        suggested = (
-            questions.suggestions({change.run_id for change in changes.values()})
-            if into == "suggested"
-            else {}
-        )
-        answered = failed = 0
-        for change_id in dict.fromkeys(ids):
-            change = changes.get(change_id)
-            if change is None or change.kind not in answers.MAPPING_KINDS:
-                failed += 1
-                continue
-            course = target if target is not None else suggested.get(change_id)
-            if into == "suggested" and course is None:
-                failed += 1
-                continue
-            try:
-                answers.answer_change(change, data["answer"], request.user, into=course)
-            except answers.MappingAnswerError:
-                failed += 1
-                continue
-            answered += 1
-        logger.info(
-            "sync_questions_answered",
-            change_ids=ids,
-            answer=data["answer"],
-            answered=answered,
-            failed=failed,
-            user_id=request.user.pk,
-        )
-        payload = SyncQuestionBulkAnswerResponseSerializer({"answered": answered, "failed": failed})
-        return Response(payload.data, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="Read the running approval",
-        description="The newest `started` approval of any source, or null. The page banner "
-        "reads it to disable apply buttons. Superusers only.",
-        responses=R_SYNC_ACTIVE_APPROVAL,
-        operation_id="ukma_data_sync_approvals_active",
-    )
-    def approvals_active(self, request: Request) -> Response:
-        approval = (
-            SyncApproval.objects.filter(outcome=SyncApprovalOutcome.STARTED)
-            .select_related("user")
-            .order_by("-created_at", "-id")
-            .first()
-        )
-        payload = SyncActiveApprovalSerializer(
-            {"item": None if approval is None else self._approval_detail(approval)}
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 

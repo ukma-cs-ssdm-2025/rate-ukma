@@ -1,15 +1,13 @@
-"""Preview tokens and the selection a preview or a confirmed apply resolves."""
+"""The selection a group filter of the review screen or the console resolves."""
 
 from __future__ import annotations
 
-import hashlib
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
-from django.contrib.auth.models import User
 from django.db.models import QuerySet
 
-from rating_app.models import SyncChange, SyncChangeState, SyncPreview, SyncRun
+from rating_app.models import SyncChange, SyncChangeState, SyncRun
 from rating_app.sync import fields, review
 
 
@@ -61,10 +59,6 @@ def excluded_ids(filters: Mapping[str, Any] | None) -> list[int]:
     """The changes a filter selection leaves out; an approval never applies them,
     even when a selected change's unit or requirements name them."""
     return sorted({int(change_id) for change_id in (filters or {}).get("exclude_ids") or []})
-
-
-def selection_excluded(selection_data: Mapping[str, Any] | None) -> list[int]:
-    return excluded_ids((selection_data or {}).get("filter"))
 
 
 def narrow(
@@ -122,39 +116,3 @@ def _rated(changes: QuerySet[SyncChange], rated: Any) -> QuerySet[SyncChange]:
     if rated:
         return changes.filter(ratings__gt=0)
     return changes.filter(ratings=0)
-
-
-def token_for(run_id: int, change_ids: Iterable[int], excluded: Iterable[int] = ()) -> str:
-    ids = sorted({int(change_id) for change_id in change_ids})
-    text = ",".join(str(change_id) for change_id in ids)
-    left_out = sorted({int(change_id) for change_id in excluded})
-    if left_out:
-        text += "|" + ",".join(str(change_id) for change_id in left_out)
-    digest = hashlib.sha256(text.encode()).hexdigest()
-    return f"{run_id}:{digest}"
-
-
-def parse_token(token: str) -> tuple[int, str] | None:
-    run_id, separator, digest = token.partition(":")
-    if not separator:
-        return None
-    try:
-        return int(run_id), digest
-    except ValueError:
-        return None
-
-
-def record_preview(token: str, run: SyncRun, user: User, count: int) -> None:
-    SyncPreview.objects.update_or_create(
-        token=token,
-        defaults={"run": run, "user": user, "count": count},
-    )
-
-
-def was_previewed(token: str, run: SyncRun, user: User) -> bool:
-    return SyncPreview.objects.filter(token=token, run=run, user=user).exists()
-
-
-def preview_count(token: str) -> int | None:
-    count = SyncPreview.objects.filter(token=token).values_list("count", flat=True).first()
-    return None if count is None else int(count)

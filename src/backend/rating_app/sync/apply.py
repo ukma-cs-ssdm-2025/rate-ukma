@@ -28,6 +28,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 import structlog
+from structlog.contextvars import get_contextvars
 
 from rateukma.caching import instances as caching
 from rateukma.caching.cache_manager import SESSION_KEY_MARKER
@@ -1290,7 +1291,9 @@ def _fail_approval(
     approval.outcome = SyncApprovalOutcome.FAILED
     approval.error = reason
     approval.save(update_fields=["outcome", "error"])
-    logger.error(
+    # A dry run rolls the failure back; a warning keeps it out of Sentry's issues.
+    dry_run = bool(get_contextvars().get("dry_run"))
+    (logger.warning if dry_run else logger.error)(
         "sync_apply_failed",
         approval_id=approval.pk,
         run_id=run.pk,

@@ -3,13 +3,10 @@ from django.utils import timezone
 
 import pytest
 from freezegun import freeze_time
-from structlog.testing import capture_logs
 
 from rating_app.models.sync import (
     SyncChangeGroup,
     SyncChangeState,
-    SyncPolicy,
-    SyncPolicyChange,
     SyncPolicyMode,
     SyncRunStatus,
     SyncSource,
@@ -22,11 +19,6 @@ ENDPOINTS = [
     ("get", "ukma-data-sync-pending", {}),
     ("get", "ukma-data-sync-policies", {}),
     ("get", "ukma-data-sync-policy-changes", {}),
-    ("put", "ukma-data-sync-policy", {"kind": "new_offering"}),
-    ("post", "ukma-data-sync-approve", {}),
-    ("post", "ukma-data-sync-reject", {}),
-    ("post", "ukma-data-sync-change-answer", {"change_id": 1}),
-    ("post", "ukma-data-sync-keep-apart-unrated", {}),
 ]
 
 
@@ -51,10 +43,6 @@ def make_succeeded_run(sync_run_factory):
 
 def _run_changes_url(run):
     return reverse("ukma-data-sync-run-changes", kwargs={"run_id": run.pk})
-
-
-def _policy_url(kind):
-    return reverse("ukma-data-sync-policy", kwargs={"kind": kind})
 
 
 @pytest.mark.django_db
@@ -344,82 +332,6 @@ def test_policies_shows_a_stored_mode_and_its_editor(superuser_client, sync_poli
     assert item["never_auto"] is False
     assert item["updated_by"] == user.pk
     assert item["updated_at"] is not None
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_policy_update_writes_the_policy_and_an_audit_row(superuser_client):
-    response = superuser_client.put(_policy_url("new_offering"), {"mode": "auto"}, format="json")
-
-    assert response.status_code == 200
-    assert response.json()["mode"] == "auto"
-    assert response.json()["never_auto"] is False
-
-    policy = SyncPolicy.objects.get(kind="new_offering")
-    assert policy.mode == SyncPolicyMode.AUTO
-    assert policy.updated_by == superuser_client.user
-    audit = SyncPolicyChange.objects.get(kind="new_offering")
-    assert audit.old_mode == SyncPolicyMode.NEEDS_APPROVAL
-    assert audit.new_mode == SyncPolicyMode.AUTO
-    assert audit.user == superuser_client.user
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-@pytest.mark.parametrize("kind", NEVER_AUTO_KINDS)
-def test_policy_update_refuses_auto_for_every_never_auto_kind(superuser_client, kind):
-    response = superuser_client.put(_policy_url(kind), {"mode": "auto"}, format="json")
-
-    assert response.status_code == 400
-    assert "завжди потребує підтвердження" in response.json()["fields"]["mode"][0]
-    assert not SyncPolicy.objects.filter(kind=kind).exists()
-    assert not SyncPolicyChange.objects.filter(kind=kind).exists()
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_policy_update_returns_404_for_an_unknown_kind(superuser_client):
-    response = superuser_client.put(
-        _policy_url("catalog_refactored"), {"mode": "auto"}, format="json"
-    )
-
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_policy_update_returns_400_for_an_invalid_mode(superuser_client):
-    response = superuser_client.put(
-        _policy_url("new_offering"), {"mode": "sometimes"}, format="json"
-    )
-
-    assert response.status_code == 400
-    assert list(response.json()["fields"]) == ["mode"]
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_policy_update_writes_no_audit_row_when_mode_is_unchanged(superuser_client):
-    response = superuser_client.put(
-        _policy_url("new_offering"), {"mode": "needs_approval"}, format="json"
-    )
-
-    assert response.status_code == 200
-    assert not SyncPolicy.objects.exists()
-    assert not SyncPolicyChange.objects.exists()
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_policy_update_logs_the_kind_and_mode_but_no_payload(superuser_client):
-    with capture_logs() as logs:
-        superuser_client.put(_policy_url("new_offering"), {"mode": "auto"}, format="json")
-
-    events = [log for log in logs if log["event"] == "sync_policy_updated"]
-    assert len(events) == 1
-    assert events[0]["kind"] == "new_offering"
-    assert events[0]["mode"] == "auto"
-    assert events[0]["user_id"] == superuser_client.user.pk
 
 
 @pytest.mark.django_db

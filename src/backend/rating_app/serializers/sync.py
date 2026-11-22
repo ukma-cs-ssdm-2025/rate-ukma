@@ -12,9 +12,6 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from rating_app.models.sync import (
-    MappingAnswer,
-    SyncApprovalAction,
-    SyncApprovalOutcome,
     SyncChange,
     SyncChangeGroup,
     SyncChangeState,
@@ -23,7 +20,7 @@ from rating_app.models.sync import (
     SyncRunStatus,
     SyncSource,
 )
-from rating_app.sync.kinds import KIND_BY_NAME, NEVER_AUTO_KINDS
+from rating_app.sync.kinds import NEVER_AUTO_KINDS
 
 
 class SyncRunSerializer(serializers.Serializer):
@@ -79,120 +76,7 @@ class SyncPolicySerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
 
-class SyncPolicyUpdateSerializer(serializers.Serializer):
-    mode = serializers.ChoiceField(choices=SyncPolicyMode.choices)
-
-
 SELECTION_GROUP_CHOICES = [*SyncChangeGroup.choices, ("other", "Other")]
-
-
-class SyncSelectionFilterSerializer(serializers.Serializer):
-    group = serializers.ChoiceField(choices=SELECTION_GROUP_CHOICES)
-    kind = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    q = serializers.CharField(required=False, allow_null=True, allow_blank=True, max_length=200)
-    rated = serializers.BooleanField(required=False, allow_null=True)
-    match = serializers.ChoiceField(choices=["exact", "review"], required=False, allow_null=True)
-    similar_existing = serializers.BooleanField(required=False, allow_null=True)
-    fields_subset = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    changed_field = serializers.CharField(
-        required=False, allow_null=True, allow_blank=True, max_length=50
-    )
-    blanks = serializers.BooleanField(required=False, allow_null=True)
-    year_from = serializers.IntegerField(required=False, allow_null=True, min_value=2000)
-    year_to = serializers.IntegerField(required=False, allow_null=True, min_value=2000)
-    exclude_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), required=False, max_length=500
-    )
-
-
-class SyncSelectionSerializer(serializers.Serializer):
-    change_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), required=False, allow_empty=False
-    )
-    filter = SyncSelectionFilterSerializer(required=False, allow_null=True)
-
-    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
-        given = attrs.get("change_ids")
-        filters = attrs.get("filter")
-        if (given is None) == (filters is None):
-            raise serializers.ValidationError("Вкажіть або зміни, або фільтр")
-        return attrs
-
-
-class SyncApproveRequestSerializer(serializers.Serializer):
-    source = serializers.ChoiceField(choices=SyncSource.choices)
-    group = serializers.ChoiceField(
-        choices=SyncChangeGroup.choices, required=False, allow_null=True
-    )
-    kind = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    change_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1),
-        required=False,
-        allow_empty=False,
-        max_length=200,
-    )
-    run = serializers.IntegerField(required=False, allow_null=True, min_value=1)
-    selection = SyncSelectionSerializer(required=False, allow_null=True)
-    token = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    client_key = serializers.UUIDField(required=False, allow_null=True)
-    dry_run = serializers.BooleanField(default=False)
-    confirm_stale = serializers.BooleanField(default=False)
-
-    def validate_kind(self, value: str | None) -> str | None:
-        if value and value not in KIND_BY_NAME:
-            raise serializers.ValidationError("Невідомий вид зміни")
-        return value or None
-
-    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
-        selection = attrs.get("selection")
-        if selection is not None:
-            if attrs.get("change_ids") is not None:
-                raise serializers.ValidationError({"selection": ["Вкажіть або зміни, або фільтр"]})
-            filters = selection.get("filter") if isinstance(selection, dict) else None
-            if isinstance(filters, dict) and filters.get("group"):
-                attrs["group"] = filters["group"]
-        if not attrs.get("group") and not attrs.get("token"):
-            raise serializers.ValidationError({"group": ["Вкажіть групу змін"]})
-        return attrs
-
-
-class SyncRejectRequestSerializer(serializers.Serializer):
-    change_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), required=False, allow_empty=False
-    )
-    source = serializers.ChoiceField(choices=SyncSource.choices, default=SyncSource.CATALOG)
-    selection = SyncSelectionSerializer(required=False, allow_null=True)
-    token = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-
-    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
-        if (attrs.get("change_ids") is None) == (attrs.get("selection") is None):
-            raise serializers.ValidationError({"selection": ["Вкажіть або зміни, або вибірку"]})
-        return attrs
-
-
-class SyncAnswerRequestSerializer(serializers.Serializer):
-    answer = serializers.ChoiceField(choices=MappingAnswer.choices)
-    into = serializers.UUIDField(required=False, allow_null=True)
-
-
-class SyncApprovalSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True, allow_null=True)
-    action = serializers.ChoiceField(choices=SyncApprovalAction.choices, read_only=True)
-    outcome = serializers.ChoiceField(choices=SyncApprovalOutcome.choices, read_only=True)
-    counts = serializers.JSONField(read_only=True)
-    error = serializers.CharField(read_only=True, allow_blank=True)
-
-
-class SyncAnswerResponseSerializer(serializers.Serializer):
-    decision_id = serializers.IntegerField(read_only=True)
-    change_id = serializers.IntegerField(read_only=True)
-    kind = serializers.CharField(read_only=True)
-    answer = serializers.ChoiceField(choices=MappingAnswer.choices, read_only=True)
-    ratings = serializers.IntegerField(read_only=True)
-
-
-class SyncBulkAnswerResponseSerializer(serializers.Serializer):
-    count = serializers.IntegerField(read_only=True)
 
 
 class SyncPolicyChangeSerializer(serializers.Serializer):

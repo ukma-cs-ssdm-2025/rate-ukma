@@ -1,9 +1,6 @@
 import type {
-	ActionEnum,
-	OutcomeEnum,
 	SyncChangeGroupEnum as Group,
 	SyncChangeStateEnum as State,
-	SyncPolicyModeEnum as Mode,
 	SyncRunStatusEnum as RunStatus,
 	SyncSourceEnum as Source,
 	SyncSummaryAnswers,
@@ -38,24 +35,6 @@ export const RUN_STATUS_LABELS = {
 	failed: "Помилка",
 } satisfies Record<RunStatus, string>;
 
-export const MODE_LABELS = {
-	needs_approval: "З підтвердженням",
-	auto: "Автоматично",
-} satisfies Record<Mode, string>;
-
-export const ACTION_LABELS = {
-	apply: "Застосування",
-	reject: "Відхилення",
-	preview: "Перегляд",
-} satisfies Record<ActionEnum, string>;
-
-export const OUTCOME_LABELS = {
-	started: "Триває",
-	applied: "Виконано",
-	refused: "Відмовлено",
-	failed: "Помилка",
-} satisfies Record<OutcomeEnum, string>;
-
 export const ANSWER_LABELS = {
 	merge: "обʼєднати",
 	keep_apart: "залишити окремо",
@@ -63,12 +42,6 @@ export const ANSWER_LABELS = {
 	place: "розмістити",
 	move: "перенести",
 } satisfies Record<keyof SyncSummaryAnswers, string>;
-
-export const NEVER_AUTO_REASON =
-	"Питання й зміни, що переносять оцінки, завжди потребують підтвердження";
-
-export const AUTO_COPY =
-	"Застосовується щоночі без вас, крім змін, що зачіпають оцінки чи плани";
 
 export const SYNC_KINDS = [
 	"new_faculty",
@@ -195,21 +168,10 @@ export const FAILED_RUN_REASONS = [
 export type FailedRunReason = (typeof FAILED_RUN_REASONS)[number];
 
 export const FAILED_RUN_LABELS = {
-	short_read: "Сервіс даних САЗ віддав неповні дані",
-	stalled_read: "Сервіс даних САЗ перестав відповідати під час читання",
-	forbidden: "Ключ доступу до даних САЗ не має потрібного права",
+	short_read: "UKMA Data віддала неповні дані",
+	stalled_read: "UKMA Data перестала відповідати під час читання",
+	forbidden: "Ключ доступу до UKMA Data не має потрібного права",
 } satisfies Record<FailedRunReason, string>;
-
-export const HOLDERS = ["nightly", "other_user", "self"] as const;
-
-export type Holder = (typeof HOLDERS)[number];
-
-export const HOLDER_LABELS = {
-	nightly:
-		"Зараз триває нічний запуск синхронізації. Спробуйте, коли він завершиться.",
-	other_user: "Зараз зміни застосовує інший адміністратор.",
-	self: "Ще триває ваше попереднє застосування.",
-} satisfies Record<Holder, string>;
 
 export const FIELD_LABELS = new Map<string, string>([
 	["name", "Назва"],

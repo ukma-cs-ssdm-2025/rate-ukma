@@ -6,10 +6,10 @@ import { buttonVariants } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { cn } from "@/lib/utils";
 import { STAFF_ONLY } from "../ukmaDataErrors";
+import { Term } from "./Term";
 
 const TABS = [
 	{ to: "/data", label: "Огляд", exact: true },
-	{ to: "/data/cases", label: "Справи", exact: false },
 	{ to: "/data/sync", label: "Оновлення з САЗ", exact: false },
 ] as const;
 
@@ -17,6 +17,10 @@ export function DataSectionHeader() {
 	return (
 		<div className="space-y-4">
 			<PageHeader title="Дані САЗ" />
+			<p className="text-sm text-muted-foreground">
+				Тут лише перегляд. Рішення ухвалюються в <Term name="console" /> через
+				Claude.
+			</p>
 			<nav aria-label="Розділи даних САЗ" className="flex gap-1 border-b">
 				{TABS.map((tab) => (
 					<Link

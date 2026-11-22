@@ -58,6 +58,10 @@ Conventions: [docs/testing/backend-tests.md](../../docs/testing/backend-tests.md
 - A database test carries `@pytest.mark.django_db` and `@pytest.mark.integration`; there is no module-level `pytestmark` and nothing derives the second from the first.
 - Run from `src/backend`: `uv run pytest <file> -q`, after `uv sync --extra test` and a `.env` copied from `src/.env.sample`.
 
+## Catalog sync decisions
+
+Sync changes are applied, rejected and answered from the console with `manage.py catalog_sync` (dry run unless `--yes`); /data only shows them. Runbook: [docs/runbooks/catalog-sync-console.md](../../docs/runbooks/catalog-sync-console.md).
+
 ## Logging style
 
 Start log calls with a snake_case event name, then pass structured context via keyword args so tools can parse them.

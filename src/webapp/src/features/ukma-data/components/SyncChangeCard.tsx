@@ -1,4 +1,4 @@
-import { Lock, Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -14,6 +14,7 @@ import {
 	ratingLabel,
 	stateLabel,
 } from "../sync";
+import { Term } from "./Term";
 
 function courseMeta(course: SyncDisplayCourse): string {
 	return [
@@ -102,6 +103,9 @@ export function SyncChangeCard({
 	return (
 		<Card className="space-y-3 p-4">
 			<div className="flex flex-wrap items-center gap-2">
+				<Badge variant="outline" className="tabular-nums">
+					#{change.id}
+				</Badge>
 				<Badge variant="soft">{kindLabel(change.kind)}</Badge>
 				{showState ? (
 					<Badge variant={change.state === "applied" ? "success" : "outline"}>
@@ -115,16 +119,14 @@ export function SyncChangeCard({
 					</Badge>
 				) : null}
 				{change.never_auto ? (
-					<Badge variant="outline">
-						<Lock />
-						Потрібне підтвердження
-					</Badge>
+					<span className="text-xs">
+						<Term name="never_auto" />
+					</span>
 				) : null}
 			</div>
 			<p className="font-medium break-words">{changeTitle(change, display)}</p>
 			<DisplayRows display={display} />
 			<FieldDiff change={change} />
-			<div data-slot="sync-change-actions" />
 		</Card>
 	);
 }

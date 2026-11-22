@@ -37,6 +37,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - A write endpoint (start a run, decide a case) records its audit row inside its own transaction, so a failed audit write cannot leave work done behind a 500.
 - A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
 - The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`crawl-smart`/`create-key`/`revoke-key`/`list-keys`/`cases`/`courses`, `DATABASE_URL`, `PORT`, the university account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
+- Review cases are decided from the console, not from Rate UKMA's /data page, which only counts them: [docs/runbooks/catalog-sync-console.md](../../docs/runbooks/catalog-sync-console.md).
 
 ## Conventions
 

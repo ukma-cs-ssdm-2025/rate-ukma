@@ -198,7 +198,11 @@ export function parseDisplay(change: SyncChange): SyncDisplay {
 
 export function changeTitle(change: SyncChange, display: SyncDisplay): string {
 	const payload = toValue(change.after);
-	const afterTitle = text(read(payload, "title"));
+	const before = toValue(change.before);
+	const recordTitle =
+		text(read(before, "title")) ??
+		text(read(before, "name")) ??
+		text(read(payload, "title"));
 	const sazCode = text(read(payload, "saz_code"));
 	if (display.teacherName !== null) {
 		return display.teacherName;
@@ -218,7 +222,7 @@ export function changeTitle(change: SyncChange, display: SyncDisplay): string {
 	if (display.courses.length > 1) {
 		return `${display.courses[0].title} та ще ${display.courses.length - 1}`;
 	}
-	return afterTitle ?? (sazCode === null ? change.key : `САЗ ${sazCode}`);
+	return recordTitle ?? (sazCode === null ? change.key : `САЗ ${sazCode}`);
 }
 
 export interface SyncField {

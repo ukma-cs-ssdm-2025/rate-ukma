@@ -1,6 +1,6 @@
 import type { UkmaDataStatus } from "@/lib/api/generated";
 import { missingScopes } from "../keyScopes";
-import { formatDateTime } from "../reviewCases";
+import { Ago } from "./Term";
 
 export function OverviewTech({ status }: Readonly<{ status: UkmaDataStatus }>) {
 	const missing = missingScopes(status.scopes);
@@ -11,7 +11,9 @@ export function OverviewTech({ status }: Readonly<{ status: UkmaDataStatus }>) {
 				<dt>Ключ доступу</dt>
 				<dd className="min-w-0 font-mono text-xs break-all">{status.key_id}</dd>
 				<dt>Діє до</dt>
-				<dd>{formatDateTime(status.key_expires_at)}</dd>
+				<dd>
+					<Ago iso={status.key_expires_at} />
+				</dd>
 				<dt>Права</dt>
 				<dd className="min-w-0 font-mono text-xs break-all">
 					{status.scopes.length > 0 ? status.scopes.join(", ") : "—"}

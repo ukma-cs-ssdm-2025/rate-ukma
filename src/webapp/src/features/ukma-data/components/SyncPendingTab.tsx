@@ -1,7 +1,4 @@
-import { useState } from "react";
-
-import axios from "axios";
-import { CalendarClock } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { useQueryStates } from "nuqs";
 
 import {
@@ -11,151 +8,94 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@/components/ui/Empty";
-import type { SyncSummary } from "@/lib/api/generated";
-import {
-	useUkmaDataSyncRunApprovalsList,
-	useUkmaDataSyncSummary,
-} from "@/lib/api/generated";
-import { useCurrentEmail } from "../hooks/useSyncApplyLock";
-import type { ConfirmRequest, DoneBanner } from "../syncConfirm";
-import { doneLines, openLines, pendingTotal } from "../syncGroups";
-import type { GroupLine, SyncView } from "../syncGroups";
-import {
-	historyParams,
-	tabParser,
-	VIEW_RESET,
-	viewParams,
-} from "../syncParams";
-import { linksRequest, removedRequest } from "../syncRequests";
-import { DataLinesSkeleton } from "./DataLines";
-import { SyncAllDone } from "./SyncAllDone";
-import { SyncConfirmDialog } from "./SyncConfirmDialog";
-import { SyncDoneBanner, SyncOverview } from "./SyncOverview";
-import { SyncViews } from "./SyncViews";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useUkmaDataSyncPendingList } from "@/lib/api/generated";
+import { PAGE_SIZE } from "../syncLabels";
+import { GROUP_ORDER, NO_RETRY } from "../syncOverview";
+import { pendingParams } from "../syncParams";
+import { TERMS } from "../syncTerms";
+import { DataSegments } from "./DataBits";
+import { SyncChangeCard } from "./SyncChangeCard";
+import { SyncPagination } from "./SyncPagination";
+import { SyncQuestionList } from "./SyncQuestionList";
+import { Term } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
 
-const APPROVALS_PAGE = 50;
-
-const isNotFound = (error: unknown): boolean =>
-	axios.isAxiosError(error) && error.response?.status === 404;
-
-function NeverRun() {
+function Nothing() {
 	return (
 		<Empty className="border">
 			<EmptyHeader>
 				<EmptyMedia variant="icon">
-					<CalendarClock />
+					<Inbox />
 				</EmptyMedia>
-				<EmptyTitle>Порівняння з САЗ ще не запускалось</EmptyTitle>
+				<EmptyTitle>У цій групі нічого не чекає</EmptyTitle>
 				<EmptyDescription>
-					Перша нічна перевірка покаже тут, що змінилось у САЗ.
+					Нові зміни з'являться після наступного нічного читання САЗ.
 				</EmptyDescription>
 			</EmptyHeader>
 		</Empty>
 	);
 }
 
-function requestFor(
-	line: GroupLine,
-	summary: SyncSummary,
-): ConfirmRequest | null {
-	if (line.key === "links") {
-		return linksRequest(summary.groups);
-	}
-	return line.key === "removed" ? removedRequest(summary.groups) : null;
-}
-
-function PendingBody({ summary }: Readonly<{ summary: SyncSummary }>) {
-	const [params, setParams] = useQueryStates(viewParams);
-	const [, setHistory] = useQueryStates({ tab: tabParser, ...historyParams });
-	const [request, setRequest] = useState<ConfirmRequest | null>(null);
-	const [banner, setBanner] = useState<DoneBanner | null>(null);
-	const email = useCurrentEmail();
-	const runId = summary.run.id;
-	const approvals = useUkmaDataSyncRunApprovalsList(
-		runId,
-		{ page_size: APPROVALS_PAGE },
-		{ query: { retry: false } },
+export function SyncPendingTab() {
+	const [{ group, page }, setParams] = useQueryStates(pendingParams);
+	const pending = useUkmaDataSyncPendingList(
+		{ source: "catalog", group, page, page_size: PAGE_SIZE },
+		NO_RETRY,
 	);
-	const lines = openLines(summary.groups);
-	const done = doneLines(summary.groups, approvals.data?.items ?? [], email);
-	const open = (view: SyncView) => void setParams({ ...VIEW_RESET, view });
-	const history = (run: number | null) =>
-		void setHistory({ tab: "history", openRun: run });
-	const finish = (next: DoneBanner) => {
-		setRequest(null);
-		setBanner(next);
-		void setParams({ ...VIEW_RESET, view: null });
-	};
-	const action = (line: GroupLine) => {
-		if (line.action.view !== null) {
-			open(line.action.view);
-			return;
-		}
-		setRequest(requestFor(line, summary));
-	};
+	const counts = pending.data?.groups ?? {};
+	const total = pending.data?.total ?? 0;
 	return (
-		<div className="space-y-6">
-			{banner === null ? null : (
-				<SyncDoneBanner
-					banner={banner}
-					onHistory={() => history(banner.runId)}
-					onDismiss={() => setBanner(null)}
-				/>
-			)}
-			{params.view === "overview" && lines.length === 0 ? (
-				<SyncAllDone done={done} onHistory={history} />
+		<div className="space-y-4">
+			<p className="text-sm text-muted-foreground">
+				Зміни з останнього читання САЗ, які ще{" "}
+				<Term name="waiting">чекають рішення</Term>. Номер зміни (#) назвіть
+				Claude у <Term name="console" />, щоб застосувати чи відхилити її.
+			</p>
+			<DataSegments
+				label="Групи змін"
+				value={group}
+				onChange={(value) => void setParams({ group: value, page: null })}
+				items={GROUP_ORDER.map((item) => ({
+					value: item,
+					label: TERMS[item].label,
+					count: counts[item] ?? 0,
+				}))}
+			/>
+			<p className="text-sm">
+				<Term name={group} />: {TERMS[group].hint}
+			</p>
+			{group === "mapping" ? <SyncQuestionList /> : null}
+			{group !== "mapping" && pending.isLoading ? (
+				<Skeleton className="h-64 rounded-xl" />
 			) : null}
-			{params.view === "overview" && lines.length > 0 ? (
-				<SyncOverview
-					summary={summary}
-					remaining={pendingTotal(summary.groups)}
-					lines={lines}
-					done={done}
-					onAction={action}
-					onOpen={open}
-					onHistory={history}
+			{group !== "mapping" && pending.error ? (
+				<UkmaDataError
+					error={pending.error}
+					title="Не вдалося завантажити зміни"
+					onRetry={() => void pending.refetch()}
+					isRetrying={pending.isRefetching}
 				/>
 			) : null}
-			{params.view === "overview" ? null : (
-				<SyncViews
-					summary={summary}
-					onBack={() => open("overview")}
-					onConfirm={setRequest}
-				/>
-			)}
-			{request === null ? null : (
-				<SyncConfirmDialog
-					request={request}
-					run={runId}
-					onClose={() => setRequest(null)}
-					onDone={finish}
-				/>
-			)}
+			{group !== "mapping" && pending.data && total === 0 ? <Nothing /> : null}
+			{group !== "mapping" && pending.data && total > 0 ? (
+				<>
+					<ul className="space-y-3" aria-label="Зміни, що чекають рішення">
+						{pending.data.items.map((change) => (
+							<li key={change.id}>
+								<SyncChangeCard change={change} />
+							</li>
+						))}
+					</ul>
+					<SyncPagination
+						page={pending.data.page}
+						totalPages={pending.data.total_pages}
+						nextPage={pending.data.next_page}
+						previousPage={pending.data.previous_page}
+						onPageChange={(next) => void setParams({ page: next })}
+					/>
+				</>
+			) : null}
 		</div>
 	);
-}
-
-export function SyncPendingTab() {
-	const summary = useUkmaDataSyncSummary(
-		{ source: "catalog" },
-		{ query: { retry: false } },
-	);
-	if (summary.isLoading) {
-		return <DataLinesSkeleton />;
-	}
-	if (summary.error && isNotFound(summary.error)) {
-		return <NeverRun />;
-	}
-	if (summary.error) {
-		return (
-			<UkmaDataError
-				error={summary.error}
-				title="Не вдалося завантажити зміни з САЗ"
-				onRetry={() => void summary.refetch()}
-				isRetrying={summary.isRefetching}
-			/>
-		);
-	}
-	return summary.data ? <PendingBody summary={summary.data} /> : null;
 }

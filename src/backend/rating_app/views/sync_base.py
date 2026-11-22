@@ -1,24 +1,17 @@
-"""Shared machinery of the sync endpoints: pagination, validation, previews.
-
-Both the review viewset (summary, questions, history) and the action viewset
-(approve, reject, policies) read selections and describe approvals the same
-way, so those helpers live here.
+"""Shared machinery of the read-only sync endpoints: pagination, validation and
+the approval history. Decisions are made in the console (`manage.py catalog_sync`).
 """
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
-from dataclasses import dataclass
+from collections import defaultdict
 from typing import Any
 
-from django.db import transaction
 from django.db.models import Model, QuerySet
-from django.utils import timezone
-from rest_framework import status, viewsets
+from rest_framework import viewsets
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 import structlog
 from pydantic import BaseModel
@@ -32,127 +25,20 @@ from rating_app.application_schemas.pagination import (
 from rating_app.application_schemas.sync import SyncListParams, SyncPendingParams
 from rating_app.models.sync import (
     SyncApproval,
-    SyncApprovalOutcome,
     SyncChange,
     SyncChangeState,
     SyncRun,
-    SyncRunStatus,
     SyncSource,
 )
 from rating_app.pagination.paginator import GenericQuerysetPaginator
-from rating_app.sync import apply, review, selection
-from rating_app.sync import fields as field_pairs
-from rating_app.sync.apply import SyncApplyInputError
+from rating_app.sync import decisions, review
 from rating_app.views.ukma_data_viewset import IsSuperuser
 
 logger = structlog.get_logger(__name__)
 
-INPUT_ERROR_TEXT = {
-    "no change ids": "Не вибрано жодної зміни",
-    "unknown change ids": "Деяких вибраних змін не існує",
-    "changes from several runs": "Вибрані зміни належать різним запускам",
-}
-
-
-@dataclass
-class DryRun:
-    counts: dict[str, dict[str, int]]
-    reasons: dict[str, int]
-    ratings: int
-    plans: int
-    fields: dict[str, int]
-
-
-def input_error_text(exc: SyncApplyInputError) -> str:
-    return INPUT_ERROR_TEXT.get(str(exc), "Некоректна вибірка змін")
-
 
 class SyncViewSetBase(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, IsSuperuser]
-
-    def _selection_ids(
-        self, selection_data: dict[str, Any], run: SyncRun, source: SyncSource
-    ) -> list[int]:
-        given = selection_data.get("change_ids")
-        if given is not None:
-            ids = [int(change_id) for change_id in given]
-            found = set(
-                SyncChange.objects.filter(pk__in=set(ids), run=run, source=source).values_list(
-                    "id", flat=True
-                )
-            )
-            if len(found) != len(set(ids)):
-                raise ValidationError({"selection": ["Деяких вибраних змін не існує"]})
-            return sorted(int(change_id) for change_id in found)
-        filters = selection_data.get("filter") or {}
-        return selection.filter_ids(run, source, filters)
-
-    def _dry_run(
-        self, run: SyncRun, ids: list[int], user: Any, excluded: list[int]
-    ) -> DryRun | Response:
-        del run
-        try:
-            with transaction.atomic():
-                approval = apply.approve(ids, user, confirm_old_run=True, excluded=excluded)
-                if approval.outcome == SyncApprovalOutcome.REFUSED:
-                    transaction.set_rollback(True)
-                    return self._refusal(approval, user)
-                if approval.outcome == SyncApprovalOutcome.FAILED:
-                    transaction.set_rollback(True)
-                    return Response(
-                        {
-                            "detail": "Не вдалося застосувати зміни",
-                            "error": approval.error,
-                            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        },
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    )
-                rows = list(
-                    SyncChange.objects.filter(pk__in=approval.change_ids).values(
-                        "kind", "state", "state_reason"
-                    )
-                )
-                moved = list(
-                    SyncChange.objects.filter(
-                        pk__in=approval.change_ids,
-                        state=SyncChangeState.APPLIED,
-                        kind__in=["merge_courses", "move_offering"],
-                    )
-                )
-                ratings, plans = review.moved_counts(moved)
-                counts, reasons = self._preview_counts(rows)
-                fields = self._preview_fields(approval.change_ids)
-                transaction.set_rollback(True)
-        except SyncApplyInputError as exc:
-            raise ValidationError({"change_ids": [input_error_text(exc)]}) from exc
-        return DryRun(counts, reasons, ratings, plans, fields)
-
-    def _preview_fields(self, change_ids: list[int]) -> dict[str, int]:
-        """How many of the selected changes set each field: a change applies or is
-        rejected whole, so every field it carries goes with it."""
-        fields: Counter[str] = Counter()
-        pairs = field_pairs.change_pairs(SyncChange.objects.filter(pk__in=change_ids))
-        for rows in pairs.values():
-            fields.update({pair[0] for pair in rows})
-        return dict(fields)
-
-    def _preview_counts(
-        self, rows: list[dict[str, Any]]
-    ) -> tuple[dict[str, dict[str, int]], dict[str, int]]:
-        counts: dict[str, dict[str, int]] = {}
-        reasons: Counter[str] = Counter()
-        for row in rows:
-            kind = str(row["kind"])
-            entry = counts.setdefault(kind, {"apply": 0, "wait": 0, "superseded": 0})
-            state = row["state"]
-            if state == SyncChangeState.APPLIED:
-                entry["apply"] += 1
-            elif state == SyncChangeState.SUPERSEDED:
-                entry["superseded"] += 1
-                reasons[str(row["state_reason"])] += 1
-            else:
-                entry["wait"] += 1
-        return counts, dict(reasons)
 
     def _sample_page(
         self, ids: list[int], params: SyncPendingParams
@@ -211,71 +97,16 @@ class SyncViewSetBase(viewsets.ViewSet):
             )
         return details
 
-    def _approval_detail(self, approval: SyncApproval) -> dict[str, Any]:
-        return self._approval_details([approval])[0]
-
     def _request_run(self, source: SyncSource, run_id: int | None) -> SyncRun:
         if run_id is not None:
             run = SyncRun.objects.filter(pk=run_id).first()
             if run is None:
                 raise NotFound("Запуск синхронізації не знайдено")
             return run
-        run = (
-            SyncRun.objects.filter(source=source, status=SyncRunStatus.SUCCEEDED)
-            .order_by("-finished_at", "-id")
-            .first()
-        )
+        run = decisions.current_run(source)
         if run is None:
             raise NotFound("Синхронізацію ще не запускали")
         return run
-
-    def _refusal(self, approval: SyncApproval, user: Any) -> Response:
-        reason = approval.error
-        if reason == "lock_held":
-            detail = "Синхронізація саме триває"
-            code = status.HTTP_409_CONFLICT
-        elif reason == "run_too_old":
-            detail = "Дані старші за 48 год"
-            hours = self._run_age_hours(approval)
-            if hours is not None:
-                detail = f"{detail} ({hours} год)"
-            code = status.HTTP_409_CONFLICT
-        elif reason == "run_not_current":
-            detail = "Запуск синхронізації вже не актуальний"
-            code = status.HTTP_409_CONFLICT
-        elif reason == "no_proposed_changes":
-            detail = "Немає запропонованих змін для цієї вибірки"
-            code = status.HTTP_400_BAD_REQUEST
-        else:
-            detail = reason or "Не вдалося виконати дію"
-            code = status.HTTP_400_BAD_REQUEST
-        body: dict[str, Any] = {"detail": detail, "status": code}
-        if code == status.HTTP_409_CONFLICT:
-            body["holder"] = self._holder(user, lock_held=reason == "lock_held")
-            body["run_age_hours"] = self._run_age_hours(approval)
-        return Response(body, status=code)
-
-    def _run_age_hours(self, approval: SyncApproval) -> int | None:
-        run = approval.run
-        return None if run is None else self._age_hours(run)
-
-    def _age_hours(self, run: SyncRun) -> int | None:
-        stamps = [stamp for stamp in (run.finished_at, run.data_updated_at) if stamp is not None]
-        if not stamps:
-            return None
-        return int((timezone.now() - min(stamps)).total_seconds() // 3600)
-
-    def _holder(self, user: Any, *, lock_held: bool) -> str:
-        newest = (
-            SyncApproval.objects.filter(outcome=SyncApprovalOutcome.STARTED)
-            .order_by("-created_at", "-id")
-            .first()
-        )
-        if lock_held and (newest is None or newest.user_id is None):
-            return "nightly"
-        if newest is not None and newest.user_id == user.pk:
-            return "self"
-        return "other_user"
 
     def _paginate[TModel: Model](
         self, queryset: QuerySet[TModel], params: SyncListParams

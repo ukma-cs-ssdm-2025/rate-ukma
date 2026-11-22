@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import timedelta
 
 from django.urls import reverse
@@ -8,19 +9,18 @@ from django.utils import timezone
 import pytest
 
 from rating_app.models import (
-    CatalogMappingDecision,
     MappingAnswer,
+    SyncApprovalOutcome,
+    SyncChangeState,
     SyncRunStatus,
     SyncSource,
 )
+from rating_app.sync import apply, decisions
 from rating_app.sync.kinds import KIND_BY_NAME
 
 ENDPOINTS = [
     ("get", "ukma-data-sync-summary", {}),
-    ("post", "ukma-data-sync-preview", {}),
     ("get", "ukma-data-sync-questions", {}),
-    ("post", "ukma-data-sync-questions-answers", {}),
-    ("get", "ukma-data-sync-approvals-active", {}),
     ("get", "ukma-data-sync-run-approvals", {"run_id": 1}),
     ("get", "ukma-data-sync-run-export", {"run_id": 1}),
 ]
@@ -727,123 +727,6 @@ def test_questions_rated_filter(review_fixture, superuser_client):
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_bulk_answers_merge_into_the_suggested_course(
-    review_fixture,
-    superuser_client,
-    catalog_run,
-    course_factory,
-    department_factory,
-    sync_change_factory,
-    catalog_mapping_decision_factory,
-):
-    department = department_factory()
-    matching = course_factory(title="Спільний курс", department=department)
-    left = course_factory(title="Лівий курс", department=department)
-    right = course_factory(title="Правий курс", department=department)
-    for course in (matching, left, right):
-        _change(
-            sync_change_factory,
-            catalog_run,
-            kind="link_course",
-            key=f"link:{course.pk}",
-            target_id=str(course.pk),
-            after={"ukma_data_id": f"ud-{course.pk}", "majority_share": 1.0},
-        )
-    matching.ukma_data_id = "ud-common"
-    matching.save(update_fields=["ukma_data_id"])
-    question = _merge_change(
-        sync_change_factory,
-        catalog_run,
-        "ud-common",
-        [(matching, 1), (left, 0)],
-        ratings=1,
-    )
-    question.after["display"]["ukma_course"]["title"] = "Спільний курс"
-    question.save(update_fields=["after"])
-
-    response = superuser_client.post(
-        reverse("ukma-data-sync-questions-answers"),
-        {"change_ids": [question.pk, 999_999], "answer": "merge", "into": "suggested"},
-        format="json",
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"answered": 1, "failed": 1}
-    decision = CatalogMappingDecision.objects.get(kind="merge_courses", question_key=question.key)
-    assert decision.answer == MappingAnswer.MERGE
-    assert decision.into_ref == str(matching.pk)
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_bulk_answers_reject_an_answer_that_does_not_fit(review_fixture, superuser_client):
-    response = superuser_client.post(
-        reverse("ukma-data-sync-questions-answers"),
-        {"change_ids": [review_fixture["merge"].pk], "answer": "place"},
-        format="json",
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"answered": 0, "failed": 1}
-    assert not CatalogMappingDecision.objects.exists()
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_answer_merge_records_the_chosen_into_course(
-    catalog_run, superuser_client, sync_change_factory, course_factory
-):
-    first = course_factory(title="Перший курс")
-    second = course_factory(title="Другий курс")
-    question = _merge_change(
-        sync_change_factory,
-        catalog_run,
-        "ud-answer-merge",
-        [(first, 1), (second, 2)],
-        ratings=3,
-    )
-
-    response = superuser_client.post(
-        reverse("ukma-data-sync-change-answer", kwargs={"change_id": question.pk}),
-        {"answer": "merge", "into": str(second.pk)},
-        format="json",
-    )
-
-    assert response.status_code == 200
-    decision = CatalogMappingDecision.objects.get(pk=response.json()["decision_id"])
-    assert decision.answer == MappingAnswer.MERGE
-    assert decision.into_ref == str(second.pk)
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_answer_merge_refuses_a_course_outside_the_question(
-    catalog_run, superuser_client, sync_change_factory, course_factory
-):
-    first = course_factory(title="Перший курс")
-    second = course_factory(title="Другий курс")
-    outside = course_factory(title="Сторонній курс")
-    question = _merge_change(
-        sync_change_factory,
-        catalog_run,
-        "ud-answer-outside",
-        [(first, 1), (second, 2)],
-        ratings=3,
-    )
-
-    response = superuser_client.post(
-        reverse("ukma-data-sync-change-answer", kwargs={"change_id": question.pk}),
-        {"answer": "merge", "into": str(outside.pk)},
-        format="json",
-    )
-
-    assert response.status_code == 400
-    assert "Оберіть курс із запропонованих" in response.json()["fields"]["answer"][0]
-    assert not CatalogMappingDecision.objects.exists()
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
 def test_summary_treats_a_link_course_without_a_majority_share_as_review(
     catalog_run, superuser_client, sync_change_factory, course_factory
 ):
@@ -899,3 +782,210 @@ def test_summary_counts_a_relink_with_plans_as_a_rated_question(
     assert steps["rated_questions"]["count"] == 1
     assert steps["rated_questions"]["plans"] == 1
     assert steps["other_questions"]["count"] == 0
+
+
+@contextmanager
+def _lock_free(_key: int):
+    yield True
+
+
+def _teacher_unit(sync_change_factory, run, offering, email="sync.teacher@example.com"):
+    created = sync_change_factory(
+        run=run,
+        source=SyncSource.TEACHERS,
+        group="new",
+        kind="teacher_created",
+        key=email,
+        after={
+            "email": email,
+            "last_name": "Тестенко",
+            "first_name": "Тест",
+            "middle_name": "",
+        },
+    )
+    added = sync_change_factory(
+        run=run,
+        source=SyncSource.TEACHERS,
+        group="change",
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:{email}",
+        target_id=str(offering.pk),
+        before={"links": []},
+        after={"teacher_email": email, "role": "LECTURE_INSTRUCTOR"},
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    return created, added
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_run_approvals_list_selection_and_moved_rows(
+    superuser_client,
+    catalog_run,
+    sync_change_factory,
+    sync_approval_factory,
+    catalog_mapping_decision_factory,
+    course_factory,
+    course_offering_factory,
+    planned_course_factory,
+    student_factory,
+):
+    from_course = course_factory(title="Тестова дисципліна А")
+    into_course = course_factory(title="Тестова дисципліна Б")
+    source_offering = course_offering_factory(course=from_course)
+    planned_course_factory(offering=source_offering, student=student_factory())
+    approval = sync_approval_factory(
+        run=catalog_run,
+        user=superuser_client.user,
+        outcome=SyncApprovalOutcome.APPLIED,
+        group="mapping",
+        change_ids=[1],
+        counts={"applied": 1},
+    )
+    sync_change_factory(
+        run=catalog_run,
+        group="mapping",
+        kind="merge_courses",
+        key="ud-merge",
+        ukma_data_id="ud-merge",
+        state=SyncChangeState.APPLIED,
+        approval=approval,
+        decided_at=timezone.now(),
+        ratings=5,
+        after={
+            "merge_source": None,
+            "courses": [
+                {"id": str(from_course.pk), "title": from_course.title, "ratings": 5},
+                {"id": str(into_course.pk), "title": into_course.title, "ratings": 0},
+            ],
+        },
+    )
+    catalog_mapping_decision_factory(
+        kind="merge_courses",
+        question_key="ud-merge",
+        answer=MappingAnswer.MERGE,
+        into=into_course,
+        into_ref=str(into_course.pk),
+    )
+
+    response = superuser_client.get(
+        reverse("ukma-data-sync-run-approvals", kwargs={"run_id": catalog_run.pk})
+    )
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["selection"] == "Питання, 1 зміна"
+    assert item["user_email"] == superuser_client.user.email
+    assert item["ratings_moved"] == 5
+    assert item["plans_moved"] == 1
+    assert item["merged"] == [
+        {
+            "from_id": str(from_course.pk),
+            "into_id": str(into_course.pk),
+            "title": from_course.title,
+        }
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_run_export_has_a_bom_and_the_header(
+    superuser_client,
+    catalog_run,
+    sync_change_factory,
+    sync_approval_factory,
+):
+    approval = sync_approval_factory(
+        run=catalog_run,
+        user=superuser_client.user,
+        outcome=SyncApprovalOutcome.APPLIED,
+        group="link",
+        change_ids=[1],
+    )
+    sync_change_factory(
+        run=catalog_run,
+        kind="link_course",
+        key="course-key",
+        target_id="target-1",
+        state=SyncChangeState.APPLIED,
+        approval=approval,
+        decided_at=timezone.now(),
+    )
+
+    response = superuser_client.get(
+        reverse("ukma-data-sync-run-export", kwargs={"run_id": catalog_run.pk})
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "text/csv; charset=utf-8"
+    assert response.content.startswith(b"\xef\xbb\xbf")
+    text = response.content.decode("utf-8-sig")
+    lines = text.splitlines()
+    assert lines[0] == "type,kind,key,target_id,approval_id,user_email,time"
+    assert any(line.startswith(f"approval,link,,,{approval.pk},") for line in lines)
+    assert any(
+        line.startswith(f"change,link_course,course-key,target-1,{approval.pk},") for line in lines
+    )
+    assert superuser_client.user.email in text
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_run_export_opens_a_formula_like_key_as_text(
+    superuser_client, catalog_run, sync_change_factory
+):
+    sync_change_factory(
+        run=catalog_run,
+        kind="link_course",
+        key="=HYPERLINK(1)",
+        state=SyncChangeState.APPLIED,
+        decided_at=timezone.now(),
+    )
+
+    response = superuser_client.get(
+        reverse("ukma-data-sync-run-export", kwargs={"run_id": catalog_run.pk})
+    )
+
+    assert "change,link_course,'=HYPERLINK(1)," in response.content.decode("utf-8-sig")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_run_approvals_and_export_return_404_for_an_unknown_run(superuser_client):
+    assert (
+        superuser_client.get(
+            reverse("ukma-data-sync-run-approvals", kwargs={"run_id": 999_999})
+        ).status_code
+        == 404
+    )
+    assert (
+        superuser_client.get(
+            reverse("ukma-data-sync-run-export", kwargs={"run_id": 999_999})
+        ).status_code
+        == 404
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_history_names_a_real_approval_by_the_group_it_applied(
+    superuser_client,
+    monkeypatch,
+    sync_run_factory,
+    sync_change_factory,
+    course_offering_factory,
+):
+    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
+    teacher_run = sync_run_factory(
+        source=SyncSource.TEACHERS,
+        status=SyncRunStatus.SUCCEEDED,
+        finished_at=timezone.now(),
+    )
+    created, added = _teacher_unit(sync_change_factory, teacher_run, course_offering_factory())
+    decisions.approve([created.pk, added.pk], superuser_client.user, dry_run=False, group="new")
+
+    response = superuser_client.get(
+        reverse("ukma-data-sync-run-approvals", kwargs={"run_id": teacher_run.pk})
+    )
+
+    assert response.json()["items"][0]["selection"] == "Нові записи, 2 зміни"

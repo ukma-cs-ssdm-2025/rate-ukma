@@ -1,28 +1,12 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-
 from django.urls import reverse
 from django.utils import timezone
 
 import pytest
 
-from rating_app.models import SyncChange, SyncChangeState, SyncRunStatus, SyncSource
-from rating_app.sync import apply, handlers
-from rating_app.sync.handlers import Handler
+from rating_app.models import SyncRunStatus, SyncSource
 from rating_app.sync.kinds import KIND_BY_NAME
-
-
-@contextmanager
-def _lock_free(_key: int):
-    yield True
-
-
-@pytest.fixture
-def quiet_apply(monkeypatch):
-    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
-    for kind in ("change_offering", "new_offering"):
-        monkeypatch.setitem(handlers.HANDLERS, kind, Handler(apply=lambda change: None))
 
 
 @pytest.fixture
@@ -117,22 +101,6 @@ def field_changes(offering_change):
         "blank": [offering_change(f"off-blank-{index}", "PRACTICE", "") for index in range(2)],
         "credits": [offering_change("off-credits", "PRACTICE", "PRACTICE", credits="4.0")],
     }
-
-
-def _preview(client, selection):
-    return client.post(
-        reverse("ukma-data-sync-preview"),
-        {"source": "catalog", "selection": selection},
-        format="json",
-    ).json()
-
-
-def _reject(client, selection, token):
-    return client.post(
-        reverse("ukma-data-sync-reject"),
-        {"source": "catalog", "selection": selection, "token": token},
-        format="json",
-    )
 
 
 @pytest.mark.django_db
@@ -234,104 +202,6 @@ def test_pending_returns_400_for_a_year_before_2000(superuser_client):
 
     assert response.status_code == 400
     assert list(response.json()["fields"]) == ["year_from"]
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_preview_leaves_out_the_excluded_rows(superuser_client, quiet_apply, make_change):
-    kept = _new_offering(make_change, "off-kept", 2025, "FALL")
-    skipped = _new_offering(make_change, "off-skipped", 2025, "FALL")
-
-    body = _preview(
-        superuser_client,
-        {"filter": {"group": "new", "kind": "new_offering", "exclude_ids": [skipped.pk]}},
-    )
-
-    assert body["count"] == 1
-    assert kept.pk != skipped.pk
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_reject_by_filter_rejects_the_previewed_blanking_rows(
-    superuser_client, quiet_apply, field_changes
-):
-    selection = {"filter": {"group": "change", "changed_field": "practice_type", "blanks": True}}
-    preview = _preview(superuser_client, selection)
-
-    response = _reject(superuser_client, selection, preview["token"])
-
-    assert response.status_code == 200
-    assert response.json()["counts"]["rejected"] == 2
-    states = dict(
-        SyncChange.objects.filter(
-            pk__in=[change.pk for changes in field_changes.values() for change in changes]
-        ).values_list("key", "state")
-    )
-    assert {key for key, state in states.items() if state == SyncChangeState.REJECTED} == {
-        "off-blank-0",
-        "off-blank-1",
-    }
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_reject_by_filter_with_a_stale_preview_returns_409_and_rejects_nothing(
-    superuser_client, quiet_apply, offering_change, field_changes
-):
-    selection = {"filter": {"group": "change", "changed_field": "practice_type", "blanks": True}}
-    preview = _preview(superuser_client, selection)
-    offering_change("off-blank-late", "PRACTICE", "")
-
-    response = _reject(superuser_client, selection, preview["token"])
-
-    assert response.status_code == 409
-    assert response.json()["code"] == "selection_changed"
-    assert response.json()["detail"] == "Список змінився: було 2, стало 3. Перегляньте ще раз"
-    assert not SyncChange.objects.filter(state=SyncChangeState.REJECTED).exists()
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_reject_by_filter_without_a_token_returns_400(superuser_client, field_changes):
-    response = _reject(superuser_client, {"filter": {"group": "change"}}, None)
-
-    assert response.status_code == 400
-    assert response.json()["fields"]["token"] == ["Спочатку перегляньте вибірку"]
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_reject_by_filter_refuses_a_token_nobody_previewed(
-    superuser_client, catalog_run, field_changes
-):
-    forged = f"{catalog_run.pk}:{'0' * 64}"
-
-    response = _reject(superuser_client, {"filter": {"group": "change"}}, forged)
-
-    assert response.status_code == 400
-    assert response.json()["fields"]["token"] == ["Спочатку перегляньте вибірку"]
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_reject_needs_either_ids_or_a_selection(superuser_client):
-    response = superuser_client.post(reverse("ukma-data-sync-reject"), {}, format="json")
-
-    assert response.status_code == 400
-    assert list(response.json()["fields"]) == ["selection"]
-
-
-@pytest.mark.django_db
-@pytest.mark.integration
-def test_reject_by_filter_returns_403_when_not_superuser(token_client):
-    response = token_client.post(
-        reverse("ukma-data-sync-reject"),
-        {"selection": {"filter": {"group": "change"}}, "token": "1:x"},
-        format="json",
-    )
-
-    assert response.status_code == 403
 
 
 def _place(make_change, key, candidates, *, title, department):

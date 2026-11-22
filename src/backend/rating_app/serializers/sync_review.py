@@ -15,42 +15,10 @@ from rating_app.models.sync import (
     SyncApprovalOutcome,
     SyncApprovalScope,
     SyncChangeGroup,
-    SyncSource,
-)
-from rating_app.serializers.sync import (
-    SyncBulkAnswerResponseSerializer as SyncBulkAnswerResponseSerializer,
 )
 from rating_app.serializers.sync import (
     SyncRunSerializer,
-    SyncSelectionSerializer,
 )
-
-
-class SyncPreviewRequestSerializer(serializers.Serializer):
-    source = serializers.ChoiceField(choices=SyncSource.choices, default=SyncSource.CATALOG)
-    run = serializers.IntegerField(required=False, allow_null=True, min_value=1)
-    selection = SyncSelectionSerializer()
-
-
-class SyncPreviewKindCountsSerializer(serializers.Serializer):
-    apply = serializers.IntegerField()
-    wait = serializers.IntegerField()
-    superseded = serializers.IntegerField()
-
-
-class SyncPreviewResponseSerializer(serializers.Serializer):
-    token = serializers.CharField()
-    count = serializers.IntegerField()
-    counts = serializers.DictField(child=SyncPreviewKindCountsSerializer())
-    superseded_reasons = serializers.DictField(child=serializers.IntegerField())
-    ratings_moved = serializers.IntegerField()
-    plans_moved = serializers.IntegerField()
-    field_counts = serializers.DictField(
-        child=serializers.IntegerField(),
-        help_text="Selected field changes per field: each applies or is rejected whole, "
-        "so every field it sets goes with it",
-    )
-    run_age_hours = serializers.IntegerField(allow_null=True)
 
 
 class SyncSummaryStepSerializer(serializers.Serializer):
@@ -194,19 +162,6 @@ class SyncQuestionListResponseSerializer(serializers.Serializer):
     next_after = serializers.CharField(allow_null=True)
 
 
-class SyncBulkAnswerRequestSerializer(serializers.Serializer):
-    change_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), allow_empty=False, max_length=500
-    )
-    answer = serializers.ChoiceField(choices=MappingAnswer.choices)
-    into = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-
-
-class SyncQuestionBulkAnswerResponseSerializer(serializers.Serializer):
-    answered = serializers.IntegerField()
-    failed = serializers.IntegerField()
-
-
 class SyncMergedCourseSerializer(serializers.Serializer):
     from_id = serializers.CharField()
     into_id = serializers.CharField()
@@ -239,7 +194,3 @@ class SyncApprovalListResponseSerializer(serializers.Serializer):
     total_pages = serializers.IntegerField()
     next_page = serializers.IntegerField(allow_null=True, min_value=1)
     previous_page = serializers.IntegerField(allow_null=True, min_value=1)
-
-
-class SyncActiveApprovalSerializer(serializers.Serializer):
-    item = SyncApprovalDetailSerializer(allow_null=True)
