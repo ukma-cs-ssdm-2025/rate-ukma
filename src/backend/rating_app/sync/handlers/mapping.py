@@ -127,14 +127,19 @@ def apply_merge_courses(change: SyncChange) -> dict[str, object]:
         raise ChangeNotReadyError
 
     plans = 0
+    snapshots: dict[uuid.UUID, dict[str, object]] = {}
     for source_id in sorted(source_ids, key=str):
-        plans += _merge_course(source_id, target_id)
+        moved_plans, snapshots[source_id] = _merge_course(source_id, target_id)
+        plans += moved_plans
     if change.ukma_data_id:
         Course.objects.filter(pk=target_id).update(ukma_data_id=change.ukma_data_id)
     _recompute_aggregates(target_id)
     transaction.on_commit(lambda: _recompute_after_commit(target_id))
     return {
-        "merges": [{"from": str(source_id), "to": str(target_id)} for source_id in source_ids],
+        "merges": [
+            {"from": str(source_id), "to": str(target_id), "snapshot": snapshots[source_id]}
+            for source_id in source_ids
+        ],
         "plans_deduplicated": plans,
     }
 
@@ -154,8 +159,11 @@ def _source_ids(courses: Iterable[object], target_id: uuid.UUID) -> list[uuid.UU
     return ids if found_target else None
 
 
-def _merge_course(source_id: uuid.UUID, target_id: uuid.UUID) -> int:
-    """Move one source course's offerings into the target, then delete it."""
+def _merge_course(source_id: uuid.UUID, target_id: uuid.UUID) -> tuple[int, dict[str, object]]:
+    """Move one source course's offerings into the target, then delete it.
+
+    Returns the plans deduplicated and a snapshot of the deleted course row,
+    kept on the approval so the course can be restored by hand."""
     locked = {
         course.id: course
         for course in Course.objects.select_for_update()
@@ -175,9 +183,18 @@ def _merge_course(source_id: uuid.UUID, target_id: uuid.UUID) -> int:
     if CourseOffering.objects.filter(course_id=source_id).exists():
         raise RuntimeError("merge_source_not_empty")
     _supersede_decisions_naming(source_id)
+    snapshot = _course_snapshot(source_id)
     Course.objects.filter(pk=source_id).delete()
     logger.info("sync_course_merged", source_id=str(source_id), target_id=str(target_id))
-    return plans
+    return plans, snapshot
+
+
+def _course_snapshot(course_id: uuid.UUID) -> dict[str, object]:
+    row = Course.objects.filter(pk=course_id).values().first() or {}
+    return {
+        key: value if value is None or isinstance(value, (bool, int, str)) else str(value)
+        for key, value in row.items()
+    }
 
 
 def _deduplicate_plans(course_id: uuid.UUID) -> int:

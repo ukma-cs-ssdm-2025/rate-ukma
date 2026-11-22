@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { CloudOff, Settings } from "lucide-react";
+import { CloudOff, Settings, ShieldAlert } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import {
@@ -11,6 +11,20 @@ import {
 } from "@/lib/api/generated";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
 import { StaffOnlyState } from "./DataSectionHeader";
+
+const UKMA_DATA_FORBIDDEN = "ukma_data_forbidden";
+
+interface ErrorBody {
+	readonly code?: unknown;
+}
+
+function responseCode(error: unknown): string | undefined {
+	if (!axios.isAxiosError<ErrorBody>(error)) {
+		return undefined;
+	}
+	const code = error.response?.data?.code;
+	return typeof code === "string" ? code : undefined;
+}
 
 export function UkmaDataError({
 	error,
@@ -25,9 +39,11 @@ export function UkmaDataError({
 }>) {
 	const queryClient = useQueryClient();
 	const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+	const ukmaDataForbidden =
+		status === 403 && responseCode(error) === UKMA_DATA_FORBIDDEN;
 
 	useEffect(() => {
-		if (status !== 403) {
+		if (status !== 403 || ukmaDataForbidden) {
 			return;
 		}
 		let active = true;
@@ -49,11 +65,19 @@ export function UkmaDataError({
 		return () => {
 			active = false;
 		};
-	}, [status, queryClient]);
+	}, [status, ukmaDataForbidden, queryClient]);
 
 	switch (status) {
 		case 403:
-			return <StaffOnlyState />;
+			return ukmaDataForbidden ? (
+				<ErrorState
+					icon={ShieldAlert}
+					title="Немає доступу до цих даних UKMA Data"
+					description="Ключ UKMA Data цього сервера не має дозволу на цей розділ. Інші розділи працюють."
+				/>
+			) : (
+				<StaffOnlyState />
+			);
 		case 502:
 			return (
 				<ErrorState

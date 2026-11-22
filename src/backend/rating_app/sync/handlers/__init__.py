@@ -35,6 +35,18 @@ class ChangeStaleError(Exception):
     """The change's premise no longer holds; the apply supersedes it as stale."""
 
 
+class MissingRowError(LookupError):
+    """A batch handler could not find a row one change needs.
+
+    It carries that change so the apply names the change that failed instead of
+    the batch's first row.
+    """
+
+    def __init__(self, change: SyncChange, reason: str) -> None:
+        super().__init__(reason)
+        self.change = change
+
+
 @dataclass(frozen=True)
 class Handler:
     apply: HandlerFunction

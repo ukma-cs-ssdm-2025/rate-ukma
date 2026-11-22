@@ -19,6 +19,7 @@ from rating_app.models import (
 )
 from rating_app.models.choices import CourseTypeKind, ExamType, PracticeType, SemesterTerm
 from rating_app.sync import handlers
+from rating_app.sync.handlers import catalog as catalog_handlers
 from rating_app.sync.kinds import KIND_BY_NAME
 
 
@@ -160,6 +161,29 @@ def test_a_link_batch_is_one_statement_whatever_the_row_count(
         handler("link_faculty").apply_many(changes(many))
 
     assert Faculty.objects.filter(ukma_data_id__isnull=False).count() == 33
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_link_batch_is_chunked_into_bounded_statements(
+    django_assert_num_queries,
+    faculty_factory,
+    monkeypatch,
+):
+    monkeypatch.setattr(catalog_handlers, "_LINK_BATCH_SIZE", 10)
+    rows = faculty_factory.create_batch(21)
+    changes = [
+        change("link_faculty", str(row.pk), {"ukma_data_id": f"ud-{row.pk}"}, target_id=str(row.pk))
+        for row in rows
+    ]
+
+    with django_assert_num_queries(3):
+        handler("link_faculty").apply_many(changes)
+
+    landed = dict(Faculty.objects.values_list("pk", "ukma_data_id"))
+    assert {str(pk): value for pk, value in landed.items()} == {
+        str(row.pk): f"ud-{row.pk}" for row in rows
+    }
 
 
 @pytest.mark.django_db

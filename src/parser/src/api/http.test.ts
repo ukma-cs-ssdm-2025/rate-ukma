@@ -562,7 +562,7 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 		);
 
 		it.effect(
-			"needs review:decide for review cases and audits the row count",
+			"lets review:read or review:decide list cases and audits the row count",
 			() =>
 				Effect.gen(function* () {
 					const sql = yield* SqlClient.SqlClient;
@@ -586,38 +586,40 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 
 					assert.strictEqual(error._tag, "Forbidden");
 
-					const reviewer = yield* clientAs(["review:decide"]);
+					for (const scopes of [["review:read"], ["review:decide"]] as const) {
+						const reader = yield* clientAs(scopes);
 
-					const page = yield* reviewer.client.review.reviewCases({
-						query: FROM_START,
-					});
+						const page = yield* reader.client.review.reviewCases({
+							query: FROM_START,
+						});
 
-					assert.deepStrictEqual(
-						page.items.map(({ kind, candidates, runId }) => ({
-							kind,
-							candidates,
-							runId: runId?.startsWith("run_"),
-						})),
-						[
-							{
-								kind: "removals_held",
-								candidates: { offeringIds: ["off_930001"] },
-								runId: true,
-							},
-						],
-					);
+						assert.deepStrictEqual(
+							page.items.map(({ kind, candidates, runId }) => ({
+								kind,
+								candidates,
+								runId: runId?.startsWith("run_"),
+							})),
+							[
+								{
+									kind: "removals_held",
+									candidates: { offeringIds: ["off_930001"] },
+									runId: true,
+								},
+							],
+						);
 
-					const audit = yield* sql<{
-						readonly route: string;
-						readonly rowCount: number;
-					}>`
-						SELECT route, row_count AS "rowCount" FROM audit_log
-						WHERE key_id = ${reviewer.keyId} AND action = 'request'
-					`;
+						const audit = yield* sql<{
+							readonly route: string;
+							readonly rowCount: number;
+						}>`
+							SELECT route, row_count AS "rowCount" FROM audit_log
+							WHERE key_id = ${reader.keyId} AND action = 'request'
+						`;
 
-					assert.deepStrictEqual(audit, [
-						{ route: "GET /v1/review-cases", rowCount: 1 },
-					]);
+						assert.deepStrictEqual(audit, [
+							{ route: "GET /v1/review-cases", rowCount: 1 },
+						]);
+					}
 				}),
 		);
 
@@ -838,6 +840,23 @@ layer(TestLive, { timeout: 30_000, excludeTestServices: true })(
 					);
 
 					assert.strictEqual(denied._tag, "Forbidden");
+
+					const reader = yield* clientAs(["review:read"]);
+
+					const readDetails = yield* reader.client.review.studentCase({
+						params: { id: "rev_case" },
+					});
+
+					assert.strictEqual(readDetails.status, "open");
+
+					const readerDenied = yield* Effect.flip(
+						reader.client.review.decideCase({
+							params: { id: "rev_case" },
+							payload: { decision: "same_person" },
+						}),
+					);
+
+					assert.strictEqual(readerDenied._tag, "Forbidden");
 
 					const { client, keyId, token } = yield* clientAs(["review:decide"]);
 

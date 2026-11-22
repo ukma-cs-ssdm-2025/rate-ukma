@@ -497,6 +497,12 @@ class CourseDbInjector(IDbInjector):
             self._speciality_cache[speciality_name] = speciality
             return speciality
 
+        if self.enrollments_only:
+            # Enrollments-only writes enrollments and nothing else, as the runbook
+            # promises: an unknown speciality is left for the full import.
+            self._speciality_cache[speciality_name] = None
+            return None
+
         faculty = self.faculty_repository.get_by_speciality_name(speciality_name)
         if not faculty:
             self._speciality_cache[speciality_name] = None

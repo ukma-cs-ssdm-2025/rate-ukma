@@ -574,8 +574,12 @@ def test_a_merge_moves_every_offering_and_deletes_each_source(
     naming_source.refresh_from_db()
     target.refresh_from_db()
     assert change.state == SyncChangeState.APPLIED
-    assert approval.counts["merges"] == [
-        {"from": str(source.pk), "to": str(target.pk)} for source in sources
+    merges = approval.counts["merges"]
+    assert [(merge["from"], merge["to"]) for merge in merges] == [
+        (str(source.pk), str(target.pk)) for source in sources
+    ]
+    assert [(merge["snapshot"]["id"], merge["snapshot"]["title"]) for merge in merges] == [
+        (str(source.pk), source.title) for source in sources
     ]
     assert approval.counts["plans_deduplicated"] == 1
     assert not Course.objects.filter(pk__in=[source.pk for source in sources]).exists()

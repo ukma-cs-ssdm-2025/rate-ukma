@@ -45,11 +45,18 @@ export class Caller extends Context.Service<
 >()("ukma-data/api/Caller") {}
 
 /** The scopes an endpoint behind `ApiKeyAuth` needs, all of them. An endpoint
- *  without this annotation refuses every key. */
+ *  with neither this annotation nor `RequiredAnyScopes` refuses every key. */
 export class RequiredScopes extends Context.Service<
 	RequiredScopes,
 	ReadonlyArray<Scope>
 >()("ukma-data/api/RequiredScopes") {}
+
+/** The scopes an endpoint behind `ApiKeyAuth` needs at least one of, as a
+ *  reader may hold either the read or the decide scope. */
+export class RequiredAnyScopes extends Context.Service<
+	RequiredAnyScopes,
+	ReadonlyArray<Scope>
+>()("ukma-data/api/RequiredAnyScopes") {}
 
 /** `Authorization: Bearer ukd_...`. An unknown, revoked or expired key or a
  *  wrong secret gets 401; a valid key without a required scope gets 403.
@@ -157,18 +164,22 @@ export class ReviewApi extends HttpApiGroup.make("review")
 		HttpApiEndpoint.get("reviewCases", "/review-cases", {
 			query: ReviewCaseQuery,
 			success: ReviewCasePage,
-		}).annotate(
-			OpenApi.Summary,
-			"Review cases with their safe answers, optionally of one status and kind, with how many match",
-		),
+		})
+			.annotate(
+				OpenApi.Summary,
+				"Review cases with their safe answers, optionally of one status and kind, with how many match",
+			)
+			.annotate(RequiredAnyScopes, ["review:read", "review:decide"]),
 		HttpApiEndpoint.get("studentCase", "/review-cases/:id", {
 			params: { id: Schema.String },
 			success: StudentCase,
 			error: [ReviewCaseNotFound, ReviewCaseRefused],
-		}).annotate(
-			OpenApi.Summary,
-			"A `student_match` case with each person's name, programme, study year and status",
-		),
+		})
+			.annotate(
+				OpenApi.Summary,
+				"A `student_match` case with each person's name, programme, study year and status",
+			)
+			.annotate(RequiredAnyScopes, ["review:read", "review:decide"]),
 		HttpApiEndpoint.post("decideCase", "/review-cases/:id/decide", {
 			params: { id: Schema.String },
 			payload: Schema.Struct({
@@ -179,33 +190,38 @@ export class ReviewApi extends HttpApiGroup.make("review")
 			}),
 			success: HttpApiSchema.NoContent,
 			error: [ReviewCaseNotFound, ReviewCaseRefused],
-		}).annotate(
-			OpenApi.Summary,
-			"Close an open `student_match` case: the record is the student it joined",
-		),
+		})
+			.annotate(
+				OpenApi.Summary,
+				"Close an open `student_match` case: the record is the student it joined",
+			)
+			.annotate(RequiredScopes, ["review:decide"]),
 		HttpApiEndpoint.post("mergeCourse", "/courses/:id/merge", {
 			params: { id: Schema.String },
 			payload: Schema.Struct({ into: Schema.String }),
 			success: HttpApiSchema.NoContent,
 			error: [CourseNotFound, CourseDecisionRefused],
-		}).annotate(
-			OpenApi.Summary,
-			"Merge a course into another of its level; the course rule keeps the decision",
-		),
+		})
+			.annotate(
+				OpenApi.Summary,
+				"Merge a course into another of its level; the course rule keeps the decision",
+			)
+			.annotate(RequiredScopes, ["review:decide"]),
 		HttpApiEndpoint.post("unmergeCourse", "/courses/:id/unmerge", {
 			params: { id: Schema.String },
 			success: HttpApiSchema.NoContent,
 			error: [CourseNotFound, CourseDecisionRefused],
-		}).annotate(
-			OpenApi.Summary,
-			"Undo a course's merge; it takes back the offerings of its title, department and level",
-		),
+		})
+			.annotate(
+				OpenApi.Summary,
+				"Undo a course's merge; it takes back the offerings of its title, department and level",
+			)
+			.annotate(RequiredScopes, ["review:decide"]),
 	)
 	.annotate(
 		OpenApi.Description,
-		"Review cases and course decisions: `review:decide`",
+		"Review cases: `review:read` or `review:decide`; decisions: `review:decide`",
 	)
-	.annotateEndpoints(RequiredScopes, ["review:decide"])
 	.middleware(ApiKeyAuth)
 	.prefix("/v1") {}
 

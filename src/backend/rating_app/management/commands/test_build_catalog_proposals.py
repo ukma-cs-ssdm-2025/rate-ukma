@@ -11,6 +11,7 @@ from structlog.testing import capture_logs
 from rating_app.application_schemas import ukma_data_api as ud
 from rating_app.application_schemas.ukma_data_params import UkmaDataKey, UkmaDataStatus
 from rating_app.exception.ukma_data_exceptions import (
+    UkmaDataForbiddenError,
     UkmaDataNotConfiguredError,
     UkmaDataUnavailableError,
 )
@@ -296,6 +297,23 @@ def test_fails_the_run_when_ukma_data_stops_answering():
 
     run = SyncRun.objects.get()
     assert (run.status, run.error) == (SyncRunStatus.FAILED, "ukma_data_unavailable")
+    assert SyncChange.objects.count() == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_fails_the_run_when_ukma_data_refuses_the_key():
+    fake = FakeUkmaData()
+    with (
+        patch(f"{COMMAND}.waffle.switch_is_active", return_value=True),
+        patch(f"{COMMAND}.advisory_lock", lock_free),
+        patch(f"{COMMAND}.UkmaDataService", return_value=fake),
+        patch.object(fake, "list_faculties", side_effect=UkmaDataForbiddenError()),
+    ):
+        call_command("build_catalog_proposals")
+
+    run = SyncRun.objects.get()
+    assert (run.status, run.error) == (SyncRunStatus.FAILED, "ukma_data_forbidden")
     assert SyncChange.objects.count() == 0
 
 
