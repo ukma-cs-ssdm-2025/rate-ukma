@@ -132,6 +132,7 @@ def _course_changes(
 ) -> list[ChangeDraft]:
     ru = index.ru
     ud_offering_of = {ru_id: ud_id for ud_id, ru_id in offering_match.items()}
+    creatable = _creatable_departments(ud, set(match_faculties(ud, ru)), set(departments))
 
     pending: list[tuple[RuCourse, str, dict[str, object]]] = []
     for course_id in sorted(ru.courses):
@@ -143,7 +144,7 @@ def _course_changes(
             continue
 
         after = _course_after(
-            index, ud, course, ud_course, departments, ud_offering_of, academic_year
+            index, ud, course, ud_course, departments, creatable, ud_offering_of, academic_year
         )
         if not after:
             continue
@@ -181,6 +182,25 @@ def _course_changes(
     return drafts
 
 
+def _creatable_departments(
+    ud: UkmaDataSnapshot, matched_faculties: set[str], matched_departments: set[str]
+) -> set[str]:
+    """UKMA Data departments ``links_and_new`` creates: unmatched, a name that
+    fits, under a live faculty that is matched or created in the same run."""
+    creatable = set()
+    for department in ud.departments.values():
+        if department.id in matched_departments or department.removed_at is not None:
+            continue
+        if len(department.name) > MAX_NAME or department.faculty_id is None:
+            continue
+        faculty = ud.faculties.get(department.faculty_id)
+        if faculty is None or faculty.removed_at is not None:
+            continue
+        if faculty.id in matched_faculties or len(faculty.name) <= MAX_NAME:
+            creatable.add(department.id)
+    return creatable
+
+
 def _course_requires(after: dict[str, object]) -> list[dict[str, str]]:
     """A department the course moves to is created in the same run (M10)."""
     department = after.get("department")
@@ -197,6 +217,7 @@ def _course_after(
     course: RuCourse,
     ud_course: ukma_data.Course,
     departments: dict[str, str],
+    creatable: set[str],
     ud_offering_of: dict[str, str],
     academic_year: int,
 ) -> dict[str, object]:
@@ -208,7 +229,9 @@ def _course_after(
         ud_department = ud.departments.get(ud_course.department_id)
         if ud_department is not None and ud_department.removed_at is None:
             department_id = departments.get(ud_department.id)
-            if department_id != course.department_id:
+            if department_id is None and ud_department.id not in creatable:
+                pass  # no builder creates it, so a move there would wait forever
+            elif department_id != course.department_id:
                 after["department"] = {
                     "id": department_id or "",
                     "ukma_data_id": ud_department.id,

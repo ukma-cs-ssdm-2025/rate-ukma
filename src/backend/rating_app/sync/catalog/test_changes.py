@@ -469,6 +469,7 @@ def test_course_moves_to_the_matched_department_of_its_ukma_data_course():
 
 def test_course_moving_to_a_new_department_waits_on_it():
     ud = _ud_snapshot(
+        faculties=[_ud_faculty()],
         departments=[_ud_department(), _ud_department("ud-new", name="Нова кафедра")],
         courses=[_ud_course(department_id="ud-new")],
     )
@@ -480,6 +481,35 @@ def test_course_moving_to_a_new_department_waits_on_it():
         "department": {"id": "", "ukma_data_id": "ud-new", "name": "Нова кафедра"}
     }
     assert draft.requires == [{"kind": "new_department", "key": "ud-new"}]
+
+
+def test_a_course_does_not_move_to_a_department_no_run_creates():
+    ud = _ud_snapshot(
+        departments=[
+            _ud_department(),
+            _ud_department("ud-orphan", name="Кафедра без факультету", faculty_id=None),
+        ],
+        courses=[_ud_course(title="Нова назва", department_id="ud-orphan")],
+    )
+    ru = _ru_snapshot(departments=[_ru_department()], courses=[_ru_course(status="FINISHED")])
+
+    draft = _only(_propose(ud, ru)[0], "change_course")
+
+    assert draft.after == {"title": "Нова назва"}
+    assert draft.requires == []
+
+
+def test_a_course_title_over_the_limit_is_skipped():
+    ud = _ud_snapshot(
+        departments=[_ud_department()],
+        courses=[_ud_course(title="Д" * 256)],
+    )
+    ru = _ru_snapshot(departments=[_ru_department()], courses=[_ru_course(status="FINISHED")])
+
+    drafts, skipped = _propose(ud, ru)
+
+    assert _by_kind(drafts, "change_course") == []
+    assert skipped == {"title_too_long": ["ru-course"]}
 
 
 def test_a_colliding_course_identity_is_skipped_and_listed():
