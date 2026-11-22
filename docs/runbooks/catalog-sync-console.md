@@ -170,16 +170,19 @@ Turning it on for live is the owner's call.
 
 If a written apply turns out wrong, do not edit rows by hand. Stop and tell the owner. The restore from the dump of step 1 is the owner's decision and the owner's to run; you do not run one.
 
-## UKMA Data Cases (parser, coming with PR 2)
+## UKMA Data cases (parser)
 
-Records UKMA Data could not match itself are its review cases. /data shows how many are open. Deciding them moves to the parser's CLI in the next PR, run from the parser shell:
+Review cases are the records UKMA Data could not match on its own. /data shows only how many are open; you decide them from the parser shell. `cases show` and `cases decide` print student names and study details, so run them in an interactive shell, never as a scheduled job whose output a log collector keeps, and never paste their output into an issue or PR.
 
 ```bash
-node main.js ukma-data cases list
-node main.js ukma-data cases show <case-id>
-node main.js ukma-data cases decide <case-id> <answer>
-node main.js ukma-data courses merge <course-id> <course-id>
-node main.js ukma-data courses unmerge <course-id>
+node main.js cases list --status open                      # every open case, one line each
+node main.js cases list --kind student_match --status open
+node main.js cases show <case-id>                          # the case and its candidates
+node main.js cases decide <case-id> same_person            # dry run: what would change
+node main.js cases decide <case-id> same_person --yes      # write, after the owner says ok
+node main.js courses merge <course-id> --into <course-id>  # dry run
+node main.js courses merge <course-id> --into <course-id> --yes
+node main.js courses unmerge <course-id>                   # dry run; add --yes to write
 ```
 
-Same rules: dry run by default, `--yes` to write, then `cases list` to verify. Until that PR lands, these commands do not exist.
+Same rules as above: show the owner the dry run, write only after their ok, then run `cases list --status open` (or `cases show <case-id>`) to check the case is decided. Only `student_match` cases can be decided here; other kinds are listed and refused with `not_student_match`. A refusal prints one line and exits non-zero: stop and tell the owner. The audit log records a command-line decision with no key.
