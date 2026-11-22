@@ -6667,6 +6667,7 @@ components:
         id:
           type: integer
           readOnly: true
+          nullable: true
         action:
           allOf:
           - $ref: '#/components/schemas/ActionEnum'

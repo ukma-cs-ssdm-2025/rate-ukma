@@ -20,7 +20,8 @@ from rating_app.models import (
     SyncSource,
 )
 from rating_app.models.choices import InstructorRole
-from rating_app.sync import apply
+from rating_app.sync import apply, handlers
+from rating_app.sync.handlers import Handler
 
 ROLE = InstructorRole.LECTURE_INSTRUCTOR.value
 EMAIL = "sync.teacher@example.com"
@@ -164,11 +165,71 @@ def test_approve_dry_run_previews_and_changes_nothing(
 
     assert response.status_code == 200
     assert response.json()["counts"]["applied"] == 2
+    assert response.json()["id"] is None
     assert not Instructor.objects.filter(email=EMAIL).exists()
     assert SyncApproval.objects.count() == 0
     for change in (created, added):
         change.refresh_from_db()
         assert change.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_returns_500_and_keeps_changes_proposed_when_a_handler_fails(
+    superuser_client,
+    monkeypatch,
+    sync_run_factory,
+    sync_change_factory,
+    course_offering_factory,
+):
+    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
+
+    def fail(_change):
+        raise RuntimeError("handler broke")
+
+    monkeypatch.setitem(handlers.HANDLERS, "teacher_created", Handler(apply=fail))
+    run = _run(sync_run_factory)
+    offering = course_offering_factory()
+    created, added = _teacher_unit(sync_change_factory, run, offering)
+
+    response = superuser_client.post(
+        reverse_approve(),
+        {"source": "teachers", "group": "change", "change_ids": [added.pk]},
+        format="json",
+    )
+
+    assert response.status_code == 500
+    body = response.json()
+    assert body["status"] == 500
+    assert body["detail"] == "Не вдалося застосувати зміни"
+    for change in (created, added):
+        change.refresh_from_db()
+        assert change.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_rejects_a_selection_from_several_runs_in_ukrainian(
+    superuser_client,
+    monkeypatch,
+    sync_run_factory,
+    sync_change_factory,
+    course_offering_factory,
+):
+    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
+    _, first = _teacher_unit(sync_change_factory, _run(sync_run_factory), course_offering_factory())
+    _, second = _teacher_unit(
+        sync_change_factory, _run(sync_run_factory), course_offering_factory()
+    )
+
+    response = superuser_client.post(
+        reverse_approve(),
+        {"source": "teachers", "group": "change", "change_ids": [first.pk, second.pk]},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["change_ids"] == ["Вибрані зміни належать різним запускам"]
 
 
 @pytest.mark.django_db

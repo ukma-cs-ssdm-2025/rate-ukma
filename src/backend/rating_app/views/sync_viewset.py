@@ -245,7 +245,7 @@ class SyncViewSet(viewsets.ViewSet):
                     ids, request.user, confirm_old_run=bool(data.get("confirm_stale"))
                 )
         except SyncApplyInputError as exc:
-            raise ValidationError({"change_ids": [str(exc)]}) from exc
+            raise ValidationError({"change_ids": [_input_error_text(exc)]}) from exc
 
         logger.info(
             "sync_approve_requested",
@@ -273,7 +273,7 @@ class SyncViewSet(viewsets.ViewSet):
         try:
             approval = apply.reject(ids, request.user)
         except SyncApplyInputError as exc:
-            raise ValidationError({"change_ids": [str(exc)]}) from exc
+            raise ValidationError({"change_ids": [_input_error_text(exc)]}) from exc
 
         logger.info(
             "sync_reject_requested",
@@ -393,7 +393,11 @@ class SyncViewSet(viewsets.ViewSet):
             return self._refusal(approval)
         if approval.outcome == SyncApprovalOutcome.FAILED:
             return Response(
-                {"detail": approval.error or "Не вдалося застосувати зміни"},
+                {
+                    "detail": "Не вдалося застосувати зміни",
+                    "error": approval.error,
+                    "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -403,7 +407,7 @@ class SyncViewSet(viewsets.ViewSet):
             counts["skipped"] = self._skipped_count(approval, counts)
         payload = SyncApprovalSerializer(
             {
-                "id": approval.pk,
+                "id": None if dry_run else approval.pk,
                 "action": approval.action,
                 "outcome": approval.outcome,
                 "counts": counts,
@@ -503,3 +507,14 @@ class SyncViewSet(viewsets.ViewSet):
                 field = str(error["loc"][0]) if error["loc"] else "non_field_errors"
                 field_errors.setdefault(field, []).append(error["msg"])
             raise ValidationError(detail=field_errors) from e
+
+
+_INPUT_ERROR_TEXT = {
+    "no change ids": "Не вибрано жодної зміни",
+    "unknown change ids": "Деяких вибраних змін не існує",
+    "changes from several runs": "Вибрані зміни належать різним запускам",
+}
+
+
+def _input_error_text(exc: SyncApplyInputError) -> str:
+    return _INPUT_ERROR_TEXT.get(str(exc), "Некоректна вибірка змін")

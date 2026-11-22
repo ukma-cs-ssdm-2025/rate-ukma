@@ -111,7 +111,7 @@ class SyncAnswerRequestSerializer(serializers.Serializer):
 
 
 class SyncApprovalSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
+    id = serializers.IntegerField(read_only=True, allow_null=True)
     action = serializers.ChoiceField(choices=SyncApprovalAction.choices, read_only=True)
     outcome = serializers.ChoiceField(choices=SyncApprovalOutcome.choices, read_only=True)
     counts = serializers.JSONField(read_only=True)
