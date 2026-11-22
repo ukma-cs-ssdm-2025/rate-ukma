@@ -275,6 +275,19 @@ describe("sync section", () => {
 		).toBeInTheDocument();
 	});
 
+	it("renders the pending tab while review cases are forbidden", async () => {
+		mockAxios
+			.onGet("/api/v1/ukma-data/review-cases/")
+			.reply(403, { detail: "x", code: "ukma_data_forbidden", status: 403 });
+		mockPending();
+
+		renderPage("?tab=pending");
+
+		expect(
+			await screen.findByRole("list", { name: "Каталог: Нові записи" }),
+		).toBeInTheDocument();
+	});
+
 	it("opens a run from history and shows its changes", async () => {
 		const user = userEvent.setup();
 		mockAxios.onGet(RUNS_URL).reply(200, runs);

@@ -175,6 +175,32 @@ describe("/data/cases", () => {
 		).toBeInTheDocument();
 	});
 
+	it("says the UKMA Data key has no access to cases on ukma_data_forbidden", async () => {
+		mockAxios.onGet(URL).reply(403, {
+			detail: "Ключ UKMA Data цього сервера не має доступу до цього розділу",
+			code: "ukma_data_forbidden",
+			status: 403,
+		});
+
+		renderCases();
+
+		expect(
+			await screen.findByText("Немає доступу до справ"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(/не має дозволу на їх перегляд/),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText("Розділ лише для суперкористувачів"),
+		).not.toBeInTheDocument();
+		expect(notifySessionExpired).not.toHaveBeenCalled();
+		expect(
+			mockAxios.history.get.some((request) =>
+				request.url?.includes("/auth/session"),
+			),
+		).toBe(false);
+	});
+
 	it("shows the superusers-only page on 403 while the session lasts", async () => {
 		const session: Session = {
 			is_authenticated: true,

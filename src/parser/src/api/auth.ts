@@ -3,7 +3,12 @@ import { HttpApiError } from "effect/http-api";
 import { Audit } from "../audit/Audit.ts";
 import { KeyCheck, Keys } from "../keys/Keys.ts";
 import { missingScopes } from "../keys/scopes.ts";
-import { ApiKeyAuth, Caller, RequiredScopes } from "./Api.ts";
+import {
+	ApiKeyAuth,
+	Caller,
+	RequiredAnyScopes,
+	RequiredScopes,
+} from "./Api.ts";
 
 export const ApiKeyAuthLive = Layer.effect(
 	ApiKeyAuth,
@@ -46,17 +51,36 @@ export const ApiKeyAuthLive = Layer.effect(
 					RequiredScopes,
 				);
 
-				if (
-					Option.isNone(required) ||
-					missingScopes(scopes, required.value).length > 0
-				) {
+				const requiredAny = Context.getOption(
+					endpoint.annotations,
+					RequiredAnyScopes,
+				);
+
+				if (Option.isNone(required) && Option.isNone(requiredAny)) {
 					yield* audit.record({
 						action: "request_denied",
 						keyId,
 						route,
-						reason: Option.isNone(required)
-							? "no_required_scopes"
-							: "missing_scope",
+						reason: "no_required_scopes",
+					});
+
+					return yield* new HttpApiError.Forbidden({});
+				}
+
+				const missingAll = Option.isSome(required)
+					? missingScopes(scopes, required.value)
+					: [];
+
+				const missingAny =
+					Option.isSome(requiredAny) &&
+					!requiredAny.value.some((scope) => scopes.includes(scope));
+
+				if (missingAll.length > 0 || missingAny) {
+					yield* audit.record({
+						action: "request_denied",
+						keyId,
+						route,
+						reason: "missing_scope",
 					});
 
 					return yield* new HttpApiError.Forbidden({});

@@ -3055,10 +3055,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                Forbidden:
+                UKMADataKeyRefused:
                   value:
-                    detail: You do not have permission to perform this action
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
                     status: 403
+                  summary: UKMA Data key refused
           description: Forbidden
         '502':
           content:
@@ -3147,10 +3149,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                Forbidden:
+                UKMADataKeyRefused:
                   value:
-                    detail: You do not have permission to perform this action
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
                     status: 403
+                  summary: UKMA Data key refused
           description: Forbidden
         '502':
           content:
@@ -3239,10 +3243,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                Forbidden:
+                UKMADataKeyRefused:
                   value:
-                    detail: You do not have permission to perform this action
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
                     status: 403
+                  summary: UKMA Data key refused
           description: Forbidden
         '502':
           content:
@@ -3331,10 +3337,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                Forbidden:
+                UKMADataKeyRefused:
                   value:
-                    detail: You do not have permission to perform this action
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
                     status: 403
+                  summary: UKMA Data key refused
           description: Forbidden
         '502':
           content:
@@ -3443,10 +3451,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                Forbidden:
+                UKMADataKeyRefused:
                   value:
-                    detail: You do not have permission to perform this action
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
                     status: 403
+                  summary: UKMA Data key refused
           description: Forbidden
         '502':
           content:
@@ -3508,10 +3518,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                Forbidden:
+                UKMADataKeyRefused:
                   value:
-                    detail: You do not have permission to perform this action
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
                     status: 403
+                  summary: UKMA Data key refused
           description: Forbidden
         '502':
           content:
@@ -4092,10 +4104,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
-                Forbidden:
+                UKMADataKeyRefused:
                   value:
-                    detail: You do not have permission to perform this action
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
                     status: 403
+                  summary: UKMA Data key refused
           description: Forbidden
         '502':
           content:
@@ -4953,6 +4967,8 @@ components:
           type: string
         status:
           type: integer
+        code:
+          type: string
         fields:
           type: object
           additionalProperties:
