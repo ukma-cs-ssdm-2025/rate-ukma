@@ -461,7 +461,7 @@ def summary_payload(run: SyncRun) -> dict[str, Any]:
         "groups": _groups(base, mapping_rows, rated_question_ids, change_rows),
         "steps": steps,
         "answers": answer_counts(mapping_rows),
-        "not_proposed": _not_proposed(run),
+        "not_proposed": not_proposed(run),
     }
 
 
@@ -559,7 +559,7 @@ def _facets(
     return {}
 
 
-def _not_proposed(run: SyncRun) -> dict[str, dict[str, int]]:
+def not_proposed(run: SyncRun) -> dict[str, dict[str, int]]:
     skipped = run.counts.get("skipped") if isinstance(run.counts, dict) else None
     rated = run.skipped_rated if isinstance(run.skipped_rated, dict) else {}
     if not isinstance(skipped, dict):
