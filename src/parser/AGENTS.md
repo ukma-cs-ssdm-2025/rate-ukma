@@ -15,6 +15,7 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - `src/students/commands.ts` and `src/courses/commands.ts`: the `cases list|show|decide` and `courses merge|unmerge` commands, on the services the review endpoints use. A write command is a dry run unless `--yes`: `ChangeLog.rehearse` runs the same write and rolls it back, and the command prints what it would change. Its audit row has no key, as for every command-line action.
 - `src/api/Api.ts` is the endpoint definition; `src/api/http.ts` holds the handlers and the server layer; `src/api/auth.ts` checks the key and scopes and writes one audit row per request whose key exists, a refused one with its reason.
 - A permission is a route's `RequiredScopes` (every listed scope) or `RequiredAnyScopes` (any one of them, e.g. `review:read` or `review:decide` to read cases); handlers never branch on the caller's scopes. Data a scope guards gets its own route.
+- `src/cli/output.ts`: shared output helpers for the command-line commands (one-line errors, relative times).
 - `src/lists/`: the read side of every list: wire schemas in camelCase, the `?after=&limit=` page and the SQL that reads it in change-number order.
 - `src/stats/`: the totals behind `/v1/stats`, counts only, never rows.
 - `docs/parser-service/openapi.json` is generated from `Api.ts` by `pnpm openapi`; `src/api/openapi.test.ts` fails when the committed file is stale.
