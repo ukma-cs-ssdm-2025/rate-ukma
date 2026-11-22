@@ -102,7 +102,8 @@ def course_majority(
     ru: RateUkmaSnapshot,
     offering_match: dict[str, str],
 ) -> dict[str, str]:
-    """Rate UKMA course id -> the UKMA Data course holding most of its matches (M2)."""
+    """Rate UKMA course id -> the UKMA Data course holding most of its matches (M2);
+    a tie keeps the stored link, else the smallest id."""
     counts: dict[str, Counter[str]] = defaultdict(Counter)
     for ud_offering_id, ru_offering_id in offering_match.items():
         ud_offering = ud.offerings.get(ud_offering_id)
@@ -114,8 +115,18 @@ def course_majority(
             continue
         counts[ru_offering.course_id][ud_course_id] += 1
 
+    def pick(ru_course_id: str, course_counts: Counter[str]) -> str:
+        # A tie keeps the stored link, so an even split does not ask to relink every night.
+        course = ru.courses.get(ru_course_id)
+        stored = (
+            resolve_course(ud, course.ukma_data_id)
+            if course is not None and course.ukma_data_id is not None
+            else None
+        )
+        return min(course_counts, key=lambda ud_id: (-course_counts[ud_id], ud_id != stored, ud_id))
+
     return {
-        ru_course_id: min(course_counts, key=lambda ud_id: (-course_counts[ud_id], ud_id))
+        ru_course_id: pick(ru_course_id, course_counts)
         for ru_course_id, course_counts in sorted(counts.items())
     }
 
