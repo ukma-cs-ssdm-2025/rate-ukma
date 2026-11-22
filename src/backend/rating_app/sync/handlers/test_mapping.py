@@ -32,6 +32,8 @@ from rating_app.models import (
 )
 from rating_app.sync import apply
 from rating_app.sync.apply import approve
+from rating_app.sync.handlers import ChangeStaleError
+from rating_app.sync.handlers import mapping as mapping_handlers
 from rating_app.sync.kinds import KIND_BY_NAME
 
 
@@ -64,6 +66,7 @@ def make_change(sync_change_factory):
         target_id: str | None = None,
         before: dict[str, Any] | None = None,
         after: dict[str, Any] | None = None,
+        requires: list[dict[str, str]] | None = None,
     ):
         registry_kind = KIND_BY_NAME[kind]
         return sync_change_factory(
@@ -75,6 +78,7 @@ def make_change(sync_change_factory):
             target_id=target_id,
             before=before or {},
             after=after or {},
+            requires=requires or [],
         )
 
     return make
@@ -354,7 +358,7 @@ def test_a_move_whose_target_lost_its_id_is_superseded(
     catalog_mapping_decision_factory,
 ):
     source = course_factory(ukma_data_id="ud-source")
-    target = course_factory(ukma_data_id=None)
+    target = course_factory(ukma_data_id="ud-other")
     offering = course_offering_factory(course=source)
     run = make_run()
     change = make_change(
@@ -393,6 +397,68 @@ def test_a_move_whose_target_lost_its_id_is_superseded(
     assert change.state == SyncChangeState.SUPERSEDED
     assert change.state_reason == SyncChangeStateReason.STALE
     assert offering.course_id == source.pk
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_move_to_a_course_linked_in_the_same_approval_applies(
+    user,
+    make_run,
+    make_change,
+    course_factory,
+    course_offering_factory,
+    catalog_mapping_decision_factory,
+):
+    source = course_factory(ukma_data_id="ud-source")
+    target = course_factory(ukma_data_id=None)
+    offering = course_offering_factory(course=source)
+    run = make_run()
+    link = make_change(
+        run,
+        kind="link_course",
+        key=str(target.pk),
+        target_id=str(target.pk),
+        before={"ukma_data_id": None},
+        after={"ukma_data_id": "ud-target"},
+    )
+    move = make_change(
+        run,
+        kind="move_offering",
+        key=str(offering.pk),
+        target_id=str(offering.pk),
+        before={"from_course": str(source.pk)},
+        after={
+            "from_course": str(source.pk),
+            "ukma_course_id": "ud-target",
+            "to_course_id": str(target.pk),
+        },
+        requires=[{"kind": "link_course", "key": str(target.pk)}],
+    )
+    catalog_mapping_decision_factory(
+        kind="move_offering",
+        question_key=str(offering.pk),
+        ukma_course_id="ud-target",
+        course=source,
+        offering=offering,
+        into=target,
+        answer=MappingAnswer.MOVE,
+        premise={
+            "course_ids": sorted([str(source.pk), str(target.pk)]),
+            "ukma_course_id": "ud-target",
+            "merge_source": None,
+            "saz_code": offering.code,
+            "ratings": 0,
+        },
+    )
+
+    approve([link.pk, move.pk], user)
+
+    link.refresh_from_db()
+    move.refresh_from_db()
+    offering.refresh_from_db()
+    assert link.state == SyncChangeState.APPLIED
+    assert move.state == SyncChangeState.APPLIED
+    assert offering.course_id == target.pk
 
 
 @pytest.mark.django_db
@@ -490,6 +556,35 @@ def test_a_place_with_a_holding_answer_creates_the_offering(
     assert offering.code == "315421"
     assert CourseOfferingTerm.objects.filter(offering=offering).count() == 1
     assert CourseOfferingSpeciality.objects.filter(offering=offering).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_place_whose_saz_code_is_taken_is_superseded(
+    user,
+    make_run,
+    make_change,
+    course_factory,
+    course_offering_factory,
+):
+    chosen = course_factory()
+    other = course_factory()
+    course_offering_factory(code="315421")
+    run = make_run()
+    change = make_change(
+        run,
+        kind="place_offering",
+        key="ud-offering",
+        after=_offering_after(candidates=[chosen, other]),
+        before={},
+    )
+
+    approval = approve([change.pk], user)
+
+    change.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert change.state == SyncChangeState.SUPERSEDED
+    assert change.state_reason == SyncChangeStateReason.EXISTS
 
 
 @pytest.mark.django_db
@@ -731,6 +826,62 @@ def test_a_merge_whose_later_source_is_gone_moves_nothing(
     assert change.state_reason == SyncChangeStateReason.STALE
     assert Course.objects.filter(pk=sources[0].pk).exists()
     assert first_offering.course_id == sources[0].pk
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_merge_that_goes_stale_midway_rolls_back_its_writes(
+    user,
+    make_run,
+    make_change,
+    monkeypatch,
+    course_factory,
+    course_offering_factory,
+    catalog_mapping_decision_factory,
+):
+    target = course_factory(ukma_data_id="ud-course")
+    sources = [course_factory(ukma_data_id="ud-course"), course_factory(ukma_data_id="ud-course")]
+    offerings = [course_offering_factory(course=source) for source in sources]
+    run = make_run()
+    change = make_change(
+        run,
+        kind="merge_courses",
+        key="ud-course",
+        after=_merge_after([target, *sources]),
+        before={},
+    )
+    change.ukma_data_id = "ud-course"
+    change.save(update_fields=["ukma_data_id"])
+    decision = catalog_mapping_decision_factory(
+        kind="merge_courses",
+        question_key="ud-course",
+        ukma_course_id="ud-course",
+        course=None,
+        into=target,
+        answer=MappingAnswer.MERGE,
+        premise=_merge_premise([target, *sources]),
+    )
+    merge_one = mapping_handlers._merge_course
+    calls: list[object] = []
+
+    def merge_then_go_stale(source_id, target_id):
+        calls.append(source_id)
+        if len(calls) > 1:
+            raise ChangeStaleError
+        return merge_one(source_id, target_id)
+
+    monkeypatch.setattr(mapping_handlers, "_merge_course", merge_then_go_stale)
+
+    approve([change.pk], user)
+
+    change.refresh_from_db()
+    decision.refresh_from_db()
+    assert change.state == SyncChangeState.SUPERSEDED
+    assert decision.applied_at is None
+    assert Course.objects.filter(pk__in=[source.pk for source in sources]).count() == 2
+    for offering, source in zip(offerings, sources, strict=True):
+        offering.refresh_from_db()
+        assert offering.course_id == source.pk
 
 
 @pytest.mark.django_db

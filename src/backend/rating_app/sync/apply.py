@@ -804,7 +804,20 @@ def _move_target_lost(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> 
     if snapshot is None:
         return True
     course = snapshot.courses.get(target_id)
-    return course is None or course.ukma_data_id != expected
+    if course is None:
+        return True
+    if course.ukma_data_id is None and _requires_link_course(change, target_id):
+        return False
+    return course.ukma_data_id != expected
+
+
+def _requires_link_course(change: SyncChange, course_id: str) -> bool:
+    """The builder proposes a move to a lone unlinked course together with its
+    ``link_course``; that move waits on the link instead of going stale."""
+    return any(
+        (pair := _requirement_pair(entry)) is not None and pair == ("link_course", course_id)
+        for entry in change.requires
+    )
 
 
 def _teacher_missing_without_creation(change: SyncChange) -> bool:
