@@ -444,6 +444,21 @@ def test_offerings_returns_503_when_not_configured(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_review_cases_returns_403_when_upstream_refuses_the_key(superuser_client, ukma_data):
+    ukma_data.reply("/v1/review-cases", {"_tag": "Forbidden"}, status=403)
+
+    response = superuser_client.get(reverse("ukma-data-review-cases"))
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "Ключ UKMA Data цього сервера не має доступу до цього розділу",
+        "status": 403,
+        "code": "ukma_data_forbidden",
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 @pytest.mark.parametrize("upstream_status", [500, 503, 401])
 def test_offerings_returns_502_when_upstream_fails(
     superuser_client, ukma_data, offerings_url, upstream_status

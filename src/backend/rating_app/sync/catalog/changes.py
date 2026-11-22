@@ -22,7 +22,13 @@ from rating_app.sync.catalog.common import (
 )
 from rating_app.sync.constants import IDENTITY_COLLISION, MAX_NAME, NO_TERM, TITLE_TOO_LONG
 from rating_app.sync.current_values import current_values
-from rating_app.sync.drafts import ChangeDraft, DecisionView
+from rating_app.sync.drafts import (
+    ChangeDraft,
+    DecisionView,
+    Identity,
+    changed_identity,
+    course_identity,
+)
 from rating_app.sync.matching import (
     academic_year_of,
     exam_type_of,
@@ -254,28 +260,12 @@ def _course_after(
     return after
 
 
-Identity = tuple[str, str, str]
-
-
 def _identity(course: RuCourse) -> Identity:
-    return (course.title, course.department_id, course.education_level)
+    return course_identity(course.title, course.department_id, course.education_level)
 
 
 def _new_identity(course: RuCourse, after: dict[str, object]) -> Identity:
-    """The identity after the change; a department the run creates is keyed by
-    its UKMA Data id, so it never equals an existing department's id."""
-    title = after.get("title")
-    department = after.get("department")
-    department_id = course.department_id
-    if isinstance(department, dict):
-        ref = department.get("id") or f"new:{department.get('ukma_data_id')}"
-        department_id = str(ref)
-    level = after.get("education_level")
-    return (
-        title if isinstance(title, str) else course.title,
-        department_id,
-        level if isinstance(level, str) else course.education_level,
-    )
+    return changed_identity(_identity(course), after)
 
 
 def _identity_collides(index: CatalogIndex, course: RuCourse, after: dict[str, object]) -> bool:

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,20 +8,22 @@ import type { UkmaDataStatus } from "@/lib/api/generated";
 import { OverviewPage } from "./OverviewPage";
 
 vi.mock("@tanstack/react-router", async () => ({
-	...(await vi.importActual("@tanstack/react-router")),
 	Link: (await import("@/test-utils/router")).MockLink,
 }));
+
+const STATUS_URL = "/api/v1/ukma-data/status/";
+const CASES_URL = "/api/v1/ukma-data/review-cases/";
 
 const status: UkmaDataStatus = {
 	key_id: "key-test",
 	scopes: ["catalog:read"],
-	key_expires_at: "2031-01-01T00:00:00Z",
-	data_updated_at: "2030-09-01T00:10:00Z",
+	key_expires_at: "2030-01-01T00:00:00Z",
+	data_updated_at: "2030-09-01T00:00:00Z",
 };
 
 let mockAxios: MockAdapter;
 
-function renderPage() {
+function renderOverview() {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
 	});
@@ -34,37 +36,60 @@ function renderPage() {
 
 beforeEach(() => {
 	mockAxios = new MockAdapter(authorizedHttpClient);
-	mockAxios.onGet("/api/v1/ukma-data/status/").reply(200, status);
+	mockAxios.onGet(STATUS_URL).reply(200, status);
 });
 
 afterEach(() => {
 	mockAxios.restore();
 });
 
-describe("UKMA Data overview", () => {
-	it("says the server key cannot read open cases instead of superusers-only", async () => {
-		// Arrange
-		mockAxios.onGet("/api/v1/ukma-data/review-cases/").reply(403, {
-			detail: "UKMA Data refused the key",
-			status: 403,
+describe("/data overview", () => {
+	it("says the key has no access to cases and keeps the other panels", async () => {
+		mockAxios.onGet(CASES_URL).reply(403, {
+			detail: "Ключ UKMA Data цього сервера не має доступу до цього розділу",
 			code: "ukma_data_forbidden",
+			status: 403,
 		});
 
-		// Act
-		renderPage();
+		renderOverview();
 
-		// Assert
-		const title = await screen.findByText(
-			"Немає доступу до цих даних UKMA Data",
-		);
-		const card =
-			title.closest<HTMLElement>("[data-slot='card']") ?? document.body;
-		expect(within(card).getByText("Відкриті справи")).toBeInTheDocument();
 		expect(
-			screen.getByText(
-				"Ключ UKMA Data цього сервера не має доступу до цього розділу. Інші розділи працюють.",
-			),
+			await screen.findByText("Немає доступу до цих даних UKMA Data"),
 		).toBeInTheDocument();
-		expect(screen.queryByText("Розділ лише для суперкористувачів")).toBeNull();
+		expect(
+			screen.getByText(/не має доступу до цього розділу/),
+		).toBeInTheDocument();
+		expect(screen.getByText("Дані САЗ")).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: "Відкрити синхронізацію" }),
+		).toHaveAttribute("href", "/data/sync");
+		expect(
+			screen.queryByText("Розділ лише для суперкористувачів"),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByText("UKMA Data зараз недоступний"),
+		).not.toBeInTheDocument();
+		expect(
+			mockAxios.history.get.some((request) =>
+				request.url?.includes("/auth/session"),
+			),
+		).toBe(false);
+	});
+
+	it("says UKMA Data is unavailable inside the cases panel only on 502", async () => {
+		mockAxios.onGet(CASES_URL).reply(502, {
+			detail: "UKMA Data did not answer in time.",
+			status: 502,
+		});
+
+		renderOverview();
+
+		expect(
+			await screen.findByText("UKMA Data зараз недоступний"),
+		).toBeInTheDocument();
+		expect(screen.getByText("Дані САЗ")).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: "Відкрити синхронізацію" }),
+		).toHaveAttribute("href", "/data/sync");
 	});
 });

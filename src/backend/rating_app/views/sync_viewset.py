@@ -270,6 +270,7 @@ class SyncViewSet(SyncViewSetBase):
                         request.user,
                         confirm_old_run=bool(data.get("confirm_stale")),
                         client_key=None,
+                        **self._requested_scope(data),
                     )
                     transaction.set_rollback(True)
             else:
@@ -278,6 +279,7 @@ class SyncViewSet(SyncViewSetBase):
                     request.user,
                     confirm_old_run=bool(data.get("confirm_stale")),
                     client_key=client_key,
+                    **self._requested_scope(data),
                 )
         except SyncApplyInputError as exc:
             raise ValidationError({"change_ids": [input_error_text(exc)]}) from exc
@@ -403,6 +405,14 @@ class SyncViewSet(SyncViewSetBase):
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 
+    def _requested_scope(self, data: dict[str, Any]) -> dict[str, str]:
+        selection_data = data.get("selection") or {}
+        filters = selection_data.get("filter") or {} if isinstance(selection_data, dict) else {}
+        return {
+            "group": str(filters.get("group") or data.get("group") or ""),
+            "kind": str(filters.get("kind") or data.get("kind") or ""),
+        }
+
     def _resolve_approve_ids(self, data: dict[str, Any], request: Request) -> list[int] | Response:
         selection_data = data.get("selection")
         token = data.get("token") or None
@@ -480,13 +490,6 @@ class SyncViewSet(SyncViewSetBase):
             }
         )
         return Response(payload.data, status=status.HTTP_200_OK)
-
-    def _current_run(self, source: str) -> SyncRun | None:
-        return (
-            SyncRun.objects.filter(source=source, status=SyncRunStatus.SUCCEEDED)
-            .order_by("-finished_at", "-id")
-            .first()
-        )
 
     def _current_runs(self, source: SyncSource | None) -> list[SyncRun]:
         sources = [source] if source is not None else list(SyncSource)

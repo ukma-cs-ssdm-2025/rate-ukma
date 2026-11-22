@@ -450,6 +450,87 @@ def test_keep_apart_unrated_answers_only_the_unrated_questions(
     assert quiet_change.state == SyncChangeState.PROPOSED
 
 
+def _unrated_merge(sync_change_factory, run, key, courses):
+    return _change(
+        sync_change_factory,
+        run,
+        kind="merge_courses",
+        key=key,
+        target_id=None,
+        ukma_data_id=key,
+        after={
+            "merge_source": None,
+            "courses": [{"id": str(course.pk), "ratings": 0} for course in courses],
+        },
+    )
+
+
+def _keep_apart_premise(key, courses):
+    return {
+        "course_ids": sorted(str(course.pk) for course in courses),
+        "ukma_course_id": key,
+        "merge_source": None,
+        "ratings": 0,
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_keep_apart_unrated_reanswers_a_question_whose_live_answer_no_longer_holds(
+    superuser_client,
+    sync_run_factory,
+    sync_change_factory,
+    course_factory,
+    catalog_mapping_decision_factory,
+):
+    run = _run(sync_run_factory, source=SyncSource.CATALOG)
+    first, second, third = course_factory(), course_factory(), course_factory()
+    _unrated_merge(sync_change_factory, run, "ud-grown", [first, second, third])
+    stale = catalog_mapping_decision_factory(
+        kind="merge_courses",
+        question_key="ud-grown",
+        ukma_course_id="ud-grown",
+        answer=MappingAnswer.KEEP_APART,
+        premise=_keep_apart_premise("ud-grown", [first, second]),
+    )
+
+    response = superuser_client.post(reverse_bulk_answer(), format="json")
+
+    assert response.json()["count"] == 1
+    stale.refresh_from_db()
+    assert stale.superseded_at is not None
+    live = CatalogMappingDecision.objects.get(question_key="ud-grown", superseded_at__isnull=True)
+    assert live.premise["course_ids"] == sorted(str(c.pk) for c in [first, second, third])
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_keep_apart_unrated_skips_a_question_whose_live_answer_still_holds(
+    superuser_client,
+    sync_run_factory,
+    sync_change_factory,
+    course_factory,
+    catalog_mapping_decision_factory,
+):
+    run = _run(sync_run_factory, source=SyncSource.CATALOG)
+    courses = [course_factory(), course_factory()]
+    _unrated_merge(sync_change_factory, run, "ud-same", courses)
+    held = catalog_mapping_decision_factory(
+        kind="merge_courses",
+        question_key="ud-same",
+        ukma_course_id="ud-same",
+        answer=MappingAnswer.KEEP_APART,
+        premise=_keep_apart_premise("ud-same", courses),
+    )
+
+    response = superuser_client.post(reverse_bulk_answer(), format="json")
+
+    assert response.json()["count"] == 0
+    held.refresh_from_db()
+    assert held.superseded_at is None
+    assert CatalogMappingDecision.objects.filter(question_key="ud-same").count() == 1
+
+
 def reverse_approve():
     return reverse("ukma-data-sync-approve")
 

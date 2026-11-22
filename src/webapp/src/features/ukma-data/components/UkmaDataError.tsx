@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { CloudOff, KeyRound, Settings } from "lucide-react";
+import { CloudOff, Settings, ShieldAlert } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import {
@@ -10,8 +10,21 @@ import {
 	getAuthSessionRetrieveQueryKey,
 } from "@/lib/api/generated";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
-import { readPath } from "../sync";
 import { StaffOnlyState } from "./DataSectionHeader";
+
+const UKMA_DATA_FORBIDDEN = "ukma_data_forbidden";
+
+interface ErrorBody {
+	readonly code?: unknown;
+}
+
+function responseCode(error: unknown): string | undefined {
+	if (!axios.isAxiosError<ErrorBody>(error)) {
+		return undefined;
+	}
+	const code = error.response?.data?.code;
+	return typeof code === "string" ? code : undefined;
+}
 
 export function UkmaDataError({
 	error,
@@ -26,13 +39,11 @@ export function UkmaDataError({
 }>) {
 	const queryClient = useQueryClient();
 	const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-	const body: unknown = axios.isAxiosError(error)
-		? error.response?.data
-		: undefined;
-	const forbiddenUpstream = readPath(body, "code") === "ukma_data_forbidden";
+	const ukmaDataForbidden =
+		status === 403 && responseCode(error) === UKMA_DATA_FORBIDDEN;
 
 	useEffect(() => {
-		if (status !== 403 || forbiddenUpstream) {
+		if (status !== 403 || ukmaDataForbidden) {
 			return;
 		}
 		let active = true;
@@ -54,21 +65,19 @@ export function UkmaDataError({
 		return () => {
 			active = false;
 		};
-	}, [status, forbiddenUpstream, queryClient]);
-
-	if (forbiddenUpstream) {
-		return (
-			<ErrorState
-				icon={KeyRound}
-				title="Немає доступу до цих даних UKMA Data"
-				description="Ключ UKMA Data цього сервера не має доступу до цього розділу. Інші розділи працюють."
-			/>
-		);
-	}
+	}, [status, ukmaDataForbidden, queryClient]);
 
 	switch (status) {
 		case 403:
-			return <StaffOnlyState />;
+			return ukmaDataForbidden ? (
+				<ErrorState
+					icon={ShieldAlert}
+					title="Немає доступу до цих даних UKMA Data"
+					description="Ключ UKMA Data цього сервера не має доступу до цього розділу. Інші розділи працюють."
+				/>
+			) : (
+				<StaffOnlyState />
+			);
 		case 502:
 			return (
 				<ErrorState

@@ -57,6 +57,33 @@ KINDS: tuple[SyncKind, ...] = (
 
 KIND_BY_NAME: dict[str, SyncKind] = {kind.name: kind for kind in KINDS}
 
+# The UKMA Data lists a kind's changes come from; an apply saves only the
+# cursors of the lists whose kinds it applied (D2).
+KIND_LISTS: dict[str, tuple[str, ...]] = {
+    "new_faculty": ("faculties",),
+    "link_faculty": ("faculties",),
+    "change_faculty": ("faculties",),
+    "new_department": ("departments",),
+    "link_department": ("departments",),
+    "change_department": ("departments",),
+    "new_course": ("courses",),
+    "link_course": ("courses",),
+    "change_course": ("courses",),
+    "new_offering": ("offerings",),
+    "link_offering": ("offerings",),
+    "change_offering": ("offerings",),
+    "teacher_created": (),
+    "teacher_link_added": (),
+    "teacher_link_removed": (),
+    "relink_course": ("courses",),
+    "place_offering": ("offerings",),
+    "move_offering": ("offerings",),
+    "merge_courses": ("courses", "offerings"),
+    # An acknowledgement writes nothing and saves no cursor.
+    "removed_course": (),
+    "removed_offering": (),
+}
+
 NEVER_AUTO_KINDS: tuple[str, ...] = tuple(
     sorted(kind.name for kind in KINDS if kind.group == MAPPING or kind.moves_ratings)
 )
