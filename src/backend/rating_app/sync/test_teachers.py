@@ -19,7 +19,7 @@ from rating_app.models.choices import InstructorRole
 from rating_app.repositories.instructor_repository import current_academic_year_start
 from rating_app.sync import apply
 from rating_app.sync.apply import apply_by_policy, approve
-from rating_app.sync.errors import ShortReadError
+from rating_app.sync.errors import ShortReadError, StalledReadError
 from rating_app.sync.runs import start_run
 from rating_app.sync.teachers import record_teacher_run, short_read_years
 
@@ -84,6 +84,39 @@ class FakeUkmaData:
                 "items": [row.model_dump(by_alias=True) for row in rows],
                 "cursor": rows[-1].change_no if rows else after,
                 "hasMore": False,
+                "dataUpdatedAt": None,
+            }
+        )
+
+
+class PagedUkmaData(FakeUkmaData):
+    """UKMA Data serving one offering per page, `hasMore` until the last one."""
+
+    def list_offering_instructors(self, params, *, year: int) -> ud.OfferingTeachersPage:
+        after = params.after or 0
+        rows = [row for row in self.by_year[year] if row.change_no > after]
+        page = rows[:1]
+        return ud.OfferingTeachersPage.model_validate(
+            {
+                "items": [row.model_dump(by_alias=True) for row in page],
+                "cursor": page[-1].change_no if page else after,
+                "hasMore": bool(page),
+                "dataUpdatedAt": None,
+            }
+        )
+
+
+class StalledUkmaData(FakeUkmaData):
+    """UKMA Data that says there is more but never moves its cursor."""
+
+    def list_offering_instructors(self, params, *, year: int) -> ud.OfferingTeachersPage:
+        after = params.after or 0
+        rows = [row for row in self.by_year[year] if row.change_no > after]
+        return ud.OfferingTeachersPage.model_validate(
+            {
+                "items": [row.model_dump(by_alias=True) for row in rows],
+                "cursor": after,
+                "hasMore": True,
                 "dataUpdatedAt": None,
             }
         )
@@ -274,6 +307,39 @@ def test_fails_a_year_that_wants_too_few_of_its_existing_links(
     assert error.value.years == [YEAR]
 
 
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_multi_page_read_collects_every_offering_and_follows_the_cursor(
+    course_offering_factory,
+):
+    course_offering_factory(code="990001")
+    course_offering_factory(code="990002")
+    fake = PagedUkmaData(
+        current=[
+            offering("990001", [teacher("one@example.invalid")], change_no=1),
+            offering("990002", [teacher("two@example.invalid")], change_no=2),
+        ]
+    )
+
+    run = record(fake)
+
+    assert run.counts["matched"] == 2
+    assert run.cursor_to == {"after": 2}
+    assert run.changes.filter(kind="teacher_link_added").count() == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_read_whose_cursor_does_not_move_fails_the_run(course_offering_factory):
+    course_offering_factory(code="990001")
+    fake = StalledUkmaData(current=[offering("990001", [teacher("stuck@example.invalid")])])
+
+    with pytest.raises(StalledReadError, match="stalled_read"):
+        record(fake)
+
+    assert SyncChange.objects.count() == 0
+
+
 def test_short_read_years_flags_too_few_offerings_against_the_last_matched_count():
     counts = {"years": {str(YEAR): {"listed": 8, "matched": 8, "links": 0, "wanted": 0}}}
     previous = {"years": {str(YEAR): {"matched": 10, "links": 0}}}
@@ -284,6 +350,26 @@ def test_short_read_years_flags_too_few_offerings_against_the_last_matched_count
 def test_short_read_years_flags_too_few_wanted_links_against_the_existing_ones():
     counts = {"years": {str(YEAR): {"listed": 1, "matched": 1, "links": 10, "wanted": 8}}}
     previous = {"years": {str(YEAR): {"matched": 1, "links": 10}}}
+
+    assert short_read_years(counts, previous) == [YEAR]
+
+
+def test_short_read_years_flags_few_wanted_links_without_a_previous_run():
+    counts = {"years": {str(YEAR): {"listed": 900, "matched": 900, "links": 900, "wanted": 0}}}
+
+    assert short_read_years(counts, {}) == [YEAR]
+
+
+def test_short_read_years_flags_few_wanted_links_for_a_year_the_previous_run_lacked():
+    counts = {"years": {str(YEAR): {"listed": 900, "matched": 900, "links": 900, "wanted": 0}}}
+    previous = {"years": {str(YEAR - 1): {"matched": 900, "links": 900}}}
+
+    assert short_read_years(counts, previous) == [YEAR]
+
+
+def test_short_read_years_compares_matched_counts_not_listed_ones():
+    counts = {"years": {str(YEAR): {"listed": 500, "matched": 8, "links": 0, "wanted": 0}}}
+    previous = {"years": {str(YEAR): {"matched": 10, "links": 0}}}
 
     assert short_read_years(counts, previous) == [YEAR]
 

@@ -12,13 +12,9 @@ from rating_app.models.sync import SyncSource
 from rating_app.scheduler.lock import advisory_lock
 from rating_app.services.ukma_data_service import UkmaDataService
 from rating_app.sync.apply import apply_by_policy
-from rating_app.sync.catalog.runner import (
-    CatalogDataChangedError,
-    ShortReadError,
-    StalledReadError,
-    record_catalog_run,
-)
+from rating_app.sync.catalog.runner import CatalogDataChangedError, record_catalog_run
 from rating_app.sync.constants import CATALOG_SYNC_LOCK_KEY, SWITCH_NAME
+from rating_app.sync.errors import ShortReadError, StalledReadError
 from rating_app.sync.runs import fail_run, start_run
 
 logger = structlog.get_logger(__name__)

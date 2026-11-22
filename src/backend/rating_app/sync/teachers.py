@@ -156,8 +156,9 @@ def build_teacher_changes(
                 creations.setdefault(email, _creation(email, teacher))
 
             current = {(link.instructor_id, link.role) for link in offering.instructor_links}
-            tally.links += len(current)
-            tally.wanted += len(wanted.known) + len(wanted.unknown)
+            if row.removed_at is None:
+                tally.links += len(current)
+                tally.wanted += len(wanted.known) + len(wanted.unknown)
             before = _links_before(offering)
             title = titles.get(offering.course_id, "")
 
@@ -236,20 +237,22 @@ def build_teacher_changes(
 def short_read_years(counts: Mapping[str, Any], previous: Mapping[str, Any]) -> list[int]:
     """Years where UKMA Data lists too few offerings, or wants too few links.
 
-    The baseline is the last succeeded teacher run's counts; the first run after
-    a deploy has none, so it is not guarded.
+    The offerings guard compares this run's matched count with the last
+    succeeded teacher run's, so it needs a previous run that has the year; the
+    links guard compares what UKMA Data wants with the links that exist now, so
+    it always runs, including the first run after a deploy.
     """
-    previous_years = previous.get("years")
-    if not isinstance(previous_years, Mapping):
-        return []
     current_years = counts.get("years")
     current_years = current_years if isinstance(current_years, Mapping) else {}
+    previous_years = previous.get("years")
+    previous_years = previous_years if isinstance(previous_years, Mapping) else {}
     short: list[int] = []
     for year, now in current_years.items():
-        before = previous_years.get(year)
-        if not isinstance(before, Mapping) or not isinstance(now, Mapping):
+        if not isinstance(now, Mapping):
             continue
-        if now.get("listed", 0) < before.get("matched", 0) * SHORT_READ_RATIO:
+        before = previous_years.get(year)
+        matched = now.get("matched", 0)
+        if isinstance(before, Mapping) and matched < before.get("matched", 0) * SHORT_READ_RATIO:
             short.append(int(year))
         elif now.get("wanted", 0) < now.get("links", 0) * SHORT_READ_RATIO:
             short.append(int(year))
