@@ -1,7 +1,8 @@
 import type { ComponentType } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import MockAdapter from "axios-mock-adapter";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +10,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authorizedHttpClient } from "@/lib/api/apiClient";
 import { getAuthSessionRetrieveQueryKey } from "@/lib/api/generated";
 import type { Session, UkmaDataReviewCasePage } from "@/lib/api/generated";
+import {
+	casePage,
+	removalCase,
+	studentCase,
+} from "@/features/ukma-data/components/caseTestData";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
 import { Route } from "./data.cases.index";
 
@@ -24,38 +30,11 @@ vi.mock("@/lib/auth/sessionExpiry", () => ({
 const URL = "/api/v1/ukma-data/review-cases/";
 const SESSION_URL = "/api/v1/auth/session/";
 
-const PAGE: UkmaDataReviewCasePage = {
-	items: [
-		{
-			id: "case-1",
-			kind: "course_match",
-			subject_id: "off-test-1",
-			candidates: ["off-test-2"],
-			safe_answer: { course: "new" },
-			status: "open",
-			run_id: "run-7",
-			decision_id: null,
-			opened_at: "2030-09-01T10:00:00Z",
-			change_no: 11,
-		},
-		{
-			id: "case-2",
-			kind: "removals_held",
-			subject_id: "run-6",
-			candidates: [],
-			safe_answer: null,
-			status: "decided",
-			run_id: "run-6",
-			decision_id: "dec-1",
-			opened_at: "2030-08-01T10:00:00Z",
-			change_no: 12,
-		},
-	],
-	cursor: 12,
-	has_more: false,
-	data_updated_at: "2030-09-01T09:00:00Z",
-	total: 2,
-};
+const PAGE: UkmaDataReviewCasePage = casePage([
+	studentCase(1),
+	{ ...studentCase(2), status: "decided", decision_id: "dec-test-1" },
+	removalCase,
+]);
 
 const ReviewCases = (Route as unknown as { component: ComponentType })
 	.component;
@@ -68,7 +47,7 @@ function renderCases(search = "?status=all") {
 	});
 	const { unmount } = render(
 		<QueryClientProvider client={queryClient}>
-			<NuqsTestingAdapter searchParams={search}>
+			<NuqsTestingAdapter searchParams={search} hasMemory>
 				<ReviewCases />
 			</NuqsTestingAdapter>
 		</QueryClientProvider>,
@@ -86,46 +65,102 @@ afterEach(() => {
 });
 
 describe("/data/cases", () => {
-	it("lists the review cases the proxy returns", async () => {
+	it("lists open cases as compact rows named in words", async () => {
 		mockAxios.onGet(URL).reply(200, PAGE);
 
-		renderCases();
+		renderCases("");
 
-		const items = await screen.findAllByRole("listitem");
-		expect(items).toHaveLength(2);
-		expect(items[0]).toHaveTextContent("Збіг курсу");
-		expect(items[0]).toHaveTextContent("Обʼєкт off-test-1");
-		expect(items[0]).toHaveTextContent("Запуск run-7");
-		expect(items[1]).toHaveTextContent("Вирішена");
+		const rows = await screen.findAllByRole("row");
+		expect(rows).toHaveLength(3);
+		expect(rows[1]).toHaveTextContent(
+			"Новий запис студента схожий на наявного",
+		);
+		expect(rows[1]).toHaveTextContent("Збігся з 2 студентами");
+		expect(rows[1]).toHaveTextContent("Чекає рішення");
+		expect(rows[2]).toHaveTextContent(
+			"САЗ більше не показує 3 семестри 2029–2030",
+		);
+		expect(document.body).not.toHaveTextContent("case-st-1");
+		expect(document.body).not.toHaveTextContent("UKMA Data");
+		expect(screen.getByText("Залишилось вирішити")).toHaveTextContent("2");
 		expect(mockAxios.history.get[0].params).toEqual({ limit: 1000 });
 	});
 
-	it("shows a student_match case with its own label", async () => {
-		mockAxios.onGet(URL).reply(200, {
-			...PAGE,
-			items: [{ ...PAGE.items[0], kind: "student_match" }],
-		});
+	it("filters by status and kind segments from the URL", async () => {
+		mockAxios.onGet(URL).reply(200, PAGE);
 
-		renderCases();
+		renderCases("?status=all&kind=student_match");
 
-		expect(await screen.findByRole("listitem")).toHaveTextContent("Студент");
+		const rows = await screen.findAllByRole("row");
+		expect(rows).toHaveLength(3);
+		expect(rows[2]).toHaveTextContent("Вирішено");
+		expect(screen.getByRole("radio", { name: /Студенти/ })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
 	});
 
-	it("asks the proxy for the status and kind in the URL", async () => {
+	it("switches the status segment", async () => {
+		mockAxios.onGet(URL).reply(200, PAGE);
+		renderCases("");
+		await screen.findAllByRole("row");
+
+		await userEvent.click(screen.getByRole("radio", { name: /Вирішені/ }));
+
+		const rows = screen.getAllByRole("row");
+		expect(rows).toHaveLength(2);
+		expect(rows[1]).toHaveTextContent("Вирішено");
+	});
+
+	it("searches by the words of a case", async () => {
+		mockAxios.onGet(URL).reply(200, PAGE);
+		renderCases("");
+		await screen.findAllByRole("row");
+
+		fireEvent.change(screen.getByRole("searchbox"), {
+			target: { value: "семестри" },
+		});
+
+		await waitFor(() => expect(screen.queryAllByRole("row")).toHaveLength(2));
+	});
+
+	it("pages through 20 rows at a time", async () => {
 		mockAxios
 			.onGet(URL)
-			.reply(200, { ...PAGE, items: [PAGE.items[0]], total: 1 });
+			.reply(
+				200,
+				casePage(Array.from({ length: 45 }, (_, index) => studentCase(index))),
+			);
 
-		renderCases("?status=open&kind=course_match");
+		renderCases("?page=3");
 
-		const items = await screen.findAllByRole("listitem");
-		expect(items).toHaveLength(1);
-		expect(items[0]).toHaveTextContent("off-test-1");
-		expect(mockAxios.history.get[0].params).toEqual({
-			limit: 1000,
-			status: "open",
-			kind: "course_match",
-		});
+		expect(await screen.findAllByRole("row")).toHaveLength(6);
+		expect(screen.getByText("41–45 з 45")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "3" })).toHaveAttribute(
+			"aria-current",
+			"page",
+		);
+	});
+
+	it("says when nothing is waiting", async () => {
+		mockAxios.onGet(URL).reply(200, casePage([]));
+
+		renderCases("");
+
+		expect(
+			await screen.findByText(/Справ немає: усе, що прийшло з САЗ/),
+		).toBeInTheDocument();
+	});
+
+	it("explains what a case is", async () => {
+		mockAxios.onGet(URL).reply(200, PAGE);
+
+		renderCases("");
+
+		expect(await screen.findByText("Що це?")).toBeInTheDocument();
+		expect(
+			screen.getByText(/Поки справу не вирішено, діє безпечна відповідь/),
+		).toBeInTheDocument();
 	});
 
 	it("says how many of the matching cases it shows", async () => {
@@ -134,7 +169,7 @@ describe("/data/cases", () => {
 		renderCases();
 
 		expect(
-			await screen.findByText("Показано перші 2 з 1500 справ."),
+			await screen.findByText("Показано перші 3 з 1 500 справ."),
 		).toBeInTheDocument();
 	});
 
@@ -144,7 +179,7 @@ describe("/data/cases", () => {
 		renderCases();
 
 		expect(
-			await screen.findByText("UKMA Data зараз недоступний"),
+			await screen.findByText("Дані САЗ зараз недоступні"),
 		).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: "Спробувати знову" }),
@@ -155,14 +190,14 @@ describe("/data/cases", () => {
 		mockAxios.onGet(URL).replyOnce(200, PAGE).onGet(URL).reply(502);
 
 		const { queryClient } = renderCases();
-		expect(await screen.findAllByRole("listitem")).toHaveLength(2);
+		expect(await screen.findAllByRole("row")).toHaveLength(4);
 
 		await queryClient.refetchQueries();
 
 		expect(
-			await screen.findByText("UKMA Data зараз недоступний"),
+			await screen.findByText("Дані САЗ зараз недоступні"),
 		).toBeInTheDocument();
-		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+		expect(screen.queryAllByRole("row")).toHaveLength(0);
 	});
 
 	it("says UKMA Data is not configured on 503", async () => {
@@ -171,7 +206,7 @@ describe("/data/cases", () => {
 		renderCases();
 
 		expect(
-			await screen.findByText("UKMA Data не налаштовано"),
+			await screen.findByText("Доступ до даних САЗ не налаштовано"),
 		).toBeInTheDocument();
 	});
 
@@ -185,10 +220,10 @@ describe("/data/cases", () => {
 		renderCases();
 
 		expect(
-			await screen.findByText("Немає доступу до цих даних UKMA Data"),
+			await screen.findByText("Немає доступу до цих даних"),
 		).toBeInTheDocument();
 		expect(
-			screen.getByText(/не має доступу до цього розділу/),
+			screen.getByText(/не дає права бачити цей розділ/),
 		).toBeInTheDocument();
 		expect(
 			screen.queryByText("Розділ лише для суперкористувачів"),

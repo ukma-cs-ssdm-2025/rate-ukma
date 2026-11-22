@@ -1,52 +1,93 @@
-import { Card, CardContent } from "@/components/ui/Card";
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
-import { formatDateTime } from "../reviewCases";
+import { cn } from "@/lib/utils";
+import { caseMeanwhile, caseOptions, caseSides } from "../caseScreen";
+import type { CaseSide } from "../caseScreen";
+import { candidateIds, formatDateTime } from "../reviewCases";
+import { DataOutcome } from "./DataBits";
 
-function JsonValue({ value }: Readonly<{ value: unknown }>) {
-	if (value == null) {
-		return <>—</>;
-	}
-	if (typeof value === "string" || typeof value === "number") {
-		return <>{value}</>;
-	}
-	if (
-		Array.isArray(value) &&
-		value.every((item) => typeof item === "string" || typeof item === "number")
-	) {
-		return <>{value.length > 0 ? value.join(", ") : "—"}</>;
-	}
+function SideCard({
+	side,
+	primary,
+}: Readonly<{ side: CaseSide; primary: boolean }>) {
 	return (
-		<pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">
-			{JSON.stringify(value, null, 2)}
-		</pre>
+		<article
+			className={cn(
+				"flex flex-col gap-3 rounded-xl border bg-card p-5",
+				primary && "border-2 border-primary",
+			)}
+		>
+			<p
+				className={cn(
+					"text-xs",
+					primary ? "text-primary" : "text-muted-foreground",
+				)}
+			>
+				{side.label}
+			</p>
+			<h3 className="text-lg font-semibold">{side.title}</h3>
+			<dl className="grid grid-cols-[8rem_1fr] gap-y-1.5 text-sm">
+				{side.rows.map(([term, value]) => (
+					<div key={term} className="contents">
+						<dt className="text-muted-foreground">{term}</dt>
+						<dd className="min-w-0 break-words">{value}</dd>
+					</div>
+				))}
+			</dl>
+		</article>
 	);
 }
 
-export function CaseDetails({
+export function CaseSides({
 	reviewCase,
 }: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
-	const fields = [
+	const [record, matched] = caseSides(reviewCase);
+	return (
+		<div className="grid gap-4 md:grid-cols-2">
+			<SideCard side={record} primary />
+			<SideCard side={matched} primary={false} />
+		</div>
+	);
+}
+
+export function CaseOutcome({
+	reviewCase,
+}: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
+	return (
+		<DataOutcome title="Що означає кожне рішення:">
+			<ul className="mt-1 space-y-1">
+				{caseOptions(reviewCase.kind).map((option) => (
+					<li key={option.name}>
+						<span className="font-medium">{option.name}</span> — {option.effect}
+					</li>
+				))}
+			</ul>
+			<p className="mt-2">{caseMeanwhile(reviewCase)}</p>
+		</DataOutcome>
+	);
+}
+
+export function CaseTechDetails({
+	reviewCase,
+}: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
+	const rows = [
+		["Справа", reviewCase.id],
 		["Обʼєкт", reviewCase.subject_id],
-		["Кандидати", reviewCase.candidates],
-		["Опубліковано", reviewCase.safe_answer],
-		["Запуск", reviewCase.run_id],
+		["Кандидати", candidateIds(reviewCase).join(", ") || "—"],
+		["Запуск", reviewCase.run_id ?? "—"],
+		["Рішення", reviewCase.decision_id ?? "—"],
 		["Відкрито", formatDateTime(reviewCase.opened_at)],
-		["Рішення", reviewCase.decision_id],
 	] as const;
 	return (
-		<Card>
-			<CardContent className="pt-6">
-				<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-					{fields.map(([label, value]) => (
-						<div key={label} className="contents">
-							<dt className="text-muted-foreground">{label}</dt>
-							<dd className="min-w-0 break-words">
-								<JsonValue value={value} />
-							</dd>
-						</div>
-					))}
-				</dl>
-			</CardContent>
-		</Card>
+		<details className="text-sm text-muted-foreground">
+			<summary className="cursor-pointer">Технічні деталі</summary>
+			<dl className="mt-2 grid grid-cols-[6rem_1fr] gap-x-4 gap-y-1">
+				{rows.map(([term, value]) => (
+					<div key={term} className="contents">
+						<dt>{term}</dt>
+						<dd className="min-w-0 font-mono text-xs break-all">{value}</dd>
+					</div>
+				))}
+			</dl>
+		</details>
 	);
 }

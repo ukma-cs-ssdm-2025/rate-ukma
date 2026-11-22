@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { buttonVariants } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { cn } from "@/lib/utils";
+import { STAFF_ONLY } from "../ukmaDataErrors";
 
 const TABS = [
 	{ to: "/data", label: "Огляд", exact: true },
@@ -40,8 +41,8 @@ export function StaffOnlyState() {
 	return (
 		<ErrorState
 			icon={ShieldAlert}
-			title="Розділ лише для суперкористувачів"
-			description="Попросіть адміністратора Rate UKMA, якщо вам потрібен доступ."
+			title={STAFF_ONLY.title}
+			description={STAFF_ONLY.description}
 		/>
 	);
 }

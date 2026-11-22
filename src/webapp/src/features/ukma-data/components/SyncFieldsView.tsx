@@ -13,7 +13,7 @@ import {
 import type { FieldLine } from "../syncFields";
 import { clearRequest, fieldRequest, keepRequest } from "../syncRequests";
 import { SEMESTERS } from "../syncWords";
-import { SyncBack, SyncViewHead } from "./SyncBits";
+import { DataBack, DataViewHead } from "./DataBits";
 
 function PairChips({ row }: Readonly<{ row: SyncFieldRow }>) {
 	return (
@@ -135,11 +135,11 @@ export function SyncFieldsView({
 	const lines = fieldLines(changes.by_field, changes.blanking);
 	return (
 		<div className="space-y-5">
-			<SyncBack onBack={onBack} />
-			<SyncViewHead title="Оновлені дані семестрів">
+			<DataBack onBack={onBack}>Усі групи</DataBack>
+			<DataViewHead title="Оновлені дані семестрів">
 				У САЗ змінились подробиці {countWith(changes.total, SEMESTERS)}.
 				Згруповано за тим, що саме змінилось. Оцінки ці зміни не зачіпають.
-			</SyncViewHead>
+			</DataViewHead>
 			<ul className="divide-y overflow-hidden rounded-xl border bg-card">
 				{lines.map((line) => (
 					<Line

@@ -136,14 +136,21 @@ async function mockUkmaData(page: Page, failure?: 502 | 503) {
 		}
 		const body =
 			path === "review-cases/" ? reviewCasePage(url) : UKMA_DATA[path];
-		await (body
-			? route.fulfill({ json: body })
+		if (body) {
+			await route.fulfill({ json: body });
+			return;
+		}
+		await (path.startsWith("sync/")
+			? route.fulfill({ status: 404, json: { detail: "shots", status: 404 } })
 			: route.abort("connectionrefused"));
 	});
 }
 
-const cases = (page: Page) =>
-	page.getByRole("list", { name: "Справи на розгляд" }).getByRole("listitem");
+const caseRows = (page: Page) =>
+	page
+		.getByRole("table")
+		.getByRole("row")
+		.filter({ has: page.getByRole("link") });
 
 for (const width of [1440, 390]) {
 	test(`a student cannot open /data at ${width}px`, async ({ page }) => {
@@ -168,38 +175,44 @@ for (const width of [1440, 390]) {
 		await shot(page, `flag-off-${width}`);
 	});
 
-	test(`a superuser reads UKMA Data at ${width}px`, async ({ page }) => {
+	test(`a superuser reads САЗ data at ${width}px`, async ({ page }) => {
 		await page.setViewportSize({ width, height: 900 });
 		await mockBackend(page, { session: "superuser" });
 		await mockUkmaData(page);
 
 		await page.goto("/data");
-		await expect(page.getByText("Відкриті справи: 2")).toBeVisible();
-		await expect(page.getByText(/Найстаріша чекає/)).toBeVisible();
+		await expect(
+			page.getByText(/1 справа про дисципліну чекає рішення/),
+		).toBeVisible();
+		await expect(
+			page.getByText(/1 справа про викладача чекає рішення/),
+		).toBeVisible();
 		await shot(page, `overview-${width}`);
 
 		await page.getByRole("link", { name: "Справи", exact: true }).click();
-		await expect(cases(page)).toHaveCount(2);
-		await page.getByRole("combobox", { name: "Стан справи" }).click();
-		await page.getByRole("option", { name: "Усі стани" }).click();
-		await expect(cases(page)).toHaveCount(3);
+		await expect(caseRows(page)).toHaveCount(2);
+		await page.getByRole("radio", { name: /^Усі\s*3/ }).click();
+		await expect(caseRows(page)).toHaveCount(3);
 		await shot(page, `cases-${width}`);
 
-		await cases(page)
-			.filter({ hasText: "off-test-3" })
-			.getByRole("link")
+		await page
+			.getByRole("link", { name: "Викладача з САЗ не вдалося впізнати" })
 			.click();
-		await expect(page.getByText("inst-test-1, inst-test-2")).toBeVisible();
-		await expect(page.getByText("тут лише перегляд")).toBeVisible();
+		await expect(page.getByText("2 схожі викладачі")).toBeVisible();
+		await expect(
+			page.getByText("Рішення ухвалюють у САЗ-даних; тут — перегляд."),
+		).toBeVisible();
 		await shot(page, `case-instructor-${width}`);
 
 		await page.goto("/data/cases/case-test-3");
-		await expect(page.getByText('"threshold": 0.1')).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /САЗ більше не показує 2 семестри/ }),
+		).toBeVisible();
 		await shot(page, `case-removals-${width}`);
 	});
 
 	for (const failure of [502, 503] as const) {
-		test(`UKMA Data ${failure} at ${width}px`, async ({ page }) => {
+		test(`САЗ data ${failure} at ${width}px`, async ({ page }) => {
 			await page.setViewportSize({ width, height: 900 });
 			await mockBackend(page, { session: "superuser" });
 			await mockUkmaData(page, failure);
@@ -207,8 +220,8 @@ for (const width of [1440, 390]) {
 			await expect(
 				page.getByText(
 					failure === 502
-						? "UKMA Data зараз недоступний"
-						: "UKMA Data не налаштовано",
+						? "Дані САЗ зараз недоступні"
+						: "Доступ до даних САЗ не налаштовано",
 				),
 			).toBeVisible();
 			await shot(page, `down-${failure}-${width}`);

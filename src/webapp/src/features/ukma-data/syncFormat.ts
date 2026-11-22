@@ -108,3 +108,14 @@ const DAY_MONTH = new Intl.DateTimeFormat("uk-UA", {
 
 export const formatDayMonthTime = (iso: string): string =>
 	`${DAY_MONTH.format(new Date(iso))}, ${formatTime(iso)}`;
+
+export function freshnessText(
+	updated: string | null | undefined,
+	checked: string | null | undefined,
+): string | null {
+	const parts = [
+		updated ? `Дані САЗ станом на ${formatDayMonthTime(updated)}` : null,
+		checked ? `перевірено о ${formatTime(checked)}` : null,
+	].filter((part) => part !== null);
+	return parts.length > 0 ? parts.join(" · ") : null;
+}

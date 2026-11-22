@@ -2,12 +2,13 @@ import { CheckCircle2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import type { SyncSummary } from "@/lib/api/generated";
-import { cn } from "@/lib/utils";
 import type { DoneBanner } from "../syncConfirm";
-import { formatCount, formatDayMonthTime, formatTime } from "../syncFormat";
+import { formatCount, freshnessText } from "../syncFormat";
 import type { DoneLine, GroupLine, SyncView } from "../syncGroups";
 import { skipReasonLabel } from "../syncReasons";
 import { RECORDS, word } from "../syncWords";
+import { DataLead } from "./DataLead";
+import { DataDoneLine, DataLine, DataLines } from "./DataLines";
 import { SyncChip } from "./SyncBits";
 import { SyncExplainer } from "./SyncExplainer";
 
@@ -51,35 +52,6 @@ export function SyncDoneBanner({
 	);
 }
 
-function Lead({
-	summary,
-	remaining,
-}: Readonly<{ summary: SyncSummary; remaining: number }>) {
-	const { run } = summary;
-	const updated = run.data_updated_at ?? run.finished_at;
-	return (
-		<div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-			<div className="space-y-1">
-				<h2 className="text-2xl font-semibold tracking-tight">
-					Що змінилось у САЗ
-				</h2>
-				<p className="text-sm text-muted-foreground">
-					{updated ? `Дані САЗ станом на ${formatDayMonthTime(updated)}` : null}
-					{run.finished_at
-						? ` · перевірено о ${formatTime(run.finished_at)}`
-						: null}
-				</p>
-			</div>
-			<p className="text-sm text-muted-foreground">
-				Залишилось вирішити{" "}
-				<span className="ml-1 text-2xl font-semibold text-foreground tabular-nums">
-					{formatCount(remaining)}
-				</span>
-			</p>
-		</div>
-	);
-}
-
 function Line({
 	line,
 	primary,
@@ -91,36 +63,33 @@ function Line({
 	onAction: (line: GroupLine) => void;
 	onOpen: (view: SyncView) => void;
 }>) {
+	const { link } = line;
 	return (
-		<li className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-			<div className="min-w-0 max-w-3xl space-y-1.5">
-				<h3 className="text-lg font-semibold">{line.title}</h3>
-				<p className="text-sm text-muted-foreground">{line.effect}</p>
-				<SyncChip chip={line.chip} />
-			</div>
-			<div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-				<Button
-					size="lg"
-					variant={primary ? "default" : "outline"}
-					onClick={() => onAction(line)}
-				>
-					{line.action.label}
-				</Button>
-				{line.link ? (
+		<DataLine
+			title={line.title}
+			effect={line.effect}
+			chip={<SyncChip chip={line.chip} />}
+			action={
+				<>
 					<Button
-						variant="link"
-						className="h-auto p-0"
-						onClick={() => {
-							if (line.link) {
-								onOpen(line.link.view);
-							}
-						}}
+						size="lg"
+						variant={primary ? "default" : "outline"}
+						onClick={() => onAction(line)}
 					>
-						{line.link.label}
+						{line.action.label}
 					</Button>
-				) : null}
-			</div>
-		</li>
+					{link ? (
+						<Button
+							variant="link"
+							className="h-auto p-0"
+							onClick={() => onOpen(link.view)}
+						>
+							{link.label}
+						</Button>
+					) : null}
+				</>
+			}
+		/>
 	);
 }
 
@@ -129,21 +98,19 @@ function Done({
 	onHistory,
 }: Readonly<{ line: DoneLine; onHistory: (runId: number) => void }>) {
 	return (
-		<li className="flex flex-col gap-2 bg-tint-success px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-			<div className="space-y-1">
-				<h3 className="text-lg font-semibold text-tint-success-foreground">
-					{line.title}
-				</h3>
-				<p className="text-sm text-muted-foreground">{line.detail}</p>
-			</div>
-			<Button
-				variant="link"
-				className="h-auto justify-start p-0"
-				onClick={() => onHistory(line.runId)}
-			>
-				Відкрити в історії
-			</Button>
-		</li>
+		<DataDoneLine
+			title={line.title}
+			detail={line.detail}
+			action={
+				<Button
+					variant="link"
+					className="h-auto justify-start p-0"
+					onClick={() => onHistory(line.runId)}
+				>
+					Відкрити в історії
+				</Button>
+			}
+		/>
 	);
 }
 
@@ -194,15 +161,16 @@ export function SyncOverview({
 }>) {
 	return (
 		<div className="space-y-6">
-			<Lead summary={summary} remaining={remaining} />
-			<SyncExplainer />
-			<ul
-				aria-label="Групи змін"
-				className={cn(
-					"divide-y overflow-hidden rounded-xl border bg-card",
-					lines.length + done.length === 0 && "hidden",
+			<DataLead
+				title="Що змінилось у САЗ"
+				subtitle={freshnessText(
+					summary.run.data_updated_at ?? summary.run.finished_at,
+					summary.run.finished_at,
 				)}
-			>
+				remaining={remaining}
+			/>
+			<SyncExplainer />
+			<DataLines label="Групи змін" empty={lines.length + done.length === 0}>
 				{lines.map((line, index) => (
 					<Line
 						key={line.key}
@@ -215,7 +183,7 @@ export function SyncOverview({
 				{done.map((line) => (
 					<Done key={line.key} line={line} onHistory={onHistory} />
 				))}
-			</ul>
+			</DataLines>
 			<NotTaken summary={summary} />
 		</div>
 	);

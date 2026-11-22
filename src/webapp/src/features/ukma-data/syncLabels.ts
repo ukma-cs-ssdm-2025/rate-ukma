@@ -195,9 +195,9 @@ export const FAILED_RUN_REASONS = [
 export type FailedRunReason = (typeof FAILED_RUN_REASONS)[number];
 
 export const FAILED_RUN_LABELS = {
-	short_read: "UKMA Data віддав неповні дані",
-	stalled_read: "UKMA Data перестав відповідати під час читання",
-	forbidden: "Ключ UKMA Data цього сервера не має доступу",
+	short_read: "Сервіс даних САЗ віддав неповні дані",
+	stalled_read: "Сервіс даних САЗ перестав відповідати під час читання",
+	forbidden: "Ключ доступу до даних САЗ не має потрібного права",
 } satisfies Record<FailedRunReason, string>;
 
 export const HOLDERS = ["nightly", "other_user", "self"] as const;
@@ -229,10 +229,10 @@ export const FIELD_LABELS = new Map<string, string>([
 	["terms", "Терміни"],
 	["specialities", "Спеціальності"],
 	["specialities_added", "Додані спеціальності"],
-	["ukma_data_id", "UKMA Data"],
+	["ukma_data_id", "Ідентифікатор у даних САЗ"],
 	["majority_share", "Частка збігу"],
-	["faculty_ukma_id", "Факультет UKMA Data"],
-	["department_ukma_id", "Кафедра UKMA Data"],
+	["faculty_ukma_id", "Факультет (дані САЗ)"],
+	["department_ukma_id", "Кафедра (дані САЗ)"],
 	["department", "Кафедра"],
 	["education_level", "Рівень освіти"],
 	["status", "Стан"],
@@ -245,12 +245,12 @@ export const FIELD_LABELS = new Map<string, string>([
 	["practice_type", "Тип практик"],
 	["candidates", "Кандидати"],
 	["course_id", "Курс"],
-	["course_ukma_id", "Курс UKMA Data"],
+	["course_ukma_id", "Курс (дані САЗ)"],
 	["merge_source", "Джерело обʼєднання"],
 	["courses", "Курси"],
 	["from_course", "З курсу"],
 	["to_course_id", "На курс"],
-	["to_course_ukma_id", "На курс UKMA Data"],
+	["to_course_ukma_id", "На курс (дані САЗ)"],
 	["teacher_email", "Пошта викладача"],
 	["role", "Роль"],
 	["instructor_id", "Викладач"],

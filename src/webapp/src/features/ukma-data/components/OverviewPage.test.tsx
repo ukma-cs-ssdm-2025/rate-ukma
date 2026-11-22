@@ -1,27 +1,29 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
-import type { UkmaDataStatus } from "@/lib/api/generated";
+import {
+	casePage,
+	CASES_URL,
+	forbidden,
+	keyStatus,
+	NOW,
+	removalCase,
+	STATUS_URL,
+	studentCase,
+} from "./caseTestData";
 import { OverviewPage } from "./OverviewPage";
+import { catalogSummary, emptySummary, SYNC_URL } from "./syncTestData";
 
 vi.mock("@tanstack/react-router", async () => ({
 	Link: (await import("@/test-utils/router")).MockLink,
 }));
 
-const STATUS_URL = "/api/v1/ukma-data/status/";
-const CASES_URL = "/api/v1/ukma-data/review-cases/";
+const SUMMARY_URL = `${SYNC_URL}/summary/`;
 
-const status: UkmaDataStatus = {
-	key_id: "key-test",
-	scopes: ["catalog:read"],
-	key_expires_at: "2030-01-01T00:00:00Z",
-	data_updated_at: "2030-09-01T00:00:00Z",
-};
-
-let mockAxios: MockAdapter;
+let mock: MockAdapter;
 
 function renderOverview() {
 	const queryClient = new QueryClient({
@@ -34,62 +36,190 @@ function renderOverview() {
 	);
 }
 
+const lines = async () =>
+	within(await screen.findByRole("list", { name: "Що чекає рішення" }));
+
 beforeEach(() => {
-	mockAxios = new MockAdapter(authorizedHttpClient);
-	mockAxios.onGet(STATUS_URL).reply(200, status);
+	vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+	mock = new MockAdapter(authorizedHttpClient);
+	mock.onGet(STATUS_URL).reply(200, keyStatus);
+	mock.onGet(SUMMARY_URL).reply(200, catalogSummary);
 });
 
 afterEach(() => {
-	mockAxios.restore();
+	mock.restore();
+	vi.useRealTimers();
 });
 
 describe("/data overview", () => {
-	it("says the key has no access to cases and keeps the other panels", async () => {
-		mockAxios.onGet(CASES_URL).reply(403, {
-			detail: "Ключ UKMA Data цього сервера не має доступу до цього розділу",
-			code: "ukma_data_forbidden",
-			status: 403,
-		});
+	it("says what waits, with real counts and one button per line", async () => {
+		// Arrange
+		mock
+			.onGet(CASES_URL)
+			.reply(
+				200,
+				casePage([
+					...Array.from({ length: 9 }, (_, index) => studentCase(index)),
+					removalCase,
+				]),
+			);
 
+		// Act
 		renderOverview();
 
+		// Assert
+		const list = await lines();
 		expect(
-			await screen.findByText("Немає доступу до цих даних UKMA Data"),
-		).toBeInTheDocument();
-		expect(
-			screen.getByText(/не має доступу до цього розділу/),
-		).toBeInTheDocument();
-		expect(screen.getByText("Дані САЗ")).toBeInTheDocument();
-		expect(
-			screen.getByRole("link", { name: "Відкрити синхронізацію" }),
-		).toHaveAttribute("href", "/data/sync");
-		expect(
-			screen.queryByText("Розділ лише для суперкористувачів"),
-		).not.toBeInTheDocument();
-		expect(
-			screen.queryByText("UKMA Data зараз недоступний"),
-		).not.toBeInTheDocument();
-		expect(
-			mockAxios.history.get.some((request) =>
-				request.url?.includes("/auth/session"),
+			await list.findByText(
+				"9 справ про студентів чекають рішення (найстаріша — 8 днів)",
 			),
+		).toBeInTheDocument();
+		expect(
+			list.getByText(
+				"1 справа про зниклі з САЗ семестри чекає рішення (найстаріша — 1 день)",
+			),
+		).toBeInTheDocument();
+		expect(list.getByText(/змін із САЗ чекають рішення$/)).toBeInTheDocument();
+		const buttons = list.getAllByRole("link", { name: "Переглянути" });
+		expect(buttons.map((link) => link.getAttribute("href"))).toEqual([
+			"/data/sync",
+			"/data/cases",
+			"/data/cases",
+		]);
+		expect(
+			mock.history.get.find((call) => call.url === CASES_URL)?.params,
+		).toEqual({
+			limit: 1000,
+			status: "open",
+		});
+	});
+
+	it("shows quiet done lines when nothing waits", async () => {
+		// Arrange
+		mock.onGet(SUMMARY_URL).reply(200, emptySummary);
+		mock.onGet(CASES_URL).reply(200, casePage([]));
+
+		// Act
+		renderOverview();
+
+		// Assert
+		const list = await lines();
+		expect(
+			await list.findByText("Зміни з САЗ: усе вирішено"),
+		).toBeInTheDocument();
+		expect(await list.findByText("Справи: усе вирішено")).toBeInTheDocument();
+		expect(list.queryByRole("link")).not.toBeInTheDocument();
+	});
+
+	it("says cases can't be shown when the key lacks their scope, and keeps the sync line", async () => {
+		// Arrange
+		mock
+			.onGet(STATUS_URL)
+			.reply(200, { ...keyStatus, scopes: ["catalog:read"] });
+		mock.onGet(CASES_URL).reply(403, forbidden);
+
+		// Act
+		renderOverview();
+
+		// Assert
+		const list = await lines();
+		expect(
+			await list.findByText("Справи не можна показати"),
+		).toBeInTheDocument();
+		expect(
+			list.getByText(/не дає права бачити цей розділ/),
+		).toBeInTheDocument();
+		expect(list.getByRole("link", { name: "Переглянути" })).toHaveAttribute(
+			"href",
+			"/data/sync",
+		);
+		expect(
+			screen.getByText(
+				/Ключ не має права review:read, тому справи тут не показано/,
+			),
+		).toBeInTheDocument();
+		expect(screen.queryByText(/суперкористувач/)).not.toBeInTheDocument();
+		expect(
+			mock.history.get.some((call) => call.url?.includes("/auth/session")),
 		).toBe(false);
 	});
 
-	it("says UKMA Data is unavailable inside the cases panel only on 502", async () => {
-		mockAxios.onGet(CASES_URL).reply(502, {
-			detail: "UKMA Data did not answer in time.",
-			status: 502,
-		});
+	it("keeps the key id and scopes in collapsed technical details", async () => {
+		// Arrange
+		mock.onGet(CASES_URL).reply(200, casePage([]));
 
+		// Act
 		renderOverview();
 
+		// Assert
+		const details = (await screen.findByText("Технічні деталі")).closest(
+			"details",
+		);
+		expect(details).not.toHaveAttribute("open");
+		expect(details).toHaveTextContent("key-test-1");
+		expect(details).toHaveTextContent("catalog:read, review:read");
 		expect(
-			await screen.findByText("UKMA Data зараз недоступний"),
+			screen.getByText(/Дані САЗ станом на 10 вересня, 06:55 · перевірено о/),
 		).toBeInTheDocument();
-		expect(screen.getByText("Дані САЗ")).toBeInTheDocument();
+		expect(document.body).not.toHaveTextContent("UKMA Data");
+	});
+
+	it("offers a retry in the line when the data service is down", async () => {
+		// Arrange
+		mock.onGet(CASES_URL).reply(502, { detail: "x", status: 502 });
+
+		// Act
+		renderOverview();
+
+		// Assert
+		const list = await lines();
 		expect(
-			screen.getByRole("link", { name: "Відкрити синхронізацію" }),
-		).toHaveAttribute("href", "/data/sync");
+			await list.findByText("Дані САЗ зараз недоступні"),
+		).toBeInTheDocument();
+		expect(
+			list.getByRole("button", { name: "Спробувати знову" }),
+		).toBeInTheDocument();
+	});
+
+	it("says the comparison has not run yet on 404", async () => {
+		// Arrange
+		mock.onGet(SUMMARY_URL).reply(404, { detail: "x", status: 404 });
+		mock.onGet(CASES_URL).reply(200, casePage([]));
+
+		// Act
+		renderOverview();
+
+		// Assert
+		expect(
+			await (await lines()).findByText("Зміни з САЗ ще не перевіряли"),
+		).toBeInTheDocument();
+	});
+
+	it("shows the error with retry when the status fails", async () => {
+		// Arrange
+		mock.onGet(STATUS_URL).reply(500);
+		mock.onGet(CASES_URL).reply(200, casePage([]));
+
+		// Act
+		renderOverview();
+
+		// Assert
+		expect(
+			await screen.findByText("Не вдалося завантажити огляд"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Спробувати знову" }),
+		).toBeInTheDocument();
+	});
+
+	it("shows a skeleton while loading", () => {
+		// Arrange
+		mock.onGet(STATUS_URL).reply(() => new Promise(() => {}));
+
+		// Act
+		renderOverview();
+
+		// Assert
+		expect(screen.getByLabelText("Завантаження")).toBeInTheDocument();
 	});
 });

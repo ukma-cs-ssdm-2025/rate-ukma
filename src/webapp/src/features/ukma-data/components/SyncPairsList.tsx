@@ -14,17 +14,18 @@ import { viewParams } from "../syncParams";
 import { pairsRequest } from "../syncRequests";
 import { pageSlice } from "../syncRows";
 import { cleanTitle, PAIRS, SEMESTERS } from "../syncWords";
-import { SyncBack, SyncPager, SyncToggle, SyncViewHead } from "./SyncBits";
+import { DataBack, DataPager, DataViewHead } from "./DataBits";
+import { SyncToggle } from "./SyncBits";
 import { LIST_PAGE } from "./SyncChangeList";
 import {
-	SyncSearch,
-	SyncTableEmpty,
-	SyncTableFrame,
-	SyncTableSkeleton,
-	SyncTd,
-	SyncTh,
-	SyncTitleCell,
-} from "./SyncTable";
+	DataSearch,
+	DataTableEmpty,
+	DataTableFrame,
+	DataTableSkeleton,
+	DataTd,
+	DataTh,
+	DataTitleCell,
+} from "./DataTable";
 import { UkmaDataError } from "./UkmaDataError";
 
 const BULK_LIMIT = 500;
@@ -86,8 +87,8 @@ export function SyncPairsList({
 			: `Застосувати ${formatCount(items.length)}`;
 	return (
 		<div className="space-y-5">
-			<SyncBack onBack={onBack} />
-			<SyncViewHead
+			<DataBack onBack={onBack}>Усі групи</DataBack>
+			<DataViewHead
 				title="Пари без оцінок"
 				action={
 					<Button
@@ -104,8 +105,8 @@ export function SyncPairsList({
 				сторінці немає оцінок. Об'єднання тут нічого не переносить зі
 				студентських оцінок — лише прибирає зайву сторінку. Залишиться сторінка
 				з кафедрою, як у САЗ.
-			</SyncViewHead>
-			<SyncSearch
+			</DataViewHead>
+			<DataSearch
 				value={q}
 				placeholder="Пошук за назвою"
 				onChange={(value) => void setParams({ q: value, page: null })}
@@ -116,7 +117,7 @@ export function SyncPairsList({
 					Не вдалося зберегти рішення. Спробуйте ще раз.
 				</p>
 			) : null}
-			{questions.isLoading ? <SyncTableSkeleton /> : null}
+			{questions.isLoading ? <DataTableSkeleton /> : null}
 			{questions.error ? (
 				<UkmaDataError
 					error={questions.error}
@@ -126,16 +127,16 @@ export function SyncPairsList({
 				/>
 			) : null}
 			{questions.data && shown.items.length === 0 ? (
-				<SyncTableEmpty>Нічого не знайдено</SyncTableEmpty>
+				<DataTableEmpty>Нічого не знайдено</DataTableEmpty>
 			) : null}
 			{shown.items.length > 0 ? (
 				<>
-					<SyncTableFrame>
+					<DataTableFrame>
 						<thead>
 							<tr>
-								<SyncTh>Сторінка 1</SyncTh>
-								<SyncTh className="hidden md:table-cell">Сторінка 2</SyncTh>
-								<SyncTh className="w-32 text-right sm:w-52">Рішення</SyncTh>
+								<DataTh>Сторінка 1</DataTh>
+								<DataTh className="hidden md:table-cell">Сторінка 2</DataTh>
+								<DataTh className="w-32 text-right sm:w-52">Рішення</DataTh>
 							</tr>
 						</thead>
 						<tbody className="divide-y">
@@ -155,28 +156,28 @@ export function SyncPairsList({
 								);
 								return (
 									<tr key={question.id}>
-										<SyncTd>
-											<SyncTitleCell
+										<DataTd>
+											<DataTitleCell
 												title={cleanTitle(pair.keep.title)}
 												detail={pageDetail(pair.keep)}
 											/>
 											<p className="mt-2 text-muted-foreground md:hidden">
 												і {pageDetail(other)}
 											</p>
-										</SyncTd>
-										<SyncTd className="hidden md:table-cell">
-											<SyncTitleCell
+										</DataTd>
+										<DataTd className="hidden md:table-cell">
+											<DataTitleCell
 												title={cleanTitle(other.title)}
 												detail={pageDetail(other)}
 											/>
-										</SyncTd>
-										<SyncTd className="text-right">{decision}</SyncTd>
+										</DataTd>
+										<DataTd className="text-right">{decision}</DataTd>
 									</tr>
 								);
 							})}
 						</tbody>
-					</SyncTableFrame>
-					<SyncPager
+					</DataTableFrame>
+					<DataPager
 						summary={`${formatCount(shown.from)}–${formatCount(shown.to)} з ${formatCount(items.length)} · окремо ${formatCount(apart.size)}`}
 						page={shown.page}
 						totalPages={shown.totalPages}

@@ -43,7 +43,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 					{formatDayTime(run.started_at)}
 					{run.data_updated_at === null
 						? ""
-						: ` · дані UKMA Data ${formatHoursAgo(hoursSince(run.data_updated_at))}`}
+						: ` · дані САЗ ${formatHoursAgo(hoursSince(run.data_updated_at))}`}
 				</span>
 			</div>
 			{run.status === "failed" ? (

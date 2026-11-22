@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
-export function SyncSearch({
+export function DataSearch({
 	value,
 	placeholder,
 	onChange,
@@ -33,7 +33,7 @@ export function SyncSearch({
 	);
 }
 
-export function SyncTableFrame({
+export function DataTableFrame({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
 	return (
@@ -43,7 +43,7 @@ export function SyncTableFrame({
 	);
 }
 
-export function SyncTh({
+export function DataTh({
 	children,
 	className,
 }: Readonly<{ children?: React.ReactNode; className?: string }>) {
@@ -60,7 +60,7 @@ export function SyncTh({
 	);
 }
 
-export function SyncTd({
+export function DataTd({
 	children,
 	className,
 }: Readonly<{ children?: React.ReactNode; className?: string }>) {
@@ -71,7 +71,7 @@ export function SyncTd({
 	);
 }
 
-export function SyncTitleCell({
+export function DataTitleCell({
 	title,
 	detail,
 }: Readonly<{ title: string; detail: string }>) {
@@ -83,7 +83,7 @@ export function SyncTitleCell({
 	);
 }
 
-export function SyncTableSkeleton() {
+export function DataTableSkeleton() {
 	return (
 		<div className="space-y-2" aria-busy="true" aria-label="Завантаження">
 			{Array.from({ length: 6 }, (_, index) => (
@@ -93,7 +93,7 @@ export function SyncTableSkeleton() {
 	);
 }
 
-export function SyncTableEmpty({ children }: Readonly<{ children: string }>) {
+export function DataTableEmpty({ children }: Readonly<{ children: string }>) {
 	return (
 		<p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
 			{children}
