@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { CloudOff, Settings } from "lucide-react";
+import { CloudOff, KeyRound, Settings } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import {
@@ -10,6 +10,7 @@ import {
 	getAuthSessionRetrieveQueryKey,
 } from "@/lib/api/generated";
 import { notifySessionExpired } from "@/lib/auth/sessionExpiry";
+import { readPath } from "../sync";
 import { StaffOnlyState } from "./DataSectionHeader";
 
 export function UkmaDataError({
@@ -25,9 +26,13 @@ export function UkmaDataError({
 }>) {
 	const queryClient = useQueryClient();
 	const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+	const body: unknown = axios.isAxiosError(error)
+		? error.response?.data
+		: undefined;
+	const forbiddenUpstream = readPath(body, "code") === "ukma_data_forbidden";
 
 	useEffect(() => {
-		if (status !== 403) {
+		if (status !== 403 || forbiddenUpstream) {
 			return;
 		}
 		let active = true;
@@ -49,7 +54,17 @@ export function UkmaDataError({
 		return () => {
 			active = false;
 		};
-	}, [status, queryClient]);
+	}, [status, forbiddenUpstream, queryClient]);
+
+	if (forbiddenUpstream) {
+		return (
+			<ErrorState
+				icon={KeyRound}
+				title="Немає доступу до цих даних UKMA Data"
+				description="Ключ UKMA Data цього сервера не має доступу до цього розділу. Інші розділи працюють."
+			/>
+		);
+	}
 
 	switch (status) {
 		case 403:
