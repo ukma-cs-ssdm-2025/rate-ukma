@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from rating_app.application_schemas import ukma_data_api as ud
@@ -368,12 +370,12 @@ def _keep_apart(*, answer: str = "keep_apart", into_id: str | None = None) -> De
             "course_ids": ["ru-a", "ru-b"],
             "ukma_course_id": "ud-course",
             "merge_source": None,
-            "ratings": {"ru-a": 0, "ru-b": 0},
+            "ratings": 0,
         },
     )
 
 
-def test_links_matched_rows_and_puts_a_new_offering_on_the_majority_course():
+def test_propose_links_and_new_links_matched_rows_when_they_are_unlinked():
     terms = [_ud_term()]
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
@@ -428,7 +430,7 @@ def test_links_matched_rows_and_puts_a_new_offering_on_the_majority_course():
     assert links[0].after == {"ukma_data_id": "ud-1"}
 
 
-def test_a_course_links_to_the_ukma_data_course_with_most_matches():
+def test_propose_links_and_new_links_a_course_to_the_majority_ukma_data_course():
     terms = [_ud_term()]
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
@@ -458,7 +460,7 @@ def test_a_course_links_to_the_ukma_data_course_with_most_matches():
     assert [_one(drafts, "link_course").after] == [{"ukma_data_id": "ud-a"}]
 
 
-def test_new_rows_require_the_parent_created_in_the_same_run():
+def test_propose_links_and_new_requires_parents_when_they_are_new_in_the_same_run():
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
         departments=[_ud_department()],
@@ -484,7 +486,7 @@ def test_new_rows_require_the_parent_created_in_the_same_run():
     assert offering.after.get("course_id") is None
 
 
-def test_a_new_course_links_to_an_existing_course_with_the_same_identity():
+def test_propose_links_and_new_links_a_new_course_when_an_identity_exists():
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
         departments=[_ud_department()],
@@ -504,7 +506,7 @@ def test_a_new_course_links_to_an_existing_course_with_the_same_identity():
     assert offering.ratings == 3
 
 
-def test_an_identity_held_by_another_course_is_a_skip():
+def test_propose_links_and_new_skips_a_course_when_its_identity_belongs_to_another_course():
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
         departments=[_ud_department()],
@@ -524,7 +526,7 @@ def test_an_identity_held_by_another_course_is_a_skip():
     ("academic_year", "status"),
     [(2025, "ACTIVE"), (2026, "FINISHED")],
 )
-def test_a_new_course_derives_status_and_description_from_its_latest_offering(
+def test_propose_links_and_new_derives_status_and_description_when_creating_a_course(
     academic_year, status
 ):
     terms = [_ud_term(2023), _ud_term(2025)]
@@ -561,7 +563,7 @@ def test_a_new_course_derives_status_and_description_from_its_latest_offering(
     assert course.after["description"] == "Новий опис"
 
 
-def test_skips_rows_rate_ukma_cannot_store():
+def test_propose_links_and_new_skips_rows_when_rate_ukma_cannot_store_them():
     terms = [_ud_term()]
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
@@ -595,7 +597,7 @@ def test_skips_rows_rate_ukma_cannot_store():
     }
 
 
-def test_skips_a_name_over_the_model_limit_and_its_offerings():
+def test_propose_links_and_new_skips_names_when_they_exceed_the_model_limit():
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty(name=LONG_NAME)],
         departments=[_ud_department(name=LONG_NAME)],
@@ -613,7 +615,7 @@ def test_skips_a_name_over_the_model_limit_and_its_offerings():
     }
 
 
-def test_terms_are_sorted_and_the_semester_is_the_last_one():
+def test_propose_links_and_new_sorts_terms_when_mapping_an_offering():
     terms = [_ud_term(2025, "FALL"), _ud_term(2025, "SPRING")]
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
@@ -663,7 +665,7 @@ def test_terms_are_sorted_and_the_semester_is_the_last_one():
     ]
 
 
-def test_several_courses_for_one_ukma_data_course_ask_where_an_offering_goes():
+def test_propose_links_and_new_asks_where_an_offering_goes_when_several_courses_share_it():
     snapshot, ru = _shared_course()
 
     drafts, _ = propose_links_and_new(snapshot, ru, [], academic_year=2025)
@@ -671,11 +673,12 @@ def test_several_courses_for_one_ukma_data_course_ask_where_an_offering_goes():
     assert _of_kind(drafts, "link_course") == []
     question = _one(drafts, "place_offering")
     assert question.key == "ud-new"
+    assert question.ukma_data_id == "ud-course"
     assert question.after["candidates"] == ["ru-a", "ru-b"]
     assert question.display["courses"][0]["title"] == "Курс А"
 
 
-def test_keep_apart_places_an_offering_on_the_one_department_course():
+def test_propose_links_and_new_places_an_offering_on_the_department_course_when_kept_apart():
     snapshot, ru = _shared_course()
 
     drafts, _ = propose_links_and_new(snapshot, ru, [_keep_apart()], academic_year=2025)
@@ -684,7 +687,7 @@ def test_keep_apart_places_an_offering_on_the_one_department_course():
     assert _one(drafts, "new_offering").after["course_id"] == "ru-a"
 
 
-def test_keep_apart_asks_when_the_department_does_not_pick_one_course():
+def test_propose_links_and_new_asks_where_an_offering_goes_when_kept_apart_is_ambiguous():
     snapshot, ru = _shared_course(offering_department="ud-dept-c")
 
     drafts, _ = propose_links_and_new(snapshot, ru, [_keep_apart()], academic_year=2025)
@@ -692,7 +695,7 @@ def test_keep_apart_asks_when_the_department_does_not_pick_one_course():
     assert _one(drafts, "place_offering").after["candidates"] == ["ru-a", "ru-b"]
 
 
-def test_keep_apart_can_merge_the_offering_into_the_chosen_course():
+def test_propose_links_and_new_places_an_offering_on_the_merge_target_when_kept_apart():
     snapshot, ru = _shared_course()
 
     drafts, _ = propose_links_and_new(
@@ -702,7 +705,7 @@ def test_keep_apart_can_merge_the_offering_into_the_chosen_course():
     assert _one(drafts, "new_offering").after["course_id"] == "ru-b"
 
 
-def test_a_live_place_decision_answers_the_question():
+def test_propose_links_and_new_answers_a_place_question_when_a_live_decision_matches():
     snapshot, ru = _shared_course()
     decision = DecisionView(
         kind="place_offering",
@@ -727,7 +730,7 @@ def test_a_live_place_decision_answers_the_question():
     assert _one(drafts, "new_offering").after["course_id"] == "ru-b"
 
 
-def test_a_place_decision_whose_premise_changed_is_ignored_and_asked_again():
+def test_propose_links_and_new_asks_again_when_a_place_premise_changed():
     snapshot, ru = _shared_course()
     decision = DecisionView(
         kind="place_offering",
@@ -738,7 +741,12 @@ def test_a_place_decision_whose_premise_changed_is_ignored_and_asked_again():
         offering_id=None,
         answer="place",
         into_id="ru-b",
-        premise={"course_ids": ["ru-a"], "ukma_course_id": "ud-course"},
+        premise={
+            "course_ids": ["ru-a"],
+            "ukma_course_id": "ud-course",
+            "merge_source": None,
+            "ratings": 0,
+        },
     )
 
     drafts, _ = propose_links_and_new(snapshot, ru, [decision], academic_year=2025)
@@ -747,7 +755,88 @@ def test_a_place_decision_whose_premise_changed_is_ignored_and_asked_again():
     assert _one(drafts, "place_offering").after["candidates"] == ["ru-a", "ru-b"]
 
 
-def test_removed_rows_are_ignored_and_a_merged_course_stays_ignored():
+def test_propose_links_and_new_asks_again_when_a_place_premise_is_missing():
+    snapshot, ru = _shared_course()
+    decision = DecisionView(
+        kind="place_offering",
+        question_key="ud-new",
+        ukma_course_id="ud-course",
+        saz_code="100003",
+        course_id=None,
+        offering_id=None,
+        answer="place",
+        into_id="ru-b",
+        premise={},
+    )
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [decision], academic_year=2025)
+
+    assert _of_kind(drafts, "new_offering") == []
+    assert _one(drafts, "place_offering").after["candidates"] == ["ru-a", "ru-b"]
+
+
+def test_propose_links_and_new_answers_a_place_question_when_the_decision_column_is_empty():
+    snapshot, ru = _shared_course()
+    decision = DecisionView(
+        kind="place_offering",
+        question_key="ud-new",
+        ukma_course_id="",
+        saz_code="100003",
+        course_id=None,
+        offering_id=None,
+        answer="place",
+        into_id="ru-b",
+        premise={
+            "course_ids": ["ru-a", "ru-b"],
+            "ukma_course_id": "ud-course",
+            "merge_source": None,
+            "ratings": 0,
+        },
+    )
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [decision], academic_year=2025)
+
+    assert _of_kind(drafts, "place_offering") == []
+    assert _one(drafts, "new_offering").after["course_id"] == "ru-b"
+
+
+def test_propose_links_and_new_asks_again_when_a_merge_premise_changed():
+    snapshot, ru = _shared_course()
+    keep_apart = _keep_apart()
+    decision = replace(keep_apart, premise={**keep_apart.premise, "ratings": 5})
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [decision], academic_year=2025)
+
+    assert _of_kind(drafts, "new_offering") == []
+    assert _one(drafts, "place_offering").after["candidates"] == ["ru-a", "ru-b"]
+
+
+def test_propose_links_and_new_ignores_a_place_decision_when_the_question_key_differs():
+    snapshot, ru = _shared_course()
+    decision = DecisionView(
+        kind="place_offering",
+        question_key="ud-other",
+        ukma_course_id="ud-course",
+        saz_code="100003",
+        course_id=None,
+        offering_id=None,
+        answer="place",
+        into_id="ru-b",
+        premise={
+            "course_ids": ["ru-a", "ru-b"],
+            "ukma_course_id": "ud-course",
+            "merge_source": None,
+            "ratings": 0,
+        },
+    )
+
+    drafts, _ = propose_links_and_new(snapshot, ru, [decision], academic_year=2025)
+
+    assert _of_kind(drafts, "new_offering") == []
+    assert _one(drafts, "place_offering").after["candidates"] == ["ru-a", "ru-b"]
+
+
+def test_propose_links_and_new_ignores_removed_rows():
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty(removed_at="2026-01-01")],
         departments=[_ud_department(removed_at="2026-01-01")],
@@ -762,7 +851,7 @@ def test_removed_rows_are_ignored_and_a_merged_course_stays_ignored():
     assert skipped == {}
 
 
-def test_a_merged_ukma_data_course_uses_the_surviving_course():
+def test_propose_links_and_new_uses_the_surviving_course_when_ukma_data_merged_it():
     snapshot = _ud_snapshot(
         faculties=[_ud_faculty()],
         departments=[_ud_department()],
@@ -780,25 +869,67 @@ def test_a_merged_ukma_data_course_uses_the_surviving_course():
     assert _one(drafts, "new_offering").after["course_ukma_id"] == "ud-kept"
 
 
-def test_drafts_are_sorted_and_every_after_validates_against_its_payload():
+def test_propose_links_and_new_sorts_drafts_and_validates_payloads():
     snapshot = _ud_snapshot(
-        faculties=[_ud_faculty()],
-        departments=[_ud_department()],
+        faculties=[
+            _ud_faculty("ud-a-fac", name="Факультет А"),
+            _ud_faculty("ud-b-fac", name="Новий факультет"),
+        ],
+        departments=[
+            _ud_department("ud-a-dept", name="Кафедра А", faculty_id="ud-a-fac"),
+            _ud_department("ud-b-dept", name="Нова кафедра", faculty_id="ud-b-fac"),
+        ],
         terms=[_ud_term()],
-        courses=[_ud_course()],
+        courses=[
+            _ud_course("ud-a-course", title="Курс А", department_id="ud-a-dept"),
+            _ud_course("ud-b-course", title="Новий курс", department_id="ud-b-dept"),
+            _ud_course("ud-c-course", title="Спільний курс", department_id="ud-a-dept"),
+        ],
         offerings=[
-            _ud_offering("ud-a", saz_code="111111"),
-            _ud_offering("ud-b", saz_code="222222"),
-            _ud_offering("ud-c", saz_code="333333"),
+            _ud_offering("ud-a-1", course_id="ud-a-course", saz_code="111111"),
+            _ud_offering("ud-a-2", course_id="ud-a-course", saz_code="222222"),
+            _ud_offering("ud-a-3", course_id="ud-a-course", saz_code="333333"),
+            _ud_offering("ud-b-1", course_id="ud-b-course", saz_code="444444"),
+            _ud_offering("ud-c-1", course_id="ud-c-course", saz_code="555555"),
         ],
     )
-    ru = _linked_base(
-        courses=[_ru_course(ratings=1)],
-        offerings=[_ru_offering("ru-off", code="111111")],
+    ru = _ru_snapshot(
+        faculties=[_ru_faculty("ru-a-fac", name="Факультет А")],
+        departments=[_ru_department("ru-a-dept", name="Кафедра А", faculty_id="ru-a-fac")],
+        courses=[
+            _ru_course("ru-a-course", title="Курс А", department_id="ru-a-dept"),
+            _ru_course(
+                "ru-c-1",
+                title="Старий курс 1",
+                department_id="ru-a-dept",
+                ukma_data_id="ud-c-course",
+            ),
+            _ru_course(
+                "ru-c-2",
+                title="Старий курс 2",
+                department_id="ru-a-dept",
+                ukma_data_id="ud-c-course",
+            ),
+        ],
+        offerings=[
+            _ru_offering("ru-a-1", code="111111", course_id="ru-a-course"),
+            _ru_offering("ru-a-2", code="222222", course_id="ru-a-course"),
+        ],
     )
 
     drafts, _ = propose_links_and_new(snapshot, ru, [], academic_year=2025)
 
+    assert {draft.kind for draft in drafts} == {
+        "link_faculty",
+        "link_department",
+        "link_course",
+        "link_offering",
+        "new_faculty",
+        "new_department",
+        "new_course",
+        "new_offering",
+        "place_offering",
+    }
     assert drafts == sorted(drafts, key=lambda draft: (KIND_BY_NAME[draft.kind].order, draft.key))
     for draft in drafts:
         PAYLOADS[draft.kind].model_validate({**draft.after, "display": draft.display})

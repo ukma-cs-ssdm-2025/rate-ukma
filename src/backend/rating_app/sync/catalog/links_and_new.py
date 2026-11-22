@@ -394,7 +394,6 @@ class _Builder:
         decision = self._question("place_offering", offering.id, "place")
         if (
             decision is not None
-            and decision.ukma_course_id == course.id
             and decision.into_id in candidates
             and self._premise_holds(decision, course, candidates)
         ):
@@ -422,11 +421,7 @@ class _Builder:
 
     def _merge_decision(self, course: ukma.Course, candidates: list[str]) -> DecisionView | None:
         decision = self._question("merge_courses", course.id)
-        if (
-            decision is None
-            or decision.ukma_course_id != course.id
-            or not self._premise_holds(decision, course, candidates)
-        ):
+        if decision is None or not self._premise_holds(decision, course, candidates):
             return None
         return decision
 
@@ -464,7 +459,7 @@ class _Builder:
         self._add(
             "place_offering",
             key=offering.id,
-            ukma_data_id=offering.id,
+            ukma_data_id=course.id,
             after=after,
             display=Display(
                 courses=[self._course_card(course_id) for course_id in candidates],
@@ -545,24 +540,26 @@ class _Builder:
     ) -> bool:
         premise = decision.premise
         course_ids = premise.get("course_ids")
-        if isinstance(course_ids, list):
-            if sorted(str(value) for value in course_ids) != candidates:
-                return False
-        ukma_course_id = premise.get("ukma_course_id")
-        if ukma_course_id is not None and str(ukma_course_id) != course.id:
+        if not isinstance(course_ids, list):
             return False
-        if "merge_source" in premise and premise["merge_source"] != _merge_source(course):
+        if sorted(str(value) for value in course_ids) != candidates:
             return False
-        ratings = premise.get("ratings")
+        if "ukma_course_id" not in premise or str(premise["ukma_course_id"]) != course.id:
+            return False
+        if "merge_source" not in premise or premise["merge_source"] != _merge_source(course):
+            return False
+        if "ratings" not in premise:
+            return False
+        ratings = premise["ratings"]
         current = {course_id: self.ru.courses[course_id].ratings for course_id in candidates}
-        if (
-            isinstance(ratings, dict)
-            and {str(key): int(str(value)) for key, value in ratings.items()} != current
-        ):
-            return False
-        if isinstance(ratings, int) and ratings != sum(current.values()):
-            return False
-        return True
+        if isinstance(ratings, dict):
+            try:
+                return {str(key): int(str(value)) for key, value in ratings.items()} == current
+            except (TypeError, ValueError):
+                return False
+        if isinstance(ratings, int):
+            return ratings == sum(current.values())
+        return False
 
     # Drafts and display (shared contract)
 
