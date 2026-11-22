@@ -85,4 +85,26 @@ describe("DataSegments", () => {
 				.map((radio) => radio.getAttribute("tabindex")),
 		).toEqual(["-1", "0", "-1"]);
 	});
+
+	it("leaves modified arrow keys to the browser", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onChange = vi.fn();
+		render(
+			<DataSegments
+				label="Стан"
+				value="history"
+				onChange={onChange}
+				items={TABS}
+			/>,
+		);
+		await user.click(screen.getByRole("radio", { name: "Історія" }));
+		onChange.mockClear();
+
+		// Act
+		await user.keyboard("{Alt>}{ArrowLeft}{/Alt}");
+
+		// Assert
+		expect(onChange).not.toHaveBeenCalled();
+	});
 });

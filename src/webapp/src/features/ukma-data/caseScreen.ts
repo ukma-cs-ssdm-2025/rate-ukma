@@ -44,7 +44,11 @@ const SEMESTERS = {
 	many: "семестрів",
 } satisfies PluralForms;
 
-const INTERIM_LABELS = new Set(["Зараз", "Стан"]);
+const NOW = "Зараз";
+
+const STATE = "Стан";
+
+const INTERIM_LABELS = new Set([NOW, STATE]);
 
 const WHILE_OPEN = "Поки справа була відкрита";
 
@@ -85,7 +89,7 @@ function openCaseSides(
 					label: "З ким зіставлено",
 					title: countWord(count, SIMILAR_STUDENTS),
 					rows: [
-						["Зараз", "Приєднано до найближчого збігу"],
+						[NOW, "Приєднано до найближчого збігу"],
 						["Імена", "Видно в сервісі даних САЗ"],
 					],
 				},
@@ -98,7 +102,7 @@ function openCaseSides(
 					title: countWord(count, SEMESTERS),
 					rows: [
 						["Навчальний рік", year === null ? "—" : `${year}–${year + 1}`],
-						["Стан", "Залишаються на сайті"],
+						[STATE, "Залишаються на сайті"],
 					],
 				},
 				{
@@ -118,7 +122,7 @@ function openCaseSides(
 				{
 					label: "З чим зіставлено",
 					title: countWord(count, SIMILAR_COURSES),
-					rows: [["Зараз", "Окрема дисципліна"]],
+					rows: [[NOW, "Окрема дисципліна"]],
 				},
 			];
 		case "instructor_match":
@@ -131,7 +135,7 @@ function openCaseSides(
 				{
 					label: "З ким зіставлено",
 					title: countWord(count, SIMILAR_TEACHERS),
-					rows: [["Зараз", "Семестр без цього викладача"]],
+					rows: [[NOW, "Семестр без цього викладача"]],
 				},
 			];
 	}

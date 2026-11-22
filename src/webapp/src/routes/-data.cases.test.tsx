@@ -132,6 +132,29 @@ describe("/data/cases", () => {
 		expect(rows[1]).toHaveTextContent("Вирішено");
 	});
 
+	it("keeps the status segment focused while the next filter loads", async () => {
+		serveCases(mockAxios, PAGE.items);
+		renderCases("");
+		await screen.findAllByRole("row");
+
+		await userEvent.click(screen.getByRole("radio", { name: /Чекають/ }));
+		await userEvent.keyboard("{ArrowRight}");
+
+		await waitFor(() => expect(screen.getAllByRole("row")).toHaveLength(2));
+		expect(screen.getByRole("radio", { name: /Вирішені/ })).toHaveFocus();
+	});
+
+	it("keeps the filters on screen when the list fails", async () => {
+		mockAxios.onGet(URL).reply(502, { detail: "x", status: 502 });
+
+		renderCases();
+
+		expect(
+			await screen.findByText("Дані САЗ зараз недоступні"),
+		).toBeInTheDocument();
+		expect(screen.getByRole("radio", { name: /Чекають/ })).toBeInTheDocument();
+	});
+
 	it("searches by the words of a case", async () => {
 		serveCases(mockAxios, PAGE.items);
 		renderCases("");

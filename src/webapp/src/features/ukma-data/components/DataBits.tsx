@@ -108,6 +108,9 @@ export function DataSegments<T extends string>({
 		items.findIndex((item) => item.value === value),
 	);
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (event.altKey || event.metaKey || event.ctrlKey) {
+			return;
+		}
 		const target = arrowTarget(event.key, active, items.length);
 		const next = target === null ? undefined : items[target];
 		if (target === null || next === undefined) {

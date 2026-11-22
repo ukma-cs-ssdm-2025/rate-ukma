@@ -33,7 +33,6 @@ function CasesBody({
 	const nothingAtAll = counts.status.all === 0;
 	return (
 		<div className="space-y-4">
-			<ReviewCaseFilters counts={counts} />
 			{rows.length === 0 ? (
 				<DataTableEmpty>
 					{nothingAtAll
@@ -77,6 +76,7 @@ export function ReviewCasesPage() {
 			/>
 			<p className="text-sm text-muted-foreground">{DECIDED_ELSEWHERE}</p>
 			<CaseExplainer />
+			<ReviewCaseFilters counts={counts} />
 			{isLoading ? <DataTableSkeleton /> : null}
 			{data && !error ? <CasesBody data={data} counts={counts} /> : null}
 			{error ? (

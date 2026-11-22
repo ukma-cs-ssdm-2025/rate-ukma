@@ -40,6 +40,7 @@ export function useDeskKeys(keys: DeskKeys, enabled: boolean) {
 		}
 		const onKey = (event: KeyboardEvent) => {
 			if (
+				event.defaultPrevented ||
 				event.metaKey ||
 				event.ctrlKey ||
 				event.altKey ||
