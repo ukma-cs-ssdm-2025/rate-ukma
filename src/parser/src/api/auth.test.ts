@@ -22,7 +22,13 @@ import { SqlClient } from "effect/sql";
 import { TestDatabase, testDatabaseUrl } from "../db/testing.ts";
 import { Keys } from "../keys/Keys.ts";
 import type { Scope } from "../keys/scopes.ts";
-import { Api, ApiKeyAuth, Caller, RequiredScopes } from "./Api.ts";
+import {
+	Api,
+	ApiKeyAuth,
+	Caller,
+	RequiredAnyScopes,
+	RequiredScopes,
+} from "./Api.ts";
 import { AuthLive, KeyApiHandlers } from "./http.ts";
 
 /** Invented rows a protected route returns; none may reach the audit log. */
@@ -40,6 +46,9 @@ class ProbeGroup extends HttpApiGroup.make("probe")
 			RequiredScopes,
 			["review:decide"],
 		),
+		HttpApiEndpoint.get("reviewRead", "/review-read", {
+			success: Rows,
+		}).annotate(RequiredAnyScopes, ["review:read", "review:decide"]),
 		HttpApiEndpoint.get("unmarked", "/unmarked", { success: Rows }),
 	)
 	.middleware(ApiKeyAuth)
@@ -59,6 +68,7 @@ const ProbeHandlers = HttpApiBuilder.group(ProbeApi, "probe", (handlers) =>
 	handlers
 		.handle("catalog", () => rowsFor)
 		.handle("review", () => rowsFor)
+		.handle("reviewRead", () => rowsFor)
 		.handle("unmarked", () => rowsFor),
 );
 
@@ -208,6 +218,34 @@ describe("ApiKeyAuth", () => {
 					],
 				);
 			}),
+		);
+
+		it.effect(
+			"serves a route that accepts any of two scopes to a key holding either",
+			() =>
+				Effect.gen(function* () {
+					const reader = yield* newKey(["review:read"]);
+					const decider = yield* newKey(["review:decide"]);
+
+					for (const key of [reader, decider]) {
+						const client = yield* probeAs(key.token);
+
+						const body = yield* client.probe.reviewRead();
+
+						assert.deepStrictEqual(body.names, NAMES);
+					}
+
+					const catalogOnly = yield* newKey(["catalog:read"]);
+					const deniedClient = yield* probeAs(catalogOnly.token);
+
+					const error = yield* Effect.flip(deniedClient.probe.reviewRead());
+
+					assert.strictEqual(error._tag, "Forbidden");
+					assert.deepStrictEqual(
+						(yield* auditOf(catalogOnly.id)).map(({ reason }) => reason),
+						["missing_scope"],
+					);
+				}),
 		);
 
 		it.effect("refuses every key on a route that names no scope", () =>

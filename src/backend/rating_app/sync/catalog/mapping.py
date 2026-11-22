@@ -306,12 +306,27 @@ def _answered(
             continue
         if decision.answer != _SETTLING_ANSWERS[kind]:
             continue
-        if all(
-            _premise_value_holds(decision.premise, name, value, ratings_by_course)
-            for name, value in premise.items()
-        ):
+        if premise_holds(decision.premise, premise, ratings_by_course=ratings_by_course):
             return True
     return False
+
+
+def premise_holds(
+    stored: dict[str, object],
+    current: dict[str, object],
+    *,
+    ratings_by_course: dict[str, int] | None = None,
+) -> bool:
+    """Whether a decision's stored premise still describes the current question.
+
+    ``current`` holds this build's value of every key the builder records, so a
+    key the answer did not record fails, as does a value that changed. Ratings
+    may be stored as a total or per course.
+    """
+    return all(
+        _premise_value_holds(stored, name, value, ratings_by_course)
+        for name, value in current.items()
+    )
 
 
 def _premise_value_holds(
