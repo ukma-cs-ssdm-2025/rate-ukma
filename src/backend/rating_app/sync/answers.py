@@ -32,6 +32,7 @@ from rating_app.models import (
     SyncRunStatus,
     SyncSource,
 )
+from rating_app.sync.catalog.mapping import premise_holds
 
 MAPPING_KINDS = frozenset({"merge_courses", "move_offering", "place_offering", "relink_course"})
 
@@ -70,8 +71,11 @@ def answer_change(
 
     into_course = _into_course(change, answer, into)
     with transaction.atomic():
+        _lock_question(change)
         _supersede_live(change.kind, change.key)
-        return _create_decision(change, answer, user, into_course=into_course)
+        return _create_decision(
+            change, answer, user, into_course=into_course, ratings=live_rating_count(change)
+        )
 
 
 def live_rating_count(change: SyncChange) -> int:
@@ -96,33 +100,48 @@ def keep_apart_unrated(user: User) -> int:
         group=SyncChangeGroup.MAPPING,
         state=SyncChangeState.PROPOSED,
     ).order_by("pk")
-    answered = set(
-        CatalogMappingDecision.objects.filter(superseded_at__isnull=True).values_list(
-            "kind", "question_key"
-        )
-    )
     count = 0
     with transaction.atomic():
         for change in changes:
             answer = SETTLING_ANSWERS.get(change.kind)
-            if answer is None or (change.kind, change.key) in answered:
+            if answer is None:
                 continue
-            if live_rating_count(change) != 0:
+            _lock_question(change)
+            ratings = live_rating_count(change)
+            if ratings != 0 or _live_answer_holds(change, ratings):
                 continue
             _supersede_live(change.kind, change.key)
-            _create_decision(change, answer, user, into_course=None)
+            _create_decision(change, answer, user, into_course=None, ratings=ratings)
             count += 1
     return count
 
 
-def premise_for(change: SyncChange) -> dict[str, object]:
+def _lock_question(change: SyncChange) -> None:
+    """Serialize writers on one question: a manual answer and the bulk settle both
+    lock its change row before they read or replace its live decision."""
+    list(SyncChange.objects.select_for_update().filter(pk=change.pk).values_list("pk"))
+
+
+def _live_answer_holds(change: SyncChange, ratings: int) -> bool:
+    """A live answer whose premise still describes this question; the builder
+    reopens a question whose premise changed, and so does the bulk settle."""
+    current = premise_for(change, ratings)
+    return any(
+        premise_holds(decision.premise or {}, current)
+        for decision in CatalogMappingDecision.objects.filter(
+            kind=change.kind, question_key=change.key, superseded_at__isnull=True
+        )
+    )
+
+
+def premise_for(change: SyncChange, ratings: int) -> dict[str, object]:
     """The premise the builder put in ``after``, in the shape ``_answered`` reads."""
     course_ids = _course_ids(change)
     premise: dict[str, object] = {
         "course_ids": course_ids,
         "ukma_course_id": _ukma_course_id(change),
         "merge_source": _merge_source(change),
-        "ratings": live_rating_count(change),
+        "ratings": ratings,
     }
     saz_code = _saz_code(change)
     if saz_code:
@@ -136,9 +155,10 @@ def _create_decision(
     user: User,
     *,
     into_course: Course | None,
+    ratings: int,
 ) -> CatalogMappingDecision:
     course, offering, into = _refs(change, answer, into_course)
-    premise = premise_for(change)
+    premise = premise_for(change, ratings)
     return CatalogMappingDecision.objects.create(
         kind=change.kind,
         question_key=change.key,

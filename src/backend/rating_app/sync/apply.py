@@ -21,6 +21,7 @@ from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import partial
 
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -487,6 +488,15 @@ def _unit_teacher_units(units: list[_Unit]) -> list[_Unit]:
     ]
 
 
+def _clear_cache(run_id: int) -> None:
+    """After commit only: a dry run rolls back and must leave shared caches alone."""
+    try:
+        caching.redis_cache_manager().invalidate_pattern("*", skip_keys=[SESSION_KEY_MARKER])
+    except Exception as exc:
+        # The catalog is committed; a cache failure must not undo it.
+        logger.error("sync_catalog_cache_clear_failed", run_id=run_id, error=type(exc).__name__)
+
+
 def _after_catalog_apply(run: SyncRun, applied_kinds: set[str]) -> None:
     """Clear the cache except sessions and save the cursors of the lists the
     applied kinds came from (D2).
@@ -495,11 +505,7 @@ def _after_catalog_apply(run: SyncRun, applied_kinds: set[str]) -> None:
     ``removed_*`` acknowledgement writes nothing and saves nothing, and neither
     does an approval that applied no change.
     """
-    try:
-        caching.redis_cache_manager().invalidate_pattern("*", skip_keys=[SESSION_KEY_MARKER])
-    except Exception as exc:
-        # The catalog is committed; a cache failure must not undo it.
-        logger.error("sync_catalog_cache_clear_failed", run_id=run.pk, error=type(exc).__name__)
+    transaction.on_commit(partial(_clear_cache, run.pk))
     lists = sorted({name for kind in applied_kinds for name in KIND_LISTS.get(kind, ())})
     if not lists:
         return
