@@ -95,6 +95,10 @@ class _UnitWaitingError(Exception):
         self.change_ids = change_ids
 
 
+class _UnitChangedError(Exception):
+    """A member stopped being proposed between the unit's read and its write."""
+
+
 class _ApplyFailedError(Exception):
     def __init__(self, change: SyncChange, original: Exception) -> None:
         super().__init__(change.pk, type(original).__name__)
@@ -115,22 +119,23 @@ def approve(
     ``confirm_old_run`` says a person saw its age.
     """
     sweep_interrupted_approvals()
-    changes = _load_selection(change_ids)
-    run = changes[0].run
-    proposed = [change for change in changes if change.state == SyncChangeState.PROPOSED]
-    units = _expand_units(proposed, run)
-    approval = _start_approval(
-        run, _unit_members(units) or changes, user=user, action=SyncApprovalAction.APPLY
-    )
-    if not proposed:
-        return _refuse(approval, "no_proposed_changes")
-    if not _is_current(run):
-        return _refuse(approval, "run_not_current")
-    if not confirm_old_run and _run_age(run) > APPROVAL_MAX_AGE:
-        return _refuse(approval, "run_too_old")
+    ids = _selection_ids(change_ids)
+    run = _selection_run(ids)
+    approval = _start_approval(run, ids, user=user, action=SyncApprovalAction.APPLY)
     with _source_lock(run.source) as held:
         if not held:
             return _refuse(approval, "lock_held")
+        # The selection can change under us before the lock, so read it again.
+        changes = _load_selection(ids)
+        if not _is_current(run):
+            return _refuse(approval, "run_not_current")
+        proposed = [change for change in changes if change.state == SyncChangeState.PROPOSED]
+        units = _expand_units(proposed, run)
+        if not proposed:
+            return _refuse(approval, "no_proposed_changes")
+        if not confirm_old_run and _run_age(run) > APPROVAL_MAX_AGE:
+            return _refuse(approval, "run_too_old")
+        _set_approval_changes(approval, _unit_members(units) or changes)
         result = _run_apply(approval, run, units)
         if result.outcome == SyncApprovalOutcome.APPLIED:
             # A change auto-policy depended on may have just applied.
@@ -141,37 +146,43 @@ def approve(
 def reject(change_ids: Iterable[int], user: User) -> SyncApproval:
     """Reject the selected units; their dependents become ``dependency_rejected``."""
     sweep_interrupted_approvals()
-    changes = _load_selection(change_ids)
-    run = changes[0].run
-    proposed = [change for change in changes if change.state == SyncChangeState.PROPOSED]
-    units = _expand_units(proposed, run)
-    approval = _start_approval(
-        run, _unit_members(units) or changes, user=user, action=SyncApprovalAction.REJECT
-    )
-    if not proposed:
-        return _refuse(approval, "no_proposed_changes")
-    if not _is_current(run):
-        return _refuse(approval, "run_not_current")
+    ids = _selection_ids(change_ids)
+    run = _selection_run(ids)
+    approval = _start_approval(run, ids, user=user, action=SyncApprovalAction.REJECT)
+    with _source_lock(run.source) as held:
+        if not held:
+            return _refuse(approval, "lock_held")
+        changes = _load_selection(ids)
+        if not _is_current(run):
+            return _refuse(approval, "run_not_current")
+        proposed = [change for change in changes if change.state == SyncChangeState.PROPOSED]
+        units = _expand_units(proposed, run)
+        if not proposed:
+            return _refuse(approval, "no_proposed_changes")
 
-    members = _unit_members(units)
-    now = timezone.now()
-    with transaction.atomic():
-        rejected = SyncChange.objects.filter(
-            pk__in=[change.pk for change in members],
-            state=SyncChangeState.PROPOSED,
-        ).update(
-            state=SyncChangeState.REJECTED,
-            state_reason="",
-            decided_at=now,
-            approval=approval,
-            waiting_on=[],
-        )
-        superseded = _supersede_dependents(
-            run.source, {(change.kind, change.key) for change in members}
-        )
-        approval.outcome = SyncApprovalOutcome.APPLIED
-        approval.counts = {"rejected": rejected, "superseded": superseded}
-        approval.save(update_fields=["outcome", "counts"])
+        members = _unit_members(units)
+        _set_approval_changes(approval, members or changes)
+        now = timezone.now()
+        with transaction.atomic():
+            rejected = SyncChange.objects.filter(
+                pk__in=[change.pk for change in members],
+                state=SyncChangeState.PROPOSED,
+            ).update(
+                state=SyncChangeState.REJECTED,
+                state_reason="",
+                decided_at=now,
+                approval=approval,
+                waiting_on=[],
+            )
+            dead = set(
+                SyncChange.objects.filter(
+                    approval=approval, state=SyncChangeState.REJECTED
+                ).values_list("kind", "key")
+            )
+            superseded = _supersede_dependents(run.source, dead)
+            approval.outcome = SyncApprovalOutcome.APPLIED
+            approval.counts = {"rejected": rejected, "superseded": superseded}
+            approval.save(update_fields=["outcome", "counts"])
     logger.info(
         "sync_approval_rejected",
         approval_id=approval.pk,
@@ -191,51 +202,53 @@ def apply_by_policy(run: SyncRun, *, lock_held: bool = False) -> SyncApproval | 
     ``None`` when there is nothing to apply or the lock is held.
     """
     sweep_interrupted_approvals()
-    if not _is_current(run):
-        logger.info("sync_auto_skipped", run_id=run.pk, source=run.source, reason="run_not_current")
-        return None
-    if _run_age(run) > AUTO_MAX_AGE:
-        logger.info("sync_auto_skipped", run_id=run.pk, source=run.source, reason="run_too_old")
-        return None
-
-    modes: dict[str, str] = {}
-    auto_changes = [
-        change
-        for change in SyncChange.objects.filter(run=run, state=SyncChangeState.PROPOSED)
-        if _auto_kind(change.kind, modes)
-    ]
-    if not auto_changes:
-        return None
-
-    units = _expand_units(auto_changes, run)
-    eligible: list[_Unit] = []
-    for unit in units:
-        if not all(_auto_kind(member.kind, modes) for member in unit.changes):
-            logger.info(
-                "sync_auto_skipped",
-                change_ids=[member.pk for member in unit.changes],
-                reason="not_auto",
-            )
-            continue
-        if any(_leave_for_a_person(member) for member in unit.changes):
-            logger.info(
-                "sync_auto_skipped",
-                change_ids=[member.pk for member in unit.changes],
-                kind=unit.changes[0].kind,
-                reason="rated",
-            )
-            continue
-        eligible.append(unit)
-    if not eligible:
-        return None
-
     with _source_lock(run.source, held=lock_held) as held:
         if not held:
             logger.info("sync_auto_skipped", run_id=run.pk, source=run.source, reason="lock_held")
             return None
+        if not _is_current(run):
+            logger.info(
+                "sync_auto_skipped", run_id=run.pk, source=run.source, reason="run_not_current"
+            )
+            return None
+        if _run_age(run) > AUTO_MAX_AGE:
+            logger.info("sync_auto_skipped", run_id=run.pk, source=run.source, reason="run_too_old")
+            return None
+
+        modes: dict[str, str] = {}
+        auto_changes = [
+            change
+            for change in SyncChange.objects.filter(run=run, state=SyncChangeState.PROPOSED)
+            if _auto_kind(change.kind, modes)
+        ]
+        if not auto_changes:
+            return None
+
+        units = _expand_units(auto_changes, run)
+        eligible: list[_Unit] = []
+        for unit in units:
+            if not all(_auto_kind(member.kind, modes) for member in unit.changes):
+                logger.info(
+                    "sync_auto_skipped",
+                    change_ids=[member.pk for member in unit.changes],
+                    reason="not_auto",
+                )
+                continue
+            if any(_leave_for_a_person(member) for member in unit.changes):
+                logger.info(
+                    "sync_auto_skipped",
+                    change_ids=[member.pk for member in unit.changes],
+                    kind=unit.changes[0].kind,
+                    reason="rated",
+                )
+                continue
+            eligible.append(unit)
+        if not eligible:
+            return None
+
         approval = _start_approval(
             run,
-            _unit_members(eligible),
+            [change.pk for change in _unit_members(eligible)],
             user=None,
             action=SyncApprovalAction.APPLY,
             scope=SyncApprovalScope.KIND,
@@ -322,6 +335,13 @@ def _apply_unit(
             waiting_on=waiting.change_ids,
         )
         return "waiting", members
+    except _UnitChangedError:
+        logger.info(
+            "sync_unit_left_proposed",
+            change_ids=[member.pk for member in members],
+            reason="changed",
+        )
+        return "waiting", members
     return "applied", members
 
 
@@ -357,7 +377,11 @@ def _supersede_stale(units: list[_Unit]) -> _StalePass:
                 change.state = SyncChangeState.SUPERSEDED
                 change.state_reason = reason
                 superseded += 1
-                blocked_units.add(unit.key)
+                if reason in (
+                    SyncChangeStateReason.STALE,
+                    SyncChangeStateReason.DEPENDENCY_REJECTED,
+                ):
+                    blocked_units.add(unit.key)
                 if reason == SyncChangeStateReason.STALE:
                     dead.add((change.kind, change.key))
                 logger.info(
@@ -380,11 +404,29 @@ def _stale_reason(change: SyncChange, snapshot: RateUkmaSnapshot | None) -> str 
         and handler.exists(change.key)
     ):
         return SyncChangeStateReason.EXISTS
+    if _teacher_missing_without_creation(change):
+        return SyncChangeStateReason.STALE
     if change.target_id is None or snapshot is None:
         return None
     if is_stale(change.kind, snapshot, change.target_id, change.before):
         return SyncChangeStateReason.STALE
     return None
+
+
+def _teacher_missing_without_creation(change: SyncChange) -> bool:
+    """A link no change creates the teacher for: its apply could only raise."""
+    if change.kind != "teacher_link_added":
+        return False
+    if any(
+        (pair := _requirement_pair(entry)) is not None and pair[0] == "teacher_created"
+        for entry in change.requires
+    ):
+        return False
+    email = change.after.get("teacher_email")
+    if not isinstance(email, str) or not email.strip():
+        return False
+    created = handler_for("teacher_created")
+    return created is not None and created.exists is not None and not created.exists(email)
 
 
 def _supersede_dependents(source: str, dead: set[tuple[str, str]]) -> int:
@@ -420,18 +462,34 @@ def _supersede_dependents(source: str, dead: set[tuple[str, str]]) -> int:
 
 
 def _expand_units(selected: list[SyncChange], run: SyncRun) -> list[_Unit]:
-    """Group the selection into units: an offering's teacher changes and their teachers."""
+    """Group the selection into units: an offering's teacher changes and their teachers.
+
+    Selecting a link takes its offering's whole unit; selecting a teacher takes
+    every offering unit whose links require it.
+    """
     proposed = list(SyncChange.objects.filter(run=run, state=SyncChangeState.PROPOSED))
     links_by_offering: dict[str, list[SyncChange]] = defaultdict(list)
     creations: dict[str, SyncChange] = {}
+    links_requiring: dict[str, list[SyncChange]] = defaultdict(list)
     for change in proposed:
         if change.kind in _UNIT_LINK_KINDS and change.target_id is not None:
             links_by_offering[change.target_id].append(change)
+            for entry in change.requires:
+                pair = _requirement_pair(entry)
+                if pair is not None and pair[0] == "teacher_created":
+                    links_requiring[pair[1]].append(change)
         elif change.kind == "teacher_created":
             creations[change.key] = change
 
     units: dict[str, _Unit] = {}
     claimed: set[int] = set()
+
+    def add_offering(anchor: SyncChange) -> None:
+        key = f"offering:{anchor.target_id}"
+        members = _offering_unit(anchor, links_by_offering, creations)
+        units[key] = _Unit(key=key, changes=members)
+        claimed.update(member.pk for member in members)
+
     # Links first, so a creation a selected link needs joins that link's unit
     # instead of forming a second unit of its own.
     ordered = sorted(
@@ -439,16 +497,26 @@ def _expand_units(selected: list[SyncChange], run: SyncRun) -> list[_Unit]:
         key=lambda row: (0 if row.kind in _UNIT_LINK_KINDS else 1, row.pk),
     )
     for change in ordered:
-        if change.state != SyncChangeState.PROPOSED or change.pk in claimed:
+        if change.state != SyncChangeState.PROPOSED:
             continue
         if change.kind in _UNIT_LINK_KINDS and change.target_id is not None:
-            key = f"offering:{change.target_id}"
-            members = _offering_unit(change, links_by_offering, creations, claimed)
-        else:
+            if change.pk not in claimed:
+                add_offering(change)
+        elif change.kind == "teacher_created":
+            required = links_requiring.get(change.key, [])
+            if required:
+                for link in required:
+                    key = f"offering:{link.target_id}"
+                    if key not in units:
+                        add_offering(link)
+            elif change.pk not in claimed:
+                key = f"change:{change.pk}"
+                units[key] = _Unit(key=key, changes=[change])
+                claimed.add(change.pk)
+        elif change.pk not in claimed:
             key = f"change:{change.pk}"
-            members = [change]
-        units[key] = _Unit(key=key, changes=members)
-        claimed.update(member.pk for member in members)
+            units[key] = _Unit(key=key, changes=[change])
+            claimed.add(change.pk)
     return list(units.values())
 
 
@@ -456,7 +524,6 @@ def _offering_unit(
     anchor: SyncChange,
     links_by_offering: dict[str, list[SyncChange]],
     creations: dict[str, SyncChange],
-    claimed: set[int],
 ) -> list[SyncChange]:
     members = list(links_by_offering.get(anchor.target_id or "", [anchor]))
     for member in list(members):
@@ -465,7 +532,7 @@ def _offering_unit(
             if pair is None or pair[0] != "teacher_created":
                 continue
             creation = creations.get(pair[1])
-            if creation is not None and creation.pk not in claimed:
+            if creation is not None:
                 members.append(creation)
     return _unique_changes(members)
 
@@ -570,7 +637,7 @@ def _waiting_on(requirements: list[tuple[str, str]]) -> list[int]:
 
 def _mark_applied(members: list[SyncChange], approval: SyncApproval) -> None:
     now = timezone.now()
-    SyncChange.objects.filter(
+    updated = SyncChange.objects.filter(
         pk__in=[change.pk for change in members], state=SyncChangeState.PROPOSED
     ).update(
         state=SyncChangeState.APPLIED,
@@ -579,6 +646,8 @@ def _mark_applied(members: list[SyncChange], approval: SyncApproval) -> None:
         approval=approval,
         waiting_on=[],
     )
+    if updated != len(members):
+        raise _UnitChangedError
     for member in members:
         member.state = SyncChangeState.APPLIED
 
@@ -591,10 +660,24 @@ def _record_waiting(members: list[SyncChange], change_ids: list[int]) -> None:
     ).update(waiting_on=change_ids)
 
 
-def _load_selection(change_ids: Iterable[int]) -> list[SyncChange]:
+def _selection_ids(change_ids: Iterable[int]) -> list[int]:
     ids = list(dict.fromkeys(change_ids))
     if not ids:
         raise SyncApplyInputError("no change ids")
+    return ids
+
+
+def _selection_run(ids: list[int]) -> SyncRun:
+    """Read only the selection's run, before the source lock is taken."""
+    run_ids = set(SyncChange.objects.filter(pk__in=ids).values_list("run_id", flat=True))
+    if not run_ids:
+        raise SyncApplyInputError("unknown change ids")
+    if len(run_ids) != 1:
+        raise SyncApplyInputError("changes from several runs")
+    return SyncRun.objects.get(pk=run_ids.pop())
+
+
+def _load_selection(ids: list[int]) -> list[SyncChange]:
     changes = list(SyncChange.objects.filter(pk__in=ids).select_related("run").order_by("pk"))
     if not changes:
         raise SyncApplyInputError("unknown change ids")
@@ -605,7 +688,7 @@ def _load_selection(change_ids: Iterable[int]) -> list[SyncChange]:
 
 def _start_approval(
     run: SyncRun,
-    changes: list[SyncChange],
+    change_ids: list[int],
     *,
     user: User | None,
     action: str,
@@ -616,10 +699,15 @@ def _start_approval(
         run_ref=run.pk,
         action=action,
         scope=scope,
-        change_ids=[change.pk for change in changes],
+        change_ids=change_ids,
         user=user,
         outcome=SyncApprovalOutcome.STARTED,
     )
+
+
+def _set_approval_changes(approval: SyncApproval, changes: list[SyncChange]) -> None:
+    approval.change_ids = [change.pk for change in changes]
+    approval.save(update_fields=["change_ids"])
 
 
 def _refuse(approval: SyncApproval, reason: str) -> SyncApproval:

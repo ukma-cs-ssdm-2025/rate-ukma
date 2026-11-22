@@ -15,6 +15,7 @@ from rating_app.models import (
     CourseOffering,
     Instructor,
     SyncApprovalOutcome,
+    SyncChange,
     SyncChangeGroup,
     SyncChangeState,
     SyncChangeStateReason,
@@ -176,27 +177,41 @@ def test_approve_runs_the_auto_path_for_a_change_waiting_on_it(
     sync_policy_factory,
 ):
     run = make_run()
-    offering = course_offering_factory()
+    approved_offering = course_offering_factory()
+    auto_offering = course_offering_factory()
     email = "cascade.teacher@example.com"
-    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
-    link = make_change(
+    make_change(run, kind="teacher_created", key=email, after=_created(email))
+    approved = make_change(
         run,
         kind="teacher_link_added",
-        key=f"offering:{offering.pk}|teacher:{email}",
-        target_id=str(offering.pk),
+        key=f"offering:{approved_offering.pk}|teacher:{email}",
+        target_id=str(approved_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    auto = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{auto_offering.pk}|teacher:{email}",
+        target_id=str(auto_offering.pk),
         before={"links": []},
         after=_added(email),
         requires=[{"kind": "teacher_created", "key": email}],
     )
     sync_policy_factory(kind="teacher_link_added", mode=SyncPolicyMode.AUTO, updated_by=user)
 
-    approval = approve([created.pk], user)
+    approval = approve([approved.pk], user)
 
     assert approval.outcome == SyncApprovalOutcome.APPLIED
-    link.refresh_from_db()
-    assert link.state == SyncChangeState.APPLIED
-    assert link.approval_id != approval.pk
-    assert CourseInstructor.objects.filter(course_offering=offering).count() == 1
+    approved.refresh_from_db()
+    auto.refresh_from_db()
+    assert approved.state == SyncChangeState.APPLIED
+    assert approved.approval_id == approval.pk
+    assert auto.state == SyncChangeState.APPLIED
+    assert auto.approval_id != approval.pk
+    assert CourseInstructor.objects.filter(course_offering=approved_offering).count() == 1
+    assert CourseInstructor.objects.filter(course_offering=auto_offering).count() == 1
 
 
 @pytest.mark.django_db
@@ -233,7 +248,7 @@ def test_reject_takes_the_teacher_of_the_unit_and_supersedes_changes_waiting_on_
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_rejecting_a_teacher_supersedes_the_links_waiting_on_it(
+def test_rejecting_a_teacher_takes_every_offering_unit_that_requires_it(
     user,
     make_run,
     make_change,
@@ -241,25 +256,64 @@ def test_rejecting_a_teacher_supersedes_the_links_waiting_on_it(
 ):
     run = make_run()
     email = "waiting.teacher@example.com"
-    offering = course_offering_factory()
+    first_offering = course_offering_factory()
+    second_offering = course_offering_factory()
     created = make_change(run, kind="teacher_created", key=email, after=_created(email))
-    link = make_change(
+    first = make_change(
         run,
         kind="teacher_link_added",
-        key=f"offering:{offering.pk}|teacher:{email}",
-        target_id=str(offering.pk),
+        key=f"offering:{first_offering.pk}|teacher:{email}",
+        target_id=str(first_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    second = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{second_offering.pk}|teacher:{email}",
+        target_id=str(second_offering.pk),
         before={"links": []},
         after=_added(email),
         requires=[{"kind": "teacher_created", "key": email}],
     )
 
-    reject([created.pk], user)
+    approval = reject([created.pk], user)
 
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"rejected": 3, "superseded": 0}
+    for change in (created, first, second):
+        change.refresh_from_db()
+        assert change.state == SyncChangeState.REJECTED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_rejecting_a_teacher_supersedes_changes_that_wait_on_it(
+    user,
+    make_run,
+    make_change,
+):
+    run = make_run()
+    email = "waiting.teacher@example.com"
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    dependent_email = "dependent.teacher@example.com"
+    dependent = make_change(
+        run,
+        kind="teacher_created",
+        key=dependent_email,
+        after=_created(dependent_email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+
+    approval = reject([created.pk], user)
+
+    assert approval.counts == {"rejected": 1, "superseded": 1}
     created.refresh_from_db()
-    link.refresh_from_db()
+    dependent.refresh_from_db()
     assert created.state == SyncChangeState.REJECTED
-    assert link.state == SyncChangeState.SUPERSEDED
-    assert link.state_reason == SyncChangeStateReason.DEPENDENCY_REJECTED
+    assert dependent.state == SyncChangeState.SUPERSEDED
+    assert dependent.state_reason == SyncChangeStateReason.DEPENDENCY_REJECTED
 
 
 @pytest.mark.django_db
@@ -785,3 +839,284 @@ def test_apply_failure_never_logs_or_stores_a_teacher_email(
     assert approval.error == (f"apply_failed:RuntimeError:change={created.pk}:kind=teacher_created")
     assert email not in approval.error
     assert email not in repr(logs)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approving_a_teacher_created_takes_every_offering_unit_that_requires_it(
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+):
+    run = make_run()
+    email = "expanded.teacher@example.com"
+    first_offering = course_offering_factory()
+    second_offering = course_offering_factory()
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    first = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{first_offering.pk}|teacher:{email}",
+        target_id=str(first_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    second = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{second_offering.pk}|teacher:{email}",
+        target_id=str(second_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+
+    approval = approve([created.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 3, "superseded": 0, "waiting": 0}
+    for change in (created, first, second):
+        change.refresh_from_db()
+        assert change.state == SyncChangeState.APPLIED
+        assert change.approval_id == approval.pk
+    assert CourseInstructor.objects.filter(course_offering=first_offering).count() == 1
+    assert CourseInstructor.objects.filter(course_offering=second_offering).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_teacher_that_already_exists_does_not_block_its_unit(
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+    instructor_factory,
+):
+    run = make_run()
+    offering = course_offering_factory()
+    email = "already.here@example.com"
+    instructor_factory(email=email)
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    link = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:{email}",
+        target_id=str(offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+
+    approval = approve([link.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 1, "superseded": 1, "waiting": 0}
+    created.refresh_from_db()
+    link.refresh_from_db()
+    assert created.state == SyncChangeState.SUPERSEDED
+    assert created.state_reason == SyncChangeStateReason.EXISTS
+    assert link.state == SyncChangeState.APPLIED
+    assert CourseInstructor.objects.filter(course_offering=offering).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_link_to_a_teacher_no_change_creates_is_superseded_as_stale(
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+):
+    run = make_run()
+    offering = course_offering_factory()
+    email = "never.created@example.com"
+    link = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:{email}",
+        target_id=str(offering.pk),
+        before={"links": []},
+        after=_added(email),
+    )
+
+    approval = approve([link.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 0, "superseded": 1, "waiting": 0}
+    link.refresh_from_db()
+    assert link.state == SyncChangeState.SUPERSEDED
+    assert link.state_reason == SyncChangeStateReason.STALE
+    assert not Instructor.objects.filter(email=email).exists()
+    assert not CourseInstructor.objects.filter(course_offering=offering).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_reject_committed_before_the_lock_is_seen_when_the_selection_is_reloaded(
+    monkeypatch,
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+):
+    run = make_run()
+    offering = course_offering_factory()
+    email = "raced.teacher@example.com"
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    link = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:{email}",
+        target_id=str(offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+
+    @contextmanager
+    def lock_after_reject(_key: int):
+        SyncChange.objects.filter(pk=created.pk).update(
+            state=SyncChangeState.REJECTED, decided_at=timezone.now()
+        )
+        yield True
+
+    monkeypatch.setattr(apply, "advisory_lock", lock_after_reject)
+
+    approval = approve([link.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    created.refresh_from_db()
+    link.refresh_from_db()
+    assert created.state == SyncChangeState.REJECTED
+    assert link.state == SyncChangeState.PROPOSED
+    assert not Instructor.objects.filter(email=email).exists()
+    assert not CourseInstructor.objects.filter(course_offering=offering).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_reject_committed_before_the_unit_write_rolls_the_unit_back(
+    monkeypatch,
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+):
+    run = make_run()
+    offering = course_offering_factory()
+    email = "raced.link@example.com"
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    link = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{offering.pk}|teacher:{email}",
+        target_id=str(offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    original_expand = apply._expand_units
+
+    def expand_then_reject(selected, current_run):
+        units = original_expand(selected, current_run)
+        SyncChange.objects.filter(pk=link.pk).update(
+            state=SyncChangeState.REJECTED, decided_at=timezone.now()
+        )
+        return units
+
+    monkeypatch.setattr(apply, "_expand_units", expand_then_reject)
+
+    approval = approve([link.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 0, "superseded": 0, "waiting": 2}
+    created.refresh_from_db()
+    link.refresh_from_db()
+    assert created.state == SyncChangeState.PROPOSED
+    assert link.state == SyncChangeState.REJECTED
+    assert not Instructor.objects.filter(email=email).exists()
+    assert not CourseInstructor.objects.filter(course_offering=offering).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_an_apply_committed_before_the_reject_write_leaves_it_at_zero(
+    monkeypatch,
+    user,
+    make_run,
+    make_change,
+    course_offering_factory,
+):
+    run = make_run()
+    email = "applied.teacher@example.com"
+    first_offering = course_offering_factory()
+    second_offering = course_offering_factory()
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    link = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{first_offering.pk}|teacher:{email}",
+        target_id=str(first_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    dependent = make_change(
+        run,
+        kind="teacher_link_added",
+        key=f"offering:{second_offering.pk}|teacher:{email}",
+        target_id=str(second_offering.pk),
+        before={"links": []},
+        after=_added(email),
+        requires=[{"kind": "teacher_created", "key": email}],
+    )
+    original_expand = apply._expand_units
+
+    def expand_then_apply(selected, current_run):
+        units = original_expand(selected, current_run)
+        SyncChange.objects.filter(pk__in=[created.pk, link.pk]).update(
+            state=SyncChangeState.APPLIED, decided_at=timezone.now()
+        )
+        return units
+
+    monkeypatch.setattr(apply, "_expand_units", expand_then_apply)
+
+    approval = reject([link.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"rejected": 0, "superseded": 0}
+    created.refresh_from_db()
+    link.refresh_from_db()
+    dependent.refresh_from_db()
+    assert created.state == SyncChangeState.APPLIED
+    assert link.state == SyncChangeState.APPLIED
+    assert dependent.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_apply_by_policy_rechecks_the_current_run_under_the_lock(
+    monkeypatch,
+    user,
+    make_run,
+    make_change,
+    sync_policy_factory,
+):
+    run = make_run()
+    email = "stale.run@example.com"
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+    sync_policy_factory(kind="teacher_created", mode=SyncPolicyMode.AUTO, updated_by=user)
+
+    @contextmanager
+    def lock_after_new_run(_key: int):
+        make_run(source=SyncSource.TEACHERS)
+        yield True
+
+    monkeypatch.setattr(apply, "advisory_lock", lock_after_new_run)
+
+    assert apply_by_policy(run) is None
+
+    created.refresh_from_db()
+    assert created.state == SyncChangeState.PROPOSED
