@@ -4,6 +4,8 @@ import time
 from collections.abc import Sequence
 from dataclasses import replace
 
+import pytest
+
 from rating_app.application_schemas import ukma_data_api as ukma_data
 from rating_app.sync.catalog.changes import propose_changes
 from rating_app.sync.drafts import ChangeDraft, DecisionView
@@ -589,6 +591,16 @@ def test_a_practice_term_is_labelled_practice():
 
     assert draft.after["terms"][0]["practice_type"] == "PRACTICE"
     assert draft.after["terms"][0]["practice_count"] == 12
+
+
+@pytest.mark.parametrize("hours", [None, 0])
+def test_a_term_without_seminar_or_practice_hours_matches_a_blank_practice_type(hours):
+    ud, ru = _offering_scenario(
+        ud_terms=[_ud_offering_term(seminar_hours=hours, practice_hours=hours)],
+        ru_terms=(_ru_term(practice_count=None, practice_type=""),),
+    )
+
+    assert not [draft for draft in _propose(ud, ru)[0] if draft.kind == "change_offering"]
 
 
 def test_offering_specialities_are_only_added_when_the_name_exists_in_rate_ukma():
