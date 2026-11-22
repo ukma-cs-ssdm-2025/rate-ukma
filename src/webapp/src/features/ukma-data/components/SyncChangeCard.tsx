@@ -40,11 +40,17 @@ function DisplayRows({ display }: Readonly<{ display: SyncDisplay }>) {
 				.join(" · "),
 		);
 	}
+	const titleNamesTheLoneCourse =
+		display.teacherName === null &&
+		display.course === null &&
+		display.name === null &&
+		display.ukmaCourse === null &&
+		display.courses.length === 1;
 	for (const course of display.courses) {
 		const meta = courseMeta(course);
 		rows.push(
 			[
-				display.courses.length > 1 ? course.title : null,
+				titleNamesTheLoneCourse ? null : course.title,
 				meta.length > 0 ? meta : null,
 			]
 				.filter((part): part is string => part !== null)

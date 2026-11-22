@@ -184,7 +184,7 @@ function renderPage(search = "") {
 	});
 	render(
 		<QueryClientProvider client={queryClient}>
-			<NuqsTestingAdapter searchParams={search}>
+			<NuqsTestingAdapter searchParams={search} hasMemory>
 				<SyncPage />
 			</NuqsTestingAdapter>
 		</QueryClientProvider>,
@@ -302,7 +302,7 @@ describe("sync section", () => {
 	it("filters a run's changes by state from the URL", async () => {
 		mockAxios.onGet(RUN_CHANGES_URL).reply(200, runChanges);
 
-		renderPage("?tab=history&run=7&state=applied");
+		renderPage("?tab=history&run=7&changesState=applied");
 
 		await screen.findByRole("list", { name: "Зміни запуску 7" });
 		expect(mockAxios.history.get[0].params).toEqual({
@@ -310,6 +310,59 @@ describe("sync section", () => {
 			page: 1,
 			page_size: 20,
 		});
+	});
+
+	it("opens a run on its first page whatever page the runs list is on", async () => {
+		const user = userEvent.setup();
+		mockAxios.onGet(RUNS_URL).reply(200, runs);
+		mockAxios.onGet(RUN_CHANGES_URL).reply(200, runChanges);
+
+		renderPage("?tab=history&runsPage=2&changesPage=3&changesState=rejected");
+
+		const list = await screen.findByRole("list", {
+			name: "Запуски синхронізації",
+		});
+		expect(mockAxios.history.get[0].params).toMatchObject({ page: 2 });
+		await user.click(within(list).getAllByRole("button")[0]);
+
+		await screen.findByRole("list", { name: "Зміни запуску 7" });
+		expect(mockAxios.history.get.at(-1)?.params).toEqual({
+			page: 1,
+			page_size: 20,
+		});
+	});
+
+	it("names a lone candidate course of a place question", async () => {
+		const placeChange: SyncChange = {
+			...mappingChange,
+			id: 14,
+			kind: "place_offering",
+			key: "ud-offering-1",
+			after: {
+				display: {
+					ukma_course: { title: "Курс у UKMA Data", department: null },
+					courses: [
+						{
+							title: "Кандидат",
+							department: "Кафедра тестів",
+							years: [2030],
+							saz_codes: ["TEST03"],
+						},
+					],
+				},
+			},
+		};
+		mockPending({
+			...pending,
+			...page([placeChange]),
+			groups: { mapping: 1 },
+			kinds: { place_offering: 1 },
+		});
+
+		renderPage();
+
+		expect(await screen.findByText("Курс у UKMA Data")).toBeInTheDocument();
+		expect(screen.getByText(/^Кандидат/)).toBeInTheDocument();
 	});
 
 	it("lists policies and disables the toggle for a never-auto kind", async () => {

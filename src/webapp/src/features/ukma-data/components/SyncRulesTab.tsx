@@ -98,7 +98,9 @@ function PolicyRow({
 }
 
 function PolicyAudit() {
-	const [{ page }, setParams] = useQueryStates(auditParams);
+	const [{ page }, setParams] = useQueryStates(auditParams, {
+		urlKeys: { page: "auditPage" },
+	});
 	const { data, isLoading, error, refetch, isRefetching } =
 		useUkmaDataSyncPolicyChangesList(
 			{ page, page_size: PAGE_SIZE },

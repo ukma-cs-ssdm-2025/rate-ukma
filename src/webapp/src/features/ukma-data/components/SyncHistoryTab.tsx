@@ -54,6 +54,11 @@ const changeParams = {
 	page: parseAsInteger.withDefault(1),
 };
 
+const runsUrlKeys = { urlKeys: { page: "runsPage" } } as const;
+const changeUrlKeys = {
+	urlKeys: { page: "changesPage", state: "changesState" },
+} as const;
+
 function RunRow({
 	run,
 	onOpen,
@@ -94,7 +99,10 @@ function RunRow({
 }
 
 function RunChanges({ runId }: Readonly<{ runId: number }>) {
-	const [{ state, page }, setParams] = useQueryStates(changeParams);
+	const [{ state, page }, setParams] = useQueryStates(
+		changeParams,
+		changeUrlKeys,
+	);
 	const { data, isLoading, error, refetch, isRefetching } =
 		useUkmaDataSyncRunChangesList(
 			runId,
@@ -177,8 +185,14 @@ function RunChanges({ runId }: Readonly<{ runId: number }>) {
 }
 
 export function SyncHistoryTab() {
-	const [{ source, page }, setParams] = useQueryStates(runsParams);
-	const [selected, setSelected] = useQueryStates(runParams);
+	const [{ source, page }, setParams] = useQueryStates(runsParams, runsUrlKeys);
+	const [selected, setSelected] = useQueryStates(
+		{ ...runParams, ...changeParams },
+		changeUrlKeys,
+	);
+	const openRun = (run: number | null) => {
+		void setSelected({ run, state: null, page: null });
+	};
 	const { data, isLoading, error, refetch, isRefetching } =
 		useUkmaDataSyncRunsList(
 			{
@@ -193,11 +207,7 @@ export function SyncHistoryTab() {
 		return (
 			<div className="space-y-4">
 				<div className="flex flex-wrap items-center justify-between gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => setSelected({ run: null })}
-					>
+					<Button variant="ghost" size="sm" onClick={() => openRun(null)}>
 						<ArrowLeft />
 						Усі запуски
 					</Button>
@@ -265,7 +275,7 @@ export function SyncHistoryTab() {
 					<ul className="space-y-3" aria-label="Запуски синхронізації">
 						{data.items.map((run) => (
 							<li key={run.id}>
-								<RunRow run={run} onOpen={() => setSelected({ run: run.id })} />
+								<RunRow run={run} onOpen={() => openRun(run.id)} />
 							</li>
 						))}
 					</ul>
