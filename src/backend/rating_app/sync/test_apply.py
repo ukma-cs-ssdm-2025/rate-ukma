@@ -713,6 +713,27 @@ def test_approve_refuses_while_the_source_lock_is_held(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_reject_refuses_while_the_source_lock_is_held(
+    monkeypatch,
+    user,
+    make_run,
+    make_change,
+):
+    monkeypatch.setattr(apply, "advisory_lock", _lock_taken)
+    run = make_run()
+    email = "locked.teacher@example.com"
+    created = make_change(run, kind="teacher_created", key=email, after=_created(email))
+
+    approval = reject([created.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.REFUSED
+    assert approval.error == "lock_held"
+    created.refresh_from_db()
+    assert created.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_approve_twice_does_not_duplicate_rows(
     user,
     make_run,
