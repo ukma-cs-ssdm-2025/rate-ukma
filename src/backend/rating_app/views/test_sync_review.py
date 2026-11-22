@@ -674,6 +674,49 @@ def test_questions_paginate_with_after(review_fixture, catalog_run, superuser_cl
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_questions_next_page_keeps_unanswered_after_an_answer(
+    catalog_run,
+    superuser_client,
+    sync_change_factory,
+    course_factory,
+    catalog_mapping_decision_factory,
+):
+    changes = [
+        _merge_change(
+            sync_change_factory,
+            catalog_run,
+            f"ud-page-{index}",
+            [(course_factory(), 0), (course_factory(), 0)],
+            ratings=0,
+        )
+        for index in range(3)
+    ]
+    url = reverse("ukma-data-sync-questions")
+    first = superuser_client.get(url, {"limit": 1}).json()
+    catalog_mapping_decision_factory(
+        kind="merge_courses",
+        question_key=first["items"][0]["key"],
+        answer=MappingAnswer.KEEP_APART,
+    )
+
+    second = superuser_client.get(url, {"limit": 1, "after": first["next_after"]}).json()
+    third = superuser_client.get(url, {"limit": 1, "after": second["next_after"]}).json()
+
+    assert [first["items"][0]["id"], second["items"][0]["id"], third["items"][0]["id"]] == [
+        change.pk for change in changes
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_questions_reject_a_malformed_cursor(catalog_run, superuser_client):
+    response = superuser_client.get(reverse("ukma-data-sync-questions"), {"after": "12"})
+
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_questions_rated_filter(review_fixture, superuser_client):
     rated = superuser_client.get(reverse("ukma-data-sync-questions"), {"rated": "true"}).json()
     unrated = superuser_client.get(reverse("ukma-data-sync-questions"), {"rated": "false"}).json()

@@ -4256,8 +4256,8 @@ paths:
       - in: query
         name: after
         schema:
-          type: integer
-        description: 'Keyset cursor: the id of the last question seen'
+          type: string
+        description: 'Keyset cursor: `next_after` from the previous page'
       - in: query
         name: limit
         schema:
@@ -7894,7 +7894,7 @@ components:
           items:
             $ref: '#/components/schemas/SyncQuestion'
         next_after:
-          type: integer
+          type: string
           nullable: true
       required:
       - items

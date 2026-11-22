@@ -296,9 +296,20 @@ class SyncReviewViewSet(SyncViewSetBase):
             for change in changes
         )
         for _, row in sorted(rows, key=lambda item: item[0]):
-            writer.writerow(row)
+            writer.writerow([_csv_cell(value) for value in row])
         response = HttpResponse(
             "\ufeff" + buffer.getvalue(), content_type="text/csv; charset=utf-8"
         )
         response["Content-Disposition"] = f'attachment; filename="sync-run-{path.run_id}.csv"'
         return response
+
+
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_cell(value: Any) -> Any:
+    """Keys come from UKMA Data: a cell a spreadsheet would run as a formula is
+    prefixed with an apostrophe so it opens as text."""
+    if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
+        return "'" + value
+    return value

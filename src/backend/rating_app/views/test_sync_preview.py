@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from contextlib import contextmanager
 
 from django.urls import reverse
@@ -320,6 +321,30 @@ def test_approve_requires_a_token_for_a_filter_selection(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_approve_returns_the_first_approval_when_a_client_key_races(
+    superuser_client,
+    monkeypatch,
+    teacher_run,
+    sync_change_factory,
+    sync_approval_factory,
+    course_offering_factory,
+):
+    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
+    _created, added = _teacher_unit(sync_change_factory, teacher_run, course_offering_factory())
+    key = uuid.UUID("5d1e7c2a-3b4f-4a6e-8c9d-0e1f2a3b4c5d")
+    winner = sync_approval_factory(
+        run=teacher_run, user=superuser_client.user, client_key=key, change_ids=[added.pk]
+    )
+
+    approval = apply.approve([added.pk], superuser_client.user, client_key=key)
+
+    assert approval.pk == winner.pk
+    added.refresh_from_db()
+    assert added.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_approve_is_idempotent_by_client_key(
     superuser_client,
     monkeypatch,
@@ -572,6 +597,26 @@ def test_run_export_has_a_bom_and_the_header(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_run_export_opens_a_formula_like_key_as_text(
+    superuser_client, catalog_run, sync_change_factory
+):
+    sync_change_factory(
+        run=catalog_run,
+        kind="link_course",
+        key="=HYPERLINK(1)",
+        state=SyncChangeState.APPLIED,
+        decided_at=timezone.now(),
+    )
+
+    response = superuser_client.get(
+        reverse("ukma-data-sync-run-export", kwargs={"run_id": catalog_run.pk})
+    )
+
+    assert "change,link_course,'=HYPERLINK(1)," in response.content.decode("utf-8-sig")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_run_approvals_and_export_return_404_for_an_unknown_run(superuser_client):
     assert (
         superuser_client.get(
@@ -616,3 +661,107 @@ def test_approve_with_a_token_and_ids_needs_no_group(
 
     assert response.status_code == 200
     assert response.json()["outcome"] == "applied"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_refuses_a_whole_group_without_a_preview(
+    superuser_client, teacher_run, sync_change_factory, course_offering_factory
+):
+    created, added = _teacher_unit(sync_change_factory, teacher_run, course_offering_factory())
+
+    response = superuser_client.post(
+        reverse("ukma-data-sync-approve"),
+        {"source": "teachers", "group": "change"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["token"] == ["Спочатку перегляньте вибірку"]
+    for change in (created, added):
+        change.refresh_from_db()
+        assert change.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_refuses_a_token_nobody_previewed(
+    superuser_client, teacher_run, sync_change_factory, course_offering_factory
+):
+    created, added = _teacher_unit(sync_change_factory, teacher_run, course_offering_factory())
+    forged = selection.token_for(teacher_run.pk, [created.pk, added.pk])
+
+    response = superuser_client.post(
+        reverse("ukma-data-sync-approve"),
+        {
+            "source": "teachers",
+            "token": forged,
+            "selection": {"filter": {"group": "change"}},
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["token"] == ["Спочатку перегляньте вибірку"]
+    added.refresh_from_db()
+    assert added.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_refuses_a_token_another_user_previewed(
+    superuser_client,
+    user_factory,
+    teacher_run,
+    sync_change_factory,
+    course_offering_factory,
+):
+    created, added = _teacher_unit(sync_change_factory, teacher_run, course_offering_factory())
+    token = selection.token_for(teacher_run.pk, [created.pk, added.pk])
+    selection.record_preview(token, teacher_run, user_factory(is_superuser=True), 2)
+
+    response = superuser_client.post(
+        reverse("ukma-data-sync-approve"),
+        {
+            "source": "teachers",
+            "token": token,
+            "selection": {"filter": {"group": "change"}},
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["token"] == ["Спочатку перегляньте вибірку"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_history_names_a_real_approval_by_the_group_it_applied(
+    superuser_client,
+    monkeypatch,
+    teacher_run,
+    sync_change_factory,
+    course_offering_factory,
+):
+    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
+    _teacher_unit(sync_change_factory, teacher_run, course_offering_factory())
+    preview = superuser_client.post(
+        reverse("ukma-data-sync-preview"),
+        {"source": "teachers", "selection": {"filter": {"group": "change"}}},
+        format="json",
+    ).json()
+    superuser_client.post(
+        reverse("ukma-data-sync-approve"),
+        {
+            "source": "teachers",
+            "token": preview["token"],
+            "selection": {"filter": {"group": "change"}},
+        },
+        format="json",
+    )
+
+    response = superuser_client.get(
+        reverse("ukma-data-sync-run-approvals", kwargs={"run_id": teacher_run.pk})
+    )
+
+    assert response.json()["items"][0]["selection"] == "Зміни, 2 зміни"

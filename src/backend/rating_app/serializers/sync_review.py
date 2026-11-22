@@ -121,7 +121,7 @@ class SyncQuestionSerializer(serializers.Serializer):
 
 class SyncQuestionListResponseSerializer(serializers.Serializer):
     items = SyncQuestionSerializer(many=True)
-    next_after = serializers.IntegerField(allow_null=True)
+    next_after = serializers.CharField(allow_null=True)
 
 
 class SyncBulkAnswerRequestSerializer(serializers.Serializer):
