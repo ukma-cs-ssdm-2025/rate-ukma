@@ -747,7 +747,7 @@ def test_history_names_a_real_approval_by_the_group_it_applied(
     _teacher_unit(sync_change_factory, teacher_run, course_offering_factory())
     preview = superuser_client.post(
         reverse("ukma-data-sync-preview"),
-        {"source": "teachers", "selection": {"filter": {"group": "change"}}},
+        {"source": "teachers", "selection": {"filter": {"group": "new"}}},
         format="json",
     ).json()
     superuser_client.post(
@@ -755,7 +755,7 @@ def test_history_names_a_real_approval_by_the_group_it_applied(
         {
             "source": "teachers",
             "token": preview["token"],
-            "selection": {"filter": {"group": "change"}},
+            "selection": {"filter": {"group": "new"}},
         },
         format="json",
     )
@@ -764,4 +764,4 @@ def test_history_names_a_real_approval_by_the_group_it_applied(
         reverse("ukma-data-sync-run-approvals", kwargs={"run_id": teacher_run.pk})
     )
 
-    assert response.json()["items"][0]["selection"] == "Зміни, 2 зміни"
+    assert response.json()["items"][0]["selection"] == "Нові записи, 2 зміни"

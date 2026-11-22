@@ -148,8 +148,13 @@ def approve(
     *,
     confirm_old_run: bool = False,
     client_key: uuid.UUID | None = None,
+    group: str = "",
+    kind: str = "",
 ) -> SyncApproval:
     """Apply the selected proposed changes, each expanded to its whole unit.
+
+    ``group`` and ``kind`` name what the person asked for, so history can say
+    «Зв'язки» even when a unit pulls in changes from other groups.
 
     The approval row is written ``started`` before anything else. A run over
     :data:`APPROVAL_MAX_AGE` old is refused as ``run_too_old`` unless
@@ -181,7 +186,7 @@ def approve(
             return _refuse(approval, "no_proposed_changes")
         if not confirm_old_run and _run_age(run) > APPROVAL_MAX_AGE:
             return _refuse(approval, "run_too_old")
-        _set_approval_changes(approval, _unit_members(units) or changes)
+        _set_approval_changes(approval, _unit_members(units) or changes, group=group, kind=kind)
         result = _run_apply(approval, run, units)
         if result.outcome == SyncApprovalOutcome.APPLIED:
             # A change auto-policy depended on may have just applied.
@@ -1191,14 +1196,20 @@ def _start_approval(
         )
 
 
-def _set_approval_changes(approval: SyncApproval, changes: list[SyncChange]) -> None:
-    """Record the changes and the one group and kind they share, if any: history
-    names an approval by them («Зв'язки, 28 950 змін»)."""
+def _set_approval_changes(
+    approval: SyncApproval, changes: list[SyncChange], *, group: str = "", kind: str = ""
+) -> None:
+    """Record the changes and what the approval was for: the requested group and
+    kind, else the one group and kind the changes share. History names an
+    approval by them («Зв'язки, 28 950 змін»)."""
     approval.change_ids = [change.pk for change in changes]
     groups = {change.group for change in changes}
     kinds = {change.kind for change in changes}
-    approval.group = groups.pop() if len(groups) == 1 else ""
-    approval.kind = kinds.pop() if len(kinds) == 1 else ""
+    if group or kind:
+        approval.group, approval.kind = group, kind
+    else:
+        approval.group = groups.pop() if len(groups) == 1 else ""
+        approval.kind = kinds.pop() if len(kinds) == 1 else ""
     approval.save(update_fields=["change_ids", "group", "kind"])
 
 
