@@ -341,11 +341,12 @@ def _term_payload(term: ukma_data.OfferingTerm, semester: tuple[int, str]) -> di
 
 
 def _practice(term: ukma_data.OfferingTerm) -> tuple[str, int | None]:
-    if term.seminar_hours is not None:
+    """The same mapping ``new_offering`` uses, so a fresh row proposes no change."""
+    if term.seminar_hours:
         return "SEMINAR", term.seminar_hours
-    if term.practice_hours is not None:
+    if term.practice_hours:
         return "PRACTICE", term.practice_hours
-    return "PRACTICE", None
+    return "", None
 
 
 def _credits(credits: float | ukma_data.Credits) -> str:
