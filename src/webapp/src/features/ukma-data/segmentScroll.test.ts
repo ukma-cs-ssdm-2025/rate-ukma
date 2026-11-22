@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { scrollToShow } from "./segmentScroll";
+import { arrowTarget, scrollToShow } from "./segmentScroll";
 
 describe("scrollToShow", () => {
 	it("keeps the scroll when the active segment is already in view", () => {
@@ -19,5 +19,21 @@ describe("scrollToShow", () => {
 		expect(
 			scrollToShow({ start: 10, size: 90 }, { start: 120, size: 320 }),
 		).toBe(10);
+	});
+});
+
+describe("arrowTarget", () => {
+	it("moves to the next and previous segment and wraps around", () => {
+		// Assert
+		expect(arrowTarget("ArrowRight", 0, 3)).toBe(1);
+		expect(arrowTarget("ArrowLeft", 0, 3)).toBe(2);
+		expect(arrowTarget("ArrowDown", 2, 3)).toBe(0);
+		expect(arrowTarget("Home", 2, 3)).toBe(0);
+		expect(arrowTarget("End", 0, 3)).toBe(2);
+	});
+
+	it("ignores other keys", () => {
+		// Assert
+		expect(arrowTarget("Enter", 1, 3)).toBeNull();
 	});
 });

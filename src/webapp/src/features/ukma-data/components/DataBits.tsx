@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
+import type { KeyboardEvent } from "react";
 
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { formatCount } from "../syncFormat";
-import { scrollToShow } from "../segmentScroll";
+import { arrowTarget, scrollToShow } from "../segmentScroll";
 import { pageNumbers } from "../syncRows";
 
 export type ChipTone = "success" | "primary" | "caution" | "muted";
@@ -102,11 +103,26 @@ export function DataSegments<T extends string>({
 	tabs?: boolean;
 }>) {
 	const ref = useActiveInView(value);
+	const active = Math.max(
+		0,
+		items.findIndex((item) => item.value === value),
+	);
+	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		const target = arrowTarget(event.key, active, items.length);
+		const next = target === null ? undefined : items[target];
+		if (target === null || next === undefined) {
+			return;
+		}
+		event.preventDefault();
+		onChange(next.value);
+		ref.current?.querySelectorAll<HTMLButtonElement>("button")[target]?.focus();
+	};
 	return (
 		<div
 			ref={ref}
 			role={tabs ? "tablist" : "radiogroup"}
 			aria-label={label}
+			onKeyDown={onKeyDown}
 			className="relative inline-flex max-w-full overflow-x-auto rounded-md border text-sm"
 		>
 			{items.map((item, index) => (
@@ -117,6 +133,7 @@ export function DataSegments<T extends string>({
 					aria-checked={tabs ? undefined : value === item.value}
 					aria-selected={tabs ? value === item.value : undefined}
 					data-active={value === item.value}
+					tabIndex={index === active ? 0 : -1}
 					onClick={() => onChange(item.value)}
 					className={cn(
 						"flex shrink-0 items-center gap-1.5 px-2 py-1.5 whitespace-nowrap sm:gap-2 sm:px-3",
@@ -178,10 +195,14 @@ export function DataPager({
 	);
 }
 
-export function DataProgress({ value }: Readonly<{ value: number }>) {
+export function DataProgress({
+	value,
+	label,
+}: Readonly<{ value: number; label: string }>) {
 	return (
 		<div
 			role="progressbar"
+			aria-label={label}
 			aria-valuemin={0}
 			aria-valuemax={100}
 			aria-valuenow={Math.round(value)}

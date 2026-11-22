@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DataSegments } from "./DataBits";
@@ -56,5 +57,32 @@ describe("DataSegments", () => {
 			"aria-checked",
 			"true",
 		);
+	});
+
+	it("moves with arrow keys and keeps one tab stop", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onChange = vi.fn();
+		render(
+			<DataSegments
+				label="Стан"
+				value="history"
+				onChange={onChange}
+				items={TABS}
+			/>,
+		);
+
+		// Act
+		await user.click(screen.getByRole("radio", { name: "Історія" }));
+		await user.keyboard("{ArrowRight}");
+
+		// Assert
+		expect(onChange).toHaveBeenLastCalledWith("rules");
+		expect(screen.getByRole("radio", { name: "Правила" })).toHaveFocus();
+		expect(
+			screen
+				.getAllByRole("radio")
+				.map((radio) => radio.getAttribute("tabindex")),
+		).toEqual(["-1", "0", "-1"]);
 	});
 });

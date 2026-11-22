@@ -115,7 +115,7 @@ export function freshnessText(
 ): string | null {
 	const parts = [
 		updated ? `Дані САЗ станом на ${formatDayMonthTime(updated)}` : null,
-		checked ? `перевірено о ${formatTime(checked)}` : null,
+		checked ? `перевірено ${formatDayMonthTime(checked)}` : null,
 	].filter((part) => part !== null);
 	return parts.length > 0 ? parts.join(" · ") : null;
 }

@@ -44,7 +44,28 @@ const SEMESTERS = {
 	many: "семестрів",
 } satisfies PluralForms;
 
+const INTERIM_LABELS = new Set(["Зараз", "Стан"]);
+
+const WHILE_OPEN = "Поки справа була відкрита";
+
 export function caseSides(
+	reviewCase: UkmaDataReviewCase,
+): readonly [CaseSide, CaseSide] {
+	const [first, second] = openCaseSides(reviewCase);
+	if (reviewCase.status === "open") {
+		return [first, second];
+	}
+	return [pastSide(first), pastSide(second)];
+}
+
+const pastSide = (side: CaseSide): CaseSide => ({
+	...side,
+	rows: side.rows.map(([label, value]) =>
+		INTERIM_LABELS.has(label) ? [WHILE_OPEN, value] : [label, value],
+	),
+});
+
+function openCaseSides(
 	reviewCase: UkmaDataReviewCase,
 ): readonly [CaseSide, CaseSide] {
 	const count = candidateIds(reviewCase).length;
@@ -159,7 +180,7 @@ export function caseMeanwhile(reviewCase: UkmaDataReviewCase): string {
 		case "open":
 			return `Поки рішення немає, ${MEANWHILE[reviewCase.kind]}`;
 		case "decided":
-			return "Справу вирішено: на сайті вже діє рішення.";
+			return "Справу вирішено в сервісі даних САЗ; вище — що показували, поки вона була відкрита.";
 		case "obsolete":
 			return "Справа більше не актуальна: дані в САЗ змінились, і питання зникло.";
 	}

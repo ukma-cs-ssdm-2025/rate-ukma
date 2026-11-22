@@ -162,7 +162,9 @@ describe("/data overview", () => {
 		expect(details).toHaveTextContent("key-test-1");
 		expect(details).toHaveTextContent("catalog:read, review:read");
 		expect(
-			screen.getByText(/Дані САЗ станом на 10 вересня, 06:55 · перевірено о/),
+			screen.getByText(
+				/Дані САЗ станом на 10 вересня, 06:55 · перевірено \d+ вересня, \d\d:\d\d/,
+			),
 		).toBeInTheDocument();
 		expect(document.body).not.toHaveTextContent("UKMA Data");
 	});

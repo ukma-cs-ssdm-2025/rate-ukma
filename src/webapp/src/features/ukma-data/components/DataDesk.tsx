@@ -15,7 +15,7 @@ export function DeskHead({
 					{label}
 				</span>
 			</div>
-			<DataProgress value={progress} />
+			<DataProgress value={progress} label={`${title}: ${label}`} />
 		</div>
 	);
 }
