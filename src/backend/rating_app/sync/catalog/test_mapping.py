@@ -4,6 +4,8 @@ import time
 from collections.abc import Sequence
 from dataclasses import replace
 
+import pytest
+
 from rating_app.application_schemas import ukma_data_api as ukma_data
 from rating_app.sync.catalog.mapping import propose_mapping_questions
 from rating_app.sync.drafts import ChangeDraft, DecisionView
@@ -351,7 +353,22 @@ def test_a_live_decision_with_the_same_premise_answers_the_merge_question():
     )
 
     assert _by_kind(_propose(ud, ru, [keep_apart]), "merge_courses") == []
-    assert _by_kind(_propose(ud, ru, [merge]), "merge_courses") == []
+    # A merge answer still needs its change applied, so the question stays.
+    assert len(_by_kind(_propose(ud, ru, [merge]), "merge_courses")) == 1
+
+
+@pytest.mark.parametrize(
+    "premise",
+    [
+        {**MERGE_PREMISE, "course_ids": ["ru-b", "ru-a"]},
+        {**MERGE_PREMISE, "ratings": {"ru-a": 2, "ru-b": 3}},
+    ],
+)
+def test_a_merge_premise_stored_the_way_links_and_new_reads_it_answers_the_question(premise):
+    ud, ru = _merge_scenario()
+    keep_apart = _decision("merge_courses", "ud-a", "keep_apart", premise, ukma_course_id="ud-a")
+
+    assert _by_kind(_propose(ud, ru, [keep_apart]), "merge_courses") == []
 
 
 def test_a_rule_merge_keeps_its_merge_source_in_the_question_and_the_premise():
@@ -542,6 +559,34 @@ def test_a_stray_offering_whose_course_does_not_exist_yet_is_not_asked_to_move()
     assert _by_kind(_propose(ud, ru), "move_offering") == []
 
 
+def test_a_move_never_targets_a_course_the_same_run_asks_to_relink():
+    ud = _ud_snapshot(
+        courses=[_ud_course("ud-a"), _ud_course("ud-b"), _ud_course("ud-w")],
+        offerings=[
+            _ud_offering("ud-1", course_id="ud-a", saz_code="100001"),
+            _ud_offering("ud-2", course_id="ud-b", saz_code="100002"),
+            _ud_offering("ud-3", course_id="ud-w", saz_code="100003"),
+        ],
+    )
+    ru = _ru_snapshot(
+        departments=[_ru_department()],
+        courses=[
+            _ru_course("ru-a", ukma_data_id="ud-a"),
+            _ru_course("ru-t", ukma_data_id="ud-b", status="FINISHED"),
+        ],
+        offerings=[
+            _ru_offering("ru-1", code="100001", course_id="ru-a", ukma_data_id="ud-1"),
+            _ru_offering("ru-2", code="100002", course_id="ru-a", ukma_data_id="ud-2"),
+            _ru_offering("ru-3", code="100003", course_id="ru-t", ukma_data_id="ud-3"),
+        ],
+    )
+
+    drafts = _propose(ud, ru)
+
+    assert [draft.key for draft in _by_kind(drafts, "relink_course")] == ["ru-t"]
+    assert _by_kind(drafts, "move_offering") == []
+
+
 RELINK_PREMISE = {
     "course_ids": ["ru-course"],
     "ukma_course_id": "ud-new",
@@ -580,13 +625,13 @@ def test_a_majority_different_from_the_stored_link_asks_to_relink():
     assert draft.ratings == 6
 
 
-def test_a_live_relink_decision_answers_the_question():
+def test_an_unapplied_relink_answer_keeps_the_question_proposed():
     ud, ru = _relink_scenario()
     relink = _decision(
         "relink_course", "ru-course", "relink", RELINK_PREMISE, ukma_course_id="ud-new"
     )
 
-    assert _by_kind(_propose(ud, ru, [relink]), "relink_course") == []
+    assert len(_by_kind(_propose(ud, ru, [relink]), "relink_course")) == 1
 
 
 def test_a_live_keep_decision_answers_the_relink_question():

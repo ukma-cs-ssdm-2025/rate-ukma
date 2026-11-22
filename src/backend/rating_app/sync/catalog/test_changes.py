@@ -469,6 +469,7 @@ def test_course_moves_to_the_matched_department_of_its_ukma_data_course():
 
 def test_course_moving_to_a_new_department_waits_on_it():
     ud = _ud_snapshot(
+        faculties=[_ud_faculty()],
         departments=[_ud_department(), _ud_department("ud-new", name="Нова кафедра")],
         courses=[_ud_course(department_id="ud-new")],
     )
@@ -480,6 +481,35 @@ def test_course_moving_to_a_new_department_waits_on_it():
         "department": {"id": "", "ukma_data_id": "ud-new", "name": "Нова кафедра"}
     }
     assert draft.requires == [{"kind": "new_department", "key": "ud-new"}]
+
+
+def test_a_course_does_not_move_to_a_department_no_run_creates():
+    ud = _ud_snapshot(
+        departments=[
+            _ud_department(),
+            _ud_department("ud-orphan", name="Кафедра без факультету", faculty_id=None),
+        ],
+        courses=[_ud_course(title="Нова назва", department_id="ud-orphan")],
+    )
+    ru = _ru_snapshot(departments=[_ru_department()], courses=[_ru_course(status="FINISHED")])
+
+    draft = _only(_propose(ud, ru)[0], "change_course")
+
+    assert draft.after == {"title": "Нова назва"}
+    assert draft.requires == []
+
+
+def test_a_course_title_over_the_limit_is_skipped():
+    ud = _ud_snapshot(
+        departments=[_ud_department()],
+        courses=[_ud_course(title="Д" * 256)],
+    )
+    ru = _ru_snapshot(departments=[_ru_department()], courses=[_ru_course(status="FINISHED")])
+
+    drafts, skipped = _propose(ud, ru)
+
+    assert _by_kind(drafts, "change_course") == []
+    assert skipped == {"title_too_long": ["ru-course"]}
 
 
 def test_a_colliding_course_identity_is_skipped_and_listed():
@@ -499,6 +529,28 @@ def test_a_colliding_course_identity_is_skipped_and_listed():
 
     assert _by_kind(drafts, "change_course") == []
     assert skipped == {"identity_collision": ["ru-a"]}
+
+
+def test_two_courses_changed_into_one_identity_are_both_skipped():
+    ud = _ud_snapshot(
+        departments=[_ud_department()],
+        courses=[
+            _ud_course("ud-a", title="Нова назва"),
+            _ud_course("ud-b", title="Нова назва"),
+        ],
+    )
+    ru = _ru_snapshot(
+        departments=[_ru_department()],
+        courses=[
+            _ru_course("ru-a", title="Перша", ukma_data_id="ud-a"),
+            _ru_course("ru-b", title="Друга", ukma_data_id="ud-b"),
+        ],
+    )
+
+    drafts, skipped = _propose(ud, ru)
+
+    assert _by_kind(drafts, "change_course") == []
+    assert skipped == {"identity_collision": ["ru-a", "ru-b"]}
 
 
 def _offering_scenario(
@@ -603,6 +655,19 @@ def test_a_term_without_seminar_or_practice_hours_matches_a_blank_practice_type(
     assert not [draft for draft in _propose(ud, ru)[0] if draft.kind == "change_offering"]
 
 
+def test_an_offering_with_a_term_ukma_data_does_not_list_is_skipped():
+    ud, ru = _offering_scenario(
+        ud_terms=[_ud_offering_term(), _ud_offering_term("term-unknown")],
+        ru_terms=(_ru_term(),),
+        max_students=40,
+    )
+
+    drafts, skipped = _propose(ud, ru)
+
+    assert _by_kind(drafts, "change_offering") == []
+    assert skipped == {"no_term": ["ru-offering"]}
+
+
 def test_offering_specialities_are_only_added_when_the_name_exists_in_rate_ukma():
     ud, ru = _offering_scenario(
         ud_terms=[_ud_offering_term()],
@@ -691,13 +756,14 @@ def test_a_merged_ukma_data_course_is_not_removed():
     assert _by_kind(drafts, "removed_course") == []
 
 
-def test_offerings_ukma_data_lacks_or_marks_removed_are_removed_offerings():
+def test_offerings_ukma_data_dropped_or_lists_only_as_removed_are_removed_offerings():
     ud = _ud_snapshot(
         departments=[_ud_department()],
         courses=[_ud_course()],
         offerings=[
             _ud_offering("ud-live", saz_code="100001"),
             _ud_offering("ud-gone", saz_code="100002", removed_at="2026-02-02T00:00:00Z"),
+            _ud_offering("ud-old", saz_code="100004", removed_at="2026-03-03T00:00:00Z"),
         ],
     )
     ru = _ru_snapshot(
@@ -706,15 +772,36 @@ def test_offerings_ukma_data_lacks_or_marks_removed_are_removed_offerings():
         offerings=[
             _ru_offering("ru-live", code="100001", ukma_data_id="ud-live"),
             _ru_offering("ru-gone", code="100002", ukma_data_id="ud-gone"),
-            _ru_offering("ru-missing", code="100003"),
+            _ru_offering("ru-unlisted", code="100003"),
+            _ru_offering("ru-unlinked", code="100004"),
         ],
     )
 
     drafts = _by_kind(_propose(ud, ru)[0], "removed_offering")
 
-    assert [draft.key for draft in drafts] == ["ru-gone", "ru-missing"]
-    assert [draft.after["saz_code"] for draft in drafts] == ["100002", "100003"]
-    assert [draft.after["removed_at"] for draft in drafts] == ["2026-02-02T00:00:00Z", None]
+    assert [draft.key for draft in drafts] == ["ru-gone", "ru-unlinked"]
+    assert [draft.after["removed_at"] for draft in drafts] == [
+        "2026-02-02T00:00:00Z",
+        "2026-03-03T00:00:00Z",
+    ]
+
+
+def test_an_unlinked_offering_whose_code_is_live_again_is_not_removed():
+    ud = _ud_snapshot(
+        departments=[_ud_department()],
+        courses=[_ud_course()],
+        offerings=[
+            _ud_offering("ud-new", saz_code="100001"),
+            _ud_offering("ud-old", saz_code="100001", removed_at="2026-02-02T00:00:00Z"),
+        ],
+    )
+    ru = _ru_snapshot(
+        departments=[_ru_department()],
+        courses=[_ru_course()],
+        offerings=[_ru_offering("ru-offering", code="100001")],
+    )
+
+    assert _by_kind(_propose(ud, ru)[0], "removed_offering") == []
 
 
 def _complete_scenario() -> tuple[UkmaDataSnapshot, RateUkmaSnapshot]:

@@ -8,7 +8,7 @@ the row it changes.
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 from decimal import Decimal
 
@@ -63,7 +63,7 @@ def propose_changes(
         *_course_changes(index, ud, departments, offering_match, academic_year, skipped),
         *_offering_changes(index, ud, offering_match, skipped),
         *_removed_courses(index, ud),
-        *_removed_offerings(index, ud),
+        *_removed_offerings(index, ud, set(offering_match.values())),
     ]
     return sorted_drafts(drafts), sorted_skips(skipped)
 
@@ -132,8 +132,9 @@ def _course_changes(
 ) -> list[ChangeDraft]:
     ru = index.ru
     ud_offering_of = {ru_id: ud_id for ud_id, ru_id in offering_match.items()}
+    creatable = _creatable_departments(ud, set(match_faculties(ud, ru)), set(departments))
 
-    drafts = []
+    pending: list[tuple[RuCourse, str, dict[str, object]]] = []
     for course_id in sorted(ru.courses):
         course = ru.courses[course_id]
         if course.ukma_data_id is None:
@@ -143,7 +144,7 @@ def _course_changes(
             continue
 
         after = _course_after(
-            index, ud, course, ud_course, departments, ud_offering_of, academic_year
+            index, ud, course, ud_course, departments, creatable, ud_offering_of, academic_year
         )
         if not after:
             continue
@@ -154,13 +155,24 @@ def _course_changes(
         if _identity_collides(index, course, after):
             skipped[IDENTITY_COLLISION].append(course_id)
             continue
+        pending.append((course, ud_course.id, after))
+
+    # Two courses changed into one identity would break ``course_identity_unique``.
+    targets = Counter(_new_identity(course, after) for course, _, after in pending)
+    drafts = []
+    for course, ud_course_id, after in pending:
+        if _new_identity(course, after) != _identity(course) and (
+            targets[_new_identity(course, after)] > 1
+        ):
+            skipped[IDENTITY_COLLISION].append(course.id)
+            continue
         drafts.append(
             make_draft(
                 index,
                 "change_course",
-                course_id,
-                course_id,
-                ud_course.id,
+                course.id,
+                course.id,
+                ud_course_id,
                 after,
                 {"course": course_display(index, course)},
                 ratings=course.ratings,
@@ -168,6 +180,25 @@ def _course_changes(
             )
         )
     return drafts
+
+
+def _creatable_departments(
+    ud: UkmaDataSnapshot, matched_faculties: set[str], matched_departments: set[str]
+) -> set[str]:
+    """UKMA Data departments ``links_and_new`` creates: unmatched, a name that
+    fits, under a live faculty that is matched or created in the same run."""
+    creatable = set()
+    for department in ud.departments.values():
+        if department.id in matched_departments or department.removed_at is not None:
+            continue
+        if len(department.name) > MAX_NAME or department.faculty_id is None:
+            continue
+        faculty = ud.faculties.get(department.faculty_id)
+        if faculty is None or faculty.removed_at is not None:
+            continue
+        if faculty.id in matched_faculties or len(faculty.name) <= MAX_NAME:
+            creatable.add(department.id)
+    return creatable
 
 
 def _course_requires(after: dict[str, object]) -> list[dict[str, str]]:
@@ -186,6 +217,7 @@ def _course_after(
     course: RuCourse,
     ud_course: ukma_data.Course,
     departments: dict[str, str],
+    creatable: set[str],
     ud_offering_of: dict[str, str],
     academic_year: int,
 ) -> dict[str, object]:
@@ -197,7 +229,9 @@ def _course_after(
         ud_department = ud.departments.get(ud_course.department_id)
         if ud_department is not None and ud_department.removed_at is None:
             department_id = departments.get(ud_department.id)
-            if department_id != course.department_id:
+            if department_id is None and ud_department.id not in creatable:
+                pass  # no builder creates it, so a move there would wait forever
+            elif department_id != course.department_id:
                 after["department"] = {
                     "id": department_id or "",
                     "ukma_data_id": ud_department.id,
@@ -220,28 +254,35 @@ def _course_after(
     return after
 
 
-def _identity_collides(index: CatalogIndex, course: RuCourse, after: dict[str, object]) -> bool:
-    title = after.get("title")
-    new_title = title if isinstance(title, str) else course.title
-    department = after.get("department")
-    new_department_id = course.department_id
-    if isinstance(department, dict):
-        ref = department.get("id")
-        if isinstance(ref, str) and ref:
-            new_department_id = ref
-    level = after.get("education_level")
-    new_level = level if isinstance(level, str) else course.education_level
+Identity = tuple[str, str, str]
 
-    if (new_title, new_department_id, new_level) == (
-        course.title,
-        course.department_id,
-        course.education_level,
-    ):
-        return False
-    return any(
-        other_id != course.id
-        for other_id in index.courses_with_identity(new_title, new_department_id, new_level)
+
+def _identity(course: RuCourse) -> Identity:
+    return (course.title, course.department_id, course.education_level)
+
+
+def _new_identity(course: RuCourse, after: dict[str, object]) -> Identity:
+    """The identity after the change; a department the run creates is keyed by
+    its UKMA Data id, so it never equals an existing department's id."""
+    title = after.get("title")
+    department = after.get("department")
+    department_id = course.department_id
+    if isinstance(department, dict):
+        ref = department.get("id") or f"new:{department.get('ukma_data_id')}"
+        department_id = str(ref)
+    level = after.get("education_level")
+    return (
+        title if isinstance(title, str) else course.title,
+        department_id,
+        level if isinstance(level, str) else course.education_level,
     )
+
+
+def _identity_collides(index: CatalogIndex, course: RuCourse, after: dict[str, object]) -> bool:
+    identity = _new_identity(course, after)
+    if identity == _identity(course):
+        return False
+    return any(other_id != course.id for other_id in index.courses_with_identity(*identity))
 
 
 def _offering_changes(
@@ -296,7 +337,7 @@ def _offering_after(
 ) -> dict[str, object]:
     (last_year, last_term), last = terms[-1]
     derived: dict[str, object] = {
-        "semester": {"year": last_year, "term": last_term},
+        "semester": {"year": last_year, "term": str(last_term)},
         "exam_type": last["exam_type"],
         "study_year": ud_offering.study_year,
         "max_students": ud_offering.max_students,
@@ -320,7 +361,7 @@ def _offering_terms(
     for term in offering.terms:
         ud_term = ud.terms.get(term.term_id)
         if ud_term is None:
-            continue
+            return []  # a partial term list would delete a stored term
         semester = semester_of(ud_term)
         rows.append((semester, _term_payload(term, semester)))
     return sorted(rows, key=lambda row: (row[0][0], _TERM_RANK.get(row[0][1], 0)))
@@ -330,7 +371,7 @@ def _term_payload(term: ukma_data.OfferingTerm, semester: tuple[int, str]) -> di
     practice_type, practice_count = _practice(term)
     return {
         "year": semester[0],
-        "term": semester[1],
+        "term": str(semester[1]),
         "credits": _credits(term.credits),
         "weekly_hours": term.hours_per_week or 0,
         "lecture_count": term.lecture_hours,
@@ -402,19 +443,31 @@ def _removed_courses(index: CatalogIndex, ud: UkmaDataSnapshot) -> list[ChangeDr
     return drafts
 
 
-def _removed_offerings(index: CatalogIndex, ud: UkmaDataSnapshot) -> list[ChangeDraft]:
+def _removed_offerings(
+    index: CatalogIndex, ud: UkmaDataSnapshot, matched: set[str]
+) -> list[ChangeDraft]:
+    """A linked offering UKMA Data dropped, or an unlinked one whose code it lists
+    only as removed. A code UKMA Data never listed is not a removal: its years
+    may predate what UKMA Data covers."""
     ru = index.ru
-    by_code = {offering.saz_code: offering for offering in ud.offerings.values()}
+    live_codes = {row.saz_code for row in ud.offerings.values() if row.removed_at is None}
+    removed_by_code: dict[str, ukma_data.Offering] = {}
+    for row in sorted(ud.offerings.values(), key=lambda row: row.id):
+        if row.removed_at is not None and row.saz_code not in live_codes:
+            removed_by_code.setdefault(row.saz_code, row)
+
     drafts = []
     for offering_id in sorted(ru.offerings):
+        if offering_id in matched:
+            continue
         offering = ru.offerings[offering_id]
         if offering.ukma_data_id is not None:
             ud_offering = ud.offerings.get(offering.ukma_data_id)
             if ud_offering is not None and ud_offering.removed_at is None:
                 continue
         else:
-            ud_offering = by_code.get(offering.code)
-            if ud_offering is not None and ud_offering.removed_at is None:
+            ud_offering = removed_by_code.get(offering.code)
+            if ud_offering is None:
                 continue
 
         course = ru.courses.get(offering.course_id)

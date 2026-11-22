@@ -35,10 +35,13 @@ from rating_app.sync.matching import (
 )
 from rating_app.sync.snapshot import RateUkmaSnapshot, RuCourse, UkmaDataSnapshot
 
-_ANSWERS = {
-    "merge_courses": frozenset({"keep_apart", "merge"}),
-    "move_offering": frozenset({"keep", "move"}),
-    "relink_course": frozenset({"relink", "keep"}),
+# The answers that settle a question for good. A ``merge``, ``move`` or
+# ``relink`` answer still needs its change applied, so that question stays
+# proposed until the apply changes its premise.
+_SETTLING_ANSWERS = {
+    "merge_courses": "keep_apart",
+    "move_offering": "keep",
+    "relink_course": "keep",
 }
 
 
@@ -140,7 +143,11 @@ def _move_questions(
             index,
             ud_course,
             source,
-            linked.get(ud_course_id, []),
+            [
+                course_id
+                for course_id in linked.get(ud_course_id, [])
+                if majority.get(course_id) in (None, ud_course_id)
+            ],
             groups.get(ud_course_id, []),
         )
         if destination is None:
@@ -232,7 +239,13 @@ def _merge_questions(
             "merge_source": merge_source(ud_course),
             "ratings": ratings,
         }
-        if _answered(decisions, "merge_courses", ud_id, premise):
+        if _answered(
+            decisions,
+            "merge_courses",
+            ud_id,
+            premise,
+            ratings_by_course={course.id: course.ratings for course in courses},
+        ):
             continue
         after: dict[str, object] = {
             "merge_source": merge_source(ud_course),
@@ -266,19 +279,43 @@ def _merge_questions(
 
 
 def _answered(
-    decisions: Sequence[DecisionView], kind: str, key: str, premise: dict[str, object]
+    decisions: Sequence[DecisionView],
+    kind: str,
+    key: str,
+    premise: dict[str, object],
+    *,
+    ratings_by_course: dict[str, int] | None = None,
 ) -> bool:
-    """A live answer whose premise still holds; a changed premise asks again."""
+    """A live settling answer whose premise still holds; a changed premise asks
+    again. Matches ``links_and_new``: course ids compare as a set, and ratings
+    may be stored as a total or per course."""
     for decision in decisions:
         if decision.kind != kind or decision.question_key != key:
             continue
-        if decision.answer not in _ANSWERS[kind]:
-            continue
-        if kind == "merge_courses" and decision.answer == "merge" and decision.into_id is None:
+        if decision.answer != _SETTLING_ANSWERS[kind]:
             continue
         if all(
-            name in decision.premise and decision.premise[name] == value
+            _premise_value_holds(decision.premise, name, value, ratings_by_course)
             for name, value in premise.items()
         ):
             return True
     return False
+
+
+def _premise_value_holds(
+    stored: dict[str, object],
+    name: str,
+    value: object,
+    ratings_by_course: dict[str, int] | None,
+) -> bool:
+    if name not in stored:
+        return False
+    recorded = stored[name]
+    if name == "course_ids" and isinstance(recorded, list) and isinstance(value, list):
+        return sorted(str(item) for item in recorded) == sorted(str(item) for item in value)
+    if name == "ratings" and isinstance(recorded, dict) and ratings_by_course is not None:
+        try:
+            return {str(k): int(str(v)) for k, v in recorded.items()} == ratings_by_course
+        except (TypeError, ValueError):
+            return False
+    return recorded == value
