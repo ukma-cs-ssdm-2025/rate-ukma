@@ -445,6 +445,27 @@ def test_course_majority_keeps_the_stored_link_on_a_tie():
     }
 
 
+def test_course_majority_keeps_a_stored_link_that_was_merged_away_on_a_tie():
+    ud_snapshot = _ud_snapshot(
+        courses=[_ud_course("ud-old", merged_into="ud-z"), _ud_course("ud-z"), _ud_course("ud-a")],
+        offerings=[
+            _ud_offering("ud-1", course_id="ud-z"),
+            _ud_offering("ud-2", course_id="ud-a"),
+        ],
+    )
+    ru = _ru_snapshot(
+        courses=[replace(_ru_course("ru-course"), ukma_data_id="ud-old")],
+        offerings=[
+            _ru_offering("ru-1", course_id="ru-course"),
+            _ru_offering("ru-2", course_id="ru-course"),
+        ],
+    )
+
+    assert course_majority(ud_snapshot, ru, {"ud-1": "ru-1", "ud-2": "ru-2"}) == {
+        "ru-course": "ud-z"
+    }
+
+
 def test_course_majority_counts_merged_offerings_under_the_surviving_course():
     ud_snapshot = _ud_snapshot(
         courses=[
