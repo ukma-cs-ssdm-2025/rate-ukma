@@ -22,7 +22,7 @@ function responseCode(error: unknown): string | undefined {
 	if (!axios.isAxiosError<ErrorBody>(error)) {
 		return undefined;
 	}
-	const code = error.response?.data.code;
+	const code = error.response?.data?.code;
 	return typeof code === "string" ? code : undefined;
 }
 

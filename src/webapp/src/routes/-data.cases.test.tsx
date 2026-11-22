@@ -201,6 +201,24 @@ describe("/data/cases", () => {
 		).toBe(false);
 	});
 
+	it("shows the superusers-only page on 403 with a null body", async () => {
+		const session: Session = {
+			is_authenticated: true,
+			user: null,
+			is_student: true,
+			is_superuser: false,
+			speciality: null,
+		};
+		mockAxios.onGet(URL).reply(403, null);
+		mockAxios.onGet(SESSION_URL).reply(200, session);
+
+		renderCases();
+
+		expect(
+			await screen.findByText("Розділ лише для суперкористувачів"),
+		).toBeInTheDocument();
+	});
+
 	it("shows the superusers-only page on 403 while the session lasts", async () => {
 		const session: Session = {
 			is_authenticated: true,
