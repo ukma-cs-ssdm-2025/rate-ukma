@@ -3,8 +3,12 @@ from __future__ import annotations
 from django.core.management.base import CommandError
 
 import pytest
+import structlog
+from structlog.contextvars import merge_contextvars
+from structlog.testing import LogCapture
 
-from rating_app.models import Course, SyncApproval, SyncChangeState
+from rating_app.models import Course, SyncApproval, SyncApprovalOutcome, SyncChangeState
+from rating_app.sync import apply
 
 OLD_TITLE = "Тестова дисципліна А"
 NEW_TITLE = "Тестова дисципліна Б"
@@ -159,3 +163,76 @@ def test_apply_says_when_an_id_does_not_exist(run_catalog_sync, admin, make_cata
 
     with pytest.raises(CommandError, match="Деяких вибраних змін не існує"):
         run_catalog_sync("apply", "--ids", "999999", "--by", admin.username)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.usefixtures("free_sync_lock")
+def test_apply_reports_a_change_applied_earlier_as_left_out(
+    run_catalog_sync, admin, make_catalog_run, make_title_change
+):
+    run = make_catalog_run()
+    _, earlier = make_title_change(run)
+    _, fresh = make_title_change(run)
+    run_catalog_sync("apply", "--ids", str(earlier.pk), "--by", admin.username, "--yes")
+    ids = f"{earlier.pk},{fresh.pk}"
+
+    dry = run_catalog_sync("apply", "--ids", ids, "--by", admin.username)
+    out = run_catalog_sync("apply", "--ids", ids, "--by", admin.username, "--yes")
+
+    assert "Застосувало б 1 зміну: зміни курсів 1." in dry
+    assert "1 зміна: уже застосована" in dry
+    assert f"#{earlier.pk}" in dry.split("Не увійде:")[1]
+    assert "Застосовано 1 зміну: зміни курсів 1." in out
+    assert "1 зміна: уже застосована" in out
+
+
+@pytest.fixture
+def logs(monkeypatch):
+    """The apply module's log events, with their context vars."""
+    capture = LogCapture()
+    logger = structlog.wrap_logger(structlog.PrintLogger(), processors=[merge_contextvars, capture])
+    monkeypatch.setattr(apply, "logger", logger)
+    return capture.entries
+
+
+def _failing_apply(_handler, ready):
+    raise apply._ApplyFailedError(ready[0], RuntimeError("test"))
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.usefixtures("free_sync_lock")
+def test_apply_yes_failure_names_the_decision_and_leaves_the_change(
+    run_catalog_sync, admin, make_catalog_run, make_title_change, monkeypatch
+):
+    monkeypatch.setattr(apply, "_apply_ready", _failing_apply)
+    _, change = make_title_change(make_catalog_run())
+
+    with pytest.raises(CommandError, match="вибрані зміни не застосовано") as failure:
+        run_catalog_sync("apply", "--ids", str(change.pk), "--by", admin.username, "--yes")
+
+    approval = SyncApproval.objects.get()
+    assert approval.outcome == SyncApprovalOutcome.FAILED
+    assert f"Рішення #{approval.pk} не вдалося" in str(failure.value)
+    change.refresh_from_db()
+    assert change.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.usefixtures("free_sync_lock")
+def test_dry_run_failure_logs_a_tagged_warning_and_writes_nothing(
+    run_catalog_sync, admin, make_catalog_run, make_title_change, monkeypatch, logs
+):
+    monkeypatch.setattr(apply, "_apply_ready", _failing_apply)
+    _, change = make_title_change(make_catalog_run())
+
+    with pytest.raises(CommandError, match="Пробний запуск не вдався"):
+        run_catalog_sync("apply", "--ids", str(change.pk), "--by", admin.username)
+
+    failed = [entry for entry in logs if entry["event"] == "sync_apply_failed"]
+    assert failed
+    assert failed[0]["log_level"] == "warning"
+    assert all(entry.get("dry_run") is True for entry in logs)
+    assert not SyncApproval.objects.exists()

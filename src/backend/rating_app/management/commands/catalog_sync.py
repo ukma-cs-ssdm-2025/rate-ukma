@@ -16,7 +16,6 @@ from typing import Any
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
@@ -115,8 +114,6 @@ class Command(BaseCommand):
     def _json(self, payload: Any) -> None:
         self.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
-    # status ------------------------------------------------------------------
-
     def _status(self, options: dict[str, Any]) -> None:
         payload = {
             "sources": {source: _source_status(source) for source in SyncSource},
@@ -138,7 +135,7 @@ class Command(BaseCommand):
         )
         week = payload["applied_7_days"]
         line = (
-            f"Застосовано за 7 днів: {week['decisions']} рішень, "
+            f"Застосовано за 7 днів: {text.decisions_word(week['decisions'])}, "
             f"{text.changes_word(week['changes'])}"
         )
         if week["last_at"] is not None:
@@ -150,8 +147,6 @@ class Command(BaseCommand):
         self._say(
             "Авто-правила: " + (", ".join(auto) if auto else "немає, усе чекає рішення") + "."
         )
-
-    # show --------------------------------------------------------------------
 
     def _show(self, options: dict[str, Any]) -> None:
         run = _current_run(options["source"])
@@ -194,8 +189,6 @@ class Command(BaseCommand):
         if total > len(page):
             self._say(f"Ще {text.number(total - len(page))}. Далі: --limit 50 або --q «назва».")
 
-    # apply / reject ------------------------------------------------------------
-
     def _apply(self, options: dict[str, Any]) -> None:
         self._decide(options, reject=False)
 
@@ -227,10 +220,7 @@ class Command(BaseCommand):
         if result.outcome == SyncApprovalOutcome.REFUSED:
             raise CommandError("Відмовлено: " + decisions.refusal_text(result.error, run))
         if result.outcome == SyncApprovalOutcome.FAILED:
-            raise CommandError(
-                f"Не вдалося застосувати, нічого не записано ({result.error}). "
-                "Див. розділ «Збій» у runbook."
-            )
+            raise CommandError(_failure_text(result))
         if dry_run:
             self._say(DRY_RUN)
         self._say(*text.decision_lines(result, limit=options["limit"]))
@@ -247,8 +237,6 @@ class Command(BaseCommand):
             )
         else:
             self._say(f"Рішення #{result.approval_id}. Кеш сайту оновиться після запису.")
-
-    # answer --------------------------------------------------------------------
 
     def _answer(self, options: dict[str, Any]) -> None:
         user = _decider(options)
@@ -293,8 +281,6 @@ class Command(BaseCommand):
         )
         if dry_run:
             self._say(TO_WRITE)
-
-    # policy --------------------------------------------------------------------
 
     def _policy(self, options: dict[str, Any]) -> None:
         if options["kind"] is None:
@@ -358,14 +344,22 @@ class Command(BaseCommand):
             self._say(f"{label:<32}{mode:<20}{item['kind']:<22}{who}"[: text.WIDTH].rstrip())
 
 
+def _failure_text(result: decisions.DecisionResult) -> str:
+    if result.dry_run:
+        return (
+            f"Пробний запуск не вдався, нічого не записано ({result.error}). "
+            "Див. розділ «Збій» у runbook."
+        )
+    return (
+        f"Рішення #{result.approval_id} не вдалося: вибрані зміни не застосовано "
+        f"({result.error}). Записано лише саме рішення зі збоєм і зміни, які до того "
+        "вже стали неактуальними. Див. розділ «Збій» у runbook."
+    )
+
+
 def _maybe_rolled_back[T](call: Callable[[], T], dry_run: bool) -> T:
     """Run the same service call; a dry run rolls its writes back."""
-    if not dry_run:
-        return call()
-    with transaction.atomic():
-        result = call()
-        transaction.set_rollback(True)
-    return result
+    return decisions.rolled_back(call) if dry_run else call()
 
 
 def _decider(options: dict[str, Any]) -> User:

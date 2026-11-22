@@ -16,6 +16,8 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
 
+from structlog.contextvars import bound_contextvars
+
 from rating_app.models.sync import (
     SyncApproval,
     SyncApprovalOutcome,
@@ -50,6 +52,7 @@ class ChangeOutcome:
     state: str
     state_reason: str
     waiting_on: list[Any]
+    decided_now: bool
 
 
 @dataclass
@@ -69,6 +72,10 @@ class DecisionResult:
 
     def in_state(self, state: str) -> list[ChangeOutcome]:
         return [item for item in self.outcomes if item.state == state]
+
+    def decided(self, state: str) -> list[ChangeOutcome]:
+        """Changes this decision put into `state`; one decided earlier is not counted."""
+        return [item for item in self.in_state(state) if item.decided_now]
 
 
 def current_run(source: str) -> SyncRun | None:
@@ -149,17 +156,23 @@ def reject(change_ids: Iterable[int], user: User, *, dry_run: bool) -> DecisionR
     return _decide(lambda: apply.reject(ids, user), ids, dry_run=dry_run)
 
 
+def rolled_back[T](call: Callable[[], T]) -> T:
+    """Run `call` in one transaction and roll it all back. Log events it emits
+    carry `dry_run=True`, so they cannot be read as real writes."""
+    with bound_contextvars(dry_run=True), transaction.atomic():
+        result = call()
+        transaction.set_rollback(True)
+    return result
+
+
 def _decide(
     run: Callable[[], SyncApproval], ids: Sequence[int], *, dry_run: bool
 ) -> DecisionResult:
     """A real decision commits as `apply` commits it, approval row first; a dry
-    run wraps the same call in one transaction and rolls everything back."""
+    run wraps the same call in `rolled_back`."""
     if not dry_run:
         return _result(run(), ids, dry_run=False)
-    with transaction.atomic():
-        result = _result(run(), ids, dry_run=True)
-        transaction.set_rollback(True)
-    return result
+    return rolled_back(lambda: _result(run(), ids, dry_run=True))
 
 
 def skipped_count(approval: SyncApproval, counts: dict[str, Any]) -> int:
@@ -193,6 +206,7 @@ def _result(approval: SyncApproval, selected: Sequence[int], *, dry_run: bool) -
             state=str(change.state),
             state_reason=str(change.state_reason or ""),
             waiting_on=list(change.waiting_on or []),
+            decided_now=change.approval_id == approval.pk,
         )
         for change in changes
     ]

@@ -133,3 +133,17 @@ def test_show_json_lists_fields(run_catalog_sync, make_catalog_run, make_title_c
 def test_show_explains_when_there_is_no_run(run_catalog_sync):
     with pytest.raises(CommandError, match="Успішних читань САЗ ще не було"):
         run_catalog_sync("show")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.usefixtures("free_sync_lock")
+def test_status_counts_decisions_of_the_week_in_words(
+    run_catalog_sync, admin, make_catalog_run, make_title_change
+):
+    _, change = make_title_change(make_catalog_run())
+    run_catalog_sync("apply", "--ids", str(change.pk), "--by", admin.username, "--yes")
+
+    out = run_catalog_sync("status")
+
+    assert "Застосовано за 7 днів: 1 рішення, 1 зміна" in out

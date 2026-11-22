@@ -181,6 +181,10 @@ def changes_accusative(count: int) -> str:
     return f"{number(count)} {plural(count, 'зміну', 'зміни', 'змін')}"
 
 
+def decisions_word(count: int) -> str:
+    return f"{number(count)} {plural(count, 'рішення', 'рішення', 'рішень')}"
+
+
 def ratings_word(count: int) -> str:
     return f"{number(count)} {plural(count, 'оцінка', 'оцінки', 'оцінок')}"
 
@@ -396,7 +400,7 @@ def decision_lines(result: DecisionResult, *, limit: int) -> list[str]:
     if result.action == "reject":
         verb_done = "Відхилило б" if result.dry_run else "Відхилено"
     done_state = "rejected" if result.action == "reject" else "applied"
-    done = result.in_state(done_state)
+    done = result.decided(done_state)
     kinds: dict[str, int] = {}
     for item in done:
         kinds[item.change.kind] = kinds.get(item.change.kind, 0) + 1
@@ -405,12 +409,13 @@ def decision_lines(result: DecisionResult, *, limit: int) -> list[str]:
         head += f": {kind_breakdown(kinds)}"
     lines = [head + "."]
     if result.ratings_moved or result.plans_moved:
+        verb = "Перенесе" if result.dry_run else "Перенесено"
         lines.append(
-            f"Перенесе {ratings_word(result.ratings_moved)} і планів {result.plans_moved} "
+            f"{verb} {ratings_word(result.ratings_moved)} і планів {result.plans_moved} "
             "на інші сторінки курсів."
         )
     lines.extend(_listed(done, limit))
-    lines.extend(_left_out(result.outcomes, done_state, limit))
+    lines.extend(_left_out(result.outcomes, done, limit))
     return lines
 
 
@@ -426,10 +431,11 @@ def _listed(items: list[ChangeOutcome], limit: int) -> list[str]:
     return lines
 
 
-def _left_out(outcomes: list[ChangeOutcome], done_state: str, limit: int) -> list[str]:
+def _left_out(outcomes: list[ChangeOutcome], done: list[ChangeOutcome], limit: int) -> list[str]:
+    done_ids = {item.change.pk for item in done}
     reasons: dict[str, list[ChangeOutcome]] = {}
     for item in outcomes:
-        if item.state == done_state:
+        if item.change.pk in done_ids:
             continue
         reasons.setdefault(why_left(item), []).append(item)
     if not reasons:

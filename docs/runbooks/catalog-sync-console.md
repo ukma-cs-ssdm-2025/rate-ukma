@@ -25,7 +25,7 @@ You already have a shell where `python manage.py` runs for the backend (or `node
 - **Every write command is a dry run unless you add `--yes`.** The dry run executes the same code inside a transaction that is rolled back, so it shows exactly what `--yes` would do and writes nothing.
 - `--by <username>` is required for `apply`, `reject`, `answer` and `policy <kind> <mode>`, dry run included.
 - Use the same selection flags for the dry run and for `--yes`. If the nightly read ran in between, run the dry run again.
-- Change ids (`#48121`) are printed by `status`, `show` and the dry run, and shown on /data.
+- Change ids (`#48121`) are printed by `show` and the dry run, and shown on /data. `status` prints only counts.
 - Mapping questions, and changes that move ratings between courses, are «лише вручну»: no policy can make them `auto`.
 - Output is Ukrainian. `status`, `show` and `policy` take `--json` for machine reading.
 
@@ -132,6 +132,16 @@ python manage.py catalog_sync answer keep_apart --unrated --by <username>
 
 `keep_apart` and `keep` close the question. `merge`, `move`, `relink` and `place` record the answer; the change itself happens only when you apply it with `apply --ids <question id>` (steps 4–6).
 
+A closed question still counts as waiting in `status` and on /data until the next nightly read. That read does not ask it again while its courses and ratings stay the same.
+
+Check after `--yes`:
+
+```bash
+python manage.py catalog_sync show --ids 50011
+```
+
+The question now prints `відповідь уже є: <answer>` with the time. After `--unrated`, `show --group mapping --unrated --limit 0` lists every unrated question with its answer.
+
 ## Policies
 
 ```bash
@@ -141,6 +151,8 @@ python manage.py catalog_sync policy change_course auto --by <username> --yes
 ```
 
 The list shows each kind, its mode and who changed it last. The dry run prints old → new. `needs_approval` puts a kind back under review. Every change is audited and shown on /data under «Правила».
+
+Check after `--yes`: run `python manage.py catalog_sync policy` again. The kind's row shows the new mode and the owner's username under «Хто змінив».
 
 ## The Nightly Read
 
@@ -166,7 +178,12 @@ Turning it on for live is the owner's call.
 
 ### Збій
 
-`Не вдалося застосувати, нічого не записано (…)` means the apply failed and its transaction rolled back. Run `status`: the changes still wait. Run the dry run again; if it fails the same way, stop. Draft an issue for the owner with the message, the decision number if any, and the change ids, and let them file it. No student or teacher names in it.
+Two messages:
+
+- `Пробний запуск не вдався, нічого не записано (…)`: the dry run failed and wrote nothing.
+- `Рішення #N не вдалося: вибрані зміни не застосовано (…)`: the `--yes` run failed. None of the selected changes applied. Two things were written: the failed decision #N, which /data shows, and any change the run found already out of date, now marked «неактуальна».
+
+Run `status`: the selected changes still wait, except those now marked «неактуальна». Run the dry run again; if it fails the same way, stop. Draft an issue for the owner with the message, the decision number if any, and the change ids, and let them file it. No student or teacher names in it.
 
 If a written apply turns out wrong, do not edit rows by hand. Stop and tell the owner. The restore from the dump of step 1 is the owner's decision and the owner's to run; you do not run one.
 
