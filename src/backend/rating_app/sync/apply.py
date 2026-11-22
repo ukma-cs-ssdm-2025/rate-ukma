@@ -112,6 +112,7 @@ def approve(
     user: User,
     *,
     confirm_old_run: bool = False,
+    client_key: uuid.UUID | None = None,
 ) -> SyncApproval:
     """Apply the selected proposed changes, each expanded to its whole unit.
 
@@ -122,7 +123,9 @@ def approve(
     sweep_interrupted_approvals()
     ids = _selection_ids(change_ids)
     run = _selection_run(ids)
-    approval = _start_approval(run, ids, user=user, action=SyncApprovalAction.APPLY)
+    approval = _start_approval(
+        run, ids, user=user, action=SyncApprovalAction.APPLY, client_key=client_key
+    )
     with _source_lock(run.source) as held:
         if not held:
             return _refuse(approval, "lock_held")
@@ -766,6 +769,7 @@ def _start_approval(
     user: User | None,
     action: str,
     scope: str = SyncApprovalScope.CHANGE,
+    client_key: uuid.UUID | None = None,
 ) -> SyncApproval:
     return SyncApproval.objects.create(
         run=run,
@@ -774,6 +778,7 @@ def _start_approval(
         scope=scope,
         change_ids=change_ids,
         user=user,
+        client_key=client_key,
         outcome=SyncApprovalOutcome.STARTED,
     )
 

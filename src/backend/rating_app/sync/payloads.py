@@ -29,12 +29,15 @@ class CourseDisplay(SyncPayload):
     years: list[int]
     saz_codes: list[str]
     teachers: list[TeacherYear]
+    title_matches_ukma: bool | None = None
+    holds_ukma_id: bool | None = None
 
 
 class UkmaCourseDisplay(SyncPayload):
     title: str
-    department: str | None
-    merge_source: str | None
+    department: str | None = None
+    merge_source: str | None = None
+    id: str | None = None
 
 
 class TeacherDisplay(SyncPayload):
@@ -84,6 +87,10 @@ class DepartmentRef(SyncPayload):
 
 class UkmaDataIdPayload(Payload):
     ukma_data_id: str
+
+
+class LinkCoursePayload(UkmaDataIdPayload):
+    majority_share: float = Field(default=1.0, ge=0.0, le=1.0)
 
 
 class NamePayload(Payload):
@@ -227,7 +234,7 @@ PAYLOADS: dict[str, type[BaseModel]] = {
     "link_department": UkmaDataIdPayload,
     "change_department": NamePayload,
     "new_course": NewCoursePayload,
-    "link_course": UkmaDataIdPayload,
+    "link_course": LinkCoursePayload,
     "change_course": ChangeCoursePayload,
     "new_offering": NewOfferingPayload,
     "link_offering": UkmaDataIdPayload,

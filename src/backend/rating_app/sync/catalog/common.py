@@ -154,6 +154,7 @@ def ukma_course_display(ud: UkmaDataSnapshot, course: ukma_data.Course) -> dict[
         if row is not None:
             department = row.name
     return {
+        "id": course.id,
         "title": course.title,
         "department": department,
         "merge_source": merge_source(course),

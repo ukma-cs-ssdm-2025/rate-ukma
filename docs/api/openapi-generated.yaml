@@ -3537,13 +3537,70 @@ paths:
                     status: 503
                   summary: UKMA Data not configured
           description: UKMA Data is not configured
+  /api/v1/ukma-data/sync/approvals/active/:
+    get:
+      operationId: ukma_data_sync_approvals_active
+      description: The newest `started` approval of any source, or null. The page
+        banner reads it to disable apply buttons. Superusers only.
+      summary: Read the running approval
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncActiveApproval'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/ukma-data/sync/approve/:
     post:
       operationId: ukma_data_sync_approve
       description: Apply the selected proposed changes, expanded to their whole unit.
-        Select by `change_ids` or by the current run's `group` and `kind`. `dry_run`
-        previews the same apply and rolls it back; a run over 48 h old needs `confirm_stale`.
-        Superusers only.
+        Select by up to 200 `change_ids`, or by a `selection.filter` confirmed with
+        the `token` from `preview/`; the filter is resolved again and a changed set
+        answers 409 `selection_changed`. Send a `client_key` so a retry returns the
+        first approval instead of applying twice. `dry_run` previews the same apply
+        and rolls it back; a run over 48 h old needs `confirm_stale`. Superusers only.
       summary: Approve sync changes
       tags:
       - ukma-data
@@ -3762,11 +3819,23 @@ paths:
   /api/v1/ukma-data/sync/pending/:
     get:
       operationId: ukma_data_sync_pending_list
-      description: Proposed changes of each source's current (latest succeeded) run,
-        rated rows first. `groups` and `kinds` count every waiting change before the
-        group and kind filters. Superusers only.
+      description: 'Proposed changes of each source''s current (latest succeeded)
+        run or of a pinned `run`, rated rows first. Supports the review facets: `match`,
+        `similar_existing`, a `field` or `fields_subset`, a title or САЗ `q`, and
+        a `view=sample` of up to 20 rows per faculty. `groups` and `kinds` count every
+        waiting change before the group and kind filters. Superusers only.'
       summary: List the changes waiting for approval
       parameters:
+      - in: query
+        name: field
+        schema:
+          type: string
+        description: Change rows that touch this field
+      - in: query
+        name: fields_subset
+        schema:
+          type: string
+        description: Comma-separated fields the change must stay within
       - in: query
         name: group
         schema:
@@ -3784,6 +3853,14 @@ paths:
           type: string
         description: Only changes of this kind from the registry
       - in: query
+        name: match
+        schema:
+          type: string
+          enum:
+          - exact
+          - review
+        description: 'Link strength: exact (code or same title) or review'
+      - in: query
         name: page
         schema:
           type: integer
@@ -3793,6 +3870,31 @@ paths:
         schema:
           type: integer
         description: Rows per page
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Match a title or a САЗ code
+      - in: query
+        name: rated
+        schema:
+          type: boolean
+        description: Only rows with ratings (`true`) or without (`false`)
+      - in: query
+        name: run
+        schema:
+          type: integer
+        description: Pin one run; omit for each source's current run
+      - in: query
+        name: seed
+        schema:
+          type: integer
+        description: Sample order seed
+      - in: query
+        name: similar_existing
+        schema:
+          type: boolean
+        description: New courses whose normalised title already exists
       - in: query
         name: source
         schema:
@@ -3811,6 +3913,14 @@ paths:
           - rejected
           - superseded
         description: State to list; `proposed` by default
+      - in: query
+        name: view
+        schema:
+          type: string
+          enum:
+          - all
+          - sample
+        description: '`sample` takes up to 20 rows per faculty'
       tags:
       - ukma-data
       security:
@@ -4067,6 +4177,239 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/ukma-data/sync/preview/:
+    post:
+      operationId: ukma_data_sync_preview
+      description: Resolve a filter or a list of changes, dry-run the same apply in
+        a rolled-back transaction and return a token that binds the confirm to this
+        exact set. Superusers only.
+      summary: Preview a sync selection
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPreviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncPreviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncPreviewRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPreviewResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+  /api/v1/ukma-data/sync/questions/:
+    get:
+      operationId: ukma_data_sync_questions_list
+      description: 'The run''s mapping questions in answer order: unanswered first,
+        then most ratings. Each course carries its live ratings, plans and offerings;
+        a suggested merge target and the live answer are included. Superusers only.'
+      summary: List mapping questions
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: 'Keyset cursor: the id of the last question seen'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Questions per page
+      - in: query
+        name: rated
+        schema:
+          type: boolean
+        description: Only questions with ratings or plans (`true`) or without
+      - in: query
+        name: run
+        schema:
+          type: integer
+        description: Pin one run; omit for the current run
+      - in: query
+        name: source
+        schema:
+          type: string
+          enum:
+          - catalog
+          - teachers
+        description: Source of the run
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncQuestionListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+  /api/v1/ukma-data/sync/questions/answers/:
+    post:
+      operationId: ukma_data_sync_questions_answer_bulk
+      description: Apply the same validation as the single answer endpoint to every
+        id and return how many were answered. `into` may be `suggested` for merges
+        and placements. Superusers only.
+      summary: Answer mapping questions in bulk
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncBulkAnswerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncBulkAnswerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncBulkAnswerRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncQuestionBulkAnswerResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/ukma-data/sync/reject/:
     post:
       operationId: ukma_data_sync_reject
@@ -4220,6 +4563,90 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/ukma-data/sync/runs/{run_id}/approvals/:
+    get:
+      operationId: ukma_data_sync_run_approvals_list
+      description: Who applied or rejected what, when, with the selection in words,
+        the counts and what moved. Superusers only.
+      summary: List one run's approvals
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number (1-based)
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Rows per page
+      - in: path
+        name: run_id
+        schema:
+          type: integer
+        description: Identifier of the sync run
+        required: true
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncApprovalListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/ukma-data/sync/runs/{run_id}/changes/:
     get:
       operationId: ukma_data_sync_run_changes_list
@@ -4280,6 +4707,109 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SyncChangeListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+  /api/v1/ukma-data/sync/runs/{run_id}/export.csv:
+    get:
+      operationId: ukma_data_sync_run_export
+      description: 'CSV of the run''s approvals and applied changes: kind, key, target,
+        approval, user email and time. UTF-8 with a BOM. Superusers only.'
+      summary: Download one run's approvals and applied changes
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: integer
+        description: Identifier of the sync run
+        required: true
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          description: CSV export
+  /api/v1/ukma-data/sync/summary/:
+    get:
+      operationId: ukma_data_sync_summary
+      description: 'The numbered work path of /data/sync: counts, rated rows, ratings,
+        plans, waiting units and facets per step, plus the staff''s live answers and
+        what the builder could not propose. Superusers only.'
+      summary: Review summary of one sync run
+      parameters:
+      - in: query
+        name: run
+        schema:
+          type: integer
+        description: Pin one run; omit for the current run
+      - in: query
+        name: source
+        schema:
+          type: string
+          enum:
+          - catalog
+          - teachers
+        description: Source of the run
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncSummary'
           description: OK
         '400':
           content:
@@ -5805,6 +6335,14 @@ components:
           maxLength: 255
       required:
       - group_key
+    MatchEnum:
+      enum:
+      - exact
+      - review
+      type: string
+      description: |-
+        * `exact` - exact
+        * `review` - review
     NotificationGroup:
       type: object
       properties:
@@ -6447,6 +6985,16 @@ components:
       - previous_page
       - total
       - total_pages
+    ScopeEnum:
+      enum:
+      - change
+      - kind
+      - group
+      type: string
+      description: |-
+        * `change` - Change
+        * `kind` - Kind
+        * `group` - Group
     SemesterTerm:
       enum:
       - FALL
@@ -6625,6 +7173,15 @@ components:
       required:
       - id
       - offerings
+    SyncActiveApproval:
+      type: object
+      properties:
+        item:
+          allOf:
+          - $ref: '#/components/schemas/SyncApprovalDetail'
+          nullable: true
+      required:
+      - item
     SyncAnswerRequest:
       type: object
       properties:
@@ -6687,13 +7244,99 @@ components:
       - error
       - id
       - outcome
+    SyncApprovalDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        run_id:
+          type: integer
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        scope:
+          $ref: '#/components/schemas/ScopeEnum'
+        group:
+          type: string
+        kind:
+          type: string
+        outcome:
+          $ref: '#/components/schemas/OutcomeEnum'
+        counts: {}
+        error:
+          type: string
+        user_email:
+          type: string
+          format: email
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        selection:
+          type: string
+        ratings_moved:
+          type: integer
+        plans_moved:
+          type: integer
+        merged:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncMergedCourse'
+      required:
+      - action
+      - counts
+      - created_at
+      - error
+      - group
+      - id
+      - kind
+      - merged
+      - outcome
+      - plans_moved
+      - ratings_moved
+      - run_id
+      - scope
+      - selection
+      - user_email
+    SyncApprovalListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncApprovalDetail'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
     SyncApproveRequest:
       type: object
       properties:
         source:
           $ref: '#/components/schemas/SyncSourceEnum'
         group:
-          $ref: '#/components/schemas/SyncChangeGroupEnum'
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeGroupEnum'
+          nullable: true
         kind:
           type: string
           nullable: true
@@ -6702,6 +7345,22 @@ components:
           items:
             type: integer
             minimum: 1
+          maxItems: 200
+        run:
+          type: integer
+          minimum: 1
+          nullable: true
+        selection:
+          allOf:
+          - $ref: '#/components/schemas/SyncSelection'
+          nullable: true
+        token:
+          type: string
+          nullable: true
+        client_key:
+          type: string
+          format: uuid
+          nullable: true
         dry_run:
           type: boolean
           default: false
@@ -6709,8 +7368,24 @@ components:
           type: boolean
           default: false
       required:
-      - group
       - source
+    SyncBulkAnswerRequest:
+      type: object
+      properties:
+        change_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          maxItems: 500
+        answer:
+          $ref: '#/components/schemas/AnswerEnum'
+        into:
+          type: string
+          nullable: true
+      required:
+      - answer
+      - change_ids
     SyncBulkAnswerResponse:
       type: object
       properties:
@@ -6848,6 +7523,29 @@ components:
         * `applied` - Applied
         * `rejected` - Rejected
         * `superseded` - Superseded
+    SyncMergedCourse:
+      type: object
+      properties:
+        from_id:
+          type: string
+        into_id:
+          type: string
+        title:
+          type: string
+      required:
+      - from_id
+      - into_id
+      - title
+    SyncNotProposed:
+      type: object
+      properties:
+        count:
+          type: integer
+        rated:
+          type: integer
+      required:
+      - count
+      - rated
     SyncPendingResponse:
       type: object
       properties:
@@ -7028,6 +7726,195 @@ components:
           $ref: '#/components/schemas/SyncPolicyModeEnum'
       required:
       - mode
+    SyncPreviewKindCounts:
+      type: object
+      properties:
+        apply:
+          type: integer
+        wait:
+          type: integer
+        superseded:
+          type: integer
+      required:
+      - apply
+      - superseded
+      - wait
+    SyncPreviewRequest:
+      type: object
+      properties:
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          default: catalog
+        run:
+          type: integer
+          minimum: 1
+          nullable: true
+        selection:
+          $ref: '#/components/schemas/SyncSelection'
+      required:
+      - selection
+    SyncPreviewResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        count:
+          type: integer
+        counts:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SyncPreviewKindCounts'
+        superseded_reasons:
+          type: object
+          additionalProperties:
+            type: integer
+        ratings_moved:
+          type: integer
+        plans_moved:
+          type: integer
+        run_age_hours:
+          type: integer
+          nullable: true
+      required:
+      - count
+      - counts
+      - plans_moved
+      - ratings_moved
+      - run_age_hours
+      - superseded_reasons
+      - token
+    SyncQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        kind:
+          type: string
+        key:
+          type: string
+        ukma_data_id:
+          type: string
+          nullable: true
+        ratings:
+          type: integer
+        plans:
+          type: integer
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncQuestionCourse'
+        suggested_into:
+          type: string
+          format: uuid
+          nullable: true
+        answer:
+          allOf:
+          - $ref: '#/components/schemas/SyncQuestionAnswer'
+          nullable: true
+      required:
+      - answer
+      - courses
+      - id
+      - key
+      - kind
+      - plans
+      - ratings
+      - suggested_into
+      - ukma_data_id
+    SyncQuestionAnswer:
+      type: object
+      properties:
+        answer:
+          $ref: '#/components/schemas/AnswerEnum'
+        into:
+          type: string
+          nullable: true
+        decided_at:
+          type: string
+          format: date-time
+      required:
+      - answer
+      - decided_at
+      - into
+    SyncQuestionBulkAnswerResponse:
+      type: object
+      properties:
+        answered:
+          type: integer
+        failed:
+          type: integer
+      required:
+      - answered
+      - failed
+    SyncQuestionCourse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        department:
+          type: string
+        years:
+          type: array
+          items:
+            type: integer
+        offerings:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncQuestionOffering'
+        ratings:
+          type: integer
+        plans:
+          type: integer
+        title_matches_ukma:
+          type: boolean
+        holds_ukma_id:
+          type: boolean
+        url:
+          type: string
+      required:
+      - department
+      - holds_ukma_id
+      - id
+      - offerings
+      - plans
+      - ratings
+      - title
+      - title_matches_ukma
+      - url
+      - years
+    SyncQuestionListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncQuestion'
+        next_after:
+          type: integer
+          nullable: true
+      required:
+      - items
+      - next_after
+    SyncQuestionOffering:
+      type: object
+      properties:
+        saz_code:
+          type: string
+        year:
+          type: integer
+        term:
+          type: string
+        ratings:
+          type: integer
+      required:
+      - ratings
+      - saz_code
+      - term
+      - year
     SyncRejectRequest:
       type: object
       properties:
@@ -7134,6 +8021,45 @@ components:
         * `running` - Running
         * `succeeded` - Succeeded
         * `failed` - Failed
+    SyncSelection:
+      type: object
+      properties:
+        change_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+        filter:
+          allOf:
+          - $ref: '#/components/schemas/SyncSelectionFilter'
+          nullable: true
+    SyncSelectionFilter:
+      type: object
+      properties:
+        group:
+          $ref: '#/components/schemas/SyncChangeGroupEnum'
+        kind:
+          type: string
+          nullable: true
+        q:
+          type: string
+          nullable: true
+          maxLength: 200
+        rated:
+          type: boolean
+          nullable: true
+        match:
+          allOf:
+          - $ref: '#/components/schemas/MatchEnum'
+          nullable: true
+        similar_existing:
+          type: boolean
+          nullable: true
+        fields_subset:
+          type: string
+          nullable: true
+      required:
+      - group
     SyncSourceEnum:
       enum:
       - teachers
@@ -7142,6 +8068,81 @@ components:
       description: |-
         * `teachers` - Teachers
         * `catalog` - Catalog
+    SyncSummary:
+      type: object
+      properties:
+        run:
+          $ref: '#/components/schemas/SyncRun'
+        newer_run_id:
+          type: integer
+          nullable: true
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncSummaryStep'
+        answers:
+          $ref: '#/components/schemas/SyncSummaryAnswers'
+        not_proposed:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SyncNotProposed'
+      required:
+      - answers
+      - newer_run_id
+      - not_proposed
+      - run
+      - steps
+    SyncSummaryAnswers:
+      type: object
+      properties:
+        merge:
+          type: integer
+        keep_apart:
+          type: integer
+        keep:
+          type: integer
+        place:
+          type: integer
+        move:
+          type: integer
+      required:
+      - keep
+      - keep_apart
+      - merge
+      - move
+      - place
+    SyncSummaryStep:
+      type: object
+      properties:
+        step:
+          type: string
+        group:
+          $ref: '#/components/schemas/SyncChangeGroupEnum'
+        kinds:
+          type: object
+          additionalProperties:
+            type: integer
+        count:
+          type: integer
+        rated:
+          type: integer
+        ratings:
+          type: integer
+        plans:
+          type: integer
+        waiting:
+          type: integer
+        facets: {}
+      required:
+      - count
+      - facets
+      - group
+      - kinds
+      - plans
+      - rated
+      - ratings
+      - step
+      - waiting
     UkmaDataDepartment:
       type: object
       properties:

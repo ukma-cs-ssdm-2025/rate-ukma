@@ -463,7 +463,10 @@ def test_propose_links_and_new_links_a_course_to_the_majority_ukma_data_course()
 
     drafts, _ = propose_links_and_new(snapshot, ru, [], academic_year=2025)
 
-    assert [_one(drafts, "link_course").after] == [{"ukma_data_id": "ud-a"}]
+    link = _one(drafts, "link_course")
+    assert link.after == {"ukma_data_id": "ud-a", "majority_share": 2 / 3}
+    assert link.display["course"]["title"] == "Курс"
+    assert link.display["ukma_course"]["title"] == "Курс А"
 
 
 def test_propose_links_and_new_requires_parents_when_they_are_new_in_the_same_run():
@@ -542,7 +545,9 @@ def test_propose_links_and_new_links_a_new_course_when_an_identity_exists():
 
     assert skipped == {}
     assert _of_kind(drafts, "new_course") == []
-    assert _one(drafts, "link_course").after == {"ukma_data_id": "ud-course"}
+    link = _one(drafts, "link_course")
+    assert link.after == {"ukma_data_id": "ud-course", "majority_share": 1.0}
+    assert link.display["ukma_course"]["title"] == "Аналіз даних"
     offering = _one(drafts, "new_offering")
     assert offering.after["course_id"] == "ru-course"
     assert offering.ratings == 3

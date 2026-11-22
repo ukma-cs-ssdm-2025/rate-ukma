@@ -36,6 +36,17 @@ class _LinkedNamedRow(_NamedRow, Protocol):
     def ukma_data_id(self) -> str | None: ...
 
 
+def normalise_title(title: str) -> str:
+    """Lowercase and keep only words, dropping punctuation and extra whitespace."""
+    cleaned = "".join(character if character.isalnum() else " " for character in title.lower())
+    return " ".join(cleaned.split())
+
+
+def same_title(left: str, right: str) -> bool:
+    """Equal after lowercasing and collapsing whitespace; punctuation still counts."""
+    return " ".join(left.lower().split()) == " ".join(right.lower().split())
+
+
 def semester_of(term: ud.Term) -> tuple[int, str]:
     """The Rate UKMA semester for a UKMA Data term (M14)."""
     if term.season == ud.Season.fall:

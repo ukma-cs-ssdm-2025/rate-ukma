@@ -19,6 +19,7 @@ from ..views import (
     RatingViewSet,
     RatingVoteViewSet,
     StudentStatisticsViewSet,
+    SyncReviewViewSet,
     SyncViewSet,
     UkmaDataViewSet,
 )
@@ -396,6 +397,41 @@ def sync_keep_apart_unrated_view():
 
 
 @once
+def sync_summary_view():
+    return SyncReviewViewSet.as_view({"get": "summary"})
+
+
+@once
+def sync_preview_view():
+    return SyncReviewViewSet.as_view({"post": "preview"})
+
+
+@once
+def sync_questions_view():
+    return SyncReviewViewSet.as_view({"get": "questions"})
+
+
+@once
+def sync_bulk_answers_view():
+    return SyncReviewViewSet.as_view({"post": "bulk_answers"})
+
+
+@once
+def sync_approvals_active_view():
+    return SyncReviewViewSet.as_view({"get": "approvals_active"})
+
+
+@once
+def sync_run_approvals_view():
+    return SyncReviewViewSet.as_view({"get": "run_approvals"})
+
+
+@once
+def sync_run_export_view():
+    return SyncReviewViewSet.as_view({"get": "run_export"})
+
+
+@once
 def rest_urlpatterns() -> list:
     return [
         path(
@@ -612,6 +648,41 @@ def rest_urlpatterns() -> list:
             "ukma-data/sync/pending/",
             sync_pending_view(),
             name="ukma-data-sync-pending",
+        ),
+        path(
+            "ukma-data/sync/summary/",
+            sync_summary_view(),
+            name="ukma-data-sync-summary",
+        ),
+        path(
+            "ukma-data/sync/preview/",
+            sync_preview_view(),
+            name="ukma-data-sync-preview",
+        ),
+        path(
+            "ukma-data/sync/questions/",
+            sync_questions_view(),
+            name="ukma-data-sync-questions",
+        ),
+        path(
+            "ukma-data/sync/questions/answers/",
+            sync_bulk_answers_view(),
+            name="ukma-data-sync-questions-answers",
+        ),
+        path(
+            "ukma-data/sync/approvals/active/",
+            sync_approvals_active_view(),
+            name="ukma-data-sync-approvals-active",
+        ),
+        path(
+            "ukma-data/sync/runs/<str:run_id>/approvals/",
+            sync_run_approvals_view(),
+            name="ukma-data-sync-run-approvals",
+        ),
+        path(
+            "ukma-data/sync/runs/<str:run_id>/export.csv",
+            sync_run_export_view(),
+            name="ukma-data-sync-run-export",
         ),
         path(
             "ukma-data/sync/policies/",

@@ -43,6 +43,14 @@ from rating_app.serializers.sync import (
     SyncPolicySerializer,
     SyncRunListResponseSerializer,
 )
+from rating_app.serializers.sync_review import (
+    SyncActiveApprovalSerializer,
+    SyncApprovalListResponseSerializer,
+    SyncPreviewResponseSerializer,
+    SyncQuestionBulkAnswerResponseSerializer,
+    SyncQuestionListResponseSerializer,
+    SyncSummarySerializer,
+)
 from rating_app.serializers.ukma_data import (
     UkmaDataDepartmentPageSerializer,
     UkmaDataFacultyPageSerializer,
@@ -365,6 +373,20 @@ R_SYNC_APPROVE = {
 }
 R_SYNC_ANSWER = sync_responses(SyncAnswerResponseSerializer, include_404=True)
 R_SYNC_BULK_ANSWER = sync_responses(SyncBulkAnswerResponseSerializer)
+R_SYNC_SUMMARY = sync_responses(SyncSummarySerializer, include_404=True)
+R_SYNC_PREVIEW = sync_responses(SyncPreviewResponseSerializer, include_400=True)
+R_SYNC_QUESTIONS = sync_responses(
+    forced_singular_serializer(SyncQuestionListResponseSerializer),
+    include_400=True,
+    include_404=True,
+)
+R_SYNC_APPROVALS = sync_responses(
+    forced_singular_serializer(SyncApprovalListResponseSerializer),
+    include_400=True,
+    include_404=True,
+)
+R_SYNC_ACTIVE_APPROVAL = sync_responses(SyncActiveApprovalSerializer)
+R_SYNC_QUESTION_ANSWERS = sync_responses(SyncQuestionBulkAnswerResponseSerializer)
 
 
 R_PERSONAL_PLAN = {
