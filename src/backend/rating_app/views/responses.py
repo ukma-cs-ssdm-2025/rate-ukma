@@ -32,6 +32,14 @@ from rating_app.serializers.notification import (
     NotificationGroupSerializer,
     UnreadCountSerializer,
 )
+from rating_app.serializers.sync import (
+    SyncChangeListResponseSerializer,
+    SyncPendingResponseSerializer,
+    SyncPolicyChangeListResponseSerializer,
+    SyncPolicyListResponseSerializer,
+    SyncPolicySerializer,
+    SyncRunListResponseSerializer,
+)
 from rating_app.serializers.ukma_data import (
     UkmaDataDepartmentPageSerializer,
     UkmaDataFacultyPageSerializer,
@@ -323,6 +331,29 @@ R_UKMA_DATA_DEPARTMENTS = ukma_data_responses(UkmaDataDepartmentPageSerializer)
 R_UKMA_DATA_PROGRAMMES = ukma_data_responses(UkmaDataProgrammePageSerializer)
 R_UKMA_DATA_OFFERINGS = ukma_data_responses(UkmaDataOfferingPageSerializer)
 R_UKMA_DATA_REVIEW_CASES = ukma_data_responses(UkmaDataReviewCasePageSerializer)
+
+
+def sync_responses(serializer, include_400=True, include_404=False) -> dict:
+    return {
+        200: OpenApiResponse(serializer, "OK"),
+        **common_errors(include_400=include_400, include_404=include_404),
+    }
+
+
+R_SYNC_RUNS = sync_responses(
+    forced_singular_serializer(SyncRunListResponseSerializer), include_400=True
+)
+R_SYNC_CHANGES = sync_responses(
+    forced_singular_serializer(SyncChangeListResponseSerializer), include_404=True
+)
+R_SYNC_PENDING = sync_responses(
+    forced_singular_serializer(SyncPendingResponseSerializer), include_400=True
+)
+R_SYNC_POLICIES = sync_responses(forced_singular_serializer(SyncPolicyListResponseSerializer))
+R_SYNC_POLICY = sync_responses(SyncPolicySerializer, include_400=True, include_404=True)
+R_SYNC_POLICY_CHANGES = sync_responses(
+    forced_singular_serializer(SyncPolicyChangeListResponseSerializer), include_400=True
+)
 
 
 R_PERSONAL_PLAN = {

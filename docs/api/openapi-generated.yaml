@@ -3537,6 +3537,498 @@ paths:
                     status: 503
                   summary: UKMA Data not configured
           description: UKMA Data is not configured
+  /api/v1/ukma-data/sync/pending/:
+    get:
+      operationId: ukma_data_sync_pending_list
+      description: Proposed changes of each source's current (latest succeeded) run,
+        rated rows first. `groups` and `kinds` count every waiting change before the
+        group and kind filters. Superusers only.
+      summary: List the changes waiting for approval
+      parameters:
+      - in: query
+        name: group
+        schema:
+          type: string
+          enum:
+          - change
+          - link
+          - mapping
+          - new
+          - removed
+        description: Only changes of this group; omit for every group
+      - in: query
+        name: kind
+        schema:
+          type: string
+        description: Only changes of this kind from the registry
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number (1-based)
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Rows per page
+      - in: query
+        name: source
+        schema:
+          type: string
+          enum:
+          - catalog
+          - teachers
+        description: Only changes of this source; omit for both
+      - in: query
+        name: state
+        schema:
+          type: string
+          enum:
+          - applied
+          - proposed
+          - rejected
+          - superseded
+        description: State to list; `proposed` by default
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPendingResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+  /api/v1/ukma-data/sync/policies/:
+    get:
+      operationId: ukma_data_sync_policies_list
+      description: Every kind in the registry with its source, group, mode and whether
+        it can ever be automatic. A kind with no policy row waits for approval. Superusers
+        only.
+      summary: List sync policies
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPolicyListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+  /api/v1/ukma-data/sync/policies/{kind}/:
+    put:
+      operationId: ukma_data_sync_policy_update
+      description: Set a kind to `auto` or `needs_approval` and write the audit row.
+        Mapping kinds and kinds that move ratings cannot be `auto`. Superusers only.
+      summary: Set one sync kind's policy
+      parameters:
+      - in: path
+        name: kind
+        schema:
+          type: string
+        required: true
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPolicyUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncPolicyUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncPolicyUpdate'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPolicy'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+  /api/v1/ukma-data/sync/policies/changes/:
+    get:
+      operationId: ukma_data_sync_policy_changes_list
+      description: 'The policy audit, newest first: who set which kind from which
+        mode to which. Superusers only.'
+      summary: List sync policy changes
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number (1-based)
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Rows per page
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPolicyChangeListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+  /api/v1/ukma-data/sync/runs/:
+    get:
+      operationId: ukma_data_sync_runs_list
+      description: 'Run history, newest first: status, cursors and counts per group.
+        Superusers only.'
+      summary: List sync runs
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number (1-based)
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Rows per page
+      - in: query
+        name: source
+        schema:
+          type: string
+          enum:
+          - catalog
+          - teachers
+        description: Only runs of this source; omit for both
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRunListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+  /api/v1/ukma-data/sync/runs/{run_id}/changes/:
+    get:
+      operationId: ukma_data_sync_run_changes_list
+      description: Every change the run recorded, rated rows first, filterable by
+        group, kind and state. Superusers only.
+      summary: List one sync run's changes
+      parameters:
+      - in: query
+        name: group
+        schema:
+          type: string
+          enum:
+          - change
+          - link
+          - mapping
+          - new
+          - removed
+        description: Only changes of this group; omit for every group
+      - in: query
+        name: kind
+        schema:
+          type: string
+        description: Only changes of this kind from the registry
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number (1-based)
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Rows per page
+      - in: path
+        name: run_id
+        schema:
+          type: integer
+        description: Identifier of the sync run
+        required: true
+      - in: query
+        name: state
+        schema:
+          type: string
+          enum:
+          - applied
+          - proposed
+          - rejected
+          - superseded
+        description: Only changes in this state; omit for every state
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncChangeListResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/ukma-data/terms/:
     get:
       operationId: ukma_data_terms_list
@@ -5794,6 +6286,419 @@ components:
       required:
       - id
       - offerings
+    SyncChange:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        run_id:
+          type: integer
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          readOnly: true
+        group:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeGroupEnum'
+          readOnly: true
+        kind:
+          type: string
+          readOnly: true
+        key:
+          type: string
+          readOnly: true
+        ukma_data_id:
+          type: string
+          readOnly: true
+          nullable: true
+        target_id:
+          type: string
+          readOnly: true
+          nullable: true
+        before:
+          readOnly: true
+        after:
+          readOnly: true
+        waiting_on:
+          readOnly: true
+        ratings:
+          type: integer
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeStateEnum'
+          readOnly: true
+        state_reason:
+          type: string
+          readOnly: true
+        never_auto:
+          type: boolean
+          readOnly: true
+        decided_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - after
+      - before
+      - decided_at
+      - group
+      - id
+      - key
+      - kind
+      - never_auto
+      - ratings
+      - run_id
+      - source
+      - state
+      - state_reason
+      - target_id
+      - ukma_data_id
+      - waiting_on
+    SyncChangeGroupEnum:
+      enum:
+      - link
+      - new
+      - change
+      - mapping
+      - removed
+      type: string
+      description: |-
+        * `link` - Link
+        * `new` - New
+        * `change` - Change
+        * `mapping` - Mapping
+        * `removed` - Removed
+    SyncChangeListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncChange'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
+    SyncChangeStateEnum:
+      enum:
+      - proposed
+      - applied
+      - rejected
+      - superseded
+      type: string
+      description: |-
+        * `proposed` - Proposed
+        * `applied` - Applied
+        * `rejected` - Rejected
+        * `superseded` - Superseded
+    SyncPendingResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncChange'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        groups:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Waiting changes per group, before the request's group and kind
+            filters.
+        kinds:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Waiting changes per kind, before the request's group and kind
+            filters.
+        runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncRun'
+          description: Each listed source's current run.
+      required:
+      - groups
+      - items
+      - kinds
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - runs
+      - total
+      - total_pages
+    SyncPolicy:
+      type: object
+      properties:
+        kind:
+          type: string
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          readOnly: true
+        group:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeGroupEnum'
+          readOnly: true
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/SyncPolicyModeEnum'
+          readOnly: true
+        never_auto:
+          type: boolean
+          readOnly: true
+        updated_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - group
+      - kind
+      - mode
+      - never_auto
+      - source
+      - updated_at
+      - updated_by
+    SyncPolicyChange:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          type: string
+          readOnly: true
+        old_mode:
+          allOf:
+          - $ref: '#/components/schemas/SyncPolicyModeEnum'
+          readOnly: true
+        new_mode:
+          allOf:
+          - $ref: '#/components/schemas/SyncPolicyModeEnum'
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+        user_email:
+          type: string
+          format: email
+          readOnly: true
+        changed_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - changed_at
+      - id
+      - kind
+      - new_mode
+      - old_mode
+      - user
+      - user_email
+    SyncPolicyChangeListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncPolicyChange'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
+    SyncPolicyListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncPolicy'
+      required:
+      - items
+    SyncPolicyModeEnum:
+      enum:
+      - needs_approval
+      - auto
+      type: string
+      description: |-
+        * `needs_approval` - Needs approval
+        * `auto` - Auto
+    SyncPolicyUpdate:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/SyncPolicyModeEnum'
+      required:
+      - mode
+    SyncRun:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SyncRunStatusEnum'
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cursor_from:
+          readOnly: true
+        cursor_to:
+          readOnly: true
+        cursor_saved:
+          readOnly: true
+        data_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        counts:
+          readOnly: true
+        error:
+          type: string
+          readOnly: true
+        age_seconds:
+          type: integer
+          readOnly: true
+      required:
+      - age_seconds
+      - counts
+      - cursor_from
+      - cursor_saved
+      - cursor_to
+      - data_updated_at
+      - error
+      - finished_at
+      - id
+      - source
+      - started_at
+      - status
+    SyncRunListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncRun'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        next_page:
+          type: integer
+          minimum: 1
+          nullable: true
+        previous_page:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - items
+      - next_page
+      - page
+      - page_size
+      - previous_page
+      - total
+      - total_pages
+    SyncRunStatusEnum:
+      enum:
+      - running
+      - succeeded
+      - failed
+      type: string
+      description: |-
+        * `running` - Running
+        * `succeeded` - Succeeded
+        * `failed` - Failed
+    SyncSourceEnum:
+      enum:
+      - teachers
+      - catalog
+      type: string
+      description: |-
+        * `teachers` - Teachers
+        * `catalog` - Catalog
     UkmaDataDepartment:
       type: object
       properties:
