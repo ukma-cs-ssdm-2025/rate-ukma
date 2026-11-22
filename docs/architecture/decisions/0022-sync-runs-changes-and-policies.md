@@ -35,6 +35,14 @@ Every sync from UKMA Data is one system of recorded runs, recorded changes and p
 
 Open for the owner: D1 keeping courses apart against spec rule 9; D3 bulk keep-apart for unrated questions; D4 never removing specialities; D5 deleting a course emptied by a merge; D8 which kinds go `auto`, and when; D11 a rejected change returning the next night; D13 auto leaving a catalog change on rated rows for a person (teacher link changes are not held back, as the teacher sync always wrote links on rated offerings); D14 real teacher names on staging.
 
+## Update 2026-11-22: Decisions Move to the Console
+
+The /data approval UI is replaced by a console command. A superuser, usually through a Claude session, decides changes with `manage.py catalog_sync` (`status`, `show`, `apply`, `reject`, `answer`, `policy`). It calls the same services the removed endpoints called, so locks, the 48-hour stale check and the never-`auto` kinds hold as before. Every write command is a dry run unless `--yes` is given, and `--by <username>` records the superuser the decision belongs to.
+
+/data becomes read-only: it shows what changed, what waits per group, what was applied by whom and when, the policies, and the count of open UKMA Data review cases. The write endpoints only that UI used are removed: policy update, approve, reject, change answer, keep-apart for unrated questions, preview, bulk question answers and the active-approval lookup. The preview tokens of item 4 are no longer issued; the console's dry run takes their place. Runbook: [catalog-sync-console.md](../../runbooks/catalog-sync-console.md).
+
+Why: the approval screens took most of the sync's UI code and still needed a person to read every change, while a dry run in the console prints the same list, old → new, in one step that Claude can read back and explain.
+
 ## Consequences
 
 - ✅ No change reaches Rate UKMA without a person until a superuser sets its kind to `auto`, and every policy change is audited.

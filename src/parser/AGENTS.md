@@ -36,6 +36,8 @@ UKMA Data collects NaUKMA data from САЗ and smart.ukma on a schedule and serv
 - A token is a `Redacted` value everywhere but the one `create-key` print; never log it.
 - The container contract (one image, commands `api`/`worker`/`migrate`/`reparse`/`crawl-smart`/`create-key`/`revoke-key`/`list-keys`, `DATABASE_URL`, `PORT`, the university account, `/health`) is shared with infra. A change to it updates `deployment-infrastructure.md` in the same PR.
 
+- Review cases are decided from the console, not from Rate UKMA's /data page, which only counts them: [docs/runbooks/catalog-sync-console.md](../../docs/runbooks/catalog-sync-console.md).
+
 ## Conventions
 
 Some older code predates these rules. Follow the rule, not the neighbouring file, and name the contradiction in the PR.
