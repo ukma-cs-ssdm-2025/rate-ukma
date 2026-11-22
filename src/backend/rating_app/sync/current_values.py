@@ -1,8 +1,9 @@
 """The Rate UKMA side of every key a sync kind writes.
 
-A builder fills a change's `before` with it; an apply calls it again and
-compares for equality. Ids are strings, decimals are strings with one decimal,
-terms are sorted by (year, term) and specialities by name.
+A builder fills a change's `before` with it (`drafts.make_before`); an apply
+calls it again and compares the keys `before` holds (`drafts.is_stale`). Ids are
+strings, decimals are strings with one decimal, terms are sorted by (year, term)
+and specialities by name.
 """
 
 from __future__ import annotations
@@ -34,9 +35,8 @@ _TEACHER_LINK_KINDS = frozenset({"teacher_link_added", "teacher_link_removed"})
 def current_values(kind: str, ru: RateUkmaSnapshot, target_id: str | None) -> dict[str, object]:
     """The Rate UKMA values of every key ``kind`` writes, in canonical JSON form.
 
-    For ``teacher_link_removed`` the plan's per-link `before` is the payload's
-    `{instructor_id, role}`; here the value is the offering's whole link set, so
-    an apply notices any link that changed and supersedes the change as stale.
+    For the teacher link kinds the value is the offering's whole link set, so an
+    apply notices any link that changed and supersedes the change as stale.
     """
     if kind in _WRITELESS_KINDS:
         return {}
