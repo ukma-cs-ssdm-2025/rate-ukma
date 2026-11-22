@@ -485,7 +485,8 @@ def _source_lines(name: str, status: dict[str, Any]) -> list[str]:
             continue
         count = sum(kinds.values())
         label = text.GROUP_LABELS[group]
-        line = f"  {label:<16}{text.number(count):>7}  ({text.kind_breakdown(kinds)})"
+        code = f"--group {group}"
+        line = f"  {label:<16}{code:<18}{text.number(count):>7}  ({text.kind_breakdown(kinds)})"
         lines.append(line[: text.WIDTH])
     skipped = status["skipped"]
     if skipped:

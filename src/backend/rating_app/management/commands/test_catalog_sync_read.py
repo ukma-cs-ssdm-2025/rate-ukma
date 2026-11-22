@@ -24,6 +24,7 @@ def test_status_counts_what_waits_per_group(run_catalog_sync, make_catalog_run, 
     assert "тривало 4 хв" in out
     assert "Чекають рішення: 2 зміни" in out
     assert "(зміни курсів 2)" in out
+    assert "--group change" in out
     assert "перемикач catalog_sync_proposals): вимкнено" in out
     assert all(len(line) <= 100 for line in out.splitlines())
 
