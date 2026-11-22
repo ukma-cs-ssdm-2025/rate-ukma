@@ -463,17 +463,10 @@ def test_a_move_to_a_course_linked_in_the_same_run_waits_on_its_link():
     assert draft.requires == [{"kind": "link_course", "key": "ru-b"}]
 
 
-def test_a_move_to_a_same_identity_course_waits_on_its_link():
+def test_a_move_to_a_course_no_run_links_is_not_asked():
     ud, ru = _move_scenario(target_linked=False)
 
-    draft = _only(_propose(ud, ru), "move_offering")
-
-    assert draft.after == {
-        "from_course": "ru-a",
-        "ukma_course_id": "ud-b",
-        "to_course_id": "ru-b",
-    }
-    assert draft.requires == [{"kind": "link_course", "key": "ru-b"}]
+    assert _by_kind(_propose(ud, ru), "move_offering") == []
 
 
 def test_a_live_keep_decision_answers_the_move_question():
@@ -528,7 +521,7 @@ def test_a_move_question_is_not_asked_when_two_courses_share_the_destination():
     assert _by_kind(_propose(ud, ru), "move_offering") == []
 
 
-def test_a_stray_offering_moves_to_a_course_created_in_the_same_run():
+def test_a_stray_offering_whose_course_does_not_exist_yet_is_not_asked_to_move():
     ud = _ud_snapshot(
         departments=[_ud_department()],
         courses=[_ud_course("ud-a"), _ud_course("ud-b", title="Інший курс")],
@@ -546,14 +539,7 @@ def test_a_stray_offering_moves_to_a_course_created_in_the_same_run():
         ],
     )
 
-    draft = _only(_propose(ud, ru), "move_offering")
-
-    assert draft.after == {
-        "from_course": "ru-a",
-        "ukma_course_id": "ud-b",
-        "to_course_ukma_id": "ud-b",
-    }
-    assert draft.requires == [{"kind": "new_course", "key": "ud-b"}]
+    assert _by_kind(_propose(ud, ru), "move_offering") == []
 
 
 RELINK_PREMISE = {

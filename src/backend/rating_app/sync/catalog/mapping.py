@@ -7,8 +7,8 @@ no longer matches is ignored, so the question is asked again.
 
 Keys follow the key contract: ``merge_courses`` is keyed by the UKMA Data course
 id; ``relink_course`` and ``move_offering`` by the Rate UKMA row. A move's
-``requires`` names the ``link_course`` of its Rate UKMA destination, or the new
-course the same run creates for it.
+``requires`` names the ``link_course`` of its Rate UKMA destination when the
+same run links it.
 """
 
 from __future__ import annotations
@@ -30,7 +30,6 @@ from rating_app.sync.drafts import ChangeDraft, DecisionView
 from rating_app.sync.matching import (
     course_majority,
     courses_by_ud,
-    match_departments,
     match_offerings,
     resolve_course,
 )
@@ -52,11 +51,10 @@ def propose_mapping_questions(
     index = CatalogIndex.build(ru)
     offering_match = match_offerings(ud, ru)
     majority = course_majority(ud, ru, offering_match)
-    departments = match_departments(ud, ru)
 
     drafts: list[ChangeDraft] = [
         *_relink_questions(index, ud, majority, decisions),
-        *_move_questions(index, ud, majority, offering_match, departments, decisions),
+        *_move_questions(index, ud, majority, offering_match, decisions),
         *_merge_questions(index, ud, majority, decisions),
     ]
     return sorted_drafts(drafts)
@@ -112,7 +110,6 @@ def _move_questions(
     ud: UkmaDataSnapshot,
     majority: dict[str, str],
     offering_match: dict[str, str],
-    departments: dict[str, str],
     decisions: Sequence[DecisionView],
 ) -> list[ChangeDraft]:
     ru = index.ru
@@ -143,14 +140,14 @@ def _move_questions(
             index,
             ud_course,
             source,
-            departments,
-            linked.get(ud_course_id) or groups.get(ud_course_id, []),
+            linked.get(ud_course_id, []),
+            groups.get(ud_course_id, []),
         )
         if destination is None:
             continue
         target_id, after, requires = destination
         premise = {
-            "course_ids": [source.id] if target_id is None else [source.id, target_id],
+            "course_ids": [source.id, target_id],
             "ukma_course_id": ud_course_id,
             "merge_source": merge_source(ud_course),
             "saz_code": ru_offering.code,
@@ -159,14 +156,13 @@ def _move_questions(
         if _answered(decisions, "move_offering", ru_offering.id, premise):
             continue
 
-        target = ru.courses.get(target_id) if target_id is not None else None
-        display: dict[str, object] = {"ukma_course": ukma_course_display(ud, ud_course)}
-        display["courses"] = [course_display(index, source)]
-        if target is not None:
-            display["courses"] = [
+        display: dict[str, object] = {
+            "ukma_course": ukma_course_display(ud, ud_course),
+            "courses": [
                 course_display(index, source),
-                course_display(index, target),
-            ]
+                course_display(index, ru.courses[target_id]),
+            ],
+        }
         drafts.append(
             make_draft(
                 index,
@@ -187,66 +183,30 @@ def _move_destination(
     index: CatalogIndex,
     ud_course: ukma_data.Course,
     source: RuCourse,
-    departments: dict[str, str],
-    targets: Sequence[str],
-) -> tuple[str | None, dict[str, object], list[dict[str, str]]] | None:
-    """Where a stray offering goes, or None when several courses compete for it."""
-    targets = [target for target in targets if target != source.id]
-    if len(targets) > 1:
-        return None
+    linked: Sequence[str],
+    group: Sequence[str],
+) -> tuple[str, dict[str, object], list[dict[str, str]]] | None:
+    """The one course a stray offering can go to, or None.
 
+    A course that already carries the UKMA Data id needs nothing; a lone course
+    whose majority is that id waits on the ``link_course`` the same run proposes
+    for it. Any other destination (a namesake, a course not created yet) would
+    wait on a change no run proposes, so the question waits for a later run.
+    """
+    targets = [target for target in linked if target != source.id]
+    requires: list[dict[str, str]] = []
+    if not targets and len(group) == 1 and group[0] != source.id:
+        if index.ru.courses[group[0]].ukma_data_id is None:
+            targets = [group[0]]
+            requires = [{"kind": "link_course", "key": group[0]}]
+    if len(targets) != 1:
+        return None
     after: dict[str, object] = {
         "from_course": source.id,
         "ukma_course_id": ud_course.id,
+        "to_course_id": targets[0],
     }
-    if targets:
-        target_id = targets[0]
-        after["to_course_id"] = target_id
-        return target_id, after, _move_requires(index, target_id, ud_course)
-
-    if ud_course.department_id is None:
-        return None
-    target_id = _same_identity_course(index, ud_course, departments, exclude=source.id)
-    if target_id is not None:
-        after["to_course_id"] = target_id
-        return target_id, after, _move_requires(index, target_id, ud_course)
-
-    after["to_course_ukma_id"] = ud_course.id
-    return None, after, [{"kind": "new_course", "key": ud_course.id}]
-
-
-def _move_requires(
-    index: CatalogIndex, target_id: str, ud_course: ukma_data.Course
-) -> list[dict[str, str]]:
-    """A destination that already carries the id needs no link; a course the same
-    run links waits on its ``link_course`` (key contract: Rate UKMA ids)."""
-    target = index.ru.courses[target_id]
-    if target.ukma_data_id == ud_course.id:
-        return []
-    return [{"kind": "link_course", "key": target_id}]
-
-
-def _same_identity_course(
-    index: CatalogIndex,
-    ud_course: ukma_data.Course,
-    departments: dict[str, str],
-    *,
-    exclude: str,
-) -> str | None:
-    """The course a new UKMA Data course links to instead of a new row (M6)."""
-    if ud_course.department_id is None:
-        return None
-    department_id = departments.get(ud_course.department_id)
-    if department_id is None:
-        return None
-    matches = [
-        course_id
-        for course_id in index.courses_with_identity(
-            ud_course.title, department_id, ud_course.level.value.upper()
-        )
-        if course_id != exclude
-    ]
-    return matches[0] if len(matches) == 1 else None
+    return targets[0], after, requires
 
 
 def _merge_questions(
