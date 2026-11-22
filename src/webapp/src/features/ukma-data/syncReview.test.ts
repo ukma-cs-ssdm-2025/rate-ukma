@@ -19,6 +19,7 @@ const preview = (
 	superseded_reasons: {},
 	ratings_moved: 0,
 	plans_moved: 0,
+	field_counts: {},
 	run_age_hours: 7,
 	...overrides,
 });

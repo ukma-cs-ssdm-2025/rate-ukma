@@ -47,6 +47,19 @@ CHANGE_KINDS: frozenset[str] = frozenset(
 REMOVED_KINDS: frozenset[str] = frozenset(
     kind.name for kind in KIND_BY_NAME.values() if kind.group == SyncChangeGroup.REMOVED
 )
+GROUPED_KINDS: frozenset[str] = (
+    LINK_KINDS | NEW_KINDS | CHANGE_KINDS | MAPPING_KINDS | REMOVED_KINDS
+) - {"relink_course"}
+OTHER_GROUP = "other"
+
+
+def in_group(changes: QuerySet[SyncChange], group: str) -> QuerySet[SyncChange]:
+    """One group of the sync page; ``other`` is every kind no other line shows."""
+    if group == OTHER_GROUP:
+        return changes.exclude(kind__in=GROUPED_KINDS)
+    return changes.filter(group=group)
+
+
 _COURSE_KINDS = frozenset({"link_course", "change_course", "relink_course", "removed_course"})
 _OFFERING_KINDS = frozenset({"link_offering", "change_offering", "removed_offering"})
 _LIST_FIELDS = frozenset({"terms", "specialities_added"})
@@ -473,7 +486,6 @@ def _groups(
             for change_id, (after, before, _) in change_rows.items()
         }
     )
-    grouped = LINK_KINDS | NEW_KINDS | CHANGE_KINDS | MAPPING_KINDS | REMOVED_KINDS
     return {
         "links": _parts(kinds, "link", total(LINK_KINDS)),
         "new": _parts(kinds, "new", total(NEW_KINDS)),
@@ -496,8 +508,7 @@ def _groups(
         },
         "removed": {"total": total(REMOVED_KINDS)},
         "other": {
-            "total": kinds["relink_course"]
-            + sum(count for name, count in kinds.items() if name not in grouped)
+            "total": sum(count for name, count in kinds.items() if name not in GROUPED_KINDS)
         },
     }
 

@@ -12,6 +12,7 @@ import { SyncChangeList } from "./SyncChangeList";
 import { SyncFieldsView } from "./SyncFieldsView";
 import { SyncMergeDesk } from "./SyncMergeDesk";
 import { SyncNewList } from "./SyncNewList";
+import { SyncOtherList } from "./SyncOtherList";
 import { SyncPairsList } from "./SyncPairsList";
 import { SyncPlaceDesk } from "./SyncPlaceDesk";
 
@@ -26,10 +27,12 @@ export function SyncViews({
 }>) {
 	const [params, setParams] = useQueryStates(viewParams);
 	const { groups } = summary;
+	const run = summary.run.id;
 	if (params.view === "links") {
 		return (
 			<SyncChangeList
 				title="Ті самі, що в САЗ"
+				run={run}
 				description="Ці дисципліни, семестри, факультети й кафедри вже є на сайті. Підтвердження лише запам'ятовує, що це одне й те саме; на сайті нічого не зміниться."
 				scope={{ group: "link", field: null, blanks: null }}
 				onBack={onBack}
@@ -47,7 +50,12 @@ export function SyncViews({
 	}
 	if (params.view === "new") {
 		return (
-			<SyncNewList groups={groups} onBack={onBack} onConfirm={onConfirm} />
+			<SyncNewList
+				run={run}
+				groups={groups}
+				onBack={onBack}
+				onConfirm={onConfirm}
+			/>
 		);
 	}
 	if (params.view === "fields" && params.field !== null) {
@@ -55,6 +63,7 @@ export function SyncViews({
 		return (
 			<SyncChangeList
 				title={blanks ? blankTitle(params.field) : fieldLabel(params.field)}
+				run={run}
 				description="Семестри, у яких САЗ змінив це поле. Оцінки ці зміни не зачіпають."
 				scope={{ group: "change", field: params.field, blanks }}
 				onBack={() =>
@@ -81,6 +90,16 @@ export function SyncViews({
 	}
 	if (params.view === "place") {
 		return <SyncPlaceDesk onBack={onBack} onConfirm={onConfirm} />;
+	}
+	if (params.view === "other") {
+		return (
+			<SyncOtherList
+				run={run}
+				total={groups.other.total}
+				onBack={onBack}
+				onConfirm={onConfirm}
+			/>
+		);
 	}
 	return null;
 }

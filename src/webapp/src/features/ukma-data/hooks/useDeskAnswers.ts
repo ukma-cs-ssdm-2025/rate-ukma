@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -11,11 +11,7 @@ export function useDeskAnswers(questions: readonly SyncQuestion[]) {
 	const [local, setLocal] = useState<ReadonlyMap<number, DeskAnswer>>(
 		new Map(),
 	);
-	const remember = (id: number, value: DeskAnswer) => {
-		const next = new Map(local);
-		next.set(id, value);
-		setLocal(next);
-	};
+	const saving = useRef(new Set<number>());
 	const save = useMutation({
 		mutationFn: async ({ id, value }: { id: number; value: DeskAnswer }) => {
 			if (value.answer !== "none") {
@@ -26,7 +22,16 @@ export function useDeskAnswers(questions: readonly SyncQuestion[]) {
 			}
 			return { id, value };
 		},
-		onSuccess: ({ id, value }) => remember(id, value),
+		onSuccess: ({ id, value }) =>
+			setLocal((known) => new Map(known).set(id, value)),
+		onSettled: (_data, _error, { id }) => saving.current.delete(id),
 	});
-	return { answers: deskAnswers(questions, local), save };
+	const answer = (id: number, value: DeskAnswer, onSaved: () => void) => {
+		if (saving.current.has(id)) {
+			return;
+		}
+		saving.current.add(id);
+		save.mutate({ id, value }, { onSuccess: onSaved });
+	};
+	return { answers: deskAnswers(questions, local), answer, save };
 }

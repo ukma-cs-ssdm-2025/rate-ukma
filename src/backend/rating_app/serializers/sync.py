@@ -83,8 +83,11 @@ class SyncPolicyUpdateSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=SyncPolicyMode.choices)
 
 
+SELECTION_GROUP_CHOICES = [*SyncChangeGroup.choices, ("other", "Other")]
+
+
 class SyncSelectionFilterSerializer(serializers.Serializer):
-    group = serializers.ChoiceField(choices=SyncChangeGroup.choices)
+    group = serializers.ChoiceField(choices=SELECTION_GROUP_CHOICES)
     kind = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     q = serializers.CharField(required=False, allow_null=True, allow_blank=True, max_length=200)
     rated = serializers.BooleanField(required=False, allow_null=True)
@@ -113,10 +116,6 @@ class SyncSelectionSerializer(serializers.Serializer):
         filters = attrs.get("filter")
         if (given is None) == (filters is None):
             raise serializers.ValidationError("Вкажіть або зміни, або фільтр")
-        if given is not None and len(given) > 200:  # pyright: ignore[reportArgumentType]  # ListField output
-            raise serializers.ValidationError(
-                {"change_ids": ["За ідентифікаторами можна застосувати до 200 змін"]}
-            )
         return attrs
 
 

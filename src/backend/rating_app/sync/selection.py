@@ -15,11 +15,9 @@ from rating_app.sync import fields, review
 
 def filter_ids(run: SyncRun, source: str, filters: Mapping[str, Any]) -> list[int]:
     """The run's proposed changes that match one group filter of the review screen."""
-    changes = SyncChange.objects.filter(
-        run=run,
-        source=source,
-        group=filters["group"],
-        state=SyncChangeState.PROPOSED,
+    changes = review.in_group(
+        SyncChange.objects.filter(run=run, source=source, state=SyncChangeState.PROPOSED),
+        str(filters["group"]),
     )
     kind = filters.get("kind") or None
     if kind:
@@ -51,12 +49,22 @@ def filter_ids(run: SyncRun, source: str, filters: Mapping[str, Any]) -> list[in
         year_from=filters.get("year_from"),
         year_to=filters.get("year_to"),
     )
-    excluded = {int(change_id) for change_id in filters.get("exclude_ids") or []}
+    excluded = set(excluded_ids(filters))
     return sorted(
         int(change_id)
         for change_id in changes.values_list("id", flat=True)
         if int(change_id) not in excluded
     )
+
+
+def excluded_ids(filters: Mapping[str, Any] | None) -> list[int]:
+    """The changes a filter selection leaves out; an approval never applies them,
+    even when a selected change's unit or requirements name them."""
+    return sorted({int(change_id) for change_id in (filters or {}).get("exclude_ids") or []})
+
+
+def selection_excluded(selection_data: Mapping[str, Any] | None) -> list[int]:
+    return excluded_ids((selection_data or {}).get("filter"))
 
 
 def narrow(
@@ -116,9 +124,13 @@ def _rated(changes: QuerySet[SyncChange], rated: Any) -> QuerySet[SyncChange]:
     return changes.filter(ratings=0)
 
 
-def token_for(run_id: int, change_ids: Iterable[int]) -> str:
+def token_for(run_id: int, change_ids: Iterable[int], excluded: Iterable[int] = ()) -> str:
     ids = sorted({int(change_id) for change_id in change_ids})
-    digest = hashlib.sha256(",".join(str(change_id) for change_id in ids).encode()).hexdigest()
+    text = ",".join(str(change_id) for change_id in ids)
+    left_out = sorted({int(change_id) for change_id in excluded})
+    if left_out:
+        text += "|" + ",".join(str(change_id) for change_id in left_out)
+    digest = hashlib.sha256(text.encode()).hexdigest()
     return f"{run_id}:{digest}"
 
 

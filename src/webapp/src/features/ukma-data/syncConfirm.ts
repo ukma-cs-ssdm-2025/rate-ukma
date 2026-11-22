@@ -1,8 +1,10 @@
 import type {
 	SyncApproval,
 	SyncChangeGroupEnum,
+	SyncPreviewResponse,
 	SyncSelection,
 } from "@/lib/api/generated";
+import { fieldLabel } from "./syncFields";
 import { formatCount } from "./syncFormat";
 import type { GroupKey, Part } from "./syncGroups";
 import { partsPhrase, partsTotal } from "./syncGroups";
@@ -18,10 +20,33 @@ export interface ConfirmRequest {
 	consequence: string;
 	approve: {
 		selection: SyncSelection;
-		group: SyncChangeGroupEnum;
+		group: SyncChangeGroupEnum | null;
 		kind: string | null;
 	} | null;
 	reject: SyncSelection | null;
+	field: FieldScope | null;
+}
+
+export interface FieldScope {
+	name: string;
+	skip: boolean;
+}
+
+export function alsoLines(
+	scope: FieldScope,
+	preview: Pick<SyncPreviewResponse, "field_counts"> | null,
+): string[] {
+	if (preview === null) {
+		return [];
+	}
+	const lead = scope.skip ? "Також залишиться як є" : "Також оновиться";
+	return Object.entries(preview.field_counts)
+		.filter(([name, count]) => name !== scope.name && count > 0)
+		.sort(([, left], [, right]) => right - left)
+		.map(
+			([name, count]) =>
+				`${lead}: ${fieldLabel(name).toLowerCase()} — ${formatCount(count)}`,
+		);
 }
 
 export interface DoneBanner {

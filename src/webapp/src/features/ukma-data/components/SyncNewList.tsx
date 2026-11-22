@@ -39,10 +39,12 @@ export function defaultSegment(groups: SyncSummaryGroups): ListSegment {
 }
 
 export function SyncNewList({
+	run,
 	groups,
 	onBack,
 	onConfirm,
 }: Readonly<{
+	run: number;
 	groups: SyncSummaryGroups;
 	onBack: () => void;
 	onConfirm: (request: ConfirmRequest) => void;
@@ -62,6 +64,7 @@ export function SyncNewList({
 	const list = useUkmaDataSyncPendingList(
 		{
 			source: "catalog",
+			run,
 			group: "new",
 			kind: NEW_KINDS[segment],
 			q: params.q || undefined,

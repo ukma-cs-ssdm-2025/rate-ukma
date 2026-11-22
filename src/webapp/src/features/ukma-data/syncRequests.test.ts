@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SyncApproval } from "@/lib/api/generated";
 import { catalogGroups } from "./components/syncTestData";
-import { bannerFor, previewNote, requestTotal } from "./syncConfirm";
+import { alsoLines, bannerFor, previewNote, requestTotal } from "./syncConfirm";
 import { openLines } from "./syncGroups";
 import {
 	clearRequest,
@@ -11,6 +11,8 @@ import {
 	linksRequest,
 	mergeDecisionsRequest,
 	newRequest,
+	otherRequest,
+	otherSkipRequest,
 	pairsRequest,
 	placeDecisionsRequest,
 } from "./syncRequests";
@@ -102,6 +104,77 @@ describe("confirm requests", () => {
 		expect(pairsRequest(170, 5).approve?.selection).toEqual({
 			filter: { group: "mapping", kind: "merge_courses", rated: false },
 		});
+	});
+});
+
+describe("more than 200 decisions", () => {
+	it("sends every desk decision and counts exactly the ids sent", () => {
+		// Arrange
+		const merged = Array.from({ length: 180 }, (_, index) => index + 1);
+		const apart = Array.from({ length: 70 }, (_, index) => index + 1001);
+		const placed = Array.from({ length: 230 }, (_, index) => index + 2001);
+		const none = Array.from({ length: 210 }, (_, index) => index + 3001);
+
+		// Act
+		const merges = mergeDecisionsRequest(merged, apart);
+		const places = placeDecisionsRequest(placed, none);
+
+		// Assert
+		expect(merges.approve?.selection).toEqual({
+			change_ids: [...merged, ...apart],
+		});
+		expect(requestTotal(merges)).toBe(250);
+		expect(places.approve?.selection).toEqual({ change_ids: placed });
+		expect(places.reject).toEqual({ change_ids: none });
+		expect(requestTotal(places)).toBe(440);
+	});
+});
+
+describe("field rows", () => {
+	it("names the other fields the same semesters update or keep", () => {
+		// Arrange
+		const preview = {
+			field_counts: { practice_type: 412, practice_count: 412, credits: 3 },
+		};
+
+		// Act
+		const update = alsoLines({ name: "practice_type", skip: false }, preview);
+		const keep = alsoLines({ name: "practice_type", skip: true }, preview);
+
+		// Assert
+		expect(update).toEqual([
+			"Також оновиться: кількість практичних — 412",
+			"Також оновиться: кредити — 3",
+		]);
+		expect(keep[0]).toBe("Також залишиться як є: кількість практичних — 412");
+		expect(alsoLines({ name: "practice_type", skip: false }, null)).toEqual([]);
+	});
+
+	it("describes a field row as whole semesters", () => {
+		// Assert
+		expect(practice && fieldRequest(practice).field).toEqual({
+			name: "practice_type",
+			skip: false,
+		});
+		expect(blanking && keepRequest(blanking).field?.skip).toBe(true);
+		expect(blanking && keepRequest(blanking).ticks.join(" ")).toMatch(
+			/Інші оновлення в цих семестрах теж буде пропущено/,
+		);
+	});
+});
+
+describe("other changes", () => {
+	it("applies or skips the whole other list by filter", () => {
+		// Act
+		const apply = otherRequest(3);
+		const skip = otherSkipRequest(3);
+
+		// Assert
+		expect(apply.approve?.selection).toEqual({ filter: { group: "other" } });
+		expect(apply.reject).toBeNull();
+		expect(skip.approve).toBeNull();
+		expect(skip.reject).toEqual({ filter: { group: "other" } });
+		expect(requestTotal(apply)).toBe(3);
 	});
 });
 

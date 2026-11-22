@@ -67,6 +67,24 @@ describe("openLines", () => {
 		expect(pendingTotal(doneGroups)).toBe(0);
 		expect(openLines(doneGroups)).toEqual([]);
 	});
+
+	it("keeps other proposals pending and reviewable", () => {
+		// Arrange
+		const groups = { ...doneGroups, other: { total: 4 } };
+
+		// Act
+		const lines = openLines(groups);
+
+		// Assert
+		expect(pendingTotal(groups)).toBe(4);
+		expect(lines).toHaveLength(1);
+		expect(lines[0]).toMatchObject({
+			key: "other",
+			title: "Інші зміни: 4",
+			chip: "changes",
+			action: { label: "Переглянути", view: "other" },
+		});
+	});
 });
 
 describe("parts", () => {

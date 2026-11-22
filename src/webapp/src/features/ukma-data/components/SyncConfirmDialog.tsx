@@ -23,7 +23,12 @@ import {
 	ukmaDataSyncReject,
 } from "@/lib/api/generated";
 import { useSyncApplyLock } from "../hooks/useSyncApplyLock";
-import { bannerFor, previewNote, requestTotal } from "../syncConfirm";
+import {
+	alsoLines,
+	bannerFor,
+	previewNote,
+	requestTotal,
+} from "../syncConfirm";
 import type { ConfirmRequest, DoneBanner } from "../syncConfirm";
 import { formatCount } from "../syncFormat";
 import { HOLDER_LABELS } from "../syncLabels";
@@ -94,6 +99,27 @@ function PartsTable({ request }: Readonly<{ request: ConfirmRequest }>) {
 				</span>
 			</div>
 		</div>
+	);
+}
+
+function AlsoChanges({
+	request,
+	previews,
+}: Readonly<{ request: ConfirmRequest; previews: Previews | undefined }>) {
+	if (request.field === null || previews === undefined) {
+		return null;
+	}
+	const preview = request.field.skip ? previews.reject : previews.approve;
+	const lines = alsoLines(request.field, preview);
+	if (lines.length === 0) {
+		return null;
+	}
+	return (
+		<ul className="space-y-1 rounded-lg border px-4 py-2.5 text-sm">
+			{lines.map((line) => (
+				<li key={line}>{line}</li>
+			))}
+		</ul>
 	);
 }
 
@@ -227,6 +253,7 @@ export function SyncConfirmDialog({
 					</DialogDescription>
 				</DialogHeader>
 				<PartsTable request={request} />
+				<AlsoChanges request={request} previews={preview.data} />
 				<ul className="space-y-2 text-sm">
 					{request.ticks.map((tick) => (
 						<li key={tick} className="flex items-start gap-2">

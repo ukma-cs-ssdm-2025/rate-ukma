@@ -31,6 +31,7 @@ export const GROUP_KEYS = [
 	"merges",
 	"placements",
 	"removed",
+	"other",
 ] as const;
 
 export type GroupKey = (typeof GROUP_KEYS)[number];
@@ -43,6 +44,7 @@ export const SYNC_VIEWS = [
 	"merge",
 	"pairs",
 	"place",
+	"other",
 ] as const;
 
 export type SyncView = (typeof SYNC_VIEWS)[number];
@@ -253,6 +255,25 @@ function removedLine(groups: SyncSummaryGroups): GroupLine {
 	};
 }
 
+export function otherParts(groups: SyncSummaryGroups): Part[] {
+	return [{ label: "Інші зміни", forms: RECORDS, count: groups.other.total }];
+}
+
+function otherLine(groups: SyncSummaryGroups): GroupLine {
+	const { total } = groups.other;
+	return {
+		key: "other",
+		title: `Інші зміни: ${formatCount(total)}`,
+		effect:
+			"Зміни, що не належать до жодної групи вище. Перегляньте їх списком, перш ніж застосувати.",
+		chip: "changes",
+		count: total,
+		action: { label: "Переглянути", view: "other" },
+		link: null,
+		parts: otherParts(groups),
+	};
+}
+
 export function groupLines(groups: SyncSummaryGroups): GroupLine[] {
 	return [
 		linksLine(groups),
@@ -261,6 +282,7 @@ export function groupLines(groups: SyncSummaryGroups): GroupLine[] {
 		mergesLine(groups),
 		placementsLine(groups),
 		removedLine(groups),
+		otherLine(groups),
 	];
 }
 
@@ -294,6 +316,7 @@ const DONE_TITLES = {
 	placements: () => "✓ Усі семестри прикріплено",
 	removed: (count: number) =>
 		`✓ ${countWith(count, RECORDS)} позначено переглянутими`,
+	other: (count: number) => `✓ Інші зміни: ${formatCount(count)}`,
 } satisfies Record<GroupKey, (count: number) => string>;
 
 const DONE_EFFECTS = {
@@ -303,6 +326,7 @@ const DONE_EFFECTS = {
 	merges: "Копії прибраних сторінок лишились в історії.",
 	placements: "Семестри з'явились на сторінках дисциплін.",
 	removed: "Сайт нічого не видалив.",
+	other: "Сайт оновлено.",
 } satisfies Record<GroupKey, string>;
 
 export function whoDid(email: string | null, current: string | null): string {

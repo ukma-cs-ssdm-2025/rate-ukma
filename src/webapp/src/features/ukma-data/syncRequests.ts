@@ -7,7 +7,8 @@ import type { ConfirmRequest } from "./syncConfirm";
 import { countWith, formatCount } from "./syncFormat";
 import { fieldLabel, MOVING_FIELDS } from "./syncFields";
 import { linkParts, partsTotal, removedParts } from "./syncGroups";
-import { DISCIPLINES, PAIRS, RECORDS, SEMESTERS } from "./syncWords";
+import type { Part } from "./syncGroups";
+import { CHANGES, DISCIPLINES, PAIRS, RECORDS, SEMESTERS } from "./syncWords";
 
 export const SELECTION_LIMIT = 200;
 
@@ -31,6 +32,7 @@ export function linksRequest(groups: SyncSummaryGroups): ConfirmRequest {
 			kind: null,
 		},
 		reject: null,
+		field: null,
 	};
 }
 
@@ -54,6 +56,7 @@ export function removedRequest(groups: SyncSummaryGroups): ConfirmRequest {
 			kind: null,
 		},
 		reject: null,
+		field: null,
 	};
 }
 
@@ -109,6 +112,7 @@ export function newRequest(
 					}
 				: null,
 		reject: kept.length > 0 ? { change_ids: [...kept] } : null,
+		field: null,
 	};
 }
 
@@ -118,16 +122,24 @@ const changeFilter = (field: string, blanks: boolean): SyncSelectionFilter => ({
 	blanks,
 });
 
+const WHOLE_SEMESTER =
+	"Семестр оновлюється цілком: разом із цим полем зміняться й інші поля, які САЗ змінив у цих семестрах.";
+
+const fieldPart = (label: string, count: number): Part => ({
+	label: `Семестри, де змінилось поле «${label.toLowerCase()}»`,
+	forms: SEMESTERS,
+	count,
+});
+
 export function fieldRequest(row: SyncFieldRow): ConfirmRequest {
 	const label = fieldLabel(row.field);
 	return {
 		group: "changes",
 		title: `Оновити «${label.toLowerCase()}» у ${countWith(row.count, SEMESTERS)}?`,
-		parts: [
-			{ label: `${label}: нові значення`, forms: SEMESTERS, count: row.count },
-		],
+		parts: [fieldPart(label, row.count)],
 		ticks: [
 			"Студенти побачать нові значення на сторінці дисципліни.",
+			WHOLE_SEMESTER,
 			MOVING_FIELDS.has(row.field)
 				? "Семестр переїде в інший рік чи сезон; оцінки залишаються з ним."
 				: "Оцінки залишаються там, де були.",
@@ -141,6 +153,7 @@ export function fieldRequest(row: SyncFieldRow): ConfirmRequest {
 			kind: null,
 		},
 		reject: null,
+		field: { name: row.field, skip: false },
 	};
 }
 
@@ -149,11 +162,10 @@ export function clearRequest(row: SyncFieldRow): ConfirmRequest {
 	return {
 		group: "changes",
 		title: `Очистити «${label.toLowerCase()}» у ${countWith(row.count, SEMESTERS)}?`,
-		parts: [
-			{ label: `${label}: стане порожнім`, forms: SEMESTERS, count: row.count },
-		],
+		parts: [fieldPart(label, row.count)],
 		ticks: [
 			"На сайті поле стане порожнім: студенти не бачитимуть значення.",
+			WHOLE_SEMESTER,
 			"Оцінки залишаються там, де були.",
 		],
 		confirmLabel: `Очистити ${formatCount(row.count)}`,
@@ -165,6 +177,7 @@ export function clearRequest(row: SyncFieldRow): ConfirmRequest {
 			kind: null,
 		},
 		reject: null,
+		field: { name: row.field, skip: false },
 	};
 }
 
@@ -173,18 +186,57 @@ export function keepRequest(row: SyncFieldRow): ConfirmRequest {
 	return {
 		group: "changes",
 		title: `Залишити «${label.toLowerCase()}» як є у ${countWith(row.count, SEMESTERS)}?`,
-		parts: [
-			{ label: `${label}: без змін`, forms: SEMESTERS, count: row.count },
-		],
+		parts: [fieldPart(label, row.count)],
 		ticks: [
-			"Сайт збереже нинішнє значення.",
-			"Якщо САЗ знову заповнить поле, зміна прийде сама.",
+			"Сайт збереже нинішні значення цих семестрів.",
+			"Інші оновлення в цих семестрах теж буде пропущено. Вони повернуться з наступною перевіркою, якщо САЗ і далі відрізнятиметься.",
 		],
 		confirmLabel: `Залишити ${formatCount(row.count)} як є`,
 		verb: "залишено як є",
 		consequence: "Сайт зберіг нинішні значення.",
 		approve: null,
 		reject: { filter: changeFilter(row.field, true) },
+		field: { name: row.field, skip: true },
+	};
+}
+
+export function otherRequest(total: number): ConfirmRequest {
+	return {
+		group: "other",
+		title: `Застосувати ${countWith(total, CHANGES)}?`,
+		parts: [{ label: "Інші зміни", forms: CHANGES, count: total }],
+		ticks: [
+			"Сайт оновиться так, як описано в списку.",
+			"Оцінки залишаються там, де були.",
+		],
+		confirmLabel: `Застосувати ${formatCount(total)}`,
+		verb: "застосовано",
+		consequence: "Сайт оновлено.",
+		approve: {
+			selection: { filter: { group: "other" } },
+			group: null,
+			kind: null,
+		},
+		reject: null,
+		field: null,
+	};
+}
+
+export function otherSkipRequest(total: number): ConfirmRequest {
+	return {
+		group: "other",
+		title: `Пропустити ${countWith(total, CHANGES)}?`,
+		parts: [{ label: "Інші зміни", forms: CHANGES, count: total }],
+		ticks: [
+			"Сайт нічого не змінить.",
+			"Ці зміни повернуться з наступною перевіркою, якщо САЗ і далі відрізнятиметься.",
+		],
+		confirmLabel: `Пропустити ${formatCount(total)}`,
+		verb: "пропущено",
+		consequence: "Сайт нічого не змінив.",
+		approve: null,
+		reject: { filter: { group: "other" } },
+		field: null,
 	};
 }
 
@@ -208,11 +260,12 @@ export function mergeDecisionsRequest(
 		verb: "застосовано",
 		consequence: "Об'єднані сторінки тепер одна сторінка.",
 		approve: {
-			selection: { change_ids: ids.slice(0, SELECTION_LIMIT) },
+			selection: { change_ids: ids },
 			group: "mapping",
 			kind: "merge_courses",
 		},
 		reject: null,
+		field: null,
 	};
 }
 
@@ -239,6 +292,7 @@ export function pairsRequest(merged: number, apart: number): ConfirmRequest {
 			kind: "merge_courses",
 		},
 		reject: null,
+		field: null,
 	};
 }
 
@@ -267,12 +321,12 @@ export function placeDecisionsRequest(
 		approve:
 			placed.length > 0
 				? {
-						selection: { change_ids: placed.slice(0, SELECTION_LIMIT) },
+						selection: { change_ids: [...placed] },
 						group: "mapping",
 						kind: "place_offering",
 					}
 				: null,
-		reject:
-			none.length > 0 ? { change_ids: none.slice(0, SELECTION_LIMIT) } : null,
+		reject: none.length > 0 ? { change_ids: [...none] } : null,
+		field: null,
 	};
 }

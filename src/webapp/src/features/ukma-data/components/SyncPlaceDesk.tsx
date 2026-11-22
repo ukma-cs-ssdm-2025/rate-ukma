@@ -145,7 +145,7 @@ export function SyncPlaceDesk({
 		kinds: "place_offering,move_offering",
 	});
 	const items = questions.data ?? [];
-	const { answers, save } = useDeskAnswers(items);
+	const { answers, answer: saveAnswer, save } = useDeskAnswers(items);
 	const [index, setIndex] = useState<number | null>(null);
 	const current = index ?? firstOpen(items, answers);
 	const question = items[current];
@@ -155,9 +155,8 @@ export function SyncPlaceDesk({
 		if (question === undefined) {
 			return;
 		}
-		save.mutate(
-			{ id: question.id, value },
-			{ onSuccess: () => setIndex(nextIndex(current, items.length)) },
+		saveAnswer(question.id, value, () =>
+			setIndex(nextIndex(current, items.length)),
 		);
 	};
 	const count = placed.length + none.length;

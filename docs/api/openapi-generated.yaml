@@ -3867,8 +3867,10 @@ paths:
           - link
           - mapping
           - new
+          - other
           - removed
-        description: Only changes of this group; omit for every group
+        description: Only changes of this group, or `other` for the kinds no group
+          line shows; omit for every group
       - in: query
         name: kind
         schema:
@@ -4710,8 +4712,10 @@ paths:
           - link
           - mapping
           - new
+          - other
           - removed
-        description: Only changes of this group; omit for every group
+        description: Only changes of this group, or `other` for the kinds no group
+          line shows; omit for every group
       - in: query
         name: kind
         schema:
@@ -7914,12 +7918,19 @@ components:
           type: integer
         plans_moved:
           type: integer
+        field_counts:
+          type: object
+          additionalProperties:
+            type: integer
+          description: 'Selected field changes per field: each applies or is rejected
+            whole, so every field it sets goes with it'
         run_age_hours:
           type: integer
           nullable: true
       required:
       - count
       - counts
+      - field_counts
       - plans_moved
       - ratings_moved
       - run_age_hours
@@ -8218,7 +8229,7 @@ components:
       type: object
       properties:
         group:
-          $ref: '#/components/schemas/SyncChangeGroupEnum'
+          $ref: '#/components/schemas/SyncSelectionFilterGroupEnum'
         kind:
           type: string
           nullable: true
@@ -8262,6 +8273,22 @@ components:
           maxItems: 500
       required:
       - group
+    SyncSelectionFilterGroupEnum:
+      enum:
+      - link
+      - new
+      - change
+      - mapping
+      - removed
+      - other
+      type: string
+      description: |-
+        * `link` - Link
+        * `new` - New
+        * `change` - Change
+        * `mapping` - Mapping
+        * `removed` - Removed
+        * `other` - Other
     SyncSourceEnum:
       enum:
       - teachers

@@ -49,6 +49,12 @@ export const RECORDS = {
 	many: "записів",
 } satisfies PluralForms;
 
+export const CHANGES = {
+	one: "зміну",
+	few: "зміни",
+	many: "змін",
+} satisfies PluralForms;
+
 export const RATINGS = {
 	one: "оцінка",
 	few: "оцінки",

@@ -216,6 +216,7 @@ export const linksPreview: SyncPreviewResponse = {
 	superseded_reasons: { stale: 2 },
 	ratings_moved: 0,
 	plans_moved: 0,
+	field_counts: {},
 	run_age_hours: 7,
 };
 

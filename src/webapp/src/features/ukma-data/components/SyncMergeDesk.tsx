@@ -107,7 +107,9 @@ function PairDesk({
 	onAnswer: (value: DeskAnswer) => void;
 	onLater: () => void;
 }>) {
-	const [keepId, setKeepId] = useState<string | null>(null);
+	const [keepId, setKeepId] = useState<string | null>(
+		answer?.answer === "merge" ? answer.into : null,
+	);
 	const pair = deskPair(question, keepId);
 	useDeskKeys(
 		{
@@ -177,7 +179,7 @@ export function SyncMergeDesk({
 }>) {
 	const questions = useSyncQuestions({ kinds: "merge_courses", rated: true });
 	const items = questions.data ?? [];
-	const { answers, save } = useDeskAnswers(items);
+	const { answers, answer: saveAnswer, save } = useDeskAnswers(items);
 	const [index, setIndex] = useState<number | null>(null);
 	const current = index ?? firstOpen(items, answers);
 	const question = items[current];
@@ -187,9 +189,8 @@ export function SyncMergeDesk({
 		if (question === undefined) {
 			return;
 		}
-		save.mutate(
-			{ id: question.id, value },
-			{ onSuccess: () => setIndex(nextIndex(current, items.length)) },
+		saveAnswer(question.id, value, () =>
+			setIndex(nextIndex(current, items.length)),
 		);
 	};
 	return (

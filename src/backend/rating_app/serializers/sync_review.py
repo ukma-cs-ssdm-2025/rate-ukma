@@ -45,6 +45,11 @@ class SyncPreviewResponseSerializer(serializers.Serializer):
     superseded_reasons = serializers.DictField(child=serializers.IntegerField())
     ratings_moved = serializers.IntegerField()
     plans_moved = serializers.IntegerField()
+    field_counts = serializers.DictField(
+        child=serializers.IntegerField(),
+        help_text="Selected field changes per field: each applies or is rejected whole, "
+        "so every field it sets goes with it",
+    )
     run_age_hours = serializers.IntegerField(allow_null=True)
 
 

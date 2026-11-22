@@ -88,12 +88,13 @@ class SyncReviewViewSet(SyncViewSetBase):
         serializer.is_valid(raise_exception=True)
         data = cast(dict[str, Any], serializer.validated_data)
         run = self._request_run(data["source"], data.get("run"))
-        ids = self._selection_ids(cast(dict[str, Any], data["selection"]), run, data["source"])
-        token = selection.token_for(run.pk, ids)
-        outcome = self._dry_run(run, ids, request.user)
+        selection_data = cast(dict[str, Any], data["selection"])
+        ids = self._selection_ids(selection_data, run, data["source"])
+        excluded = selection.selection_excluded(selection_data)
+        token = selection.token_for(run.pk, ids, excluded)
+        outcome = self._dry_run(run, ids, request.user, excluded)
         if isinstance(outcome, Response):
             return outcome
-        counts, reasons, ratings, plans = outcome
         selection.record_preview(token, run, request.user, len(ids))
         logger.info(
             "sync_preview_created",
@@ -106,10 +107,11 @@ class SyncReviewViewSet(SyncViewSetBase):
             {
                 "token": token,
                 "count": len(ids),
-                "counts": counts,
-                "superseded_reasons": reasons,
-                "ratings_moved": ratings,
-                "plans_moved": plans,
+                "counts": outcome.counts,
+                "superseded_reasons": outcome.reasons,
+                "ratings_moved": outcome.ratings,
+                "plans_moved": outcome.plans,
+                "field_counts": outcome.fields,
                 "run_age_hours": self._age_hours(run),
             }
         )

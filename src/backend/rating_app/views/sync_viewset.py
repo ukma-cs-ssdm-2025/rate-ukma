@@ -269,6 +269,7 @@ class SyncViewSet(SyncViewSetBase):
         ids = self._resolve_approve_ids(data, request)
         if isinstance(ids, Response):
             return ids
+        excluded = selection.selection_excluded(data.get("selection"))
         try:
             if dry_run:
                 with transaction.atomic():
@@ -277,6 +278,7 @@ class SyncViewSet(SyncViewSetBase):
                         request.user,
                         confirm_old_run=bool(data.get("confirm_stale")),
                         client_key=None,
+                        excluded=excluded,
                         **self._requested_scope(data),
                     )
                     transaction.set_rollback(True)
@@ -286,6 +288,7 @@ class SyncViewSet(SyncViewSetBase):
                     request.user,
                     confirm_old_run=bool(data.get("confirm_stale")),
                     client_key=client_key,
+                    excluded=excluded,
                     **self._requested_scope(data),
                 )
         except SyncApplyInputError as exc:
@@ -426,8 +429,9 @@ class SyncViewSet(SyncViewSetBase):
     def _requested_scope(self, data: dict[str, Any]) -> dict[str, str]:
         selection_data = data.get("selection") or {}
         filters = selection_data.get("filter") or {} if isinstance(selection_data, dict) else {}
+        group = str(filters.get("group") or data.get("group") or "")
         return {
-            "group": str(filters.get("group") or data.get("group") or ""),
+            "group": "" if group == review.OTHER_GROUP else group,
             "kind": str(filters.get("kind") or data.get("kind") or ""),
         }
 
@@ -453,7 +457,8 @@ class SyncViewSet(SyncViewSetBase):
             if selection_data is None:
                 raise ValidationError({"selection": ["Потрібна вибірка для перевірки токена"]})
             ids = self._selection_ids(selection_data, run, data["source"])
-            if selection.token_for(run.pk, ids) != token:
+            excluded = selection.selection_excluded(selection_data)
+            if selection.token_for(run.pk, ids, excluded) != token:
                 before = selection.preview_count(token) or 0
                 detail = f"Список змінився: було {before}, стало {len(ids)}. Перегляньте ще раз"
                 return Response(
@@ -533,7 +538,7 @@ class SyncViewSet(SyncViewSetBase):
         self, queryset: QuerySet[SyncChange], params: SyncChangeListParams
     ) -> QuerySet[SyncChange]:
         if params.group is not None:
-            queryset = queryset.filter(group=params.group)
+            queryset = review.in_group(queryset, str(params.group))
         if params.kind is not None:
             queryset = queryset.filter(kind=params.kind)
         if params.state is not None:

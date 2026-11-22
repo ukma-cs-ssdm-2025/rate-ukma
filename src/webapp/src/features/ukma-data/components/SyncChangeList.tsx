@@ -28,12 +28,14 @@ export interface ChangeListScope {
 export function SyncChangeList({
 	title,
 	description,
+	run,
 	scope,
 	action,
 	onBack,
 }: Readonly<{
 	title: string;
 	description: string;
+	run: number;
 	scope: ChangeListScope;
 	action?: React.ReactNode;
 	onBack: () => void;
@@ -42,6 +44,7 @@ export function SyncChangeList({
 	const list = useUkmaDataSyncPendingList(
 		{
 			source: "catalog",
+			run,
 			group: scope.group,
 			changed_field: scope.field ?? undefined,
 			blanks: scope.blanks ?? undefined,

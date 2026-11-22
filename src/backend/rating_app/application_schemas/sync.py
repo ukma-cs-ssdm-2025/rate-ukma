@@ -1,9 +1,21 @@
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 from rating_app.models.sync import SyncChangeGroup, SyncChangeState, SyncSource
 from rating_app.sync.kinds import KIND_BY_NAME
+
+
+class SyncListGroup(StrEnum):
+    """A change group, or ``other`` for the kinds no line of the sync page shows."""
+
+    LINK = SyncChangeGroup.LINK.value
+    NEW = SyncChangeGroup.NEW.value
+    CHANGE = SyncChangeGroup.CHANGE.value
+    MAPPING = SyncChangeGroup.MAPPING.value
+    REMOVED = SyncChangeGroup.REMOVED.value
+    OTHER = "other"
 
 
 class SyncListParams(BaseModel):
@@ -18,8 +30,10 @@ class SyncRunListParams(SyncListParams):
 
 
 class SyncChangeListParams(SyncListParams):
-    group: SyncChangeGroup | None = Field(
-        default=None, description="Only changes of this group; omit for every group"
+    group: SyncListGroup | None = Field(
+        default=None,
+        description="Only changes of this group, or `other` for the kinds no group line "
+        "shows; omit for every group",
     )
     kind: str | None = Field(
         default=None, description="Only changes of this kind from the registry"
