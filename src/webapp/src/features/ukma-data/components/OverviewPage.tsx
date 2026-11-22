@@ -42,20 +42,17 @@ function LatestFailure({
 
 function CasesLine() {
 	const cases = useUkmaDataReviewCasesList(
-		{ status: "open", limit: 1000 },
+		{ status: "open", limit: 1 },
 		NO_RETRY,
 	);
 	if (!cases.data) {
 		return null;
 	}
-	const count = cases.data.items.length;
 	return (
 		<p className="text-sm text-muted-foreground">
 			У UKMA Data відкритих <Term name="cases" />:{" "}
 			<span className="font-medium text-foreground tabular-nums">
-				{cases.data.has_more
-					? `понад ${formatCount(count)}`
-					: formatCount(count)}
+				{formatCount(cases.data.total)}
 			</span>
 			.
 		</p>

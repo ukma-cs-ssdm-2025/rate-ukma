@@ -1,9 +1,6 @@
 import type {
-	ActionEnum,
-	OutcomeEnum,
 	SyncChangeGroupEnum as Group,
 	SyncChangeStateEnum as State,
-	SyncPolicyModeEnum as Mode,
 	SyncRunStatusEnum as RunStatus,
 	SyncSourceEnum as Source,
 	SyncSummaryAnswers,
@@ -38,24 +35,6 @@ export const RUN_STATUS_LABELS = {
 	failed: "Помилка",
 } satisfies Record<RunStatus, string>;
 
-export const MODE_LABELS = {
-	needs_approval: "З підтвердженням",
-	auto: "Автоматично",
-} satisfies Record<Mode, string>;
-
-export const ACTION_LABELS = {
-	apply: "Застосування",
-	reject: "Відхилення",
-	preview: "Перегляд",
-} satisfies Record<ActionEnum, string>;
-
-export const OUTCOME_LABELS = {
-	started: "Триває",
-	applied: "Виконано",
-	refused: "Відмовлено",
-	failed: "Помилка",
-} satisfies Record<OutcomeEnum, string>;
-
 export const ANSWER_LABELS = {
 	merge: "обʼєднати",
 	keep_apart: "залишити окремо",
@@ -63,12 +42,6 @@ export const ANSWER_LABELS = {
 	place: "розмістити",
 	move: "перенести",
 } satisfies Record<keyof SyncSummaryAnswers, string>;
-
-export const NEVER_AUTO_REASON =
-	"Питання й зміни, що переносять оцінки, завжди потребують підтвердження";
-
-export const AUTO_COPY =
-	"Застосовується щоночі без вас, крім змін, що зачіпають оцінки чи плани";
 
 export const SYNC_KINDS = [
 	"new_faculty",

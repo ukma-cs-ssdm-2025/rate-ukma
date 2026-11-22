@@ -47,11 +47,12 @@ beforeEach(() => {
 	mock.onGet(SUMMARY_URL).reply(200, summary);
 	mock.onGet(RUNS_URL).reply(200, listPage([run]));
 	mock.onGet(approvalsUrl(7)).reply(200, listPage([rejection, approval]));
-	mock.onGet(CASES_URL).reply(200, {
-		items: [{}, {}, {}],
+	mock.onGet(CASES_URL, { params: { status: "open", limit: 1 } }).reply(200, {
+		items: [{}],
 		cursor: 0,
-		has_more: false,
+		has_more: true,
 		data_updated_at: null,
+		total: 37,
 	});
 });
 
@@ -126,7 +127,7 @@ describe("/data overview", () => {
 
 		// Assert
 		expect(await screen.findByText(/У UKMA Data відкритих/)).toHaveTextContent(
-			"У UKMA Data відкритих справ: 3.",
+			"У UKMA Data відкритих справ: 37.",
 		);
 	});
 
