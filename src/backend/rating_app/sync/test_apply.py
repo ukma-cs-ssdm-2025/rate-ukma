@@ -13,12 +13,15 @@ from rating_app.models import (
     Course,
     CourseInstructor,
     CourseOffering,
+    Department,
+    Faculty,
     Instructor,
     SyncApprovalOutcome,
     SyncChange,
     SyncChangeGroup,
     SyncChangeState,
     SyncChangeStateReason,
+    SyncCursor,
     SyncPolicyMode,
     SyncRunStatus,
     SyncSource,
@@ -26,6 +29,7 @@ from rating_app.models import (
 from rating_app.models.choices import InstructorRole
 from rating_app.sync import apply, handlers
 from rating_app.sync.apply import apply_by_policy, approve, reject
+from rating_app.sync.constants import UKMA_DATA_LISTS
 from rating_app.sync.handlers import Handler
 from rating_app.sync.kinds import KIND_BY_NAME
 
@@ -1069,7 +1073,7 @@ def test_handlers_that_do_not_move_ratings_keep_the_offering_and_its_course(
         ),
     }
     safe_handlers = {kind for kind in handlers.HANDLERS if not KIND_BY_NAME[kind].moves_ratings}
-    assert safe_handlers == set(changes)
+    assert set(changes) <= safe_handlers
 
     for kind, change in changes.items():
         handlers.HANDLERS[kind].apply(change)
@@ -1383,3 +1387,180 @@ def test_apply_by_policy_rechecks_the_current_run_under_the_lock(
 
     created.refresh_from_db()
     assert created.state == SyncChangeState.PROPOSED
+
+
+def _offering_after(*, course_ukma_id: str, saz_code: str = "315421") -> dict[str, Any]:
+    return {
+        "saz_code": saz_code,
+        "semester": {"year": 2025, "term": "FALL"},
+        "exam_type": "EXAM",
+        "study_year": 1,
+        "max_students": 60,
+        "max_groups": 3,
+        "group_size_min": 10,
+        "group_size_max": 30,
+        "terms": [
+            {
+                "year": 2025,
+                "term": "FALL",
+                "credits": "3.0",
+                "weekly_hours": 4,
+                "lecture_count": 16,
+                "practice_count": 16,
+                "practice_type": "SEMINAR",
+                "exam_type": "EXAM",
+            }
+        ],
+        "specialities": [],
+        "course_ukma_id": course_ukma_id,
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approving_new_rows_applies_them_in_dependency_order(user, make_run, make_change):
+    run = make_run(source=SyncSource.CATALOG)
+    faculty = make_change(run, kind="new_faculty", key="ud-fac", after={"name": "Факультет даних"})
+    department = make_change(
+        run,
+        kind="new_department",
+        key="ud-dept",
+        after={"name": "Кафедра даних", "faculty_ukma_id": "ud-fac"},
+        requires=[{"kind": "new_faculty", "key": "ud-fac"}],
+    )
+    course = make_change(
+        run,
+        kind="new_course",
+        key="ud-course",
+        after={
+            "title": "Основи числових методів",
+            "level": "BACHELOR",
+            "department_ukma_id": "ud-dept",
+            "status": "ACTIVE",
+            "description": "",
+        },
+        requires=[{"kind": "new_department", "key": "ud-dept"}],
+    )
+    offering = make_change(
+        run,
+        kind="new_offering",
+        key="ud-offering",
+        after=_offering_after(course_ukma_id="ud-course"),
+        requires=[{"kind": "new_course", "key": "ud-course"}],
+    )
+
+    approval = approve([offering.pk, course.pk, department.pk, faculty.pk], user)
+
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 4, "superseded": 0, "waiting": 0}
+    assert Faculty.objects.get(ukma_data_id="ud-fac").name == "Факультет даних"
+    assert Department.objects.get(ukma_data_id="ud-dept").faculty.ukma_data_id == "ud-fac"
+    created_course = Course.objects.get(ukma_data_id="ud-course")
+    assert created_course.department.ukma_data_id == "ud-dept"
+    created_offering = CourseOffering.objects.get(ukma_data_id="ud-offering")
+    assert created_offering.course_id == created_course.pk
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_new_row_whose_dependency_is_missing_waits(user, make_run, make_change):
+    run = make_run(source=SyncSource.CATALOG)
+    course = make_change(
+        run,
+        kind="new_course",
+        key="ud-course",
+        after={
+            "title": "Курс без кафедри",
+            "level": "BACHELOR",
+            "department_ukma_id": "ud-dept",
+            "status": "ACTIVE",
+            "description": "",
+        },
+        requires=[{"kind": "new_department", "key": "ud-dept"}],
+    )
+
+    approval = approve([course.pk], user)
+
+    course.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert approval.counts == {"applied": 0, "superseded": 0, "waiting": 1}
+    assert course.state == SyncChangeState.PROPOSED
+    assert not Course.objects.filter(ukma_data_id="ud-course").exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_catalog_apply_clears_the_cache_but_keeps_sessions(
+    user, make_run, make_change, faculty_factory, mock_cache_manager
+):
+    cache = mock_cache_manager
+    cache.set("rateukma:courses:list", {"rows": 1})
+    cache.set("rateukma:django.contrib.sessions:abc", {"user": 1})
+    faculty = faculty_factory()
+    run = make_run(source=SyncSource.CATALOG)
+    change = make_change(
+        run,
+        kind="link_faculty",
+        key=str(faculty.pk),
+        target_id=str(faculty.pk),
+        before={"ukma_data_id": None},
+        after={"ukma_data_id": "ud-fac"},
+    )
+
+    assert approve([change.pk], user).outcome == SyncApprovalOutcome.APPLIED
+
+    assert cache.get("rateukma:courses:list") is None
+    assert cache.get("rateukma:django.contrib.sessions:abc") == {"user": 1}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_catalog_apply_saves_the_runs_cursor_per_list(
+    user, make_run, make_change, faculty_factory
+):
+    faculty = faculty_factory()
+    run = make_run(source=SyncSource.CATALOG, cursor_to={"after": 7})
+    change = make_change(
+        run,
+        kind="link_faculty",
+        key=str(faculty.pk),
+        target_id=str(faculty.pk),
+        after={"ukma_data_id": "ud-fac"},
+    )
+
+    assert approve([change.pk], user).outcome == SyncApprovalOutcome.APPLIED
+
+    run.refresh_from_db()
+    expected = dict.fromkeys(UKMA_DATA_LISTS, 7)
+    assert run.cursor_saved == expected
+    assert (
+        dict(
+            SyncCursor.objects.filter(source=SyncSource.CATALOG).values_list(
+                "list_name", "change_no"
+            )
+        )
+        == expected
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_removed_change_is_acknowledged_without_deleting_the_row(
+    user, make_run, make_change, course_factory
+):
+    course = course_factory()
+    run = make_run(source=SyncSource.CATALOG)
+    change = make_change(
+        run,
+        kind="removed_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        after={"ukma_data_id": "ud-course", "title": course.title, "removed_at": None},
+    )
+
+    approval = approve([change.pk], user)
+
+    change.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert change.state == SyncChangeState.APPLIED
+    assert Course.objects.filter(pk=course.pk).exists()

@@ -28,6 +28,8 @@ from django.utils import timezone
 
 import structlog
 
+from rateukma.caching import instances as caching
+from rateukma.caching.cache_manager import SESSION_KEY_MARKER
 from rating_app.models import (
     Course,
     PlannedCourse,
@@ -40,6 +42,7 @@ from rating_app.models import (
     SyncChangeGroup,
     SyncChangeState,
     SyncChangeStateReason,
+    SyncCursor,
     SyncPolicyMode,
     SyncRun,
     SyncRunStatus,
@@ -267,7 +270,10 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
                 superseded += _supersede_dependents(run.source, stale.dead_requirements)
                 _refresh_states(units)
         with transaction.atomic():
-            for unit in _ordered(units):
+            catalog_applied, catalog_waiting = _apply_catalog(units, approval)
+            applied += catalog_applied
+            waiting += catalog_waiting
+            for unit in _ordered(_unit_teacher_units(units)):
                 outcome, members = _apply_unit(
                     unit, approval, blocked=unit.key in stale.blocked_units
                 )
@@ -286,7 +292,121 @@ def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> Sync
         _fail_approval(approval, run, failure.change, failure.original)
     except Exception as exc:  # the pre-pass or a handler failed; sanitize it
         _fail_approval(approval, run, None, exc)
+    else:
+        if applied and run.source == SyncSource.CATALOG:
+            _after_catalog_apply(run)
     return approval
+
+
+def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> tuple[int, int]:
+    """Write the selection's catalog changes in batches, one kind at a time.
+
+    Kinds run in the registry's order, so a ``new_department`` finds its faculty
+    and a ``new_offering`` its course. Each change's ``requires`` is checked
+    inside the transaction, just before its kind is written; one that is unmet
+    stays proposed and waits.
+    """
+    by_kind: dict[str, list[SyncChange]] = defaultdict(list)
+    for change in _unit_members(units):
+        if change.source == SyncSource.CATALOG and change.state == SyncChangeState.PROPOSED:
+            by_kind[change.kind].append(change)
+
+    applied = waiting = 0
+    for kind in sorted(by_kind, key=_kind_order):
+        batch = sorted(by_kind[kind], key=lambda change: change.pk)
+        handler = handler_for(kind)
+        if handler is None:
+            for change in batch:
+                logger.info(
+                    "sync_change_left_proposed",
+                    change_id=change.pk,
+                    kind=change.kind,
+                    reason="no_handler",
+                )
+            waiting += len(batch)
+            continue
+        ready: list[SyncChange] = []
+        try:
+            with transaction.atomic():
+                for change in batch:
+                    unmet = _unmet_requirements(change)
+                    if unmet:
+                        _record_waiting([change], _waiting_on(unmet))
+                        logger.info(
+                            "sync_change_waiting",
+                            change_id=change.pk,
+                            kind=change.kind,
+                            waiting_on=_waiting_on(unmet),
+                        )
+                        waiting += 1
+                        continue
+                    ready.append(change)
+                if not ready:
+                    continue
+                if handler.apply_many is not None:
+                    handler.apply_many(ready)
+                else:
+                    for change in ready:
+                        handler.apply(change)
+                _mark_applied(ready, approval)
+        except _UnitChangedError:
+            logger.info(
+                "sync_changes_left_proposed",
+                change_ids=[change.pk for change in ready],
+                kind=kind,
+                reason="changed",
+            )
+            waiting += len(ready)
+            continue
+        except Exception as exc:
+            raise _ApplyFailedError(batch[0], exc) from exc
+        applied += len(ready)
+    return applied, waiting
+
+
+def _unit_teacher_units(units: list[_Unit]) -> list[_Unit]:
+    return [
+        unit
+        for unit in units
+        if any(change.source != SyncSource.CATALOG for change in unit.changes)
+    ]
+
+
+def _after_catalog_apply(run: SyncRun) -> None:
+    """Clear the cache except sessions and save the run's cursors (D2)."""
+    try:
+        caching.redis_cache_manager().invalidate_pattern("*", skip_keys=[SESSION_KEY_MARKER])
+        saved = {
+            list_name: _cursor_no(run.cursor_to, list_name)
+            for list_name in constants.UKMA_DATA_LISTS
+        }
+        with transaction.atomic():
+            for list_name, change_no in saved.items():
+                SyncCursor.objects.update_or_create(
+                    source=run.source,
+                    list_name=list_name,
+                    defaults={"change_no": change_no},
+                )
+            run.cursor_saved = saved
+            run.save(update_fields=["cursor_saved"])
+        logger.info("sync_catalog_applied", run_id=run.pk, cursors=saved)
+    except Exception as exc:
+        # The catalog is committed; a cache or cursor failure must not undo it.
+        logger.error("sync_catalog_after_apply_failed", run_id=run.pk, error=type(exc).__name__)
+
+
+def _cursor_no(cursor_to: dict[str, object], list_name: str) -> int:
+    value = cursor_to.get(list_name, cursor_to.get("after", 0))
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+    return 0
 
 
 def _refresh_states(units: list[_Unit]) -> None:

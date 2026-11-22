@@ -3,6 +3,16 @@ from decimal import Decimal
 CATALOG_SYNC_LOCK_KEY = 768_001
 SWITCH_NAME = "catalog_sync_proposals"
 
+# The UKMA Data lists a catalog run reads; an apply saves each list's cursor.
+UKMA_DATA_LISTS = (
+    "faculties",
+    "departments",
+    "programmes",
+    "terms",
+    "courses",
+    "offerings",
+)
+
 NO_TERM = "no_term"
 ZERO_CREDITS = "zero_credits"
 CREDITS_OUT_OF_RANGE = "credits_out_of_range"

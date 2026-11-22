@@ -120,4 +120,23 @@ def is_stale(
         return True
     if kind in BEFORE_PAYLOADS:
         return values != before
-    return any(key not in values or values[key] != value for key, value in before.items())
+    return any(
+        key not in values or _differs(kind, key, values[key], value)
+        for key, value in before.items()
+    )
+
+
+def _differs(kind: str, key: str, current: object, recorded: object) -> bool:
+    """Compare the values a change writes; a ``change_course`` department by id.
+
+    A department linked or renamed earlier in the same run changes its
+    ``ukma_data_id`` or name in ``current_values``; the course still sits on the
+    same department, so only the id decides whether the change is stale.
+    """
+    if kind == "change_course" and key == "department":
+        return _department_id(current) != _department_id(recorded)
+    return current != recorded
+
+
+def _department_id(value: object) -> object:
+    return value.get("id") if isinstance(value, dict) else None

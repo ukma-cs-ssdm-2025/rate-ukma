@@ -5,6 +5,7 @@ from uuid import uuid4
 import pytest
 from faker import Faker
 
+from rating_app.exception.course_exceptions import CourseOfferingNotFoundError
 from scraper.models.deduplicated import (
     CourseStatus,
     CourseTypeKind,
@@ -21,7 +22,10 @@ from scraper.models.deduplicated import (
     PracticeType,
     SemesterTerm,
 )
-from scraper.services.db_ingestion.injector import CourseDbInjector
+from scraper.services.db_ingestion.injector import (
+    CatalogWritesRefusedError,
+    CourseDbInjector,
+)
 
 faker = Faker()
 
@@ -746,3 +750,65 @@ def test_injector_reuses_cached_student_after_surname_change(injector, repo_mock
     injector.execute(models)
 
     repo_mocks.student_repo.get_or_upsert.assert_called_once()
+
+
+@pytest.fixture(autouse=True)
+def no_linked_catalog():
+    """Keep the catalog guard off the unit tests; the guard has its own tests."""
+    with patch("scraper.services.db_ingestion.injector.catalog_linked", return_value=False):
+        yield
+
+
+@pytest.mark.django_db
+@patch("scraper.services.db_ingestion.injector.catalog_linked", return_value=True)
+def test_the_import_refuses_catalog_writes_once_a_row_is_linked(
+    catalog_linked, injector, repo_mocks
+):
+    models = [create_mock_course(title="Linked catalog")]
+
+    with pytest.raises(CatalogWritesRefusedError):
+        injector.execute(models)
+
+    repo_mocks.course_repo.get_or_upsert.assert_not_called()
+
+
+@pytest.mark.django_db
+@patch("scraper.services.db_ingestion.injector.catalog_linked", return_value=True)
+def test_enrollments_only_still_writes_enrollments_on_a_linked_catalog(
+    catalog_linked, injector, repo_mocks
+):
+    offering = SimpleNamespace(id=uuid4())
+    repo_mocks.offering_repo.get_by_code.return_value = offering
+    injector.enrollments_only = True
+    models = [
+        create_mock_course(
+            title="Linked catalog",
+            offerings=[create_mock_offering(code="ABC123", enrollments=[create_mock_enrollment()])],
+        )
+    ]
+
+    injector.execute(models)
+
+    repo_mocks.offering_repo.get_by_code.assert_called_once_with("ABC123")
+    repo_mocks.course_repo.get_or_upsert.assert_not_called()
+    repo_mocks.faculty_repo.get_or_create.assert_not_called()
+    enrollment = repo_mocks.enrollment_repo.get_or_upsert.call_args.args[0]
+    assert enrollment.offering_id == offering.id
+
+
+@pytest.mark.django_db
+@patch("scraper.services.db_ingestion.injector.catalog_linked", return_value=True)
+def test_enrollments_only_skips_an_offering_that_does_not_exist(
+    catalog_linked, injector, repo_mocks
+):
+    repo_mocks.offering_repo.get_by_code.side_effect = CourseOfferingNotFoundError()
+    injector.enrollments_only = True
+    models = [
+        create_mock_course(
+            offerings=[create_mock_offering(code="MISSING", enrollments=[create_mock_enrollment()])]
+        )
+    ]
+
+    injector.execute(models)
+
+    repo_mocks.enrollment_repo.get_or_upsert.assert_not_called()
