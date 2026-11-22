@@ -1,174 +1,70 @@
-import { Fragment } from "react";
-
+import { Link } from "@tanstack/react-router";
 import axios from "axios";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
 	useUkmaDataReviewCasesList,
 	useUkmaDataStatusRetrieve,
+	useUkmaDataSyncRunsList,
 	useUkmaDataSyncSummary,
 } from "@/lib/api/generated";
-import {
-	casesWaiting,
-	NO_RETRY,
-	openGroups,
-	openLineTitle,
-	PAGE,
-} from "../reviewCases";
-import { formatCount, freshnessText, pluralForm } from "../syncFormat";
-import { pendingTotal } from "../syncGroups";
-import { DataLead } from "./DataLead";
-import { DataDoneLine, DataLines, DataLinesSkeleton } from "./DataLines";
-import {
-	CaseWaitingLine,
-	IssueLine,
-	LineSkeleton,
-	SyncWaitingLine,
-} from "./OverviewLines";
+import { NO_RETRY } from "../syncOverview";
+import { formatCount } from "../syncFormat";
+import { failedRunLabel } from "../syncReasons";
+import { OverviewApplied } from "./OverviewApplied";
 import { OverviewTech } from "./OverviewTech";
+import { OverviewWaiting } from "./OverviewWaiting";
+import { Ago, DataSection, Term } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
-
-interface Entry {
-	key: string;
-	done: boolean;
-	render: (primary: boolean) => React.ReactNode;
-}
 
 const isNotFound = (error: unknown): boolean =>
 	axios.isAxiosError(error) && error.response?.status === 404;
 
-const changesWaiting = (count: number): string =>
-	`${formatCount(count)} ${pluralForm(count, { one: "зміна", few: "зміни", many: "змін" })} із САЗ ${pluralForm(count, { one: "чекає", few: "чекають", many: "чекають" })} рішення`;
-
-function useSyncEntry(): Entry & { checkedAt: string | null } {
-	const summary = useUkmaDataSyncSummary({ source: "catalog" }, NO_RETRY);
-	const base = {
-		key: "sync",
-		checkedAt: summary.data?.run.finished_at ?? null,
-	};
-	if (summary.isLoading) {
-		return { ...base, done: false, render: () => <LineSkeleton /> };
-	}
-	if (summary.error && isNotFound(summary.error)) {
-		return {
-			...base,
-			done: true,
-			render: () => (
-				<DataDoneLine
-					title="Зміни з САЗ ще не перевіряли"
-					detail="Перша нічна перевірка покаже тут, що змінилось у САЗ."
-				/>
-			),
-		};
-	}
-	if (summary.error || !summary.data) {
-		return {
-			...base,
-			done: false,
-			render: () => (
-				<IssueLine
-					error={summary.error}
-					area="Зміни з САЗ"
-					onRetry={() => void summary.refetch()}
-				/>
-			),
-		};
-	}
-	const waiting = pendingTotal(summary.data.groups);
-	return waiting === 0
-		? {
-				...base,
-				done: true,
-				render: () => (
-					<DataDoneLine
-						title="Зміни з САЗ: усе вирішено"
-						detail="Нових змін немає. Наступна перевірка — завтра о 02:30."
-					/>
-				),
-			}
-		: {
-				...base,
-				done: false,
-				render: (primary) => (
-					<SyncWaitingLine title={changesWaiting(waiting)} primary={primary} />
-				),
-			};
-}
-
-function useCaseEntries(): Entry[] {
-	const cases = useUkmaDataReviewCasesList(
-		{ ...PAGE, status: "open" },
+function LatestFailure({
+	currentRunId,
+}: Readonly<{ currentRunId: number | null }>) {
+	const runs = useUkmaDataSyncRunsList(
+		{ source: "catalog", page_size: 1 },
 		NO_RETRY,
 	);
-	if (cases.isLoading) {
-		return [{ key: "cases", done: false, render: () => <LineSkeleton /> }];
+	const latest = runs.data?.items[0];
+	if (latest?.status !== "failed" || latest.id === currentRunId) {
+		return null;
 	}
-	if (cases.error || !cases.data) {
-		return [
-			{
-				key: "cases",
-				done: false,
-				render: () => (
-					<IssueLine
-						error={cases.error}
-						area="Справи"
-						onRetry={() => void cases.refetch()}
-					/>
-				),
-			},
-		];
+	return (
+		<p className="text-sm text-destructive">
+			Останнє читання <Ago iso={latest.started_at} /> не вдалося:{" "}
+			{failedRunLabel(latest.error)}. Нижче — дані попереднього.
+		</p>
+	);
+}
+
+function CasesLine() {
+	const cases = useUkmaDataReviewCasesList(
+		{ status: "open", limit: 1000 },
+		NO_RETRY,
+	);
+	if (!cases.data) {
+		return null;
 	}
-	const { data } = cases;
-	if (data.has_more) {
-		return [
-			{
-				key: "cases",
-				done: false,
-				render: (primary) => (
-					<CaseWaitingLine
-						kind={null}
-						title={casesWaiting(data.total)}
-						primary={primary}
-					/>
-				),
-			},
-		];
-	}
-	const groups = openGroups(data.items);
-	if (groups.length === 0) {
-		return [
-			{
-				key: "cases",
-				done: true,
-				render: () => (
-					<DataDoneLine
-						title="Справи: усе вирішено"
-						detail="Відкритих справ немає. Нові з'являються після нічного читання САЗ."
-					/>
-				),
-			},
-		];
-	}
-	return groups.map((group) => ({
-		key: `cases-${group.kind}`,
-		done: false,
-		render: (primary) => (
-			<CaseWaitingLine
-				kind={group.kind}
-				title={openLineTitle(group.kind, group.count, group.oldest)}
-				primary={primary}
-			/>
-		),
-	}));
+	const count = cases.data.items.length;
+	return (
+		<p className="text-sm text-muted-foreground">
+			У UKMA Data відкритих <Term name="cases" />:{" "}
+			<span className="font-medium text-foreground tabular-nums">
+				{cases.data.has_more
+					? `понад ${formatCount(count)}`
+					: formatCount(count)}
+			</span>
+			.
+		</p>
+	);
 }
 
 export function OverviewPage() {
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
-	const sync = useSyncEntry();
-	const cases = useCaseEntries();
-	if (status.isLoading) {
-		return <DataLinesSkeleton />;
-	}
-	if (status.error || !status.data) {
+	const summary = useUkmaDataSyncSummary({ source: "catalog" }, NO_RETRY);
+	if (status.error) {
 		return (
 			<UkmaDataError
 				error={status.error}
@@ -178,24 +74,64 @@ export function OverviewPage() {
 			/>
 		);
 	}
-	const entries = [sync, ...cases];
-	const waiting = entries.filter((entry) => !entry.done);
-	const done = entries.filter((entry) => entry.done);
+	const run = summary.data?.run ?? null;
 	return (
-		<div className="min-w-0 space-y-6">
-			<DataLead
-				title="Що чекає на вас"
-				subtitle={freshnessText(status.data.data_updated_at, sync.checkedAt)}
-			/>
-			<DataLines label="Що чекає рішення">
-				{waiting.map((entry, index) => (
-					<Fragment key={entry.key}>{entry.render(index === 0)}</Fragment>
-				))}
-				{done.map((entry) => (
-					<Fragment key={entry.key}>{entry.render(false)}</Fragment>
-				))}
-			</DataLines>
-			<OverviewTech status={status.data} />
+		<div className="min-w-0 space-y-8">
+			<DataSection
+				title="Що змінилось у САЗ"
+				lead="Що знайшло останнє нічне читання САЗ, коли порівняло його з сайтом."
+			>
+				{summary.isLoading ? <Skeleton className="h-6 w-80" /> : null}
+				{run === null && !summary.isLoading ? (
+					<p className="text-sm">
+						САЗ ще не читали. Перше нічне читання покаже тут, що змінилось.
+					</p>
+				) : null}
+				{run === null ? null : (
+					<p className="text-sm">
+						Останнє читання <Ago iso={run.finished_at ?? run.started_at} />
+						{run.data_updated_at === null ? null : (
+							<>
+								{" "}
+								· дані САЗ станом на <Ago iso={run.data_updated_at} />
+							</>
+						)}
+						.
+					</p>
+				)}
+				<LatestFailure currentRunId={run?.id ?? null} />
+			</DataSection>
+			{summary.error && !isNotFound(summary.error) ? (
+				<UkmaDataError
+					error={summary.error}
+					title="Не вдалося завантажити зміни з САЗ"
+					onRetry={() => void summary.refetch()}
+					isRetrying={summary.isRefetching}
+				/>
+			) : (
+				<OverviewWaiting
+					summary={summary.data ?? null}
+					loading={summary.isLoading}
+				/>
+			)}
+			{run === null ? null : <OverviewApplied runId={run.id} />}
+			<DataSection
+				title="Справи UKMA Data"
+				lead="Записи, які UKMA Data не зіставила сама. Їх теж вирішують у консолі."
+			>
+				<CasesLine />
+			</DataSection>
+			{status.data ? <OverviewTech status={status.data} /> : null}
+			<p className="text-sm text-muted-foreground">
+				Усі зміни по групах — у розділі{" "}
+				<Link
+					to="/data/sync"
+					className="text-primary underline-offset-4 hover:underline"
+				>
+					Оновлення з САЗ
+				</Link>
+				.
+			</p>
 		</div>
 	);
 }

@@ -2,6 +2,7 @@ import { ChevronRight, History } from "lucide-react";
 import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
 
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
 	Empty,
@@ -20,9 +21,9 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { SyncRun } from "@/lib/api/generated";
 import { useUkmaDataSyncRunsList } from "@/lib/api/generated";
-import { formatDateTime } from "../reviewCases";
 import { ALL, countsSummary, runStatusVariant, SYNC_SOURCES } from "../sync";
 import { PAGE_SIZE, RUN_STATUS_LABELS, SOURCE_LABELS } from "../syncLabels";
+import { failedRunLabel } from "../syncReasons";
 import {
 	changeParams,
 	changeUrlKeys,
@@ -31,6 +32,7 @@ import {
 } from "../syncParams";
 import { SyncPagination } from "./SyncPagination";
 import { SyncRunPage } from "./SyncRunPage";
+import { Ago } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
 
 const runsParams = {
@@ -48,35 +50,37 @@ function RunRow({
 }: Readonly<{ run: SyncRun; onOpen: () => void }>) {
 	const counts = countsSummary(run.counts);
 	return (
-		<Card className="p-0">
-			<button
-				type="button"
-				onClick={onOpen}
-				aria-label={`Відкрити запуск ${run.id}`}
-				className="flex w-full items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-accent/50"
-			>
-				<div className="min-w-0 space-y-2">
-					<div className="flex flex-wrap items-center gap-2">
-						<Badge variant={runStatusVariant(run.status)}>
-							{RUN_STATUS_LABELS[run.status]}
-						</Badge>
-						<Badge variant="outline">{SOURCE_LABELS[run.source]}</Badge>
-						<span className="text-sm text-muted-foreground">
-							{formatDateTime(run.started_at)} —{" "}
-							{run.finished_at ? formatDateTime(run.finished_at) : "триває"}
-						</span>
-					</div>
-					{counts.length > 0 ? (
-						<p className="text-sm text-muted-foreground">
-							{counts.join(" · ")}
-						</p>
-					) : null}
-					{run.error ? (
-						<p className="text-sm text-destructive">{run.error}</p>
-					) : null}
+		<Card className="flex-row items-start justify-between gap-3 p-4">
+			<div className="min-w-0 space-y-2">
+				<div className="flex flex-wrap items-center gap-2">
+					<Badge variant={runStatusVariant(run.status)}>
+						{RUN_STATUS_LABELS[run.status]}
+					</Badge>
+					<Badge variant="outline">{SOURCE_LABELS[run.source]}</Badge>
+					<span className="text-sm text-muted-foreground">
+						{run.finished_at ? "завершилось " : "триває, почалось "}
+						<Ago iso={run.finished_at ?? run.started_at} />
+					</span>
 				</div>
-				<ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
-			</button>
+				{counts.length > 0 ? (
+					<p className="text-sm text-muted-foreground">{counts.join(" · ")}</p>
+				) : null}
+				{run.error ? (
+					<p className="text-sm text-destructive">
+						{failedRunLabel(run.error)}
+					</p>
+				) : null}
+			</div>
+			<Button
+				variant="ghost"
+				size="sm"
+				onClick={onOpen}
+				aria-label={`Відкрити читання ${run.id}`}
+				className="shrink-0"
+			>
+				Деталі
+				<ChevronRight />
+			</Button>
 		</Card>
 	);
 }
@@ -88,7 +92,7 @@ export function SyncHistoryTab() {
 		changeUrlKeys,
 	);
 	const openRun = (run: number | null) => {
-		void setSelected({ openRun: run, mine: null, state: null, page: null });
+		void setSelected({ openRun: run, state: null, page: null });
 	};
 	const { data, isLoading, error, refetch, isRefetching } =
 		useUkmaDataSyncRunsList(
@@ -113,10 +117,7 @@ export function SyncHistoryTab() {
 						setParams({ source: runsParams.source.parse(value), page: 1 })
 					}
 				>
-					<SelectTrigger
-						aria-label="Джерело запусків"
-						className="w-full sm:w-52"
-					>
+					<SelectTrigger aria-label="Джерело" className="w-full sm:w-52">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -129,16 +130,14 @@ export function SyncHistoryTab() {
 					</SelectContent>
 				</Select>
 				{data && !error ? (
-					<p className="text-sm text-muted-foreground">
-						Запусків: {data.total}
-					</p>
+					<p className="text-sm text-muted-foreground">Читань: {data.total}</p>
 				) : null}
 			</div>
 			{isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
 			{error ? (
 				<UkmaDataError
 					error={error}
-					title="Не вдалося завантажити історію запусків"
+					title="Не вдалося завантажити історію читань"
 					onRetry={refetch}
 					isRetrying={isRefetching}
 				/>
@@ -149,16 +148,16 @@ export function SyncHistoryTab() {
 						<EmptyMedia variant="icon">
 							<History />
 						</EmptyMedia>
-						<EmptyTitle>Запусків ще немає</EmptyTitle>
+						<EmptyTitle>Читань САЗ ще не було</EmptyTitle>
 						<EmptyDescription>
-							Історія синхронізації зʼявиться після першого запуску.
+							Історія з'явиться після першого нічного читання.
 						</EmptyDescription>
 					</EmptyHeader>
 				</Empty>
 			) : null}
 			{data && !error && data.items.length > 0 ? (
 				<>
-					<ul className="space-y-3" aria-label="Запуски синхронізації">
+					<ul className="space-y-3" aria-label="Читання САЗ">
 						{data.items.map((run) => (
 							<li key={run.id}>
 								<RunRow run={run} onOpen={() => openRun(run.id)} />

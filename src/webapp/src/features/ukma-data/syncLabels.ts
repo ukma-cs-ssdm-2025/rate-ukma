@@ -195,21 +195,10 @@ export const FAILED_RUN_REASONS = [
 export type FailedRunReason = (typeof FAILED_RUN_REASONS)[number];
 
 export const FAILED_RUN_LABELS = {
-	short_read: "Сервіс даних САЗ віддав неповні дані",
-	stalled_read: "Сервіс даних САЗ перестав відповідати під час читання",
-	forbidden: "Ключ доступу до даних САЗ не має потрібного права",
+	short_read: "UKMA Data віддала неповні дані",
+	stalled_read: "UKMA Data перестала відповідати під час читання",
+	forbidden: "Ключ доступу до UKMA Data не має потрібного права",
 } satisfies Record<FailedRunReason, string>;
-
-export const HOLDERS = ["nightly", "other_user", "self"] as const;
-
-export type Holder = (typeof HOLDERS)[number];
-
-export const HOLDER_LABELS = {
-	nightly:
-		"Зараз триває нічний запуск синхронізації. Спробуйте, коли він завершиться.",
-	other_user: "Зараз зміни застосовує інший адміністратор.",
-	self: "Ще триває ваше попереднє застосування.",
-} satisfies Record<Holder, string>;
 
 export const FIELD_LABELS = new Map<string, string>([
 	["name", "Назва"],

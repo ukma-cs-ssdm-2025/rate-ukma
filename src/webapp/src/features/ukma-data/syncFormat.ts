@@ -119,3 +119,38 @@ export function freshnessText(
 	].filter((part) => part !== null);
 	return parts.length > 0 ? parts.join(" · ") : null;
 }
+
+const FULL_DATE = new Intl.DateTimeFormat("uk-UA", {
+	day: "numeric",
+	month: "long",
+	year: "numeric",
+	hour: "2-digit",
+	minute: "2-digit",
+	timeZone: "Europe/Kyiv",
+});
+
+export const formatFullDate = (iso: string): string =>
+	FULL_DATE.format(new Date(iso));
+
+function spanWords(minutes: number): string {
+	if (minutes < 60) {
+		return `${minutes} хв`;
+	}
+	const hours = Math.floor(minutes / 60);
+	if (hours < 48) {
+		return `${hours} год`;
+	}
+	const days = Math.floor(hours / 24);
+	return `${days} ${pluralForm(days, { one: "день", few: "дні", many: "днів" })}`;
+}
+
+export function timeAgo(iso: string, now: number = Date.now()): string {
+	const diff = now - Date.parse(iso);
+	const minutes = Math.floor(Math.abs(diff) / 60_000);
+	if (minutes < 1) {
+		return "щойно";
+	}
+	return diff < 0
+		? `через ${spanWords(minutes)}`
+		: `${spanWords(minutes)} тому`;
+}

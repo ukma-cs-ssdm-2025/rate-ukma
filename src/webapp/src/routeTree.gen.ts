@@ -21,8 +21,6 @@ import { Route as DataIndexRouteImport } from './routes/data.index'
 import { Route as DataSyncRouteImport } from './routes/data.sync'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginFailedRouteImport } from './routes/login.failed'
-import { Route as DataCasesIndexRouteImport } from './routes/data.cases.index'
-import { Route as DataCasesCaseIdRouteImport } from './routes/data.cases.$caseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -84,16 +82,6 @@ const LoginFailedRoute = LoginFailedRouteImport.update({
   path: '/failed',
   getParentRoute: () => LoginRoute,
 } as any)
-const DataCasesIndexRoute = DataCasesIndexRouteImport.update({
-  id: '/cases/',
-  path: '/cases/',
-  getParentRoute: () => DataRoute,
-} as any)
-const DataCasesCaseIdRoute = DataCasesCaseIdRouteImport.update({
-  id: '/cases/$caseId',
-  path: '/cases/$caseId',
-  getParentRoute: () => DataRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,8 +96,6 @@ export interface FileRoutesByFullPath {
   '/login/failed': typeof LoginFailedRoute
   '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
-  '/data/cases/$caseId': typeof DataCasesCaseIdRoute
-  '/data/cases/': typeof DataCasesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -122,8 +108,6 @@ export interface FileRoutesByTo {
   '/login/failed': typeof LoginFailedRoute
   '/data': typeof DataIndexRoute
   '/login': typeof LoginIndexRoute
-  '/data/cases/$caseId': typeof DataCasesCaseIdRoute
-  '/data/cases': typeof DataCasesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -139,8 +123,6 @@ export interface FileRoutesById {
   '/login/failed': typeof LoginFailedRoute
   '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
-  '/data/cases/$caseId': typeof DataCasesCaseIdRoute
-  '/data/cases/': typeof DataCasesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,8 +139,6 @@ export interface FileRouteTypes {
     | '/login/failed'
     | '/data/'
     | '/login/'
-    | '/data/cases/$caseId'
-    | '/data/cases/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -171,8 +151,6 @@ export interface FileRouteTypes {
     | '/login/failed'
     | '/data'
     | '/login'
-    | '/data/cases/$caseId'
-    | '/data/cases'
   id:
     | '__root__'
     | '/'
@@ -187,8 +165,6 @@ export interface FileRouteTypes {
     | '/login/failed'
     | '/data/'
     | '/login/'
-    | '/data/cases/$caseId'
-    | '/data/cases/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,35 +264,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginFailedRouteImport
       parentRoute: typeof LoginRoute
     }
-    '/data/cases/': {
-      id: '/data/cases/'
-      path: '/cases'
-      fullPath: '/data/cases/'
-      preLoaderRoute: typeof DataCasesIndexRouteImport
-      parentRoute: typeof DataRoute
-    }
-    '/data/cases/$caseId': {
-      id: '/data/cases/$caseId'
-      path: '/cases/$caseId'
-      fullPath: '/data/cases/$caseId'
-      preLoaderRoute: typeof DataCasesCaseIdRouteImport
-      parentRoute: typeof DataRoute
-    }
   }
 }
 
 interface DataRouteChildren {
   DataSyncRoute: typeof DataSyncRoute
   DataIndexRoute: typeof DataIndexRoute
-  DataCasesCaseIdRoute: typeof DataCasesCaseIdRoute
-  DataCasesIndexRoute: typeof DataCasesIndexRoute
 }
 
 const DataRouteChildren: DataRouteChildren = {
   DataSyncRoute: DataSyncRoute,
   DataIndexRoute: DataIndexRoute,
-  DataCasesCaseIdRoute: DataCasesCaseIdRoute,
-  DataCasesIndexRoute: DataCasesIndexRoute,
 }
 
 const DataRouteWithChildren = DataRoute._addFileChildren(DataRouteChildren)

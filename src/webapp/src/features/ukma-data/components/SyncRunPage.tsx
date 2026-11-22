@@ -5,16 +5,12 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useUkmaDataSyncSummary } from "@/lib/api/generated";
 import { countsSummary, runStatusVariant } from "../sync";
-import {
-	formatCount,
-	formatDayTime,
-	formatHoursAgo,
-	hoursSince,
-} from "../syncFormat";
+import { formatCount } from "../syncFormat";
 import { RUN_STATUS_LABELS, SOURCE_LABELS } from "../syncLabels";
 import { failedRunLabel, skipReasonLabel } from "../syncReasons";
 import { SyncRunApprovals } from "./SyncRunApprovals";
 import { SyncRunChanges } from "./SyncRunChanges";
+import { Ago, Term } from "./Term";
 
 function RunHeader({ runId }: Readonly<{ runId: number }>) {
 	const { data, isLoading } = useUkmaDataSyncSummary(
@@ -39,11 +35,14 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 					{RUN_STATUS_LABELS[run.status]}
 				</Badge>
 				<Badge variant="outline">{SOURCE_LABELS[run.source]}</Badge>
-				<span className="text-muted-foreground tabular-nums">
-					{formatDayTime(run.started_at)}
-					{run.data_updated_at === null
-						? ""
-						: ` · дані САЗ ${formatHoursAgo(hoursSince(run.data_updated_at))}`}
+				<span className="text-muted-foreground">
+					почалось <Ago iso={run.started_at} />
+					{run.data_updated_at === null ? null : (
+						<>
+							{" "}
+							· дані САЗ станом на <Ago iso={run.data_updated_at} />
+						</>
+					)}
 				</span>
 			</div>
 			{run.status === "failed" ? (
@@ -56,7 +55,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 			) : null}
 			{skipped.length > 0 ? (
 				<p className="text-muted-foreground tabular-nums">
-					Не запропоновано:{" "}
+					<Term name="skipped" />:{" "}
 					{skipped
 						.map(
 							([reason, value]) =>
@@ -78,9 +77,9 @@ export function SyncRunPage({
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				<Button variant="ghost" size="sm" onClick={onBack}>
 					<ArrowLeft />
-					Усі запуски
+					Усі читання
 				</Button>
-				<h2 className="text-lg font-semibold">Запуск {runId}</h2>
+				<h2 className="text-lg font-semibold">Читання САЗ #{runId}</h2>
 			</div>
 			<RunHeader runId={runId} />
 			<SyncRunApprovals runId={runId} />

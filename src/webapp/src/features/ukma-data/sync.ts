@@ -198,7 +198,11 @@ export function parseDisplay(change: SyncChange): SyncDisplay {
 
 export function changeTitle(change: SyncChange, display: SyncDisplay): string {
 	const payload = toValue(change.after);
-	const afterTitle = text(read(payload, "title"));
+	const before = toValue(change.before);
+	const afterTitle =
+		text(read(before, "title")) ??
+		text(read(before, "name")) ??
+		text(read(payload, "title"));
 	const sazCode = text(read(payload, "saz_code"));
 	if (display.teacherName !== null) {
 		return display.teacherName;
