@@ -462,7 +462,78 @@ def test_apply_by_policy_never_applies_a_never_auto_kind(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_apply_by_policy_leaves_a_rated_row_for_a_person(
+def test_apply_by_policy_leaves_a_rated_catalog_row_for_a_person(
+    monkeypatch,
+    make_run,
+    make_change,
+    course_offering_factory,
+    rating_factory,
+):
+    applied: list[int] = []
+    monkeypatch.setitem(
+        handlers.HANDLERS,
+        "change_offering",
+        Handler(apply=lambda change: applied.append(change.pk)),
+    )
+    monkeypatch.setattr(apply, "mode_for", lambda kind: SyncPolicyMode.AUTO)
+    monkeypatch.setattr(apply, "is_stale", lambda *args: False)
+    run = make_run(source=SyncSource.CATALOG)
+    rated_offering = course_offering_factory()
+    unrated_offering = course_offering_factory()
+    rating_factory(course_offering=rated_offering)
+    rated = make_change(
+        run, kind="change_offering", key=str(rated_offering.pk), target_id=str(rated_offering.pk)
+    )
+    unrated = make_change(
+        run,
+        kind="change_offering",
+        key=str(unrated_offering.pk),
+        target_id=str(unrated_offering.pk),
+    )
+
+    approval = apply_by_policy(run, lock_held=True)
+
+    assert approval is not None
+    rated.refresh_from_db()
+    unrated.refresh_from_db()
+    assert rated.state == SyncChangeState.PROPOSED
+    assert unrated.state == SyncChangeState.APPLIED
+    assert applied == [unrated.pk]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_fresh_faculty_change_is_not_superseded_by_the_pre_pass(
+    monkeypatch, user, make_run, make_change, faculty_factory
+):
+    applied: list[int] = []
+    monkeypatch.setitem(
+        handlers.HANDLERS,
+        "link_faculty",
+        Handler(apply=lambda change: applied.append(change.pk)),
+    )
+    faculty = faculty_factory()
+    run = make_run(source=SyncSource.CATALOG)
+    change = make_change(
+        run,
+        kind="link_faculty",
+        key=str(faculty.pk),
+        target_id=str(faculty.pk),
+        before={"ukma_data_id": faculty.ukma_data_id},
+        after={"ukma_data_id": "ud-faculty"},
+    )
+
+    approval = approve([change.pk], user)
+
+    change.refresh_from_db()
+    assert approval.outcome == SyncApprovalOutcome.APPLIED
+    assert change.state == SyncChangeState.APPLIED
+    assert applied == [change.pk]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_apply_by_policy_applies_teacher_links_on_a_rated_offering(
     user,
     make_run,
     make_change,
@@ -472,39 +543,26 @@ def test_apply_by_policy_leaves_a_rated_row_for_a_person(
     sync_policy_factory,
 ):
     run = make_run()
-    rated_offering = course_offering_factory()
-    rated_teacher = instructor_factory(email="rated@example.com")
-    unrated_offering = course_offering_factory()
-    unrated_teacher = instructor_factory(email="unrated@example.com")
-    rated = make_change(
+    offering = course_offering_factory()
+    teacher = instructor_factory(email="rated@example.com")
+    rating_factory(course_offering=offering)
+    change = make_change(
         run,
         kind="teacher_link_added",
-        key=f"offering:{rated_offering.pk}|teacher:{rated_teacher.email}",
-        target_id=str(rated_offering.pk),
+        key=f"offering:{offering.pk}|teacher:{teacher.email}",
+        target_id=str(offering.pk),
         before={"links": []},
-        after=_added(rated_teacher.email),
-        requires=[{"kind": "teacher_created", "key": rated_teacher.email}],
+        after=_added(teacher.email),
+        requires=[{"kind": "teacher_created", "key": teacher.email}],
     )
-    unrated = make_change(
-        run,
-        kind="teacher_link_added",
-        key=f"offering:{unrated_offering.pk}|teacher:{unrated_teacher.email}",
-        target_id=str(unrated_offering.pk),
-        before={"links": []},
-        after=_added(unrated_teacher.email),
-        requires=[{"kind": "teacher_created", "key": unrated_teacher.email}],
-    )
-    rating_factory(course_offering=rated_offering)
     sync_policy_factory(kind="teacher_link_added", mode=SyncPolicyMode.AUTO, updated_by=user)
 
     approval = apply_by_policy(run, lock_held=True)
 
     assert approval is not None
     assert approval.counts == {"applied": 1, "superseded": 0, "waiting": 0}
-    rated.refresh_from_db()
-    unrated.refresh_from_db()
-    assert rated.state == SyncChangeState.PROPOSED
-    assert unrated.state == SyncChangeState.APPLIED
+    change.refresh_from_db()
+    assert change.state == SyncChangeState.APPLIED
 
 
 @pytest.mark.django_db

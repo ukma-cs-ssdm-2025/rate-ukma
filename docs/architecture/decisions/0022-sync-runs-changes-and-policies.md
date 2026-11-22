@@ -33,7 +33,7 @@ Every sync from UKMA Data is one system of recorded runs, recorded changes and p
 9. **Types.** UKMA Data's OpenAPI file is the only description of its API: Rate UKMA generates its pydantic models from it and CI fails when they are stale. Rate UKMA's own sync API uses ordinary serializers that reference those types.
 10. **The scraper.** Its import refuses to run once any row is linked; the scraper itself stays until enrollments have their own sync.
 
-Open for the owner: D1 keeping courses apart against spec rule 9; D3 bulk keep-apart for unrated questions; D4 never removing specialities; D5 deleting a course emptied by a merge; D8 which kinds go `auto`, and when; D11 a rejected change returning the next night; D13 auto leaving rated rows for a person; D14 real teacher names on staging.
+Open for the owner: D1 keeping courses apart against spec rule 9; D3 bulk keep-apart for unrated questions; D4 never removing specialities; D5 deleting a course emptied by a merge; D8 which kinds go `auto`, and when; D11 a rejected change returning the next night; D13 auto leaving a catalog change on rated rows for a person (teacher link changes are not held back, as the teacher sync always wrote links on rated offerings); D14 real teacher names on staging.
 
 ## Consequences
 

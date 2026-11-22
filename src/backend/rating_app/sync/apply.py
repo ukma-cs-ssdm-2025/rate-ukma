@@ -42,6 +42,7 @@ from rating_app.models import (
     SyncPolicyMode,
     SyncRun,
     SyncRunStatus,
+    SyncSource,
 )
 from rating_app.scheduler.jobs import job_named
 from rating_app.scheduler.lock import advisory_lock
@@ -64,6 +65,11 @@ LOCK_KEYS: dict[str, int] = {
 }
 
 _UNIT_LINK_KINDS = frozenset({"teacher_link_added", "teacher_link_removed"})
+# The filtered snapshot holds faculties and departments only through courses, so a
+# selection targeting one of them reads the whole catalog.
+_FACULTY_OR_DEPARTMENT_KINDS = frozenset(
+    {"link_faculty", "change_faculty", "link_department", "change_department"}
+)
 
 
 class SyncApplyInputError(ValueError):
@@ -179,8 +185,8 @@ def reject(change_ids: Iterable[int], user: User) -> SyncApproval:
 def apply_by_policy(run: SyncRun, *, lock_held: bool = False) -> SyncApproval | None:
     """Apply the current run's ``auto`` changes, with an approval whose user is null.
 
-    A unit applies only when every kind in it is ``auto``. A change whose row
-    has ratings or plans now is left proposed for a person (D13). Never-auto
+    A unit applies only when every kind in it is ``auto``. A catalog change whose
+    row has ratings or plans now is left proposed for a person (D13). Never-auto
     kinds are refused in code as well as by the check constraint. Returns
     ``None`` when there is nothing to apply or the lock is held.
     """
@@ -211,7 +217,7 @@ def apply_by_policy(run: SyncRun, *, lock_held: bool = False) -> SyncApproval | 
                 reason="not_auto",
             )
             continue
-        if any(_has_rated_rows(member) for member in unit.changes):
+        if any(_leave_for_a_person(member) for member in unit.changes):
             logger.info(
                 "sync_auto_skipped",
                 change_ids=[member.pk for member in unit.changes],
@@ -323,11 +329,12 @@ def _supersede_stale(units: list[_Unit]) -> _StalePass:
     """One committed pass over the selected units; stale members block their unit."""
     members = [change for unit in units for change in unit.changes]
     target_ids = {change.target_id for change in members if change.target_id}
-    snapshot = (
-        load_rate_ukma_snapshot(offering_ids=target_ids, course_ids=target_ids)
-        if target_ids
-        else None
-    )
+    if not target_ids:
+        snapshot = None
+    elif any(change.kind in _FACULTY_OR_DEPARTMENT_KINDS for change in members):
+        snapshot = load_rate_ukma_snapshot()
+    else:
+        snapshot = load_rate_ukma_snapshot(offering_ids=target_ids, course_ids=target_ids)
     now = timezone.now()
     superseded = 0
     blocked_units: set[str] = set()
@@ -501,9 +508,13 @@ def _auto_kind(kind: str, modes: dict[str, str]) -> bool:
     return modes[kind] == SyncPolicyMode.AUTO
 
 
-def _has_rated_rows(change: SyncChange) -> bool:
-    """Whether the change's Rate UKMA row has ratings or plans now (D13)."""
-    if not change.target_id:
+def _leave_for_a_person(change: SyncChange) -> bool:
+    """Whether a catalog change's Rate UKMA row has ratings or plans now (D13).
+
+    Teacher changes only add or remove teacher links, as the teacher sync always
+    has on rated offerings, so D13 does not hold them back.
+    """
+    if change.source != SyncSource.CATALOG or not change.target_id:
         return False
     try:
         target = uuid.UUID(change.target_id)
