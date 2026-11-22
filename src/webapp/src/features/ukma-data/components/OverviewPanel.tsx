@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/Badge";
+import { buttonVariants } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
@@ -191,13 +192,33 @@ function OpenCasesCard() {
 	);
 }
 
+function SyncCard() {
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">Синхронізація</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-3 text-sm">
+				<p className="text-muted-foreground">
+					Зміни з UKMA Data, черга на підтвердження, історія запусків і правила
+					для кожного типу змін.
+				</p>
+				<Link to="/data/sync" className={buttonVariants({ size: "sm" })}>
+					Відкрити синхронізацію
+				</Link>
+			</CardContent>
+		</Card>
+	);
+}
+
 export function OverviewPanel({
 	status,
 }: Readonly<{ status: UkmaDataStatus }>) {
 	return (
-		<div className="grid gap-4 md:grid-cols-2">
+		<div className="grid gap-4 md:grid-cols-3">
 			<KeyCard status={status} />
 			<OpenCasesCard />
+			<SyncCard />
 		</div>
 	);
 }

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
 	{ to: "/data", label: "Огляд", exact: true },
 	{ to: "/data/cases", label: "Справи", exact: false },
+	{ to: "/data/sync", label: "Синхронізація", exact: false },
 ] as const;
 
 export function DataSectionHeader() {
