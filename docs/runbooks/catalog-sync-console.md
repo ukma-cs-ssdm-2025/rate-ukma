@@ -74,7 +74,7 @@ Example output (invented data):
 
 Every `apply` and `reject` needs a selection: `--group`, `--ids`, or `--kind` with `--group`. `--ids` takes no `--kind`, `--q` or `--rated`; with `--group`, every id must be in that group, or the command refuses. To apply everything that waits, go group by group in this order: `link`, `new`, `change`, `removed`, `other`, with steps 4–6 for each. A change whose required row does not exist yet is counted under «чекають» and stays proposed; it applies with a later group or the next night. Group `mapping` is answered, not applied wholesale: see [Mapping Questions](#mapping-questions).
 
-Read the counts per kind, every listed change, and the «Не увійде:» lines (after `--yes`: «Не увійшло:»). They name the changes the selection leaves out and why: waiting on another change, out of date («неактуальна»), already applied or rejected, a question with no answer yet, or skipped this time because the row on the site changed. Use `--limit 0` to list every change, `--exclude 48122,48123` to leave some out.
+Read the counts per kind, every listed change, and the «Не увійде:» lines (after `--yes`: «Не увійшло:»). They name the changes the selection leaves out and why: waiting on another change, out of date («неактуальна»), already applied or rejected, a question with no answer yet, or skipped this time because the row on the site changed or the selection was narrowed. Use `--limit 0` to list every change, `--exclude 48122,48123` to leave some out.
 
 ### 5. Write
 
@@ -121,7 +121,7 @@ python manage.py catalog_sync answer 50011 merge --into <course-id> --by <userna
 python manage.py catalog_sync answer keep_apart --unrated --by <username>
 ```
 
-`--unrated` takes the answer alone, with no question id: it closes every question that has no ratings and no plans, with `keep_apart` for merges and `keep` for moves and relinks. `--into` takes a course id from the question as `show --group mapping` prints it. Answers follow the same rule: dry run, the owner's confirmation, then `--yes`.
+`--unrated` takes the answer alone, with no question id: it closes every merge, move and relink question with no ratings on any side (`keep_apart` for merges, `keep` for moves and relinks). It does not check study plans, and it skips placement questions (`place_offering`), which always need an `--into` answer. `--into` takes a course id from the question as `show --group mapping` prints it. Answers follow the same rule: dry run, the owner's confirmation, then `--yes`.
 
 | Question kind | Answers |
 | --- | --- |

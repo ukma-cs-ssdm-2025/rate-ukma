@@ -81,7 +81,7 @@ def test_answer_refuses_a_change_that_is_not_a_question(
 def test_answer_unrated_dry_run_counts_and_writes_nothing(run_catalog_sync, admin, merge_question):
     out = run_catalog_sync("answer", "--unrated", "keep_apart", "--by", admin.username)
 
-    assert "Закрило б 1 питання без оцінок і планів" in out
+    assert "Закрило б 1 питання без оцінок" in out
     assert not CatalogMappingDecision.objects.exists()
 
 

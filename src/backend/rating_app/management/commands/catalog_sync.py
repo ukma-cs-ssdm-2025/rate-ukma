@@ -254,7 +254,7 @@ class Command(BaseCommand):
                 self._say(DRY_RUN)
             verb = "Закрило б" if dry_run else "Закрито"
             self._say(
-                f"{verb} {text.questions_word(count)} без оцінок і планів: "
+                f"{verb} {text.questions_word(count)} без оцінок: "
                 "об'єднання — «лишити окремо», перенесення й переприв'язки — «залишити»."
             )
             if dry_run:
