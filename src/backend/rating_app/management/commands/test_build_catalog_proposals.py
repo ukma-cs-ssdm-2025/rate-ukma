@@ -338,11 +338,15 @@ def test_years_before_ukma_data_coverage_are_not_short():
     ru_snapshot = SimpleNamespace(
         offerings={
             **{
-                f"old-{n}": SimpleNamespace(semester_year=2019, semester_term="FALL")
+                f"old-{n}": SimpleNamespace(
+                    semester_year=2019, semester_term="FALL", ukma_data_id=None
+                )
                 for n in range(5)
             },
             **{
-                f"new-{n}": SimpleNamespace(semester_year=2024, semester_term="FALL")
+                f"new-{n}": SimpleNamespace(
+                    semester_year=2024, semester_term="FALL", ukma_data_id=None
+                )
                 for n in range(10)
             },
         }
@@ -354,7 +358,8 @@ def test_years_before_ukma_data_coverage_are_not_short():
 def test_a_year_at_ninety_percent_is_not_short_and_below_it_is():
     ru_snapshot = SimpleNamespace(
         offerings={
-            f"ru-{n}": SimpleNamespace(semester_year=2024, semester_term="FALL") for n in range(10)
+            f"ru-{n}": SimpleNamespace(semester_year=2024, semester_term="FALL", ukma_data_id=None)
+            for n in range(10)
         }
     )
 
@@ -365,3 +370,27 @@ def test_a_year_at_ninety_percent_is_not_short_and_below_it_is():
 
     assert short_read_years(ud_with(9), ru_snapshot) == []  # pyright: ignore[reportArgumentType] - duck-typed snapshot
     assert short_read_years(ud_with(8), ru_snapshot) == [2024]  # pyright: ignore[reportArgumentType] - duck-typed snapshot
+
+
+def test_a_dropped_year_that_held_linked_offerings_is_still_short():
+    ud_snapshot = SimpleNamespace(
+        offerings={f"ud-{n}": SimpleNamespace(academic_year=2025) for n in range(10)}
+    )
+    ru_snapshot = SimpleNamespace(
+        offerings={
+            **{
+                f"linked-{n}": SimpleNamespace(
+                    semester_year=2024, semester_term="FALL", ukma_data_id=f"ud-old-{n}"
+                )
+                for n in range(5)
+            },
+            **{
+                f"new-{n}": SimpleNamespace(
+                    semester_year=2025, semester_term="FALL", ukma_data_id=None
+                )
+                for n in range(10)
+            },
+        }
+    )
+
+    assert short_read_years(ud_snapshot, ru_snapshot) == [2024]  # pyright: ignore[reportArgumentType] - duck-typed snapshot

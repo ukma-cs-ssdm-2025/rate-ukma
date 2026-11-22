@@ -128,14 +128,20 @@ def short_read_years(ud_snapshot: UkmaDataSnapshot, ru_snapshot: RateUkmaSnapsho
 
     A removed UKMA Data row is still returned, so only a missing row counts as
     short; a truncated list would otherwise look like a mass removal. Years
-    before the first one UKMA Data covers are not read, so they are not short.
+    before the first one UKMA Data covers, or ever covered for a linked
+    offering, are not read, so they are not short.
     """
     ru_counts = Counter(
         academic_year_of(offering.semester_year, offering.semester_term)
         for offering in ru_snapshot.offerings.values()
     )
     ud_counts = Counter(offering.academic_year for offering in ud_snapshot.offerings.values())
-    first_year = min(ud_counts, default=None)
+    linked_years = {
+        academic_year_of(offering.semester_year, offering.semester_term)
+        for offering in ru_snapshot.offerings.values()
+        if offering.ukma_data_id is not None
+    }
+    first_year = min([*ud_counts, *linked_years], default=None)
     return sorted(
         year
         for year, count in ru_counts.items()
