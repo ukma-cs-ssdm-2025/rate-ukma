@@ -6473,10 +6473,12 @@ components:
           type: string
           readOnly: true
         source:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
           readOnly: true
         group:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeGroupEnum'
           readOnly: true
         mode:
           allOf:

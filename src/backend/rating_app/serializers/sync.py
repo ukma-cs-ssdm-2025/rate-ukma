@@ -68,8 +68,8 @@ class SyncChangeSerializer(serializers.Serializer):
 
 class SyncPolicySerializer(serializers.Serializer):
     kind = serializers.CharField(read_only=True)
-    source = serializers.CharField(read_only=True)
-    group = serializers.CharField(read_only=True)
+    source = serializers.ChoiceField(choices=SyncSource.choices, read_only=True)
+    group = serializers.ChoiceField(choices=SyncChangeGroup.choices, read_only=True)
     mode = serializers.ChoiceField(choices=SyncPolicyMode.choices, read_only=True)
     never_auto = serializers.BooleanField(read_only=True)
     updated_by = serializers.IntegerField(read_only=True, allow_null=True)

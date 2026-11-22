@@ -47,7 +47,7 @@ from rating_app.serializers.sync import (
     SyncRunListResponseSerializer,
 )
 from rating_app.sync.kinds import KIND_BY_NAME, KINDS, NEVER_AUTO_KINDS, SyncKind
-from rating_app.sync.policies import NeverAutoKindError, set_mode
+from rating_app.sync.policies import set_mode
 from rating_app.views.responses import (
     R_SYNC_CHANGES,
     R_SYNC_PENDING,
@@ -195,9 +195,7 @@ class SyncViewSet(viewsets.ViewSet):
 
         try:
             policy = set_mode(kind_name, mode, request.user)
-        except NeverAutoKindError as exc:
-            raise ValidationError({"mode": [str(exc)]}) from exc
-        except ValueError as exc:
+        except ValueError as exc:  # NeverAutoKindError among them
             raise ValidationError({"mode": [str(exc)]}) from exc
 
         logger.info("sync_policy_updated", kind=kind_name, mode=mode, user_id=request.user.pk)
