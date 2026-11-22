@@ -51,6 +51,25 @@ describe("confirm requests", () => {
 		expect(requestTotal(request)).toBe(681);
 	});
 
+	it("excludes every skipped row however many there are", () => {
+		// Arrange
+		const skipped = Array.from({ length: 250 }, (_, index) => index + 1);
+
+		// Act
+		const request = newRequest(
+			"offerings",
+			{ group: "new", kind: "new_offering" },
+			681,
+			skipped,
+		);
+
+		// Assert
+		expect(request.approve?.selection).toEqual({
+			filter: { group: "new", kind: "new_offering", exclude_ids: skipped },
+		});
+		expect(request.reject).toEqual({ change_ids: skipped });
+	});
+
 	it("approves a field row and keeps or clears a blanking row", () => {
 		// Assert
 		expect(practice && fieldRequest(practice).approve?.selection).toEqual({

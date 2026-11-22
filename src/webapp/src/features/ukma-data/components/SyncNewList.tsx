@@ -12,7 +12,7 @@ import type { ConfirmRequest } from "../syncConfirm";
 import { countWith, formatCount } from "../syncFormat";
 import type { ListSegment } from "../syncParams";
 import { viewParams } from "../syncParams";
-import { NEW_KINDS, newRequest } from "../syncRequests";
+import { NEW_KINDS, newRequest, SELECTION_LIMIT } from "../syncRequests";
 import { tableRow, YEAR_RANGES, yearFilter, yearRangeLabel } from "../syncRows";
 import { DISCIPLINES, SEMESTERS } from "../syncWords";
 import {
@@ -50,7 +50,8 @@ export function SyncNewList({
 	const [params, setParams] = useQueryStates(viewParams);
 	const segment = params.segment ?? defaultSegment(groups);
 	const [skipped, setSkipped] = useState<ReadonlySet<number>>(new Set());
-	const years = yearFilter(params.years);
+	const byYear = segment === "offerings";
+	const years = byYear ? yearFilter(params.years) : {};
 	const filter: SyncSelectionFilter = {
 		group: "new",
 		kind: NEW_KINDS[segment],
@@ -74,8 +75,12 @@ export function SyncNewList({
 	const total = data?.total ?? 0;
 	const forms = segment === "offerings" ? SEMESTERS : DISCIPLINES;
 	const adding = Math.max(0, total - skipped.size);
+	const skipFull = skipped.size >= SELECTION_LIMIT;
 	const toggle = (id: number, skip: boolean) => {
 		const next = new Set(skipped);
+		if (skip && skipFull) {
+			return;
+		}
 		if (skip) {
 			next.add(id);
 		} else {
@@ -130,15 +135,17 @@ export function SyncNewList({
 						},
 					]}
 				/>
-				<SyncSegments
-					label="Роки"
-					value={params.years}
-					onChange={(value) => reset({ years: value })}
-					items={YEAR_RANGES.map((range) => ({
-						value: range,
-						label: yearRangeLabel(range),
-					}))}
-				/>
+				{byYear ? (
+					<SyncSegments
+						label="Роки"
+						value={params.years}
+						onChange={(value) => reset({ years: value })}
+						items={YEAR_RANGES.map((range) => ({
+							value: range,
+							label: yearRangeLabel(range),
+						}))}
+					/>
+				) : null}
 				<SyncSearch
 					value={params.q}
 					placeholder="Пошук за назвою або кодом САЗ"
@@ -214,6 +221,12 @@ export function SyncNewList({
 							})}
 						</tbody>
 					</SyncTableFrame>
+					{skipFull ? (
+						<p className="text-muted-foreground text-sm">
+							За один раз можна пропустити до {formatCount(SELECTION_LIMIT)}{" "}
+							записів. Додайте ці, а решту пропустіть наступним кроком.
+						</p>
+					) : null}
 					<SyncPager
 						summary={`${formatCount(from)}–${formatCount(from + data.items.length - 1)} з ${formatCount(total)} · пропущено ${formatCount(skipped.size)}`}
 						page={data.page}

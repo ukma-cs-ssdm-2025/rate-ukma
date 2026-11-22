@@ -9,7 +9,7 @@ import { fieldLabel, MOVING_FIELDS } from "./syncFields";
 import { linkParts, partsTotal, removedParts } from "./syncGroups";
 import { DISCIPLINES, PAIRS, RECORDS, SEMESTERS } from "./syncWords";
 
-const SELECTION_LIMIT = 200;
+export const SELECTION_LIMIT = 200;
 
 export function linksRequest(groups: SyncSummaryGroups): ConfirmRequest {
 	const parts = linkParts(groups);
@@ -70,7 +70,7 @@ export function newRequest(
 ): ConfirmRequest {
 	const forms = segment === "offerings" ? SEMESTERS : DISCIPLINES;
 	const added = Math.max(0, total - skipped.length);
-	const kept = skipped.slice(0, SELECTION_LIMIT);
+	const kept = [...skipped];
 	return {
 		group: "new",
 		title: `Додати на сайт ${countWith(added, forms)}?`,

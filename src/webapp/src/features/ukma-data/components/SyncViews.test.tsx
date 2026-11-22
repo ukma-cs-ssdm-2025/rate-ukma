@@ -120,6 +120,30 @@ describe("new on the site", () => {
 	});
 });
 
+describe("new disciplines", () => {
+	it("offers no year filter, since disciplines have no semester", async () => {
+		// Arrange
+		mock = mockSync();
+		mock
+			.onGet(PENDING_URL)
+			.reply(200, pending([newRow(1, "Теорія зразків")], 178));
+		renderSync("?view=new&segment=courses&years=current");
+
+		// Act
+		await screen.findByRole("radiogroup", { name: "Рішення: Теорія зразків" });
+
+		// Assert
+		expect(
+			screen.queryByRole("radiogroup", { name: "Роки" }),
+		).not.toBeInTheDocument();
+		const params = mock.history.get.find(
+			(call) => call.url === PENDING_URL,
+		)?.params;
+		expect(params).toMatchObject({ group: "new", kind: "new_course" });
+		expect(params).not.toHaveProperty("year_from");
+	});
+});
+
 describe("updated data", () => {
 	it("keeps blanked fields by rejecting them with a previewed filter", async () => {
 		// Arrange
