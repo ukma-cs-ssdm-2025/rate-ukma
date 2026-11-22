@@ -245,6 +245,17 @@ def test_a_change_whose_target_is_gone_is_stale():
     assert is_stale("change_course", _ru_snapshot(), "ru-course", before)
 
 
+@pytest.mark.parametrize("kind", ["removed_course", "removed_offering"])
+def test_a_removal_whose_row_is_gone_is_stale(kind):
+    ru = _course_snapshot(title="Курс")
+
+    assert is_stale(kind, ru, "ru-missing", {})
+
+
+def test_a_removal_whose_row_still_exists_is_fresh():
+    assert not is_stale("removed_course", _course_snapshot(title="Курс"), "ru-course", {})
+
+
 def test_make_before_is_empty_for_a_new_row():
     assert make_before("new_course", _ru_snapshot(), None, {"title": "Новий курс"}) == {}
 
