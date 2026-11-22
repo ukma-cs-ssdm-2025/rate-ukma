@@ -57,7 +57,7 @@ describe("/data overview", () => {
 			await screen.findByText("Немає доступу до цих даних UKMA Data"),
 		).toBeInTheDocument();
 		expect(
-			screen.getByText(/не має дозволу на цей розділ/),
+			screen.getByText(/не має доступу до цього розділу/),
 		).toBeInTheDocument();
 		expect(screen.getByText("Дані САЗ")).toBeInTheDocument();
 		expect(

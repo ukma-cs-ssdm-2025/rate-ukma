@@ -3,23 +3,15 @@ from __future__ import annotations
 from typing import Any, cast
 
 from django.db import transaction
-from django.db.models import Count, Model, QuerySet
-from django.utils import timezone
-from rest_framework import status, viewsets
+from django.db.models import Count, QuerySet
+from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 import structlog
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from pydantic import BaseModel
-from pydantic import ValidationError as ModelValidationError
 
-from rating_app.application_schemas.pagination import (
-    PaginationFilters,
-    QuerySetPaginationResult,
-)
 from rating_app.application_schemas.sync import (
     SyncChangeListParams,
     SyncListParams,
@@ -40,7 +32,6 @@ from rating_app.models.sync import (
     SyncRunStatus,
     SyncSource,
 )
-from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.serializers.sync import (
     SyncAnswerRequestSerializer,
     SyncAnswerResponseSerializer,
@@ -56,7 +47,7 @@ from rating_app.serializers.sync import (
     SyncRejectRequestSerializer,
     SyncRunListResponseSerializer,
 )
-from rating_app.sync import answers, apply
+from rating_app.sync import answers, apply, review, selection
 from rating_app.sync.apply import SyncApplyInputError
 from rating_app.sync.kinds import KIND_BY_NAME, KINDS, NEVER_AUTO_KINDS, SyncKind
 from rating_app.sync.policies import set_mode
@@ -71,7 +62,9 @@ from rating_app.views.responses import (
     R_SYNC_POLICY_CHANGES,
     R_SYNC_RUNS,
 )
-from rating_app.views.ukma_data_viewset import IsSuperuser
+from rating_app.views.sync_base import SyncViewSetBase, input_error_text
+
+PREVIEW_FIRST = "Спочатку перегляньте вибірку"
 
 logger = structlog.get_logger(__name__)
 to_openapi = pydantic_to_openapi_request_mapper().map
@@ -97,10 +90,8 @@ def _policy_payload(kind: SyncKind, policy: SyncPolicy | None) -> dict[str, Any]
 
 
 @extend_schema(tags=["ukma-data"])
-class SyncViewSet(viewsets.ViewSet):
+class SyncViewSet(SyncViewSetBase):
     """Runs, changes and policies of the syncs from UKMA Data, for /data."""
-
-    permission_classes = [IsAuthenticated, IsSuperuser]
 
     @extend_schema(
         summary="List sync runs",
@@ -150,28 +141,57 @@ class SyncViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="List the changes waiting for approval",
-        description="Proposed changes of each source's current (latest succeeded) run, "
-        "rated rows first. `groups` and `kinds` count every waiting change before the "
-        "group and kind filters. Superusers only.",
+        description="Proposed changes of each source's current (latest succeeded) run or "
+        "of a pinned `run`, rated rows first. Supports the review facets: `match`, "
+        "`similar_existing`, a `field` or `fields_subset`, a title or САЗ `q`, and a "
+        "`view=sample` of up to 20 rows per faculty. `groups` and `kinds` count every "
+        "waiting change before the group and kind filters. Superusers only.",
         parameters=to_openapi((SyncPendingParams, OpenApiParameter.QUERY)),
         responses=R_SYNC_PENDING,
         operation_id="ukma_data_sync_pending_list",
     )
     def pending(self, request: Request) -> Response:
         params = self._query(request, SyncPendingParams)
-        runs = self._current_runs(params.source)
+        if params.run is not None:
+            run = SyncRun.objects.filter(pk=params.run).first()
+            if run is None:
+                raise NotFound("Sync run not found")
+            runs = [run]
+        else:
+            runs = self._current_runs(params.source)
         state = params.state or SyncChangeState.PROPOSED
         base = SyncChange.objects.filter(run_id__in=[run.id for run in runs], state=state)
 
         changes = self._filter_changes(base, params)
-        page = self._paginate(changes, params)
+        if params.rated is not None:
+            changes = changes.filter(ratings__gt=0) if params.rated else changes.filter(ratings=0)
+        changes = selection.pending_ids(
+            changes,
+            match=params.match,
+            similar_existing=params.similar_existing,
+            field=params.field,
+            fields_subset=params.fields_subset,
+            q=params.q,
+        )
+        changes = selection.narrow(
+            changes,
+            changed_field=params.changed_field,
+            blanks=params.blanks,
+            year_from=params.year_from,
+            year_to=params.year_to,
+        )
+        if params.view == "sample":
+            items, metadata = self._sample_page(review.sample_ids(changes, params.seed), params)
+        else:
+            page = self._paginate(changes, params)
+            items, metadata = page.page_objects, page.metadata.model_dump()
         payload = SyncPendingResponseSerializer(
             {
-                "items": page.page_objects,
+                "items": items,
                 "groups": _counts_by(base, "group"),
                 "kinds": _counts_by(base, "kind"),
                 "runs": runs,
-                **page.metadata.model_dump(),
+                **metadata,
             }
         )
         return Response(payload.data, status=status.HTTP_200_OK)
@@ -220,9 +240,11 @@ class SyncViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Approve sync changes",
         description="Apply the selected proposed changes, expanded to their whole unit. "
-        "Select by `change_ids` or by the current run's `group` and `kind`. `dry_run` "
-        "previews the same apply and rolls it back; a run over 48 h old needs "
-        "`confirm_stale`. Superusers only.",
+        "Select by up to 200 `change_ids`, or by a `selection.filter` confirmed with the "
+        "`token` from `preview/`; the filter is resolved again and a changed set answers "
+        "409 `selection_changed`. Send a `client_key` so a retry returns the first "
+        "approval instead of applying twice. `dry_run` previews the same apply and rolls "
+        "it back; a run over 48 h old needs `confirm_stale`. Superusers only.",
         request=SyncApproveRequestSerializer,
         responses=R_SYNC_APPROVE,
         operation_id="ukma_data_sync_approve",
@@ -231,21 +253,46 @@ class SyncViewSet(viewsets.ViewSet):
         serializer = SyncApproveRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = cast(dict[str, Any], serializer.validated_data)
-        ids = self._approve_selection(data)
         dry_run = bool(data.get("dry_run"))
+        client_key = data.get("client_key")
+        if client_key is not None and not dry_run:
+            existing = SyncApproval.objects.filter(client_key=client_key).first()
+            if existing is not None:
+                logger.info(
+                    "sync_approve_replayed",
+                    approval_id=existing.pk,
+                    client_key=str(client_key),
+                    user_id=request.user.pk,
+                )
+                return self._approval_response(existing, dry_run=False, user=request.user)
+
+        ids = self._resolve_approve_ids(data, request)
+        if isinstance(ids, Response):
+            return ids
+        excluded = selection.selection_excluded(data.get("selection"))
         try:
             if dry_run:
                 with transaction.atomic():
                     approval = apply.approve(
-                        ids, request.user, confirm_old_run=bool(data.get("confirm_stale"))
+                        ids,
+                        request.user,
+                        confirm_old_run=bool(data.get("confirm_stale")),
+                        client_key=None,
+                        excluded=excluded,
+                        **self._requested_scope(data),
                     )
                     transaction.set_rollback(True)
             else:
                 approval = apply.approve(
-                    ids, request.user, confirm_old_run=bool(data.get("confirm_stale"))
+                    ids,
+                    request.user,
+                    confirm_old_run=bool(data.get("confirm_stale")),
+                    client_key=client_key,
+                    excluded=excluded,
+                    **self._requested_scope(data),
                 )
         except SyncApplyInputError as exc:
-            raise ValidationError({"change_ids": [_input_error_text(exc)]}) from exc
+            raise ValidationError({"change_ids": [input_error_text(exc)]}) from exc
 
         logger.info(
             "sync_approve_requested",
@@ -255,12 +302,15 @@ class SyncViewSet(viewsets.ViewSet):
             outcome=approval.outcome,
             user_id=request.user.pk,
         )
-        return self._approval_response(approval, dry_run=dry_run)
+        return self._approval_response(approval, dry_run=dry_run, user=request.user)
 
     @extend_schema(
         summary="Reject sync changes",
         description="Mark the selected proposed changes rejected and supersede the "
-        "changes waiting on them. Superusers only.",
+        "changes waiting on them. Select by `change_ids`, or by a `selection` confirmed "
+        "with the `token` from `preview/`; a changed set answers 409 `selection_changed`. "
+        "A rejected change comes back with the next run if САЗ still differs. "
+        "Superusers only.",
         request=SyncRejectRequestSerializer,
         responses=R_SYNC_APPROVE,
         operation_id="ukma_data_sync_reject",
@@ -269,11 +319,19 @@ class SyncViewSet(viewsets.ViewSet):
         serializer = SyncRejectRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated = cast(dict[str, Any], serializer.validated_data)
-        ids = cast(list[int], validated["change_ids"])
+        if validated.get("selection") is not None:
+            if not validated.get("token"):
+                raise ValidationError({"token": [PREVIEW_FIRST]})
+            resolved = self._token_ids(validated, request)
+            if isinstance(resolved, Response):
+                return resolved
+            ids = resolved
+        else:
+            ids = cast(list[int], validated["change_ids"])
         try:
             approval = apply.reject(ids, request.user)
         except SyncApplyInputError as exc:
-            raise ValidationError({"change_ids": [_input_error_text(exc)]}) from exc
+            raise ValidationError({"change_ids": [input_error_text(exc)]}) from exc
 
         logger.info(
             "sync_reject_requested",
@@ -282,7 +340,7 @@ class SyncViewSet(viewsets.ViewSet):
             outcome=approval.outcome,
             user_id=request.user.pk,
         )
-        return self._approval_response(approval, dry_run=False)
+        return self._approval_response(approval, dry_run=False, user=request.user)
 
     @extend_schema(
         summary="Answer a mapping question",
@@ -368,18 +426,59 @@ class SyncViewSet(viewsets.ViewSet):
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 
+    def _requested_scope(self, data: dict[str, Any]) -> dict[str, str]:
+        selection_data = data.get("selection") or {}
+        filters = selection_data.get("filter") or {} if isinstance(selection_data, dict) else {}
+        group = str(filters.get("group") or data.get("group") or "")
+        return {
+            "group": "" if group == review.OTHER_GROUP else group,
+            "kind": str(filters.get("kind") or data.get("kind") or ""),
+        }
+
+    def _resolve_approve_ids(self, data: dict[str, Any], request: Request) -> list[int] | Response:
+        if data.get("token"):
+            return self._token_ids(data, request)
+        if data.get("selection") is not None or not data.get("change_ids"):
+            raise ValidationError({"token": [PREVIEW_FIRST]})
+        return self._approve_selection(data)
+
+    def _token_ids(self, data: dict[str, Any], request: Request) -> list[int] | Response:
+        """The selection a recorded preview of this user confirmed; a changed set
+        answers 409 `selection_changed` and nothing is written."""
+        selection_data = data.get("selection")
+        token = str(data.get("token") or "")
+        if token:
+            parsed = selection.parse_token(token)
+            run = None if parsed is None else SyncRun.objects.filter(pk=parsed[0]).first()
+            if parsed is None or run is None:
+                raise ValidationError({"token": ["Некоректний токен"]})
+            if not selection.was_previewed(token, run, request.user):
+                raise ValidationError({"token": [PREVIEW_FIRST]})
+            if selection_data is None:
+                raise ValidationError({"selection": ["Потрібна вибірка для перевірки токена"]})
+            ids = self._selection_ids(selection_data, run, data["source"])
+            excluded = selection.selection_excluded(selection_data)
+            if selection.token_for(run.pk, ids, excluded) != token:
+                before = selection.preview_count(token) or 0
+                detail = f"Список змінився: було {before}, стало {len(ids)}. Перегляньте ще раз"
+                return Response(
+                    {
+                        "detail": detail,
+                        "code": "selection_changed",
+                        "status": 409,
+                        "holder": self._holder(request.user, lock_held=False),
+                        "run_age_hours": self._age_hours(run),
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            return ids
+        raise ValidationError({"token": [PREVIEW_FIRST]})
+
     def _approve_selection(self, data: dict[str, Any]) -> list[int]:
         source = data["source"]
         group = data["group"]
         kind = data.get("kind")
-        given = data.get("change_ids")
-        if given:
-            queryset = SyncChange.objects.filter(pk__in=given, source=source, group=group)
-        else:
-            run = self._current_run(source)
-            if run is None:
-                raise ValidationError({"source": ["Немає успішного запуску для цього джерела"]})
-            queryset = SyncChange.objects.filter(run=run, source=source, group=group)
+        queryset = SyncChange.objects.filter(pk__in=data["change_ids"], source=source, group=group)
         if kind:
             queryset = queryset.filter(kind=kind)
 
@@ -388,9 +487,15 @@ class SyncViewSet(viewsets.ViewSet):
             raise ValidationError({"change_ids": ["Немає запропонованих змін для цієї вибірки"]})
         return ids
 
-    def _approval_response(self, approval: SyncApproval, *, dry_run: bool) -> Response:
+    def _skipped_count(self, approval: SyncApproval, counts: dict[str, Any]) -> int:
+        remaining = SyncChange.objects.filter(
+            pk__in=approval.change_ids, state=SyncChangeState.PROPOSED
+        ).count()
+        return max(0, remaining - int(counts.get("waiting") or 0))
+
+    def _approval_response(self, approval: SyncApproval, *, dry_run: bool, user: Any) -> Response:
         if approval.outcome == SyncApprovalOutcome.REFUSED:
-            return self._refusal(approval)
+            return self._refusal(approval, user)
         if approval.outcome == SyncApprovalOutcome.FAILED:
             return Response(
                 {
@@ -416,50 +521,6 @@ class SyncViewSet(viewsets.ViewSet):
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 
-    def _refusal(self, approval: SyncApproval) -> Response:
-        reason = approval.error
-        if reason == "lock_held":
-            detail = "Синхронізація саме триває"
-            code = status.HTTP_409_CONFLICT
-        elif reason == "run_too_old":
-            detail = "Дані старші за 48 год"
-            hours = self._run_age_hours(approval)
-            if hours is not None:
-                detail = f"{detail} ({hours} год)"
-            code = status.HTTP_409_CONFLICT
-        elif reason == "run_not_current":
-            detail = "Запуск синхронізації вже не актуальний"
-            code = status.HTTP_409_CONFLICT
-        elif reason == "no_proposed_changes":
-            detail = "Немає запропонованих змін для цієї вибірки"
-            code = status.HTTP_400_BAD_REQUEST
-        else:
-            detail = reason or "Не вдалося виконати дію"
-            code = status.HTTP_400_BAD_REQUEST
-        return Response({"detail": detail, "status": code}, status=code)
-
-    def _skipped_count(self, approval: SyncApproval, counts: dict[str, Any]) -> int:
-        remaining = SyncChange.objects.filter(
-            pk__in=approval.change_ids, state=SyncChangeState.PROPOSED
-        ).count()
-        return max(0, remaining - int(counts.get("waiting") or 0))
-
-    def _run_age_hours(self, approval: SyncApproval) -> int | None:
-        run = approval.run
-        if run is None:
-            return None
-        stamps = [stamp for stamp in (run.finished_at, run.data_updated_at) if stamp is not None]
-        if not stamps:
-            return None
-        return int((timezone.now() - min(stamps)).total_seconds() // 3600)
-
-    def _current_run(self, source: str) -> SyncRun | None:
-        return (
-            SyncRun.objects.filter(source=source, status=SyncRunStatus.SUCCEEDED)
-            .order_by("-finished_at", "-id")
-            .first()
-        )
-
     def _current_runs(self, source: SyncSource | None) -> list[SyncRun]:
         sources = [source] if source is not None else list(SyncSource)
         runs: list[SyncRun] = []
@@ -477,44 +538,9 @@ class SyncViewSet(viewsets.ViewSet):
         self, queryset: QuerySet[SyncChange], params: SyncChangeListParams
     ) -> QuerySet[SyncChange]:
         if params.group is not None:
-            queryset = queryset.filter(group=params.group)
+            queryset = review.in_group(queryset, str(params.group))
         if params.kind is not None:
             queryset = queryset.filter(kind=params.kind)
         if params.state is not None:
             queryset = queryset.filter(state=params.state)
         return queryset.order_by("-ratings", "id")
-
-    def _paginate[TModel: Model](
-        self, queryset: QuerySet[TModel], params: SyncListParams
-    ) -> QuerySetPaginationResult[TModel]:
-        paginator = GenericQuerysetPaginator[TModel]()
-        return paginator.process(
-            queryset,
-            PaginationFilters(page=params.page, page_size=params.page_size),
-        )
-
-    def _query[M: BaseModel](self, request: Request, model: type[M]) -> M:
-        return self._validated(model, request.query_params.dict())
-
-    def _validated[M: BaseModel](self, model: type[M], data: dict[str, Any]) -> M:
-        try:
-            return model.model_validate(data)
-        except ModelValidationError as e:
-            errors = e.errors(include_input=False, include_url=False)
-            logger.error("validation_error", errors=errors)
-            field_errors: dict[str, list[str]] = {}
-            for error in errors:
-                field = str(error["loc"][0]) if error["loc"] else "non_field_errors"
-                field_errors.setdefault(field, []).append(error["msg"])
-            raise ValidationError(detail=field_errors) from e
-
-
-_INPUT_ERROR_TEXT = {
-    "no change ids": "Не вибрано жодної зміни",
-    "unknown change ids": "Деяких вибраних змін не існує",
-    "changes from several runs": "Вибрані зміни належать різним запускам",
-}
-
-
-def _input_error_text(exc: SyncApplyInputError) -> str:
-    return _INPUT_ERROR_TEXT.get(str(exc), "Некоректна вибірка змін")

@@ -41,6 +41,7 @@ from rating_app.models import (
     SyncPolicy,
     SyncPolicyChange,
     SyncPolicyMode,
+    SyncPreview,
     SyncRun,
     SyncRunStatus,
     SyncSource,
@@ -362,6 +363,16 @@ class SyncApprovalFactory(DjangoModelFactory):
     user = None
     outcome = SyncApprovalOutcome.STARTED
     counts = factory.LazyFunction(dict)
+
+
+class SyncPreviewFactory(DjangoModelFactory):
+    class Meta:
+        model = SyncPreview
+
+    token = factory.Sequence(lambda n: f"preview-token-{n}")
+    run = factory.SubFactory(SyncRunFactory)
+    user = factory.SubFactory(UserFactory)
+    count = 1
 
 
 class CatalogMappingDecisionFactory(DjangoModelFactory):

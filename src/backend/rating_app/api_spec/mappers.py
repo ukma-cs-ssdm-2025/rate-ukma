@@ -85,6 +85,10 @@ class PydanticToOpenApiRequestMapper(
         if field_type is not None:
             return field_type
 
+        ref = field_schema.get("$ref")
+        if ref is not None:
+            return self._resolve_ref_type(ref, definitions)
+
         if "anyOf" not in field_schema:
             return None
 
@@ -167,6 +171,10 @@ class PydanticToOpenApiRequestMapper(
         # direct enum
         if "enum" in field_schema:
             return field_schema["enum"]
+
+        ref = field_schema.get("$ref")
+        if ref is not None:
+            return self._resolve_ref_enum(ref, definitions)
 
         # optional enum
         if "anyOf" in field_schema:

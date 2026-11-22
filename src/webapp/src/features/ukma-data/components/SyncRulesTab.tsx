@@ -31,15 +31,16 @@ import {
 	useUkmaDataSyncPolicyUpdate,
 } from "@/lib/api/generated";
 import { formatDateTime } from "../reviewCases";
+import { kindLabel, SYNC_SOURCES } from "../sync";
 import {
+	AUTO_COPY,
 	GROUP_LABELS,
-	kindLabel,
 	MODE_LABELS,
 	NEVER_AUTO_REASON,
 	PAGE_SIZE,
 	SOURCE_LABELS,
-	SYNC_SOURCES,
-} from "../sync";
+} from "../syncLabels";
+import { kindRisk, RISK_BADGE, RISK_LABELS } from "../syncReview";
 import { SyncPagination } from "./SyncPagination";
 import { UkmaDataError } from "./UkmaDataError";
 
@@ -72,6 +73,9 @@ function PolicyRow({
 				<p className="font-medium">{kindLabel(policy.kind)}</p>
 				<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 					<Badge variant="outline">{GROUP_LABELS[policy.group]}</Badge>
+					<Badge variant={RISK_BADGE[kindRisk(policy.kind)]}>
+						{RISK_LABELS[kindRisk(policy.kind)]}
+					</Badge>
 					<span>{MODE_LABELS[policy.mode]}</span>
 					{policy.updated_at === null ? null : (
 						<span>змінено {formatDateTime(policy.updated_at)}</span>
@@ -80,8 +84,11 @@ function PolicyRow({
 				{policy.never_auto ? (
 					<p className="flex items-center gap-1 text-xs text-muted-foreground">
 						<Lock className="size-3" />
-						Завжди з підтвердженням
+						завжди з підтвердженням
 					</p>
+				) : null}
+				{!policy.never_auto && policy.mode === "auto" ? (
+					<p className="text-xs text-muted-foreground">{AUTO_COPY}.</p>
 				) : null}
 			</div>
 			<Toggle

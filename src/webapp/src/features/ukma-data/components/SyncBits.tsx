@@ -1,0 +1,222 @@
+import { ArrowLeft } from "lucide-react";
+
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+import { formatCount } from "../syncFormat";
+import { CHIP_LABELS } from "../syncGroups";
+import type { Chip } from "../syncGroups";
+import { pageNumbers } from "../syncRows";
+
+const CHIP_TONES = {
+	safe: "bg-tint-success text-tint-success-foreground",
+	appears: "bg-tint-primary text-tint-primary-foreground",
+	changes: "bg-tint-primary text-tint-primary-foreground",
+	manual: "bg-tint-primary text-tint-primary-foreground",
+	ratings: "bg-tint-caution text-tint-caution-foreground",
+} satisfies Record<Chip, string>;
+
+export function SyncChip({ chip }: Readonly<{ chip: Chip }>) {
+	return (
+		<span
+			className={cn(
+				"inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+				CHIP_TONES[chip],
+			)}
+		>
+			<span aria-hidden className="size-1.5 rounded-full bg-current" />
+			{CHIP_LABELS[chip]}
+		</span>
+	);
+}
+
+export function SyncBack({ onBack }: Readonly<{ onBack: () => void }>) {
+	return (
+		<button
+			type="button"
+			onClick={onBack}
+			className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+		>
+			<ArrowLeft className="size-4" />
+			Усі групи
+		</button>
+	);
+}
+
+export function SyncViewHead({
+	title,
+	children,
+	action,
+}: Readonly<{
+	title: string;
+	children?: React.ReactNode;
+	action?: React.ReactNode;
+}>) {
+	return (
+		<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+			<div className="max-w-2xl space-y-1.5">
+				<h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+				{children ? (
+					<p className="text-sm text-muted-foreground">{children}</p>
+				) : null}
+			</div>
+			{action ? <div className="shrink-0">{action}</div> : null}
+		</div>
+	);
+}
+
+export function SyncToggle({
+	label,
+	options,
+	value,
+	onChange,
+}: Readonly<{
+	label: string;
+	options: readonly [string, string];
+	value: 0 | 1;
+	onChange: (value: 0 | 1) => void;
+}>) {
+	return (
+		<div
+			role="radiogroup"
+			aria-label={label}
+			className="inline-flex shrink-0 flex-col overflow-hidden rounded-md border text-sm sm:flex-row"
+		>
+			{options.map((option, index) => (
+				<button
+					key={option}
+					type="button"
+					role="radio"
+					aria-checked={value === index}
+					onClick={() => onChange(index === 0 ? 0 : 1)}
+					className={cn(
+						"px-3 py-1 transition-colors",
+						index === 1 && "border-l",
+						value === index
+							? "bg-muted font-medium text-foreground"
+							: "text-muted-foreground hover:text-foreground",
+					)}
+				>
+					{option}
+				</button>
+			))}
+		</div>
+	);
+}
+
+export function SyncSegments<T extends string>({
+	label,
+	items,
+	value,
+	onChange,
+}: Readonly<{
+	label: string;
+	items: readonly { value: T; label: string; count?: number }[];
+	value: T;
+	onChange: (value: T) => void;
+}>) {
+	return (
+		<div
+			role="radiogroup"
+			aria-label={label}
+			className="inline-flex max-w-full overflow-x-auto rounded-md border text-sm"
+		>
+			{items.map((item, index) => (
+				<button
+					key={item.value}
+					type="button"
+					role="radio"
+					aria-checked={value === item.value}
+					onClick={() => onChange(item.value)}
+					className={cn(
+						"flex shrink-0 items-center gap-2 px-3 py-1.5",
+						index > 0 && "border-l",
+						value === item.value
+							? "bg-muted font-medium"
+							: "text-muted-foreground hover:text-foreground",
+					)}
+				>
+					{item.label}
+					{item.count === undefined ? null : (
+						<span className="text-muted-foreground tabular-nums">
+							{formatCount(item.count)}
+						</span>
+					)}
+				</button>
+			))}
+		</div>
+	);
+}
+
+export function SyncPager({
+	summary,
+	page,
+	totalPages,
+	onPage,
+}: Readonly<{
+	summary: string;
+	page: number;
+	totalPages: number;
+	onPage: (page: number) => void;
+}>) {
+	return (
+		<div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+			<span className="tabular-nums">{summary}</span>
+			{totalPages > 1 ? (
+				<nav aria-label="Сторінки" className="flex flex-wrap gap-1">
+					{pageNumbers(page, totalPages).map((value, index) =>
+						value === null ? (
+							<span key={`gap-${index}`} className="px-2 py-1">
+								…
+							</span>
+						) : (
+							<Button
+								key={value}
+								size="sm"
+								variant={value === page ? "default" : "outline"}
+								aria-current={value === page ? "page" : undefined}
+								onClick={() => onPage(value)}
+								className="min-w-8 tabular-nums"
+							>
+								{value}
+							</Button>
+						),
+					)}
+				</nav>
+			) : null}
+		</div>
+	);
+}
+
+export function SyncProgress({ value }: Readonly<{ value: number }>) {
+	return (
+		<div
+			role="progressbar"
+			aria-valuemin={0}
+			aria-valuemax={100}
+			aria-valuenow={Math.round(value)}
+			className="h-1.5 overflow-hidden rounded-full bg-muted"
+		>
+			<div className="h-full bg-primary" style={{ width: `${value}%` }} />
+		</div>
+	);
+}
+
+export function SyncOutcome({
+	title,
+	children,
+}: Readonly<{ title: string; children: React.ReactNode }>) {
+	return (
+		<div className="rounded-lg bg-muted px-5 py-4 text-sm">
+			<p className="font-semibold">{title}</p>
+			<p>{children}</p>
+		</div>
+	);
+}
+
+export function Kbd({ children }: Readonly<{ children: React.ReactNode }>) {
+	return (
+		<kbd className="hidden rounded border border-current/40 px-1 text-xs leading-4 opacity-80 sm:inline">
+			{children}
+		</kbd>
+	);
+}

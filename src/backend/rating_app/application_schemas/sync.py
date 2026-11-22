@@ -1,7 +1,21 @@
+from enum import StrEnum
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 from rating_app.models.sync import SyncChangeGroup, SyncChangeState, SyncSource
 from rating_app.sync.kinds import KIND_BY_NAME
+
+
+class SyncListGroup(StrEnum):
+    """A change group, or ``other`` for the kinds no line of the sync page shows."""
+
+    LINK = SyncChangeGroup.LINK.value
+    NEW = SyncChangeGroup.NEW.value
+    CHANGE = SyncChangeGroup.CHANGE.value
+    MAPPING = SyncChangeGroup.MAPPING.value
+    REMOVED = SyncChangeGroup.REMOVED.value
+    OTHER = "other"
 
 
 class SyncListParams(BaseModel):
@@ -16,8 +30,10 @@ class SyncRunListParams(SyncListParams):
 
 
 class SyncChangeListParams(SyncListParams):
-    group: SyncChangeGroup | None = Field(
-        default=None, description="Only changes of this group; omit for every group"
+    group: SyncListGroup | None = Field(
+        default=None,
+        description="Only changes of this group, or `other` for the kinds no group line "
+        "shows; omit for every group",
     )
     kind: str | None = Field(
         default=None, description="Only changes of this kind from the registry"
@@ -42,7 +58,67 @@ class SyncPendingParams(SyncChangeListParams):
         default=SyncChangeState.PROPOSED,
         description="State to list; `proposed` by default",
     )
+    run: int | None = Field(
+        default=None, ge=1, description="Pin one run; omit for each source's current run"
+    )
+    q: str | None = Field(default=None, max_length=200, description="Match a title or a САЗ code")
+    rated: bool | None = Field(
+        default=None, description="Only rows with ratings (`true`) or without (`false`)"
+    )
+    match: Literal["exact", "review"] | None = Field(
+        default=None, description="Link strength: exact (code or same title) or review"
+    )
+    similar_existing: bool | None = Field(
+        default=None, description="New courses whose normalised title already exists"
+    )
+    field: str | None = Field(default=None, description="Change rows that touch this field")
+    fields_subset: str | None = Field(
+        default=None, description="Comma-separated fields the change must stay within"
+    )
+    changed_field: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Change rows with a value pair on this field, terms included",
+    )
+    blanks: bool | None = Field(
+        default=None, description="Change rows that blank a field (`true`) or blank none"
+    )
+    year_from: int | None = Field(
+        default=None, ge=2000, description="Semesters from this academic year (Осінь 2025 = 2025)"
+    )
+    year_to: int | None = Field(
+        default=None, ge=2000, description="Semesters up to this academic year"
+    )
+    view: Literal["all", "sample"] = Field(
+        default="all", description="`sample` takes up to 20 rows per faculty"
+    )
+    seed: int = Field(default=0, description="Sample order seed")
 
 
 class SyncRunChangesPathParams(BaseModel):
     run_id: int = Field(ge=1, description="Identifier of the sync run")
+
+
+class SyncSummaryParams(BaseModel):
+    source: SyncSource = Field(default=SyncSource.CATALOG, description="Source of the run")
+    run: int | None = Field(default=None, ge=1, description="Pin one run; omit for the current run")
+
+
+class SyncQuestionListParams(BaseModel):
+    source: SyncSource = Field(default=SyncSource.CATALOG, description="Source of the run")
+    run: int | None = Field(default=None, ge=1, description="Pin one run; omit for the current run")
+    rated: bool | None = Field(
+        default=None, description="Only questions with ratings or plans (`true`) or without"
+    )
+    after: str | None = Field(
+        default=None,
+        pattern=r"^[01]\.\d+\.\d+$",
+        description="Keyset cursor: `next_after` from the previous page",
+    )
+    limit: int = Field(default=20, ge=1, le=100, description="Questions per page")
+    kinds: str | None = Field(
+        default=None,
+        pattern=r"^[a-z_]+(,[a-z_]+)*$",
+        description="Comma-separated mapping kinds, e.g. `place_offering,move_offering`",
+    )
+    q: str | None = Field(default=None, max_length=200, description="Match a course title")

@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 from functools import partial
 
 from django.contrib.auth.models import User
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 import structlog
@@ -102,6 +102,7 @@ class SyncApplyInputError(ValueError):
 class _Unit:
     key: str
     changes: list[SyncChange]
+    waiting_on: list[int] = field(default_factory=list)
 
 
 @dataclass
@@ -148,8 +149,18 @@ def approve(
     user: User,
     *,
     confirm_old_run: bool = False,
+    client_key: uuid.UUID | None = None,
+    group: str = "",
+    kind: str = "",
+    excluded: Iterable[int] = (),
 ) -> SyncApproval:
     """Apply the selected proposed changes, each expanded to its whole unit.
+
+    ``group`` and ``kind`` name what the person asked for, so history can say
+    «Зв'язки» even when a unit pulls in changes from other groups.
+
+    An ``excluded`` change never applies: a unit that holds one, or whose
+    requirements name one, stays proposed and waits on it.
 
     The approval row is written ``started`` before anything else. A run over
     :data:`APPROVAL_MAX_AGE` old is refused as ``run_too_old`` unless
@@ -158,7 +169,16 @@ def approve(
     sweep_interrupted_approvals()
     ids = _selection_ids(change_ids)
     run = _selection_run(ids)
-    approval = _start_approval(run, ids, user=user, action=SyncApprovalAction.APPLY)
+    try:
+        approval = _start_approval(
+            run, ids, user=user, action=SyncApprovalAction.APPLY, client_key=client_key
+        )
+    except IntegrityError:
+        # A second request with the same client key lost the race to the first.
+        existing = SyncApproval.objects.filter(client_key=client_key).first()
+        if client_key is None or existing is None:
+            raise
+        return existing
     with _source_lock(run.source) as held:
         if not held:
             return _refuse(approval, "lock_held")
@@ -167,13 +187,22 @@ def approve(
         if not _is_current(run):
             return _refuse(approval, "run_not_current")
         proposed = [change for change in changes if change.state == SyncChangeState.PROPOSED]
-        units = _expand_units(proposed, run)
+        units, held = _hold_excluded(_expand_units(proposed, run), set(excluded))
         if not proposed:
             return _refuse(approval, "no_proposed_changes")
         if not confirm_old_run and _run_age(run) > APPROVAL_MAX_AGE:
             return _refuse(approval, "run_too_old")
-        _set_approval_changes(approval, _unit_members(units) or changes)
-        result = _run_apply(approval, run, units)
+        _set_approval_changes(
+            approval, _unit_members(units + held) or changes, group=group, kind=kind
+        )
+        for unit in held:
+            _record_waiting(unit.changes, unit.waiting_on)
+            logger.info(
+                "sync_unit_held_by_exclusion",
+                change_ids=[member.pk for member in unit.changes],
+                waiting_on=unit.waiting_on,
+            )
+        result = _run_apply(approval, run, units, held=len(_unit_members(held)))
         if result.outcome == SyncApprovalOutcome.APPLIED:
             # A change auto-policy depended on may have just applied.
             apply_by_policy(run, lock_held=True)
@@ -293,8 +322,11 @@ def apply_by_policy(run: SyncRun, *, lock_held: bool = False) -> SyncApproval | 
         return _run_apply(approval, run, eligible)
 
 
-def _run_apply(approval: SyncApproval, run: SyncRun, units: list[_Unit]) -> SyncApproval:
-    applied = waiting = 0
+def _run_apply(
+    approval: SyncApproval, run: SyncRun, units: list[_Unit], *, held: int = 0
+) -> SyncApproval:
+    applied = 0
+    waiting = held
     catalog_applied: list[SyncChange] = []
     try:
         with transaction.atomic():  # a stale link and the rest of its unit retire together
@@ -999,6 +1031,35 @@ def _expand_units(selected: list[SyncChange], run: SyncRun) -> list[_Unit]:
     return list(units.values())
 
 
+def _hold_excluded(units: list[_Unit], excluded: set[int]) -> tuple[list[_Unit], list[_Unit]]:
+    """Split off the units an approval must not apply: those holding an excluded
+    change or requiring one. They stay proposed and wait on the excluded changes."""
+    if not excluded:
+        return units, []
+    excluded_rows = SyncChange.objects.filter(pk__in=excluded, state=SyncChangeState.PROPOSED)
+    by_pair = {
+        (str(kind), str(key)): int(pk)
+        for pk, kind, key in excluded_rows.values_list("pk", "kind", "key")
+    }
+    kept: list[_Unit] = []
+    held: list[_Unit] = []
+    for unit in units:
+        blockers = {member.pk for member in unit.changes if member.pk in excluded}
+        for member in unit.changes:
+            for entry in member.requires:
+                pair = _requirement_pair(entry)
+                if pair is not None and pair in by_pair:
+                    blockers.add(by_pair[pair])
+        if not blockers:
+            kept.append(unit)
+            continue
+        members = [change for change in unit.changes if change.pk not in excluded]
+        if not members:
+            continue
+        held.append(_Unit(key=unit.key, changes=members, waiting_on=sorted(blockers)))
+    return kept, held
+
+
 def _offering_unit(
     anchor: SyncChange,
     links_by_offering: dict[str, list[SyncChange]],
@@ -1172,21 +1233,36 @@ def _start_approval(
     user: User | None,
     action: str,
     scope: str = SyncApprovalScope.CHANGE,
+    client_key: uuid.UUID | None = None,
 ) -> SyncApproval:
-    return SyncApproval.objects.create(
-        run=run,
-        run_ref=run.pk,
-        action=action,
-        scope=scope,
-        change_ids=change_ids,
-        user=user,
-        outcome=SyncApprovalOutcome.STARTED,
-    )
+    with transaction.atomic():
+        return SyncApproval.objects.create(
+            run=run,
+            run_ref=run.pk,
+            action=action,
+            scope=scope,
+            change_ids=change_ids,
+            user=user,
+            client_key=client_key,
+            outcome=SyncApprovalOutcome.STARTED,
+        )
 
 
-def _set_approval_changes(approval: SyncApproval, changes: list[SyncChange]) -> None:
+def _set_approval_changes(
+    approval: SyncApproval, changes: list[SyncChange], *, group: str = "", kind: str = ""
+) -> None:
+    """Record the changes and what the approval was for: the requested group and
+    kind, else the one group and kind the changes share. History names an
+    approval by them («Зв'язки, 28 950 змін»)."""
     approval.change_ids = [change.pk for change in changes]
-    approval.save(update_fields=["change_ids"])
+    groups = {change.group for change in changes}
+    kinds = {change.kind for change in changes}
+    if group or kind:
+        approval.group, approval.kind = group, kind
+    else:
+        approval.group = groups.pop() if len(groups) == 1 else ""
+        approval.kind = kinds.pop() if len(kinds) == 1 else ""
+    approval.save(update_fields=["change_ids", "group", "kind"])
 
 
 def _refuse(approval: SyncApproval, reason: str) -> SyncApproval:

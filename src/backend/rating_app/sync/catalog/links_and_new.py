@@ -81,6 +81,7 @@ class _Builder:
         self.offering_match = match_offerings(ud, ru)
         self.majority = course_majority(ud, ru, self.offering_match)
         self.majority_groups = courses_by_ud(self.majority)
+        self.match_counts = self._match_counts()
         self.stored_by_ud: dict[str, list[str]] = defaultdict(list)
         for course_id, course in ru.courses.items():
             if course.ukma_data_id is not None:
@@ -344,21 +345,49 @@ class _Builder:
                 continue
             if not self._links_in_group(course_id, ud_course_id):
                 continue
-            self._link(
-                "link_course",
+            self._link_course(
                 course_id,
                 ud_course_id,
-                Display(course=self._course_card(course_id)),
                 course.ratings,
+                self._majority_share(course_id, ud_course_id),
             )
         for ud_course_id, course_id in sorted(self.identity_links.items()):
-            self._link(
-                "link_course",
-                course_id,
-                ud_course_id,
-                Display(course=self._course_card(course_id)),
-                self.ru.courses[course_id].ratings,
-            )
+            self._link_course(course_id, ud_course_id, self.ru.courses[course_id].ratings, 1.0)
+
+    def _link_course(
+        self, course_id: str, ud_course_id: str, ratings: int, majority_share: float
+    ) -> None:
+        ud_course = self.ud.courses.get(ud_course_id)
+        display = Display(
+            course=self._course_card(course_id),
+            ukma_course=None if ud_course is None else self._ukma_course_card(ud_course),
+        )
+        self._link(
+            "link_course",
+            course_id,
+            ud_course_id,
+            display,
+            ratings,
+            after_extra={"majority_share": majority_share},
+        )
+
+    def _match_counts(self) -> dict[str, Counter[str]]:
+        counts: dict[str, Counter[str]] = defaultdict(Counter)
+        for ud_offering_id, ru_offering_id in self.offering_match.items():
+            ud_offering = self.ud.offerings[ud_offering_id]
+            if ud_offering.course_id is None:
+                continue
+            resolved = resolve_course(self.ud, ud_offering.course_id)
+            if resolved is not None:
+                counts[self.ru.offerings[ru_offering_id].course_id][resolved] += 1
+        return dict(counts)
+
+    def _majority_share(self, course_id: str, ud_course_id: str) -> float:
+        counts = self.match_counts.get(course_id)
+        if not counts:
+            return 1.0
+        total = sum(counts.values())
+        return counts[ud_course_id] / total
 
     def _links_in_group(self, course_id: str, ud_course_id: str) -> bool:
         """A course alone on its UKMA Data course links; several link only once a
@@ -622,7 +651,7 @@ class _Builder:
         ratings: int = 0,
         display: Display,
     ) -> None:
-        dumped = display.model_dump()
+        dumped = display.model_dump(exclude_none=True)
         PAYLOADS[kind].model_validate({**after, "display": dumped})
         self.drafts.append(
             ChangeDraft(
@@ -645,13 +674,15 @@ class _Builder:
         ud_id: str,
         display: Display,
         ratings: int = 0,
+        *,
+        after_extra: dict[str, object] | None = None,
     ) -> None:
         self._add(
             kind,
             key=target_id,
             ukma_data_id=ud_id,
             target_id=target_id,
-            after={"ukma_data_id": ud_id},
+            after={"ukma_data_id": ud_id, **(after_extra or {})},
             ratings=ratings,
             display=display,
         )

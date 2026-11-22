@@ -85,7 +85,7 @@ def record_catalog_run(run: SyncRun, reader: CatalogReader) -> SyncRun:
     if short_years:
         raise ShortReadError(short_years)
 
-    changes, counts = build_proposals(
+    changes, counts, skipped_rated = build_proposals(
         ud_snapshot,
         ru_snapshot,
         load_decisions(),
@@ -94,7 +94,8 @@ def record_catalog_run(run: SyncRun, reader: CatalogReader) -> SyncRun:
     run.cursor_from = {"after": 0}
     run.cursor_to = {"after": _max_change_no(ud_snapshot)}
     run.data_updated_at = ud_snapshot.data_updated_at
-    run.save(update_fields=["cursor_from", "cursor_to", "data_updated_at"])
+    run.skipped_rated = skipped_rated
+    run.save(update_fields=["cursor_from", "cursor_to", "data_updated_at", "skipped_rated"])
     return finish_run(run, changes, counts)
 
 
@@ -144,8 +145,8 @@ def build_proposals(
     decisions: Sequence[DecisionView],
     *,
     academic_year: int,
-) -> tuple[list[SyncChange], dict[str, Any]]:
-    """The run's rows and its counts: one per kind plus skipped ids per reason."""
+) -> tuple[list[SyncChange], dict[str, Any], dict[str, int]]:
+    """The run's rows, its counts and how many skipped rows have ratings."""
     links, link_skips = propose_links_and_new(
         ud_snapshot, ru_snapshot, decisions, academic_year=academic_year
     )
@@ -160,7 +161,8 @@ def build_proposals(
 
     counts: dict[str, Any] = dict(sorted(Counter(draft.kind for draft in drafts).items()))
     counts["skipped"] = _skipped_counts(link_skips, change_skips)
-    return [draft.to_model() for draft in drafts], counts
+    skipped_rated = _skipped_rated(ru_snapshot, link_skips, change_skips)
+    return [draft.to_model() for draft in drafts], counts, skipped_rated
 
 
 def _read_lists(reader: CatalogReader) -> UkmaDataSnapshot:
@@ -200,6 +202,22 @@ def _skipped_counts(*groups: dict[str, list[str]]) -> dict[str, int]:
         for reason, ids in group.items():
             skipped[reason].update(ids)
     return {reason: len(ids) for reason, ids in sorted(skipped.items())}
+
+
+def _skipped_rated(ru: RateUkmaSnapshot, *groups: dict[str, list[str]]) -> dict[str, int]:
+    skipped: dict[str, set[str]] = defaultdict(set)
+    for group in groups:
+        for reason, ids in group.items():
+            skipped[reason].update(ids)
+    return {
+        reason: sum(
+            1
+            for row_id in ids
+            if (row_id in ru.courses and ru.courses[row_id].ratings > 0)
+            or (row_id in ru.offerings and ru.offerings[row_id].ratings > 0)
+        )
+        for reason, ids in sorted(skipped.items())
+    }
 
 
 def _max_change_no(snapshot: UkmaDataSnapshot) -> int:

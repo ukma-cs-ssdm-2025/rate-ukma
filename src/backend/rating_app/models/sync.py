@@ -90,6 +90,7 @@ class SyncRun(models.Model):
     cursor_saved = models.JSONField(default=dict)
     data_updated_at = models.DateTimeField(null=True, blank=True)
     counts = models.JSONField(default=dict)
+    skipped_rated = models.JSONField(default=dict)
     error = models.TextField(blank=True, default="")
 
     def __str__(self) -> str:
@@ -217,6 +218,7 @@ class SyncApproval(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     outcome = models.CharField(max_length=16, choices=SyncApprovalOutcome.choices)
     counts = models.JSONField(default=dict)
+    client_key = models.UUIDField(null=True, blank=True, unique=True)
     error = models.TextField(blank=True, default="")
     policy_change = models.ForeignKey(
         SyncPolicyChange,
@@ -228,6 +230,25 @@ class SyncApproval(models.Model):
 
     def __str__(self) -> str:
         return f"Sync approval {self.pk} ({self.action}: {self.outcome})"
+
+
+class SyncPreview(models.Model):
+    """The count behind one preview token, so a changed selection can say what was."""
+
+    id: int
+    run_id: int
+    user_id: int
+
+    token = models.CharField(max_length=128, unique=True)
+    run = models.ForeignKey(SyncRun, on_delete=models.CASCADE, related_name="previews")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sync_previews"
+    )
+    count = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Sync preview {self.token} ({self.count})"
 
 
 class CatalogMappingDecision(models.Model):

@@ -91,6 +91,8 @@ BEGIN
     -- Sync runs, changes and approvals can carry teacher names and emails from
     -- UKMA Data (ADR-0022); staging's next run rebuilds them. Policies, their
     -- audit, mapping decisions and cursors hold no personal data and stay.
+    -- Previews point at runs and staging users; they go with the runs.
+    DELETE FROM rating_app_syncpreview;
     DELETE FROM rating_app_syncchange;
     DELETE FROM rating_app_syncapproval;
     DELETE FROM rating_app_syncrun;

@@ -32,6 +32,7 @@ from rating_app.sync.matching import (
     courses_by_ud,
     match_offerings,
     resolve_course,
+    same_title,
 )
 from rating_app.sync.snapshot import RateUkmaSnapshot, RuCourse, UkmaDataSnapshot
 
@@ -269,13 +270,24 @@ def _merge_questions(
                 ud_id,
                 after,
                 {
-                    "courses": [course_display(index, course) for course in courses],
+                    "courses": [
+                        _merge_course_display(index, course, ud_course) for course in courses
+                    ],
                     "ukma_course": ukma_course_display(ud, ud_course),
                 },
                 ratings=ratings,
             )
         )
     return drafts
+
+
+def _merge_course_display(
+    index: CatalogIndex, course: RuCourse, ud_course: ukma_data.Course
+) -> dict[str, object]:
+    display = course_display(index, course)
+    display["title_matches_ukma"] = same_title(course.title, ud_course.title)
+    display["holds_ukma_id"] = course.ukma_data_id == ud_course.id
+    return display
 
 
 def _answered(
