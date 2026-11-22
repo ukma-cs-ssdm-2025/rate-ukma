@@ -57,8 +57,8 @@ class DecisionView:
 
 
 def load_decisions() -> list[DecisionView]:
-    """Live decisions, keyed by question; one whose course or offering is gone is left out
-    so the builder asks its question again."""
+    """Live decisions in id order, each with its question key; one whose course,
+    offering or into course is gone is left out so the builder asks again."""
     rows = CatalogMappingDecision.objects.filter(superseded_at__isnull=True).order_by("id")
     return [
         DecisionView(
@@ -110,6 +110,10 @@ def is_stale(
     Only the keys in ``before`` count, so an edit to a field the change does not
     write leaves it fresh.
     """
+    if kind == "removed_course":
+        return target_id not in ru.courses
+    if kind == "removed_offering":
+        return target_id not in ru.offerings
     try:
         values = current_values(kind, ru, target_id)
     except TargetMissingError:
