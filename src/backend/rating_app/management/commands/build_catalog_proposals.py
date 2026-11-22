@@ -15,6 +15,7 @@ from rating_app.sync.apply import apply_by_policy
 from rating_app.sync.catalog.runner import (
     CatalogDataChangedError,
     ShortReadError,
+    StalledReadError,
     record_catalog_run,
 )
 from rating_app.sync.constants import CATALOG_SYNC_LOCK_KEY, SWITCH_NAME
@@ -69,9 +70,19 @@ class Command(BaseCommand):
             fail_run(run, "not_configured")
         except UkmaDataUnavailableError:
             fail_run(run, "ukma_data_unavailable")
-        except Exception:
-            logger.exception("catalog_proposals_build_failed", run_id=run.pk)
+        except StalledReadError:
+            fail_run(run, "stalled_read")
+        except Exception as exc:
+            # The type only: a payload error would quote a teacher's name.
+            logger.error("catalog_proposals_build_failed", run_id=run.pk, error=type(exc).__name__)
             fail_run(run, "build_failed")
         else:
             logger.info("catalog_proposals_recorded", run_id=run.pk, counts=run.counts)
-            apply_by_policy(run, lock_held=True)
+            try:
+                apply_by_policy(run, lock_held=True)
+            except Exception as exc:
+                logger.error(
+                    "catalog_proposals_auto_apply_failed",
+                    run_id=run.pk,
+                    error=type(exc).__name__,
+                )

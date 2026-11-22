@@ -1,5 +1,6 @@
 import datetime
 from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.management import call_command
@@ -23,6 +24,7 @@ from rating_app.models import (
     SyncSource,
 )
 from rating_app.models.choices import SemesterTerm
+from rating_app.sync.catalog.runner import short_read_years
 
 COMMAND = "rating_app.management.commands.build_catalog_proposals"
 RUNNER = "rating_app.sync.catalog.runner"
@@ -314,3 +316,52 @@ def test_a_builder_failure_fails_the_run_and_writes_no_changes():
     assert SyncChange.objects.count() == 0
     failed = [log for log in logs if log["event"] == "sync_run_failed"]
     assert failed[0]["log_level"] == "error"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_fails_the_run_when_a_page_says_more_but_its_cursor_stands_still():
+    fake = FakeUkmaData()
+    stalled = ud.FacultyPage(items=[], cursor=0, has_more=True, data_updated_at=None)
+
+    with patch.object(fake, "list_faculties", return_value=stalled):
+        run_command(fake)
+
+    run = SyncRun.objects.get()
+    assert (run.status, run.error) == (SyncRunStatus.FAILED, "stalled_read")
+
+
+def test_years_before_ukma_data_coverage_are_not_short():
+    ud_snapshot = SimpleNamespace(
+        offerings={f"ud-{n}": SimpleNamespace(academic_year=2024) for n in range(10)}
+    )
+    ru_snapshot = SimpleNamespace(
+        offerings={
+            **{
+                f"old-{n}": SimpleNamespace(semester_year=2019, semester_term="FALL")
+                for n in range(5)
+            },
+            **{
+                f"new-{n}": SimpleNamespace(semester_year=2024, semester_term="FALL")
+                for n in range(10)
+            },
+        }
+    )
+
+    assert short_read_years(ud_snapshot, ru_snapshot) == []  # pyright: ignore[reportArgumentType] - duck-typed snapshot
+
+
+def test_a_year_at_ninety_percent_is_not_short_and_below_it_is():
+    ru_snapshot = SimpleNamespace(
+        offerings={
+            f"ru-{n}": SimpleNamespace(semester_year=2024, semester_term="FALL") for n in range(10)
+        }
+    )
+
+    def ud_with(count: int) -> SimpleNamespace:
+        return SimpleNamespace(
+            offerings={f"ud-{n}": SimpleNamespace(academic_year=2024) for n in range(count)}
+        )
+
+    assert short_read_years(ud_with(9), ru_snapshot) == []  # pyright: ignore[reportArgumentType] - duck-typed snapshot
+    assert short_read_years(ud_with(8), ru_snapshot) == [2024]  # pyright: ignore[reportArgumentType] - duck-typed snapshot

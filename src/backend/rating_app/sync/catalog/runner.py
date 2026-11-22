@@ -75,6 +75,10 @@ class CatalogDataChangedError(RuntimeError):
     """UKMA Data finished a crawl twice while this run was reading it."""
 
 
+class StalledReadError(RuntimeError):
+    """UKMA Data said there is more but its cursor did not move."""
+
+
 class ShortReadError(RuntimeError):
     """UKMA Data returned under 90% of Rate UKMA's offerings for a year."""
 
@@ -123,15 +127,19 @@ def short_read_years(ud_snapshot: UkmaDataSnapshot, ru_snapshot: RateUkmaSnapsho
     """Years where UKMA Data returned under 90% of Rate UKMA's offerings.
 
     A removed UKMA Data row is still returned, so only a missing row counts as
-    short; a truncated list would otherwise look like a mass removal.
+    short; a truncated list would otherwise look like a mass removal. Years
+    before the first one UKMA Data covers are not read, so they are not short.
     """
     ru_counts = Counter(
         academic_year_of(offering.semester_year, offering.semester_term)
         for offering in ru_snapshot.offerings.values()
     )
     ud_counts = Counter(offering.academic_year for offering in ud_snapshot.offerings.values())
+    first_year = min(ud_counts, default=None)
     return sorted(
-        year for year, count in ru_counts.items() if ud_counts[year] < count * SHORT_READ_RATIO
+        year
+        for year, count in ru_counts.items()
+        if (first_year is None or year >= first_year) and ud_counts[year] < count * SHORT_READ_RATIO
     )
 
 
@@ -184,9 +192,11 @@ def _read_list[T: CatalogRow](
             seen = rows.get(row.id)
             if seen is None or row.change_no > seen.change_no:
                 rows[row.id] = row
-        after = page.cursor
         if not page.has_more:
             return rows
+        if page.cursor <= after:
+            raise StalledReadError("stalled_read")
+        after = page.cursor
 
 
 def _skipped_counts(*groups: dict[str, list[str]]) -> dict[str, int]:
