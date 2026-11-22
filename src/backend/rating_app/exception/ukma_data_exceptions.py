@@ -14,8 +14,9 @@ class UkmaDataUnavailableError(APIException):
     default_code = "ukma_data_unavailable"
 
 
-class UkmaDataForbiddenError(UkmaDataUnavailableError):
+class UkmaDataForbiddenError(APIException):
     """UKMA Data refused the server's key: it lacks a scope the endpoint needs."""
 
-    default_detail = "UKMA Data refused the key."
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "Ключ UKMA Data цього сервера не має доступу до цього розділу"
     default_code = "ukma_data_forbidden"
