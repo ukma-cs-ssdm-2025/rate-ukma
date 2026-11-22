@@ -17,6 +17,7 @@ from rating_app.models import (
     Faculty,
     SyncChange,
     SyncChangeGroup,
+    SyncChangeState,
     SyncRun,
     SyncRunStatus,
     SyncSource,
@@ -216,7 +217,19 @@ def test_records_the_run_and_its_changes_with_groups_and_counts():
     assert change.after["name"] == "Факультет тестових даних"
     assert change.after["display"]["name"] == "Факультет тестових даних"
     assert Faculty.objects.count() == 0
-    assert [log["event"] for log in logs][-1] == "catalog_proposals_recorded"
+    assert "catalog_proposals_recorded" in [log["event"] for log in logs]
+    assert change.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_runs_the_auto_path_on_the_lock_it_already_holds():
+    fake = FakeUkmaData(faculties=(_faculty(name="Факультет тестових даних"),))
+
+    with patch(f"{COMMAND}.apply_by_policy") as auto:
+        run_command(fake)
+
+    auto.assert_called_once_with(SyncRun.objects.get(), lock_held=True)
 
 
 @pytest.mark.django_db

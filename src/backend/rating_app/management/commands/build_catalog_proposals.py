@@ -11,6 +11,7 @@ from rating_app.exception.ukma_data_exceptions import (
 from rating_app.models.sync import SyncSource
 from rating_app.scheduler.lock import advisory_lock
 from rating_app.services.ukma_data_service import UkmaDataService
+from rating_app.sync.apply import apply_by_policy
 from rating_app.sync.catalog.runner import (
     CatalogDataChangedError,
     ShortReadError,
@@ -73,3 +74,4 @@ class Command(BaseCommand):
             fail_run(run, "build_failed")
         else:
             logger.info("catalog_proposals_recorded", run_id=run.pk, counts=run.counts)
+            apply_by_policy(run, lock_held=True)
