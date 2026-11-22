@@ -2,11 +2,12 @@
 
 One service for every source. Only the current run's proposed changes apply: a
 person's approval after a confirm past 48 h, a policy's auto apply never past
-36 h. A stale pre-pass commits first; a change applies only when every row in
-its ``requires`` exists now. A unit is several changes that must land together:
-all proposed teacher changes of one offering plus the ``teacher_created`` they
-require. A unit applies in one savepoint, so an approval never leaves half a
-link set; if a member cannot apply, every member stays proposed.
+36 h. A stale pre-pass commits first, together with the changes it retires; a
+change applies only when every row in its ``requires`` exists now. A unit is
+several changes that must land together: all proposed teacher changes of one
+offering plus the ``teacher_created`` they require. A unit applies in one
+savepoint, so an approval never leaves half a link set: if a member waits, every
+member stays proposed, and if a member is stale, the whole unit is retired.
 
 Logs and ``SyncApproval.error`` carry ids, kinds and reasons only: payloads
 hold teacher names and emails and Sentry sends PII.
@@ -356,7 +357,7 @@ def _apply_unit(
 
 
 def _supersede_stale(units: list[_Unit]) -> _StalePass:
-    """One committed pass over the selected units; stale members block their unit."""
+    """One pass over the selected units; a stale member blocks its unit."""
     members = [change for unit in units for change in unit.changes]
     target_ids = {change.target_id for change in members if change.target_id}
     if not target_ids:
