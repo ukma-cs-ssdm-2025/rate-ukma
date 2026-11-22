@@ -253,6 +253,10 @@ SPECTACULAR_SETTINGS = {
         "SemesterTermEnum": "rating_app.models.choices.SemesterTerm",
         "CourseTypeKindEnum": "rating_app.models.choices.CourseTypeKind",
         "VoteTypeEnum": "rating_app.models.choices.RatingVoteStrType",
+        "SyncSourceEnum": "rating_app.models.sync.SyncSource",
+        "SyncChangeGroupEnum": "rating_app.models.sync.SyncChangeGroup",
+        "SyncChangeStateEnum": "rating_app.models.sync.SyncChangeState",
+        "SyncPolicyModeEnum": "rating_app.models.sync.SyncPolicyMode",
         "SortOrderEnum": [("asc", "asc"), ("desc", "desc")],
     },
 }
