@@ -14,6 +14,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable
 from decimal import Decimal
+from functools import partial
 
 from django.db import transaction
 from django.db.models import Avg, Count
@@ -108,6 +109,9 @@ def apply_move_offering(change: SyncChange) -> None:
     )
     if not moved:
         raise ChangeStaleError
+    for course_id in (source_id, target_id):
+        _recompute_aggregates(course_id)
+        transaction.on_commit(partial(_recompute_after_commit, course_id))
 
 
 # Merge

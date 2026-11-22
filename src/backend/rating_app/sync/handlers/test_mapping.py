@@ -349,6 +349,54 @@ def test_a_move_with_a_holding_answer_moves_the_offering(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_a_move_recomputes_both_courses_ratings(
+    user,
+    make_run,
+    make_change,
+    course_factory,
+    course_offering_factory,
+    rating_factory,
+    catalog_mapping_decision_factory,
+):
+    source = course_factory(ukma_data_id="ud-source")
+    target = course_factory(ukma_data_id="ud-target")
+    offering = course_offering_factory(course=source)
+    rating_factory(course_offering=offering, difficulty=4, usefulness=2)
+    run = make_run()
+    change = make_change(
+        run,
+        kind="move_offering",
+        key=str(offering.pk),
+        target_id=str(offering.pk),
+        before={"from_course": str(source.pk)},
+        after={
+            "from_course": str(source.pk),
+            "ukma_course_id": "ud-target",
+            "to_course_id": str(target.pk),
+        },
+    )
+    catalog_mapping_decision_factory(
+        kind="move_offering",
+        question_key=str(offering.pk),
+        ukma_course_id="ud-target",
+        course=source,
+        offering=offering,
+        into=target,
+        answer=MappingAnswer.MOVE,
+        premise=_move_premise(offering, source, target),
+    )
+
+    approve([change.pk], user)
+
+    source.refresh_from_db()
+    target.refresh_from_db()
+    assert (source.ratings_count, target.ratings_count) == (0, 1)
+    assert target.avg_difficulty == 4
+    assert target.avg_usefulness == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_a_move_whose_target_lost_its_id_is_superseded(
     user,
     make_run,
