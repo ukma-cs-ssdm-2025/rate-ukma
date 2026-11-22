@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any
 
+from django.db import transaction
 from django.utils import timezone
 
 import pytest
@@ -1634,7 +1635,12 @@ def test_a_new_row_whose_dependency_is_missing_waits(user, make_run, make_change
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_a_catalog_apply_clears_the_cache_but_keeps_sessions(
-    user, make_run, make_change, faculty_factory, mock_cache_manager
+    user,
+    make_run,
+    make_change,
+    faculty_factory,
+    mock_cache_manager,
+    django_capture_on_commit_callbacks,
 ):
     cache = mock_cache_manager
     cache.set("rateukma:courses:list", {"rows": 1})
@@ -1650,10 +1656,41 @@ def test_a_catalog_apply_clears_the_cache_but_keeps_sessions(
         after={"ukma_data_id": "ud-fac"},
     )
 
-    assert approve([change.pk], user).outcome == SyncApprovalOutcome.APPLIED
+    with django_capture_on_commit_callbacks(execute=True):
+        assert approve([change.pk], user).outcome == SyncApprovalOutcome.APPLIED
 
     assert cache.get("rateukma:courses:list") is None
     assert cache.get("rateukma:django.contrib.sessions:abc") == {"user": 1}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_rolled_back_catalog_apply_leaves_the_cache_alone(
+    user,
+    make_run,
+    make_change,
+    faculty_factory,
+    mock_cache_manager,
+    django_capture_on_commit_callbacks,
+):
+    cache = mock_cache_manager
+    cache.set("rateukma:courses:list", {"rows": 1})
+    faculty = faculty_factory()
+    run = make_run(source=SyncSource.CATALOG)
+    change = make_change(
+        run,
+        kind="link_faculty",
+        key=str(faculty.pk),
+        target_id=str(faculty.pk),
+        before={"ukma_data_id": None},
+        after={"ukma_data_id": "ud-fac"},
+    )
+
+    with django_capture_on_commit_callbacks(execute=True), transaction.atomic():
+        approve([change.pk], user)
+        transaction.set_rollback(True)
+
+    assert cache.get("rateukma:courses:list") == {"rows": 1}
 
 
 @pytest.mark.django_db
