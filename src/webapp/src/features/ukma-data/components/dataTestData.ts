@@ -41,6 +41,11 @@ export const keyStatus: UkmaDataStatus = {
 	data_updated_at: "2030-09-10T06:10:00Z",
 };
 
+export const keyStatusWithDecide: UkmaDataStatus = {
+	...keyStatus,
+	scopes: ["catalog:read", "review:decide", "instructors:read"],
+};
+
 export const run: SyncRun = {
 	id: 7,
 	source: "catalog",

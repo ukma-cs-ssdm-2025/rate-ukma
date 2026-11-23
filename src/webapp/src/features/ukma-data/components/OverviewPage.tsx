@@ -50,7 +50,13 @@ function CasesLine() {
 	}
 	return (
 		<p className="text-sm text-muted-foreground">
-			У UKMA Data відкритих <Term name="cases" />:{" "}
+			<Link
+				to="/data/cases"
+				className="text-primary underline-offset-4 hover:underline"
+			>
+				Відкритих <Term name="cases" />
+			</Link>
+			:{" "}
 			<span className="font-medium text-foreground tabular-nums">
 				{formatCount(cases.data.total)}
 			</span>

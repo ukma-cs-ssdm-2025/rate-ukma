@@ -52,6 +52,8 @@ from rating_app.serializers.sync_review import (
     SyncSummarySerializer,
 )
 from rating_app.serializers.ukma_data import (
+    UkmaDataDecideForbiddenSerializer,
+    UkmaDataDecisionResponseSerializer,
     UkmaDataDepartmentPageSerializer,
     UkmaDataFacultyPageSerializer,
     UkmaDataOfferingPageSerializer,
@@ -352,6 +354,51 @@ R_UKMA_DATA_DEPARTMENTS = ukma_data_responses(UkmaDataDepartmentPageSerializer)
 R_UKMA_DATA_PROGRAMMES = ukma_data_responses(UkmaDataProgrammePageSerializer)
 R_UKMA_DATA_OFFERINGS = ukma_data_responses(UkmaDataOfferingPageSerializer)
 R_UKMA_DATA_REVIEW_CASES = ukma_data_responses(UkmaDataReviewCasePageSerializer)
+
+EX_403_UKMA_DATA_READONLY = OpenApiExample(
+    "UKMA Data decisions disabled",
+    value={
+        "detail": "Тут лише перегляд: рішення змінюють спільні дані САЗ",
+        "code": "ukma_data_forbidden",
+        "status": 403,
+    },
+    status_codes=["403"],
+)
+EX_409_UKMA_DATA_REFUSED = OpenApiExample(
+    "UKMA Data refused the decision",
+    value={
+        "detail": "Курси різного рівня: об'єднати можна лише однакові.",
+        "code": "ukma_data_refused",
+        "status": 409,
+    },
+    status_codes=["409"],
+)
+EX_404_UKMA_DATA = OpenApiExample(
+    "UKMA Data does not know the case or course",
+    value={
+        "detail": "UKMA Data не знає такої справи або курсу",
+        "code": "ukma_data_not_found",
+        "status": 404,
+    },
+    status_codes=["404"],
+)
+
+R_UKMA_DATA_DECISION = {
+    200: OpenApiResponse(UkmaDataDecisionResponseSerializer, "Decision written to UKMA Data"),
+    **common_errors(include_400=False),
+    403: OpenApiResponse(
+        UkmaDataDecideForbiddenSerializer, "Read-only", [EX_403_UKMA_DATA_READONLY]
+    ),
+    404: OpenApiResponse(Err, "Unknown case or course", [EX_404_UKMA_DATA]),
+    409: OpenApiResponse(Err, "UKMA Data refused the decision", [EX_409_UKMA_DATA_REFUSED]),
+    502: OpenApiResponse(Err, "UKMA Data is down or failed", [EX_502_UKMA_DATA]),
+    503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
+}
+
+R_UKMA_DATA_MERGE = {
+    **R_UKMA_DATA_DECISION,
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
+}
 
 
 def sync_responses(serializer, include_400=True, include_404=False) -> dict:

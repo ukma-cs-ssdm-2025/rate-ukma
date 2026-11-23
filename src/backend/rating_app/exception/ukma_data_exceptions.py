@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, NotFound
 
 
 class UkmaDataNotConfiguredError(APIException):
@@ -20,3 +20,40 @@ class UkmaDataForbiddenError(APIException):
     status_code = status.HTTP_403_FORBIDDEN
     default_detail = "Ключ UKMA Data цього сервера не має доступу до цього розділу"
     default_code = "ukma_data_forbidden"
+
+
+class UkmaDataDecideDisabledError(UkmaDataForbiddenError):
+    """The server's UKMA Data key lacks `review:decide`, so /data stays read-only."""
+
+    default_detail = "Тут лише перегляд: рішення змінюють спільні дані САЗ"
+
+
+class UkmaDataDecisionNotFoundError(NotFound):
+    """UKMA Data does not know the case or course the decision names."""
+
+    default_detail = "UKMA Data не знає такої справи або курсу"
+    default_code = "ukma_data_not_found"
+
+
+REFUSAL_TEXT: dict[str, str] = {
+    "same_course": "Не можна об'єднати курс сам із собою.",
+    "course_merged": "Цей курс уже об'єднано з іншим.",
+    "target_merged": "Курс, з яким об'єднують, уже об'єднано з іншим.",
+    "level_mismatch": "Курси різного рівня: об'єднати можна лише однакові.",
+    "not_merged": "Цей курс не об'єднано, тож роз'єднувати нічого.",
+    "not_student_match": "Це не справа про студента.",
+    "not_open": "Справу вже закрито або вона неактуальна.",
+}
+
+REFUSAL_FALLBACK = "UKMA Data відмовила в цьому рішенні"
+
+
+class UkmaDataDecisionRefusedError(APIException):
+    """UKMA Data answered 409: the decision would leave the data inconsistent."""
+
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "ukma_data_refused"
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(detail=REFUSAL_TEXT.get(reason, REFUSAL_FALLBACK))

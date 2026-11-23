@@ -14,6 +14,8 @@ from rating_app.models.sync import (
     SyncChangeStateReason,
     SyncPolicyMode,
     SyncSource,
+    UkmaDataDecisionAction,
+    UkmaDataDecisionOutcome,
 )
 from rating_app.serializers.sync import SELECTION_GROUP_CHOICES
 from rating_app.sync.kinds import KIND_BY_NAME
@@ -26,12 +28,14 @@ JOURNAL_KINDS = [
     ("revert", "Revert"),
     ("policy", "Policy"),
     ("answer", "Answer"),
+    ("decision", "Decision"),
 ]
 
 JOURNAL_OUTCOMES = [
     *SyncApprovalOutcome.choices,
     ("changed", "Changed"),
     *MappingAnswer.choices,
+    *UkmaDataDecisionOutcome.choices,
 ]
 
 
@@ -234,6 +238,9 @@ class SyncJournalCountsSerializer(serializers.Serializer):
     new_mode = serializers.ChoiceField(choices=SyncPolicyMode.choices, required=False)
     answer = serializers.ChoiceField(choices=MappingAnswer.choices, required=False)
     into = serializers.CharField(required=False, allow_null=True)
+    action = serializers.ChoiceField(choices=UkmaDataDecisionAction.choices, required=False)
+    target_id = serializers.CharField(required=False)
+    related_id = serializers.CharField(required=False, allow_null=True)
 
 
 class SyncJournalEntrySerializer(serializers.Serializer):
@@ -242,6 +249,7 @@ class SyncJournalEntrySerializer(serializers.Serializer):
     who = serializers.CharField(allow_null=True)
     when = serializers.DateTimeField()
     outcome = serializers.ChoiceField(choices=JOURNAL_OUTCOMES)
+    error = serializers.CharField(allow_blank=True)
     counts = SyncJournalCountsSerializer()
     approval_id = serializers.IntegerField(allow_null=True)
     reverts_id = serializers.IntegerField(allow_null=True)

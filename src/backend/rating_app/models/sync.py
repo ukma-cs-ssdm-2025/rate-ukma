@@ -76,6 +76,18 @@ class MappingAnswer(models.TextChoices):
     RELINK = "relink", "Relink"
 
 
+class UkmaDataDecisionAction(models.TextChoices):
+    DECIDE_CASE = "decide_case", "Decide case"
+    MERGE_COURSE = "merge_course", "Merge course"
+    UNMERGE_COURSE = "unmerge_course", "Unmerge course"
+
+
+class UkmaDataDecisionOutcome(models.TextChoices):
+    DONE = "done", "Done"
+    REFUSED = "refused", "Refused"
+    FAILED = "failed", "Failed"
+
+
 class SyncRun(models.Model):
     """One execution of a sync from UKMA Data."""
 
@@ -324,6 +336,31 @@ class CatalogMappingDecision(models.Model):
 
     def __str__(self) -> str:
         return f"Catalog mapping decision {self.pk} ({self.kind}: {self.answer})"
+
+
+class UkmaDataDecision(models.Model):
+    """Rate UKMA's side of a decision made in UKMA Data: who, what and how it ended.
+
+    UKMA Data's audit keeps only the key id, so the person and the error live here.
+    """
+
+    id: int
+    user_id: int
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="ukma_data_decisions",
+    )
+    action = models.CharField(max_length=16, choices=UkmaDataDecisionAction.choices)
+    target_id = models.CharField(max_length=64)
+    related_id = models.CharField(max_length=64, blank=True, default="")
+    outcome = models.CharField(max_length=16, choices=UkmaDataDecisionOutcome.choices)
+    error = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"UKMA Data decision {self.pk} ({self.action}: {self.outcome})"
 
 
 class SyncCursor(models.Model):

@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from rating_app.application_schemas.ukma_data_base import UkmaDataModel
 
 UKMA_DATA_MAX_PAGE_SIZE = 1000
+# A UKMA Data case or course id goes into the parser URL path, so it is never `..`, `?` or `#`.
+UKMA_DATA_ID_PATTERN = r"[A-Za-z0-9_-]{1,64}"
 
 ReviewCaseKind = Literal["course_match", "instructor_match", "student_match", "removals_held"]
 ReviewCaseStatus = Literal["open", "decided", "obsolete"]

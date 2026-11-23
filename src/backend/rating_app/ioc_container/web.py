@@ -1,10 +1,12 @@
 from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse
-from django.urls import path
+from django.urls import path, register_converter
+from django.urls.converters import StringConverter
 
 from rateukma.ioc.decorators import once
 
+from ..application_schemas.ukma_data_params import UKMA_DATA_ID_PATTERN
 from ..views import (
     AnalyticsViewSet,
     CommentViewset,
@@ -41,6 +43,13 @@ from .services import (
     ukma_data_service,
     vote_service,
 )
+
+
+class UkmaDataIdConverter(StringConverter):
+    regex = UKMA_DATA_ID_PATTERN
+
+
+register_converter(UkmaDataIdConverter, "ukma_data_id")
 
 
 @once
@@ -348,6 +357,30 @@ def ukma_data_review_cases_view():
 
 
 @once
+def ukma_data_review_case_decide_view():
+    return UkmaDataViewSet.as_view(
+        {"post": "decide_case"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_course_merge_view():
+    return UkmaDataViewSet.as_view(
+        {"post": "merge_course"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
+def ukma_data_course_unmerge_view():
+    return UkmaDataViewSet.as_view(
+        {"post": "unmerge_course"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
 def sync_runs_view():
     return SyncViewSet.as_view({"get": "runs"})
 
@@ -619,6 +652,21 @@ def rest_urlpatterns() -> list:
             "ukma-data/review-cases/",
             ukma_data_review_cases_view(),
             name="ukma-data-review-cases",
+        ),
+        path(
+            "ukma-data/review-cases/<ukma_data_id:case_id>/decide/",
+            ukma_data_review_case_decide_view(),
+            name="ukma-data-review-case-decide",
+        ),
+        path(
+            "ukma-data/courses/<ukma_data_id:course_id>/merge/",
+            ukma_data_course_merge_view(),
+            name="ukma-data-course-merge",
+        ),
+        path(
+            "ukma-data/courses/<ukma_data_id:course_id>/unmerge/",
+            ukma_data_course_unmerge_view(),
+            name="ukma-data-course-unmerge",
         ),
         path(
             "ukma-data/sync/runs/",

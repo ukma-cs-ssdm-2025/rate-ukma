@@ -254,6 +254,7 @@ SPECTACULAR_SETTINGS = {
         "CourseTypeKindEnum": "rating_app.models.choices.CourseTypeKind",
         "VoteTypeEnum": "rating_app.models.choices.RatingVoteStrType",
         "SyncSourceEnum": "rating_app.models.sync.SyncSource",
+        "SyncApprovalActionEnum": "rating_app.models.sync.SyncApprovalAction",
         "SyncApprovalOutcomeEnum": "rating_app.models.sync.SyncApprovalOutcome",
         "SyncChangeGroupEnum": "rating_app.models.sync.SyncChangeGroup",
         "SyncChangeStateEnum": "rating_app.models.sync.SyncChangeState",
@@ -261,6 +262,8 @@ SPECTACULAR_SETTINGS = {
         "SyncChangeKindEnum": "rating_app.serializers.sync_actions.KIND_CHOICES",
         "SyncSelectionGroupEnum": "rating_app.serializers.sync.SELECTION_GROUP_CHOICES",
         "SyncJournalKindEnum": "rating_app.serializers.sync_actions.JOURNAL_KINDS",
+        "UkmaDataDecisionActionEnum": "rating_app.models.sync.UkmaDataDecisionAction",
+        "UkmaDataDecisionOutcomeEnum": "rating_app.models.sync.UkmaDataDecisionOutcome",
         "SortOrderEnum": [("asc", "asc"), ("desc", "desc")],
     },
 }

@@ -39,6 +39,9 @@ from .sync import (
     SyncRun,
     SyncRunStatus,
     SyncSource,
+    UkmaDataDecision,
+    UkmaDataDecisionAction,
+    UkmaDataDecisionOutcome,
 )
 
 __all__ = [
@@ -60,6 +63,9 @@ __all__ = [
     "SyncRun",
     "SyncRunStatus",
     "SyncSource",
+    "UkmaDataDecision",
+    "UkmaDataDecisionAction",
+    "UkmaDataDecisionOutcome",
     "Course",
     "Faculty",
     "Department",

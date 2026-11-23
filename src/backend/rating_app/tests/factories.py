@@ -45,6 +45,9 @@ from rating_app.models import (
     SyncRun,
     SyncRunStatus,
     SyncSource,
+    UkmaDataDecision,
+    UkmaDataDecisionAction,
+    UkmaDataDecisionOutcome,
 )
 from rating_app.models.choices import (
     CourseStatus,
@@ -387,6 +390,18 @@ class CatalogMappingDecisionFactory(DjangoModelFactory):
     answer = MappingAnswer.KEEP_APART
     premise = factory.LazyFunction(dict)
     decided_by = factory.SubFactory(UserFactory)
+
+
+class UkmaDataDecisionFactory(DjangoModelFactory):
+    class Meta:
+        model = UkmaDataDecision
+
+    user = factory.SubFactory(UserFactory)
+    action = UkmaDataDecisionAction.DECIDE_CASE
+    target_id = factory.Sequence(lambda n: f"c-{n + 100}")
+    related_id = ""
+    outcome = UkmaDataDecisionOutcome.DONE
+    error = ""
 
 
 class SyncCursorFactory(DjangoModelFactory):

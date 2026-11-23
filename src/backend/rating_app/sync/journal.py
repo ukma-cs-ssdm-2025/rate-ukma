@@ -15,7 +15,12 @@ from typing import Any
 from django.db.models import Q
 from django.utils import timezone
 
-from rating_app.models import CatalogMappingDecision, SyncApproval, SyncPolicyChange
+from rating_app.models import (
+    CatalogMappingDecision,
+    SyncApproval,
+    SyncPolicyChange,
+    UkmaDataDecision,
+)
 from rating_app.sync import revert as revert_service
 
 APPLY = "apply"
@@ -23,6 +28,7 @@ REJECT = "reject"
 REVERT = "revert"
 POLICY = "policy"
 ANSWER = "answer"
+DECISION = "decision"
 
 
 @dataclass(frozen=True)
@@ -33,6 +39,7 @@ class JournalEntry:
     when: datetime
     counts: dict[str, Any] = field(default_factory=dict)
     outcome: str = ""
+    error: str = ""
     approval_id: int | None = None
     reverts_id: int | None = None
     group: str | None = None
@@ -52,7 +59,12 @@ class Cursor:
 
 def entries(limit: int = 20, before: Cursor | None = None) -> list[JournalEntry]:
     """Entries newest first; ``before`` pages past the given entry."""
-    merged = [*_approvals(limit, before), *_policies(limit, before), *_answers(limit, before)]
+    merged = [
+        *_approvals(limit, before),
+        *_policies(limit, before),
+        *_answers(limit, before),
+        *_decisions(limit, before),
+    ]
     merged.sort(key=lambda entry: (entry.when, entry.kind, entry.id), reverse=True)
     return merged[:limit]
 
@@ -141,6 +153,28 @@ def _answers(limit: int, before: Cursor | None) -> list[JournalEntry]:
                 "into": None if row.into_id is None else str(row.into_id),
             },
             outcome=str(row.answer),
+        )
+        for row in rows[:limit]
+    ]
+
+
+def _decisions(limit: int, before: Cursor | None) -> list[JournalEntry]:
+    rows = UkmaDataDecision.objects.select_related("user").order_by("-created_at", "-id")
+    if before is not None:
+        rows = rows.filter(_after("created_at", DECISION, before))
+    return [
+        JournalEntry(
+            id=row.pk,
+            kind=DECISION,
+            who=row.user.username,
+            when=row.created_at,
+            counts={
+                "action": str(row.action),
+                "target_id": row.target_id,
+                "related_id": row.related_id or None,
+            },
+            outcome=str(row.outcome),
+            error=row.error,
         )
         for row in rows[:limit]
     ]

@@ -126,9 +126,9 @@ describe("/data overview", () => {
 		renderOverview();
 
 		// Assert
-		expect(await screen.findByText(/У UKMA Data відкритих/)).toHaveTextContent(
-			"У UKMA Data відкритих справ: 37.",
-		);
+		const line = await screen.findByRole("link", { name: /Відкритих/ });
+		expect(line).toHaveAttribute("href", "/data/cases");
+		expect(line.parentElement).toHaveTextContent("Відкритих справ: 37.");
 	});
 
 	it("warns when the latest read failed", async () => {

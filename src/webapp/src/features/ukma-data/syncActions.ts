@@ -9,6 +9,7 @@ import type {
 	SyncPreviewResponse,
 	SyncRevertResponse,
 } from "@/lib/api/generated";
+import { DECISION_FAILED_TEXT } from "./caseActions";
 import { errorStatus } from "./ukmaDataErrors";
 import { kindLabel } from "./sync";
 import { CHANGES_ACCUSATIVE, countWith, formatCount } from "./syncFormat";
@@ -240,7 +241,52 @@ const JOURNAL_TITLES = {
 			? `${head} — ${ANSWER_LABELS[answer]}`
 			: head;
 	},
+	decision: (entry) => decisionTitle(entry),
 } satisfies Record<SyncJournalKindEnum, (entry: SyncJournalEntry) => string>;
+
+const DECISION_TITLES = {
+	decide_case: "Рішення в UKMA Data: та сама людина",
+	merge_course: "Рішення в UKMA Data: об'єднано",
+	unmerge_course: "Рішення в UKMA Data: роз'єднано",
+} as const;
+
+const DECISION_ERRORS = {
+	same_course: "Не можна об'єднати курс сам із собою.",
+	course_merged: "Цей курс уже об'єднано з іншим.",
+	target_merged: "Курс, з яким об'єднують, уже об'єднано з іншим.",
+	level_mismatch: "Курси різного рівня: об'єднати можна лише однакові.",
+	not_merged: "Цей курс не об'єднано, тож роз'єднувати нічого.",
+	not_student_match: "Це не справа про студента.",
+	not_open: "Справу вже закрито або вона неактуальна.",
+	not_found: "UKMA Data не знає такої справи або курсу.",
+	forbidden: "Ключ UKMA Data цього сервера не має доступу до цього розділу.",
+} satisfies Record<string, string>;
+
+const isDecisionError = (
+	value: string,
+): value is keyof typeof DECISION_ERRORS =>
+	Object.hasOwn(DECISION_ERRORS, value);
+
+export function decisionErrorText(
+	entry: Pick<SyncJournalEntry, "outcome" | "error">,
+): string {
+	if (entry.outcome === "failed") {
+		return DECISION_FAILED_TEXT;
+	}
+	return isDecisionError(entry.error)
+		? DECISION_ERRORS[entry.error]
+		: entry.error;
+}
+
+function decisionTitle(entry: SyncJournalEntry): string {
+	const action = entry.counts.action;
+	const head =
+		action === undefined ? "Рішення в UKMA Data" : DECISION_TITLES[action];
+	if (entry.outcome === "done") {
+		return head;
+	}
+	return `${head} — ${entry.outcome === "refused" ? "відмова" : "помилка"}`;
+}
 
 export const journalTitle = (entry: SyncJournalEntry): string =>
 	JOURNAL_TITLES[entry.kind](entry);

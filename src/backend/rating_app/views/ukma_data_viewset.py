@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import Any, cast
+
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -13,11 +16,29 @@ from rating_app.application_schemas.ukma_data_params import (
     UkmaDataPageParams,
     UkmaDataReviewCaseParams,
 )
+from rating_app.exception.ukma_data_exceptions import (
+    UkmaDataDecideDisabledError,
+    UkmaDataDecisionNotFoundError,
+    UkmaDataDecisionRefusedError,
+    UkmaDataForbiddenError,
+    UkmaDataUnavailableError,
+)
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
+from rating_app.models.sync import (
+    UkmaDataDecision,
+    UkmaDataDecisionAction,
+    UkmaDataDecisionOutcome,
+)
+from rating_app.serializers.ukma_data import (
+    UkmaDataCourseMergeRequestSerializer,
+    UkmaDataDecisionResponseSerializer,
+)
 from rating_app.services.ukma_data_service import UkmaDataService
 from rating_app.views.responses import (
+    R_UKMA_DATA_DECISION,
     R_UKMA_DATA_DEPARTMENTS,
     R_UKMA_DATA_FACULTIES,
+    R_UKMA_DATA_MERGE,
     R_UKMA_DATA_OFFERINGS,
     R_UKMA_DATA_PROGRAMMES,
     R_UKMA_DATA_REVIEW_CASES,
@@ -34,6 +55,10 @@ PAGE_DESCRIPTION = (
     "One page of UKMA Data's list in change-number order, removed rows included. "
     "Pass the response's `cursor` as `after` while `has_more` is true. Superusers only."
 )
+
+
+# Written before the call, so an attempt whose answer never got recorded still shows who sent it.
+NO_ANSWER = "no_answer"
 
 
 class IsSuperuser(BasePermission):
@@ -142,6 +167,138 @@ class UkmaDataViewSet(viewsets.ViewSet):
             self._query(request, UkmaDataReviewCaseParams)
         )
         return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Decide a UKMA Data review case",
+        description="Close an open `student_match` case as the same person. Needs the "
+        "server's UKMA Data key with `review:decide`; without it the answer is 403 "
+        "`ukma_data_forbidden` before UKMA Data is called. Superusers only.",
+        request=None,
+        responses=R_UKMA_DATA_DECISION,
+        operation_id="ukma_data_review_case_decide",
+    )
+    def decide_case(self, request: Request, case_id: str) -> Response:
+        return self._attempt(
+            request,
+            UkmaDataDecisionAction.DECIDE_CASE,
+            case_id,
+            "",
+            lambda: self._service().decide_case(case_id),
+            "Справу закрито: це та сама людина.",
+        )
+
+    @extend_schema(
+        summary="Merge a UKMA Data course",
+        description="Merge a course into another of the same level; UKMA Data keeps the "
+        "decision. Needs the server's UKMA Data key with `review:decide`, otherwise 403 "
+        "`ukma_data_forbidden`. Superusers only.",
+        request=UkmaDataCourseMergeRequestSerializer,
+        responses=R_UKMA_DATA_MERGE,
+        operation_id="ukma_data_course_merge",
+    )
+    def merge_course(self, request: Request, course_id: str) -> Response:
+        body = UkmaDataCourseMergeRequestSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        data = cast(dict[str, Any], body.validated_data)
+        into = str(data["into"])
+        return self._attempt(
+            request,
+            UkmaDataDecisionAction.MERGE_COURSE,
+            course_id,
+            into,
+            lambda: self._service().merge_course(course_id, into),
+            "Курс об'єднано.",
+        )
+
+    @extend_schema(
+        summary="Undo a UKMA Data course merge",
+        description="Unmerge a course that UKMA Data merged. Needs the server's UKMA Data key "
+        "with `review:decide`, otherwise 403 `ukma_data_forbidden`. Superusers only.",
+        request=None,
+        responses=R_UKMA_DATA_DECISION,
+        operation_id="ukma_data_course_unmerge",
+    )
+    def unmerge_course(self, request: Request, course_id: str) -> Response:
+        return self._attempt(
+            request,
+            UkmaDataDecisionAction.UNMERGE_COURSE,
+            course_id,
+            "",
+            lambda: self._service().unmerge_course(course_id),
+            "Курс роз'єднано.",
+        )
+
+    def _service(self) -> UkmaDataService:
+        assert self.ukma_data_service is not None
+        return self.ukma_data_service
+
+    def _attempt(
+        self,
+        request: Request,
+        action: str,
+        target_id: str,
+        related_id: str,
+        call: Callable[[], None],
+        detail: str,
+    ) -> Response:
+        service = self._service()
+        if "review:decide" not in service.get_key().scopes:
+            logger.warning("ukma_data_decide_forbidden", action=action, target_id=target_id)
+            raise UkmaDataDecideDisabledError()
+
+        row = UkmaDataDecision.objects.create(
+            user=request.user,
+            action=action,
+            target_id=target_id,
+            related_id=related_id,
+            outcome=UkmaDataDecisionOutcome.FAILED,
+            error=NO_ANSWER,
+        )
+        try:
+            call()
+        except UkmaDataDecisionRefusedError as exc:
+            self._settle(row, UkmaDataDecisionOutcome.REFUSED, exc.reason)
+            logger.info(
+                "ukma_data_decision_refused",
+                action=action,
+                target_id=target_id,
+                reason=exc.reason,
+            )
+            raise
+        except UkmaDataDecisionNotFoundError:
+            self._settle(row, UkmaDataDecisionOutcome.REFUSED, "not_found")
+            logger.info("ukma_data_decision_not_found", action=action, target_id=target_id)
+            raise
+        except UkmaDataForbiddenError:
+            self._settle(row, UkmaDataDecisionOutcome.REFUSED, "forbidden")
+            logger.warning("ukma_data_decision_forbidden", action=action, target_id=target_id)
+            raise
+        except UkmaDataUnavailableError as exc:
+            self._settle(row, UkmaDataDecisionOutcome.FAILED, str(exc.detail))
+            logger.warning("ukma_data_decision_failed", action=action, target_id=target_id)
+            raise
+
+        self._settle(row, UkmaDataDecisionOutcome.DONE, "")
+        logger.info(
+            "ukma_data_decision_done",
+            decision_id=row.pk,
+            action=action,
+            target_id=target_id,
+        )
+        payload = UkmaDataDecisionResponseSerializer(
+            {
+                "decision_id": row.pk,
+                "action": action,
+                "outcome": row.outcome,
+                "detail": detail,
+            }
+        )
+        return Response(payload.data, status=status.HTTP_200_OK)
+
+    def _settle(self, row: UkmaDataDecision, outcome: str, error: str) -> None:
+        row.outcome = outcome
+        row.error = error
+        row.save(update_fields=["outcome", "error"])
 
     def _page_params(self, request: Request) -> UkmaDataPageParams:
         return self._query(request, UkmaDataPageParams)
