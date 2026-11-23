@@ -15,6 +15,7 @@ import {
 	previewLoadText,
 	previewReasons,
 	previewSummary,
+	selectionSize,
 } from "../syncActions";
 import { changesText } from "../syncOverview";
 import { previewGroupParser, previewKindParser } from "../syncPreviewParams";
@@ -59,7 +60,7 @@ export function SyncPreviewPage() {
 		gcTime: 0,
 	});
 	const run = preview.data?.run ?? null;
-	const total = preview.data?.counts.total ?? null;
+	const total = preview.data ? selectionSize(preview.data.counts) : null;
 	const busy = preview.isLoading || preview.isFetching;
 	const canAct =
 		preview.data !== undefined &&

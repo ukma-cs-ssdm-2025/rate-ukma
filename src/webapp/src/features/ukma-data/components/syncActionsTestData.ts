@@ -65,7 +65,7 @@ export const previewFixture = (
 
 export const overCapCounts = decisionCounts({
 	applied: 5000,
-	total: 24_290,
+	total: 5000,
 	remaining: 19_290,
 	by_kind: [{ kind: "link_offering", count: 5000 }],
 });

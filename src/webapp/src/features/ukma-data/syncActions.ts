@@ -69,24 +69,27 @@ const isRefusalCode = (value: string): value is SyncRefusalCodeEnum =>
 
 const isOverCap = (counts: SyncDecisionCounts): boolean => counts.remaining > 0;
 
+export const selectionSize = (counts: SyncDecisionCounts): number =>
+	counts.total + counts.remaining;
+
 export function applyLabel(counts: SyncDecisionCounts): string {
 	if (isOverCap(counts)) {
-		return `Застосувати перші ${formatCount(counts.applied)} з ${formatCount(counts.total)}`;
+		return `Застосувати перші ${formatCount(counts.applied)} з ${formatCount(selectionSize(counts))}`;
 	}
 	return `Застосувати ${countWith(counts.applied, CHANGES_ACCUSATIVE)}`;
 }
 
 export const rejectLabel = (counts: SyncDecisionCounts): string =>
-	`Відхилити ${countWith(counts.total, CHANGES_ACCUSATIVE)}`;
+	`Відхилити ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}`;
 
 export const applyProgress = (counts: SyncDecisionCounts): string =>
 	`Застосовую ${countWith(counts.applied, CHANGES_ACCUSATIVE)}…`;
 
 export const rejectProgress = (counts: SyncDecisionCounts): string =>
-	`Відхиляю ${countWith(counts.total, CHANGES_ACCUSATIVE)}…`;
+	`Відхиляю ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}…`;
 
 export const rejectConfirm = (counts: SyncDecisionCounts) => ({
-	title: `Відхилити ${countWith(counts.total, CHANGES_ACCUSATIVE)}?`,
+	title: `Відхилити ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}?`,
 	description:
 		"На сайті нічого не зміниться. Вони повернуться після наступного читання, якщо САЗ не зміниться.",
 });

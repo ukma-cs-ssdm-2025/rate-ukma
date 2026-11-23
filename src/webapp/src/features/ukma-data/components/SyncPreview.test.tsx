@@ -95,6 +95,9 @@ describe("/data/sync/preview", () => {
 				name: /Застосувати перші 5.000 з 24.290/,
 			}),
 		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /^Відхилити 24.290 змін$/ }),
+		).toBeInTheDocument();
 	});
 
 	it("shows that it is loading", async () => {
@@ -305,7 +308,7 @@ describe("/data/sync/preview", () => {
 			decisionResponse({
 				counts: decisionCounts({
 					applied: 5000,
-					total: 24_290,
+					total: 5000,
 					remaining: 19_290,
 				}),
 				detail: "Застосовано 5 000 змін. Рішення #74.",
