@@ -10,6 +10,10 @@ export const tabParser = parseAsStringEnum([...SYNC_TABS])
 	.withDefault("pending")
 	.withOptions(URL_OPTIONS);
 
+export const historyParams = {
+	openRun: parseAsInteger.withOptions(URL_OPTIONS),
+};
+
 export const changeParams = {
 	state: parseAsStringEnum([...Object.values(SyncChangeStateEnum), "all"])
 		.withDefault("all")

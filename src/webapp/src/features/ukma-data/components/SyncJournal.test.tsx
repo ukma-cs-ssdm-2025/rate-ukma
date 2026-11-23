@@ -1,3 +1,5 @@
+import { StrictMode } from "react";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -41,11 +43,13 @@ function renderJournal(search = "?tab=history") {
 		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 	});
 	render(
-		<QueryClientProvider client={queryClient}>
-			<NuqsTestingAdapter searchParams={search} hasMemory>
-				<SyncPage />
-			</NuqsTestingAdapter>
-		</QueryClientProvider>,
+		<StrictMode>
+			<QueryClientProvider client={queryClient}>
+				<NuqsTestingAdapter searchParams={search} hasMemory>
+					<SyncPage />
+				</NuqsTestingAdapter>
+			</QueryClientProvider>
+		</StrictMode>,
 	);
 }
 

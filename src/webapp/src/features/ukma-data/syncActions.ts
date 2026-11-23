@@ -245,11 +245,17 @@ export const journalEntryNumber = (entry: SyncJournalEntry): string =>
 export const revertSummary = (result: Readonly<{ reverted: number }>): string =>
 	`Повернеться ${formatCount(result.reverted)}: поля отримають попередні значення. Нічого не видаляється.`;
 
-export function revertFailureText(error: unknown): string {
+export const REVERT_CHECK_LOST_TEXT =
+	"Перевірка не відповіла. Нічого не змінилося; спробуйте ще раз.";
+
+export function revertFailureText(error: unknown, writing: boolean): string {
 	if (errorStatus(error) === 404) {
 		return "Рішення не знайдено.";
 	}
-	return actionFailure(error).text;
+	const failure = actionFailure(error);
+	return failure.kind === "lost" && !writing
+		? REVERT_CHECK_LOST_TEXT
+		: failure.text;
 }
 
 export function revertRefusal(error: unknown): SyncRevertResponse | null {

@@ -23,6 +23,7 @@ import {
 	previewSummary,
 	rejectConfirm,
 	rejectLabel,
+	REVERT_CHECK_LOST_TEXT,
 	revertFailureText,
 	revertSummary,
 } from "./syncActions";
@@ -175,9 +176,16 @@ describe("revert words", () => {
 	});
 
 	it("names a missing decision", () => {
-		expect(revertFailureText(axiosError(404, { detail: "Not found" }))).toBe(
-			"Рішення не знайдено.",
-		);
+		expect(
+			revertFailureText(axiosError(404, { detail: "Not found" }), false),
+		).toBe("Рішення не знайдено.");
+	});
+
+	it("says a lost check changed nothing, but a lost write needs the Журнал", () => {
+		const lost = new AxiosError("Network Error");
+		expect(revertFailureText(lost, false)).toBe(REVERT_CHECK_LOST_TEXT);
+		expect(revertFailureText(lost, true)).toBe(actionFailure(lost).text);
+		expect(revertFailureText(lost, true)).not.toBe(REVERT_CHECK_LOST_TEXT);
 	});
 
 	it("keeps the blocker detail of a refused revert", () => {
@@ -187,6 +195,7 @@ describe("revert words", () => {
 					code: "revert_blocked",
 					detail: "Не можна відкотити рішення #74: 2 зміни заважають.",
 				}),
+				true,
 			),
 		).toBe("Не можна відкотити рішення #74: 2 зміни заважають.");
 	});

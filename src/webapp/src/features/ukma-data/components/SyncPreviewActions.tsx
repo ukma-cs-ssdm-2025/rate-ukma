@@ -176,6 +176,9 @@ export function SyncPreviewActions({
 		});
 	};
 	const startReject = () => {
+		if (reject.isPending) {
+			return;
+		}
 		setOutcome(null);
 		setConfirmOpen(false);
 		reject.mutate({

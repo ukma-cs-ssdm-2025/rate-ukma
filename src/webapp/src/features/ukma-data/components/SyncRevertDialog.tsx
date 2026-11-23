@@ -1,6 +1,4 @@
-import { useEffect, useRef } from "react";
-
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
@@ -14,7 +12,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/Dialog";
 import type { SyncJournalEntry, SyncRevertResponse } from "@/lib/api/generated";
-import { useUkmaDataSyncRevert } from "@/lib/api/generated";
+import { ukmaDataSyncRevert, useUkmaDataSyncRevert } from "@/lib/api/generated";
 import {
 	journalApplySummary,
 	revertFailureText,
@@ -22,23 +20,25 @@ import {
 	revertRefusal,
 	revertSummary,
 } from "../syncActions";
-import { invalidateSyncQueries } from "../syncQueries";
+import { invalidateSyncQueries, REVERT_CHECK_QUERY_KEY } from "../syncQueries";
 import { Ago } from "./Term";
 
 function BlockerList({ result }: Readonly<{ result: SyncRevertResponse }>) {
 	return (
 		<>
 			<p className="text-sm">{result.detail}</p>
-			<ul aria-label="Перешкоди" className="space-y-1 text-sm">
-				{result.blockers.map((blocker) => (
-					<li key={blocker.change_id} className="break-words">
-						<span className="text-muted-foreground">
-							зміна #{blocker.change_id}
-						</span>{" "}
-						{blocker.text}
-					</li>
-				))}
-			</ul>
+			{result.blockers.length > 0 ? (
+				<ul aria-label="Перешкоди" className="space-y-1 text-sm">
+					{result.blockers.map((blocker) => (
+						<li key={blocker.change_id} className="break-words">
+							<span className="text-muted-foreground">
+								зміна #{blocker.change_id}
+							</span>{" "}
+							{blocker.text}
+						</li>
+					))}
+				</ul>
+			) : null}
 		</>
 	);
 }
@@ -84,31 +84,33 @@ export function SyncRevertDialog({
 	const queryClient = useQueryClient();
 	const revert = useUkmaDataSyncRevert({
 		mutation: {
-			onSettled: (_result, _error, variables) => {
-				if (variables.data.dry_run === false) {
-					invalidateSyncQueries(queryClient);
-				}
-			},
+			onSettled: () => invalidateSyncQueries(queryClient),
 		},
 	});
-	const { mutate } = revert;
 	const approvalId = entry.approval_id;
-	const started = useRef(false);
-	useEffect(() => {
-		if (started.current || approvalId === null) {
-			return;
-		}
-		started.current = true;
-		mutate({ data: { approval_id: approvalId, dry_run: true } });
-	}, [approvalId, mutate]);
-	const writing = revert.isPending && revert.variables?.data.dry_run === false;
+	const check = useQuery({
+		queryKey: [REVERT_CHECK_QUERY_KEY, approvalId],
+		queryFn: ({ signal }) =>
+			ukmaDataSyncRevert(
+				{ approval_id: approvalId ?? 0, dry_run: true },
+				signal,
+			),
+		enabled: approvalId !== null,
+		staleTime: 0,
+		gcTime: 0,
+		retry: false,
+		refetchOnWindowFocus: false,
+	});
+	const writing = revert.isPending;
 	const requestClose = () => {
 		if (!writing) {
 			onClose();
 		}
 	};
-	const refused = revertRefusal(revert.error);
-	const result = revert.data;
+	const pending = revert.isIdle ? check.isLoading : revert.isPending;
+	const error = revert.isIdle ? check.error : revert.error;
+	const refused = revertRefusal(error);
+	const result = revert.isIdle ? check.data : revert.data;
 	return (
 		<Dialog
 			open
@@ -132,27 +134,27 @@ export function SyncRevertDialog({
 						<Ago iso={entry.when} />
 					</DialogDescription>
 				</DialogHeader>
-				{revert.isPending ? (
+				{pending ? (
 					<p role="status" className="text-sm text-muted-foreground">
 						{writing ? "Відкочую…" : "Перевіряю…"}
 					</p>
 				) : null}
-				{!revert.isPending && refused ? (
+				{!pending && refused ? (
 					<>
 						<BlockerList result={refused} />
 						<CloseOnly />
 					</>
 				) : null}
-				{!revert.isPending && !refused && revert.error ? (
+				{!pending && !refused && error ? (
 					<>
 						<p role="alert" className="text-sm text-destructive">
 							<span aria-hidden="true">✗</span>{" "}
-							{revertFailureText(revert.error)}
+							{revertFailureText(error, !revert.isIdle)}
 						</p>
 						<CloseOnly />
 					</>
 				) : null}
-				{!revert.isPending && result ? (
+				{!pending && result ? (
 					result.blockers.length > 0 ? (
 						<>
 							<BlockerList result={result} />
