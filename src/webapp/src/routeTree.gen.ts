@@ -21,6 +21,7 @@ import { Route as DataIndexRouteImport } from './routes/data.index'
 import { Route as DataSyncRouteImport } from './routes/data.sync'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginFailedRouteImport } from './routes/login.failed'
+import { Route as DataSyncPreviewRouteImport } from './routes/data.sync_.preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,6 +83,11 @@ const LoginFailedRoute = LoginFailedRouteImport.update({
   path: '/failed',
   getParentRoute: () => LoginRoute,
 } as any)
+const DataSyncPreviewRoute = DataSyncPreviewRouteImport.update({
+  id: '/sync_/preview',
+  path: '/sync/preview',
+  getParentRoute: () => DataRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/login/failed': typeof LoginFailedRoute
   '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/data/sync/preview': typeof DataSyncPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/login/failed': typeof LoginFailedRoute
   '/data': typeof DataIndexRoute
   '/login': typeof LoginIndexRoute
+  '/data/sync/preview': typeof DataSyncPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/login/failed': typeof LoginFailedRoute
   '/data/': typeof DataIndexRoute
   '/login/': typeof LoginIndexRoute
+  '/data/sync_/preview': typeof DataSyncPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/login/failed'
     | '/data/'
     | '/login/'
+    | '/data/sync/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/login/failed'
     | '/data'
     | '/login'
+    | '/data/sync/preview'
   id:
     | '__root__'
     | '/'
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/login/failed'
     | '/data/'
     | '/login/'
+    | '/data/sync_/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -264,17 +276,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginFailedRouteImport
       parentRoute: typeof LoginRoute
     }
+    '/data/sync_/preview': {
+      id: '/data/sync_/preview'
+      path: '/sync/preview'
+      fullPath: '/data/sync/preview'
+      preLoaderRoute: typeof DataSyncPreviewRouteImport
+      parentRoute: typeof DataRoute
+    }
   }
 }
 
 interface DataRouteChildren {
   DataSyncRoute: typeof DataSyncRoute
   DataIndexRoute: typeof DataIndexRoute
+  DataSyncPreviewRoute: typeof DataSyncPreviewRoute
 }
 
 const DataRouteChildren: DataRouteChildren = {
   DataSyncRoute: DataSyncRoute,
   DataIndexRoute: DataIndexRoute,
+  DataSyncPreviewRoute: DataSyncPreviewRoute,
 }
 
 const DataRouteWithChildren = DataRoute._addFileChildren(DataRouteChildren)

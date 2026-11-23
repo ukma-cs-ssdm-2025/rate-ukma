@@ -18,8 +18,7 @@ export function DataSectionHeader() {
 		<div className="space-y-4">
 			<PageHeader title="Дані САЗ" />
 			<p className="text-sm text-muted-foreground">
-				Тут лише перегляд. Рішення ухвалюються в <Term name="console" /> через
-				Claude.
+				Рішення можна ухвалювати тут або в <Term name="console" />.
 			</p>
 			<nav aria-label="Розділи даних САЗ" className="flex gap-1 border-b">
 				{TABS.map((tab) => (

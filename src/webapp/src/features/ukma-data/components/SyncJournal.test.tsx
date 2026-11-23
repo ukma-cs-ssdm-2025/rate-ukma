@@ -1,0 +1,217 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import MockAdapter from "axios-mock-adapter";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { authorizedHttpClient } from "@/lib/api/apiClient";
+import {
+	NOW,
+	PENDING_URL,
+	pending,
+	POLICIES_URL,
+	POLICY_CHANGES_URL,
+} from "./dataTestData";
+import {
+	JOURNAL_URL,
+	journalAnswer,
+	journalApply,
+	journalAuto,
+	journalPolicy,
+	journalRejected,
+	journalRevert,
+	REVERT_URL,
+	revertBlocked,
+	revertDone,
+	revertDryRun,
+} from "./syncActionsTestData";
+import { SyncPage } from "./SyncPage";
+
+vi.mock("@tanstack/react-router", async () => ({
+	Link: (await import("@/test-utils/router")).MockLink,
+}));
+
+let mock: MockAdapter;
+
+function renderJournal(search = "?tab=history") {
+	const queryClient = new QueryClient({
+		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+	});
+	render(
+		<QueryClientProvider client={queryClient}>
+			<NuqsTestingAdapter searchParams={search} hasMemory>
+				<SyncPage />
+			</NuqsTestingAdapter>
+		</QueryClientProvider>,
+	);
+}
+
+async function openRevert() {
+	const user = userEvent.setup();
+	renderJournal();
+	await screen.findByRole("list", { name: "Журнал" });
+	await user.click(await screen.findByRole("button", { name: "Відкотити" }));
+	return { user, dialog: await screen.findByRole("dialog") };
+}
+
+beforeEach(() => {
+	vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+	mock = new MockAdapter(authorizedHttpClient);
+	mock.onGet(PENDING_URL).reply(200, pending([]));
+	mock.onGet(POLICIES_URL).reply(200, { items: [] });
+	mock.onGet(POLICY_CHANGES_URL).reply(200, { items: [] });
+	mock.onGet(JOURNAL_URL).reply(200, {
+		items: [
+			journalRevert,
+			journalRejected,
+			journalApply,
+			journalPolicy,
+			journalAnswer,
+			journalAuto,
+		],
+		next_before: null,
+	});
+});
+
+afterEach(() => {
+	mock.restore();
+	vi.useRealTimers();
+});
+
+describe("/data/sync journal", () => {
+	it("lists every decision newest first with who and when", async () => {
+		// Act
+		renderJournal();
+
+		// Assert
+		const list = within(await screen.findByRole("list", { name: "Журнал" }));
+		const items = list.getAllByRole("listitem");
+		expect(items[0]).toHaveTextContent("рішення #76");
+		expect(items[0]).toHaveTextContent("Відкочено #74 (1 855)");
+		expect(items[0]).toHaveTextContent("admin.test, 1 год тому");
+		expect(items[1]).toHaveTextContent("Відхилено 3 (Нові)");
+		expect(items[2]).toHaveTextContent("Застосовано 1 855 (Змінити)");
+		expect(items[2]).toHaveTextContent("admin.test, 2 год тому");
+		expect(items[3]).toHaveTextContent("Правило: Звʼязок курсу → Авто");
+		expect(items[4]).toHaveTextContent("Відповідь: Обʼєднання курсів");
+		expect(items[5]).toHaveTextContent("Застосовано 27 925 (Зв'язати)");
+		expect(items[5]).toHaveTextContent("(автоматично)");
+	});
+
+	it("offers a revert only where it can run", async () => {
+		// Act
+		renderJournal();
+
+		// Assert
+		const list = within(await screen.findByRole("list", { name: "Журнал" }));
+		expect(list.getAllByRole("button", { name: "Відкотити" })).toHaveLength(1);
+		expect(
+			screen.getByText(
+				"Цей тип застосовується автоматично. Спершу переведіть його в «Потребує рішення» (catalog_sync policy).",
+			),
+		).toBeInTheDocument();
+	});
+
+	it("says when there has been no decision yet", async () => {
+		// Arrange
+		mock.onGet(JOURNAL_URL).reply(200, { items: [], next_before: null });
+
+		// Act
+		renderJournal();
+
+		// Assert
+		expect(
+			await screen.findByText("Ще не було жодного рішення."),
+		).toBeInTheDocument();
+	});
+
+	it("loads the next entries through next_before", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		let calls = 0;
+		mock.onGet(JOURNAL_URL).reply(() => {
+			calls += 1;
+			return calls === 1
+				? [200, { items: [journalApply], next_before: "2030-09-10T09:00:00Z" }]
+				: [200, { items: [journalRevert], next_before: null }];
+		});
+
+		// Act
+		renderJournal();
+		await user.click(await screen.findByRole("button", { name: "Ще 20" }));
+
+		// Assert
+		expect(await screen.findByText(/Відкочено #74/)).toBeInTheDocument();
+		expect(mock.history.get.at(-1)?.params).toMatchObject({
+			limit: 20,
+			before: "2030-09-10T09:00:00Z",
+		});
+	});
+
+	it("reverts an applied decision after a dry run", async () => {
+		// Arrange
+		let calls = 0;
+		mock.onPost(REVERT_URL).reply((config) => {
+			calls += 1;
+			const body = JSON.parse(String(config.data));
+			return body.dry_run === true ? [200, revertDryRun] : [200, revertDone];
+		});
+
+		// Act
+		const { user, dialog } = await openRevert();
+
+		// Assert
+		expect(dialog).toHaveTextContent("Відкотити рішення #74?");
+		expect(dialog).toHaveTextContent("Застосовано 1 855 змін (Змінити)");
+		expect(
+			await screen.findByText(
+				"Повернеться 1 855: поля отримають попередні значення. Нічого не видаляється.",
+			),
+		).toBeInTheDocument();
+		await user.click(
+			within(dialog).getByRole("button", { name: "Відкотити рішення #74" }),
+		);
+		expect(
+			await screen.findByText(/Відкочено\. Рішення #76\./),
+		).toBeInTheDocument();
+		expect(calls).toBe(2);
+		expect(
+			mock.history.get.filter((request) => request.url === JOURNAL_URL),
+		).not.toHaveLength(1);
+		const [dry, write] = mock.history.post
+			.filter((request) => request.url === REVERT_URL)
+			.map((request) => JSON.parse(String(request.data)));
+		expect(dry).toEqual({ approval_id: 74, dry_run: true });
+		expect(write).toEqual({ approval_id: 74, dry_run: false });
+	});
+
+	it("lists every blocker and does not offer to revert", async () => {
+		// Arrange
+		mock.onPost(REVERT_URL).reply(200, revertBlocked);
+
+		// Act
+		const { dialog } = await openRevert();
+
+		// Assert
+		expect(dialog).toHaveTextContent(
+			"Не можна відкотити рішення #74: 2 зміни заважають.",
+		);
+		expect(dialog).toHaveTextContent("зміна #48121");
+		expect(dialog).toHaveTextContent(
+			"запис змінився після застосування (назва)",
+		);
+		expect(dialog).toHaveTextContent("зміна #48130");
+		expect(dialog).toHaveTextContent(
+			"спершу відкотіть рішення #77 (пізніше застосоване)",
+		);
+		expect(
+			within(dialog).queryByRole("button", {
+				name: "Відкотити рішення #74",
+			}),
+		).not.toBeInTheDocument();
+		expect(
+			within(dialog).getByRole("button", { name: "Закрити" }),
+		).toBeInTheDocument();
+	});
+});

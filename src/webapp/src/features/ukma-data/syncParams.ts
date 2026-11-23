@@ -1,7 +1,6 @@
 import { parseAsInteger, parseAsStringEnum } from "nuqs";
 
 import { SyncChangeStateEnum } from "@/lib/api/generated";
-import { GROUP_ORDER } from "./syncOverview";
 
 export const SYNC_TABS = ["pending", "history", "rules"] as const;
 
@@ -10,17 +9,6 @@ export const URL_OPTIONS = { history: "push" } as const;
 export const tabParser = parseAsStringEnum([...SYNC_TABS])
 	.withDefault("pending")
 	.withOptions(URL_OPTIONS);
-
-export const pendingParams = {
-	group: parseAsStringEnum([...GROUP_ORDER])
-		.withDefault("new")
-		.withOptions(URL_OPTIONS),
-	page: parseAsInteger.withDefault(1).withOptions(URL_OPTIONS),
-};
-
-export const historyParams = {
-	openRun: parseAsInteger.withOptions(URL_OPTIONS),
-};
 
 export const changeParams = {
 	state: parseAsStringEnum([...Object.values(SyncChangeStateEnum), "all"])
