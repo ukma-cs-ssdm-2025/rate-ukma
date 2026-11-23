@@ -3552,11 +3552,17 @@ paths:
   /api/v1/ukma-data/sync/apply/:
     post:
       operationId: ukma_data_sync_apply
-      description: Apply at most 5 000 changes of the previewed selection, lowest
-        change numbers first, and stop by 40 s. The `token` from `preview` must match
-        the selection again; a changed set answers 409 `selection_changed`. A retry
-        with the same `client_key` returns the first decision with 200 instead of
-        applying twice; each new attempt needs a new `client_key`. Superusers only.
+      description: 'Apply at most 5 000 changes of the previewed selection, lowest
+        change numbers first, in one transaction. The 40 s budget starts once the
+        selection is read and is checked between batches and before the decision is
+        saved; past it the request rolls back and answers 422 `deadline_exceeded`.
+        One SQL statement may run at most 30 s, so a batch started near the end can
+        finish after 40 s. The `token` from `preview` binds the selected change ids:
+        if that id set changed, the answer is 409 `selection_changed`. A change in
+        the set that another decision took since the preview is not applied and is
+        counted as skipped, so `counts` can differ from the preview. A retry with
+        the same `client_key` returns the first decision with 200 instead of applying
+        twice; each new attempt needs a new `client_key`. Superusers only.'
       summary: Apply a previewed sync selection
       tags:
       - ukma-data
@@ -3619,6 +3625,18 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
         '409':
           content:
             application/json:
@@ -4072,6 +4090,18 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
         '409':
           content:
             application/json:
@@ -4270,6 +4300,18 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
         '409':
           content:
             application/json:
@@ -7064,6 +7106,9 @@ components:
       - offerings
     SyncApplyRequest:
       type: object
+      description: |-
+        Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+        `change_ids` list. Neither, both, or an empty list answers 400.
       properties:
         run:
           type: integer
@@ -7869,6 +7914,9 @@ components:
         * `auto` - Auto
     SyncPreviewRequest:
       type: object
+      description: |-
+        Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+        `change_ids` list. Neither, both, or an empty list answers 400.
       properties:
         run:
           type: integer
@@ -8151,6 +8199,9 @@ components:
         * `failed` - Apply failed
     SyncRejectRequest:
       type: object
+      description: |-
+        Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+        `change_ids` list. Neither, both, or an empty list answers 400.
       properties:
         run:
           type: integer

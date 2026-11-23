@@ -105,10 +105,14 @@ class SyncActionSelectionSerializer(serializers.Serializer):
 
 
 class SyncPreviewRequestSerializer(SyncActionSelectionSerializer):
-    pass
+    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+    `change_ids` list. Neither, both, or an empty list answers 400."""
 
 
 class SyncApplyRequestSerializer(SyncActionSelectionSerializer):
+    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+    `change_ids` list. Neither, both, or an empty list answers 400."""
+
     token = serializers.CharField(help_text="The token `preview` returned for this selection")
     client_key = serializers.UUIDField(
         help_text="Idempotency key; a retry with the same key returns the first result. "
@@ -117,6 +121,9 @@ class SyncApplyRequestSerializer(SyncActionSelectionSerializer):
 
 
 class SyncRejectRequestSerializer(SyncActionSelectionSerializer):
+    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+    `change_ids` list. Neither, both, or an empty list answers 400."""
+
     run = serializers.IntegerField(min_value=1, help_text="The run the person looked at")
     client_key = serializers.UUIDField(
         help_text="Idempotency key; a retry with the same key returns the first result. "
