@@ -263,3 +263,9 @@ node main.js courses unmerge <course-id>                   # dry run; add --yes 
 ```
 
 Same rules as above: show the owner the dry run, write only after their ok, then run `cases list --status open` (or `cases show <case-id>`) to check the case is decided. Only `student_match` cases can be decided here; other kinds are listed and refused with `not_student_match`. A refusal prints one line and exits non-zero: stop and tell the owner. The audit log records a command-line decision with no key.
+
+## UKMA Data decisions on /data
+
+The review cases and course merges of UKMA Data have their own buttons on /data: «Це та сама людина» for a `student_match` case, «Об'єднати з …» for a `course_match` candidate, and «Роз'єднати» on a done merge in «Журнал». Each confirm names the case or both courses and says that the change affects the shared САЗ data. Each attempt that reaches UKMA Data is recorded in «Журнал» as «Рішення в UKMA Data» with who, what, and any refusal or error.
+
+They work only when the server has a separate decide key, `UKMA_DATA_DECIDE_API_KEY`, whose scopes include `review:decide`. Without it, the buttons stay disabled with «Тут лише перегляд: рішення змінюють спільні дані САЗ», and the backend refuses every decision before calling UKMA Data. The key is set per environment; do not print, copy or paste its value. If the buttons are disabled where they should work, ask the owner to check that the environment has the key and the scope.

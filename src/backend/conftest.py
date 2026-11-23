@@ -36,6 +36,7 @@ register(factories.SyncApprovalFactory)
 register(factories.SyncPreviewFactory)
 register(factories.CatalogMappingDecisionFactory)
 register(factories.SyncCursorFactory)
+register(factories.UkmaDataDecisionFactory)
 
 
 @pytest.fixture

@@ -56,5 +56,6 @@ class UkmaDataStatus(BaseModel):
 
     key_id: str
     scopes: list[str]
+    decide_scopes: list[str]
     key_expires_at: datetime.datetime
     data_updated_at: datetime.datetime | None

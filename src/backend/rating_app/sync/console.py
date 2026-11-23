@@ -66,6 +66,17 @@ KIND_LABELS: dict[str, str] = {
     "removed_offering": "Курс у семестрі зник з САЗ",
 }
 
+DECISION_SUMMARY: dict[str, str] = {
+    "decide_case": "Рішення в UKMA Data: та сама людина",
+    "merge_course": "Рішення в UKMA Data: об'єднано",
+    "unmerge_course": "Рішення в UKMA Data: роз'єднано",
+}
+
+OUTCOME_TEXT: dict[str, str] = {
+    "refused": "відмова",
+    "failed": "помилка",
+}
+
 POLICY_LABELS: dict[str, str] = {
     "new_faculty": "Нові факультети",
     "link_faculty": "Зв'язки факультетів",
@@ -454,6 +465,13 @@ def journal_summary(entry: JournalEntry) -> str:
     if entry.kind == "answer":
         label = KIND_LABELS.get(str(counts.get("kind")), str(counts.get("kind")))
         return f"Відповідь: {label} → {counts.get('answer')}"
+    if entry.kind == "decision":
+        summary = DECISION_SUMMARY.get(str(counts.get("action")), "Рішення в UKMA Data")
+        outcome = OUTCOME_TEXT.get(entry.outcome, "")
+        if not outcome:
+            return summary
+        error = f": {entry.error}" if entry.error else ""
+        return f"{summary} — {outcome}{error}"
     return entry.kind
 
 
@@ -463,7 +481,7 @@ def _with_group(summary: str, group: str | None) -> str:
 
 
 def journal_line(entry: JournalEntry) -> str:
-    head = "—" if entry.kind in {"policy", "answer"} else f"рішення #{entry.id}"
+    head = "—" if entry.kind in {"policy", "answer", "decision"} else f"рішення #{entry.id}"
     who = entry.who or "автоматично"
     marker = "відкочено" if entry.reverted else ""
     line = f"{head:<14}{journal_summary(entry):<36}{who:<16}{ago(entry.when)}"
@@ -485,4 +503,5 @@ def journal_json(entry: JournalEntry) -> dict[str, Any]:
         "group": entry.group,
         "revertible": entry.revertible,
         "revert_reason": entry.revert_reason,
+        "error": entry.error,
     }

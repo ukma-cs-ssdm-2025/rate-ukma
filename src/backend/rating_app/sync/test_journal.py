@@ -13,6 +13,7 @@ from rating_app.models import (
     SyncApprovalOutcome,
     SyncChangeState,
     SyncPolicyChange,
+    UkmaDataDecision,
 )
 from rating_app.sync import journal
 
@@ -214,3 +215,52 @@ def test_an_apply_of_new_records_is_not_revertible(
 
     assert entry.revertible is False
     assert "нові записи" in entry.revert_reason
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_entries_merge_a_ukma_data_decision_with_its_error(
+    user, sync_approval_factory, ukma_data_decision_factory
+):
+    approval = sync_approval_factory(user=user, action=SyncApprovalAction.REJECT)
+    refused = ukma_data_decision_factory(
+        user=user,
+        action="merge_course",
+        target_id="c-101",
+        related_id="c-102",
+        outcome="refused",
+        error="level_mismatch",
+    )
+    now = timezone.now()
+    SyncApproval.objects.filter(pk=approval.pk).update(created_at=now - timedelta(hours=2))
+    UkmaDataDecision.objects.filter(pk=refused.pk).update(created_at=now - timedelta(hours=1))
+
+    entries = journal.entries(limit=10)
+
+    assert [entry.kind for entry in entries] == ["decision", "reject"]
+    decision = entries[0]
+    assert decision.who == user.username
+    assert decision.outcome == "refused"
+    assert decision.error == "level_mismatch"
+    assert decision.counts == {
+        "action": "merge_course",
+        "target_id": "c-101",
+        "related_id": "c-102",
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_entries_page_past_a_ukma_data_decision(user, ukma_data_decision_factory):
+    now = timezone.now()
+    decisions = [ukma_data_decision_factory(user=user) for _ in range(2)]
+    UkmaDataDecision.objects.filter(pk=decisions[0].pk).update(created_at=now - timedelta(hours=1))
+    UkmaDataDecision.objects.filter(pk=decisions[1].pk).update(created_at=now)
+
+    first = journal.entries(limit=1)
+    before = journal.parse_cursor(journal.cursor_of(first[-1]))
+    assert before is not None
+    second = journal.entries(limit=1, before=before)
+
+    assert [entry.id for entry in first] == [decisions[1].pk]
+    assert [entry.id for entry in second] == [decisions[0].pk]

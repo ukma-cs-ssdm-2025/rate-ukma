@@ -324,6 +324,7 @@ NO_PERSONAL_DATA = {
     "rating_app_synccursor",
     "rating_app_syncpolicy",
     "rating_app_syncpolicychange",
+    "rating_app_ukmadatadecision",
     "rating_app_speciality",
     "waffle_flag",
     "waffle_flag_groups",

@@ -100,6 +100,7 @@ export const journalApply: SyncJournalEntry = {
 	who: "admin.test",
 	when: "2030-09-10T10:00:00Z",
 	outcome: "applied",
+	error: "",
 	counts: { applied: 1855, superseded: 0, waiting: 0 },
 	approval_id: 74,
 	reverts_id: null,
@@ -121,6 +122,7 @@ export const journalRevert: SyncJournalEntry = {
 	who: "admin.test",
 	when: "2030-09-10T11:00:00Z",
 	outcome: "applied",
+	error: "",
 	counts: { reverted: 1855, skipped: 0 },
 	approval_id: 76,
 	reverts_id: 74,
@@ -136,6 +138,7 @@ export const journalRejected: SyncJournalEntry = {
 	who: "admin.test",
 	when: "2030-09-10T10:30:00Z",
 	outcome: "applied",
+	error: "",
 	counts: { rejected: 3, superseded: 0 },
 	approval_id: 75,
 	reverts_id: null,
@@ -151,6 +154,7 @@ export const journalAuto: SyncJournalEntry = {
 	who: null,
 	when: "2030-09-10T02:31:00Z",
 	outcome: "applied",
+	error: "",
 	counts: { applied: 27_925 },
 	approval_id: 73,
 	reverts_id: null,
@@ -167,6 +171,7 @@ export const journalPolicy: SyncJournalEntry = {
 	who: "admin.test",
 	when: "2030-09-09T12:00:00Z",
 	outcome: "changed",
+	error: "",
 	counts: {
 		kind: "link_course",
 		old_mode: "needs_approval",
@@ -186,6 +191,7 @@ export const journalAnswer: SyncJournalEntry = {
 	who: "admin.test",
 	when: "2030-09-08T12:00:00Z",
 	outcome: "merge",
+	error: "",
 	counts: { kind: "merge_courses", answer: "merge", into: null },
 	approval_id: null,
 	reverts_id: null,
@@ -193,6 +199,30 @@ export const journalAnswer: SyncJournalEntry = {
 	revertible: false,
 	revert_reason: "",
 	reverted: false,
+};
+
+export const journalDecisionMerge: SyncJournalEntry = {
+	id: 31,
+	kind: "decision",
+	who: "admin.test",
+	when: "2030-09-10T12:00:00Z",
+	outcome: "done",
+	error: "",
+	counts: { action: "merge_course", target_id: "c-101", related_id: "c-102" },
+	approval_id: null,
+	reverts_id: null,
+	group: null,
+	revertible: false,
+	revert_reason: "",
+	reverted: false,
+};
+
+export const journalDecisionRefused: SyncJournalEntry = {
+	...journalDecisionMerge,
+	id: 32,
+	outcome: "refused",
+	error: "level_mismatch",
+	counts: { action: "merge_course", target_id: "c-103", related_id: "c-104" },
 };
 
 export const revertDryRun = {

@@ -254,6 +254,7 @@ SPECTACULAR_SETTINGS = {
         "CourseTypeKindEnum": "rating_app.models.choices.CourseTypeKind",
         "VoteTypeEnum": "rating_app.models.choices.RatingVoteStrType",
         "SyncSourceEnum": "rating_app.models.sync.SyncSource",
+        "SyncApprovalActionEnum": "rating_app.models.sync.SyncApprovalAction",
         "SyncApprovalOutcomeEnum": "rating_app.models.sync.SyncApprovalOutcome",
         "SyncChangeGroupEnum": "rating_app.models.sync.SyncChangeGroup",
         "SyncChangeStateEnum": "rating_app.models.sync.SyncChangeState",
@@ -261,6 +262,8 @@ SPECTACULAR_SETTINGS = {
         "SyncChangeKindEnum": "rating_app.serializers.sync_actions.KIND_CHOICES",
         "SyncSelectionGroupEnum": "rating_app.serializers.sync.SELECTION_GROUP_CHOICES",
         "SyncJournalKindEnum": "rating_app.serializers.sync_actions.JOURNAL_KINDS",
+        "UkmaDataDecisionActionEnum": "rating_app.models.sync.UkmaDataDecisionAction",
+        "UkmaDataDecisionOutcomeEnum": "rating_app.models.sync.UkmaDataDecisionOutcome",
         "SortOrderEnum": [("asc", "asc"), ("desc", "desc")],
     },
 }
@@ -335,6 +338,9 @@ PARSE_BASE_URL = "https://my.ukma.edu.ua"
 # Empty URL or key means "not configured": those endpoints answer 503.
 UKMA_DATA_URL = config("UKMA_DATA_URL", default="")
 UKMA_DATA_API_KEY = config("UKMA_DATA_API_KEY", default="")
+# Decisions (review:decide) use their own key, so the read key cannot change
+# the shared САЗ data. Empty means the /data decisions stay disabled.
+UKMA_DATA_DECIDE_API_KEY = config("UKMA_DATA_DECIDE_API_KEY", default="")
 UKMA_DATA_TIMEOUT_SECONDS = config("UKMA_DATA_TIMEOUT_SECONDS", default=10, cast=float)
 
 # Feature flags (django-waffle)

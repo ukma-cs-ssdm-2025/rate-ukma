@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from rating_app.application_schemas import ukma_data_api as ud
 from rating_app.application_schemas.ukma_data_params import UkmaDataStatus
+from rating_app.models.sync import UkmaDataDecisionAction, UkmaDataDecisionOutcome
 
 _SERIALIZERS: dict[type[BaseModel], type[serializers.Serializer]] = {}
 
@@ -114,3 +115,22 @@ UkmaDataDepartmentPageSerializer = _serializer_for(ud.DepartmentPage)
 UkmaDataProgrammePageSerializer = _serializer_for(ud.ProgrammePage)
 UkmaDataOfferingPageSerializer = _serializer_for(ud.OfferingPage)
 UkmaDataReviewCasePageSerializer = _serializer_for(ud.ReviewCasePage)
+
+
+class UkmaDataCourseMergeRequestSerializer(serializers.Serializer):
+    into = serializers.CharField(
+        max_length=64,
+        help_text="UKMA Data course id the course merges into; both must share a level",
+    )
+
+
+class UkmaDataDecisionResponseSerializer(serializers.Serializer):
+    decision_id = serializers.IntegerField()
+    action = serializers.ChoiceField(choices=UkmaDataDecisionAction.choices)
+    outcome = serializers.ChoiceField(choices=UkmaDataDecisionOutcome.choices)
+    detail = serializers.CharField()
+
+
+class UkmaDataDecideForbiddenSerializer(serializers.Serializer):
+    code = serializers.CharField(help_text="Always `ukma_data_forbidden`")
+    detail = serializers.CharField()

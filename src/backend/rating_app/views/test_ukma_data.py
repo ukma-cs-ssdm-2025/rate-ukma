@@ -534,11 +534,30 @@ def test_status_returns_key_and_data_updated_at_when_superuser(superuser_client,
     body = response.json()
     assert body["key_id"] == "k-1"
     assert body["scopes"] == ["catalog:read", "review:decide"]
+    assert body["decide_scopes"] == []
     assert _parse(body["key_expires_at"]) == datetime(2031, 1, 1, tzinfo=UTC)
     assert _parse(body["data_updated_at"]) == _parse(DATA_UPDATED_AT)
     assert [(r["path"], r["query"]) for r in ukma_data.received] == [
         ("/v1/key", {}),
         ("/v1/terms", {"limit": ["1"]}),
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_status_reads_the_decide_key_scopes_when_it_is_set(superuser_client, ukma_data, settings):
+    settings.UKMA_DATA_DECIDE_API_KEY = "test-decide-key"
+    ukma_data.reply("/v1/key", KEY)
+    ukma_data.reply("/v1/terms", _page(TERM))
+
+    response = superuser_client.get(reverse("ukma-data-status"))
+
+    assert response.status_code == 200
+    assert response.json()["decide_scopes"] == KEY["scopes"]
+    assert [(r["path"], r["authorization"]) for r in ukma_data.received] == [
+        ("/v1/key", f"Bearer {API_KEY}"),
+        ("/v1/terms", f"Bearer {API_KEY}"),
+        ("/v1/key", "Bearer test-decide-key"),
     ]
 
 

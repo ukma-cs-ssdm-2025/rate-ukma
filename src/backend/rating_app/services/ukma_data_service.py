@@ -13,6 +13,8 @@ from rating_app.application_schemas.ukma_data_params import (
     UkmaDataStatus,
 )
 from rating_app.exception.ukma_data_exceptions import (
+    UkmaDataDecisionNotFoundError,
+    UkmaDataDecisionRefusedError,
     UkmaDataForbiddenError,
     UkmaDataNotConfiguredError,
     UkmaDataUnavailableError,
@@ -84,6 +86,7 @@ class UkmaDataService:
                 {
                     "key_id": key.id,
                     "scopes": key.scopes,
+                    "decide_scopes": self.decide_scopes(),
                     "key_expires_at": key.expires_at,
                     "data_updated_at": terms.data_updated_at,
                 }
@@ -92,6 +95,66 @@ class UkmaDataService:
             errors = exc.errors(include_input=False, include_url=False)
             logger.warning("ukma_data_unexpected_response", path="/v1/key", errors=errors)
             raise UkmaDataUnavailableError("UKMA Data sent an unexpected response.") from exc
+
+    def decide_scopes(self) -> list[str]:
+        """The decide key's scopes; `[]` without a key, and that key is then never read."""
+        decide_key = settings.UKMA_DATA_DECIDE_API_KEY
+        if not decide_key:
+            return []
+        try:
+            return self._get("/v1/key", {}, UkmaDataKey, api_key=decide_key).scopes
+        except (UkmaDataForbiddenError, UkmaDataNotConfiguredError, UkmaDataUnavailableError):
+            logger.warning("ukma_data_decide_scopes_unavailable")
+            return []
+
+    def decide_case(self, case_id: str) -> None:
+        """Close a `student_match` case as the same person."""
+        self._decide(
+            f"/v1/review-cases/{case_id}/decide",
+            {"decision": "same_person"},
+        )
+
+    def merge_course(self, course_id: str, into: str) -> None:
+        self._decide(f"/v1/courses/{course_id}/merge", {"into": into})
+
+    def unmerge_course(self, course_id: str) -> None:
+        self._decide(f"/v1/courses/{course_id}/unmerge", None)
+
+    def _decide(self, path: str, body: dict[str, str] | None) -> None:
+        base_url = settings.UKMA_DATA_URL
+        api_key = settings.UKMA_DATA_DECIDE_API_KEY
+        if not base_url or not api_key:
+            raise UkmaDataNotConfiguredError()
+
+        try:
+            response = requests.post(
+                f"{base_url.rstrip('/')}{path}",
+                json=body,
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=(UKMA_DATA_CONNECT_TIMEOUT_SECONDS, settings.UKMA_DATA_TIMEOUT_SECONDS),
+            )
+        except requests.Timeout as exc:
+            logger.warning("ukma_data_decision_timeout", path=path)
+            raise UkmaDataUnavailableError("UKMA Data did not answer in time.") from exc
+        except requests.RequestException as exc:
+            logger.warning("ukma_data_decision_unreachable", path=path, err=str(exc))
+            raise UkmaDataUnavailableError("UKMA Data is unreachable.") from exc
+
+        if response.status_code == 204:
+            return
+        if response.status_code == 404:
+            logger.warning("ukma_data_decision_not_found", path=path)
+            raise UkmaDataDecisionNotFoundError()
+        if response.status_code == 409:
+            reason = _refusal_reason(response)
+            logger.warning("ukma_data_decision_refused", path=path, reason=reason)
+            raise UkmaDataDecisionRefusedError(reason)
+        if response.status_code in (401, 403):
+            logger.warning("ukma_data_forbidden", path=path)
+            raise UkmaDataForbiddenError()
+
+        logger.warning("ukma_data_decision_error_status", path=path, status=response.status_code)
+        raise UkmaDataUnavailableError(f"UKMA Data answered {response.status_code}.")
 
     def _get_page[P: BaseModel](
         self,
@@ -107,17 +170,24 @@ class UkmaDataService:
             query["limit"] = min(params.limit, UKMA_DATA_MAX_PAGE_SIZE)
         return self._get(path, query, page)
 
-    def _get[M: BaseModel](self, path: str, query: dict[str, int | str], model: type[M]) -> M:
+    def _get[M: BaseModel](
+        self,
+        path: str,
+        query: dict[str, int | str],
+        model: type[M],
+        *,
+        api_key: str | None = None,
+    ) -> M:
         base_url = settings.UKMA_DATA_URL
-        api_key = settings.UKMA_DATA_API_KEY
-        if not base_url or not api_key:
+        key = settings.UKMA_DATA_API_KEY if api_key is None else api_key
+        if not base_url or not key:
             raise UkmaDataNotConfiguredError()
 
         try:
             response = requests.get(
                 f"{base_url.rstrip('/')}{path}",
                 params=query,
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={"Authorization": f"Bearer {key}"},
                 timeout=(UKMA_DATA_CONNECT_TIMEOUT_SECONDS, settings.UKMA_DATA_TIMEOUT_SECONDS),
             )
         except requests.Timeout as exc:
@@ -145,3 +215,13 @@ class UkmaDataService:
         except ValueError as exc:
             logger.warning("ukma_data_non_json_response", path=path)
             raise UkmaDataUnavailableError("UKMA Data sent an unexpected response.") from exc
+
+
+def _refusal_reason(response: requests.Response) -> str:
+    try:
+        body = response.json()
+    except ValueError:
+        return "refused"
+    if isinstance(body, dict) and isinstance(body.get("reason"), str):
+        return body["reason"]
+    return "refused"

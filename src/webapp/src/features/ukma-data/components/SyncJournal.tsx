@@ -16,10 +16,19 @@ import type {
 	SyncJournalEntry,
 	UkmaDataSyncJournalParams,
 } from "@/lib/api/generated";
-import { ukmaDataSyncJournal } from "@/lib/api/generated";
-import { journalEntryNumber, journalTitle } from "../syncActions";
+import {
+	ukmaDataSyncJournal,
+	useUkmaDataStatusRetrieve,
+} from "@/lib/api/generated";
+import {
+	journalEntryNumber,
+	journalTitle,
+	decisionErrorText,
+} from "../syncActions";
 import { PAGE_SIZE } from "../syncLabels";
+import { NO_RETRY } from "../syncOverview";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
+import { UnmergeAction } from "./CaseActions";
 import { SyncRevertButton, SyncRevertDialog } from "./SyncRevertDialog";
 import { Ago } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
@@ -27,13 +36,21 @@ import { UkmaDataError } from "./UkmaDataError";
 function JournalRow({
 	entry,
 	onRevert,
+	decideEnabled,
 }: Readonly<{
 	entry: SyncJournalEntry;
 	onRevert: (entry: SyncJournalEntry) => void;
+	decideEnabled: boolean;
 }>) {
 	const reason =
 		entry.kind === "apply" && !entry.revertible && !entry.reverted
 			? entry.revert_reason
+			: "";
+	const decisionError =
+		entry.kind === "decision" &&
+		entry.outcome !== "done" &&
+		entry.error.length > 0
+			? decisionErrorText(entry.error)
 			: "";
 	return (
 		<li className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-3 sm:px-5">
@@ -50,6 +67,9 @@ function JournalRow({
 				{reason.length > 0 ? (
 					<p className="text-muted-foreground">{reason}</p>
 				) : null}
+				{decisionError.length > 0 ? (
+					<p className="text-muted-foreground">{decisionError}</p>
+				) : null}
 			</div>
 			<span className="shrink-0 text-muted-foreground">
 				{entry.who ?? "—"}, <Ago iso={entry.when} />
@@ -57,12 +77,16 @@ function JournalRow({
 			{entry.revertible ? (
 				<SyncRevertButton entry={entry} onStart={onRevert} />
 			) : null}
+			<UnmergeAction entry={entry} decideEnabled={decideEnabled} />
 		</li>
 	);
 }
 
 export function SyncJournal() {
 	const [reverting, setReverting] = useState<SyncJournalEntry | null>(null);
+	const status = useUkmaDataStatusRetrieve(NO_RETRY);
+	const decideEnabled =
+		status.data?.decide_scopes.includes("review:decide") ?? false;
 	const journal = useInfiniteQuery({
 		queryKey: [JOURNAL_QUERY_KEY],
 		queryFn: ({ pageParam, signal }) => {
@@ -115,6 +139,7 @@ export function SyncJournal() {
 								key={`${entry.kind}-${entry.id}`}
 								entry={entry}
 								onRevert={setReverting}
+								decideEnabled={decideEnabled}
 							/>
 						))}
 					</ul>

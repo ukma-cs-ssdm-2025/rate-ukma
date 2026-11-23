@@ -2992,6 +2992,216 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/ukma-data/courses/{course_id}/merge/:
+    post:
+      operationId: ukma_data_course_merge
+      description: Merge a course into another of the same level; UKMA Data keeps
+        the decision. Needs the server's decide key with `review:decide`, otherwise
+        403 `ukma_data_forbidden`. Superusers only.
+      summary: Merge a UKMA Data course
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UkmaDataCourseMergeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UkmaDataCourseMergeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UkmaDataCourseMergeRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataDecisionResponse'
+          description: Decision written to UKMA Data
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataDecideForbidden'
+              examples:
+                UKMADataDecisionsDisabled:
+                  value:
+                    detail: 'Тут лише перегляд: рішення змінюють спільні дані САЗ'
+                    code: ukma_data_forbidden
+                    status: 403
+                  summary: UKMA Data decisions disabled
+          description: Read-only
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataDoesNotKnowTheCaseOrCourse:
+                  value:
+                    detail: UKMA Data не знає такої справи або курсу
+                    code: ukma_data_not_found
+                    status: 404
+                  summary: UKMA Data does not know the case or course
+          description: Unknown case or course
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataRefusedTheDecision:
+                  value:
+                    detail: 'Курси різного рівня: об''єднати можна лише однакові.'
+                    code: ukma_data_refused
+                    status: 409
+                  summary: UKMA Data refused the decision
+          description: UKMA Data refused the decision
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/courses/{course_id}/unmerge/:
+    post:
+      operationId: ukma_data_course_unmerge
+      description: Unmerge a course that UKMA Data merged. Needs the server's decide
+        key with `review:decide`, otherwise 403 `ukma_data_forbidden`. Superusers
+        only.
+      summary: Undo a UKMA Data course merge
+      parameters:
+      - in: path
+        name: course_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataDecisionResponse'
+          description: Decision written to UKMA Data
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataDecideForbidden'
+              examples:
+                UKMADataDecisionsDisabled:
+                  value:
+                    detail: 'Тут лише перегляд: рішення змінюють спільні дані САЗ'
+                    code: ukma_data_forbidden
+                    status: 403
+                  summary: UKMA Data decisions disabled
+          description: Read-only
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataDoesNotKnowTheCaseOrCourse:
+                  value:
+                    detail: UKMA Data не знає такої справи або курсу
+                    code: ukma_data_not_found
+                    status: 404
+                  summary: UKMA Data does not know the case or course
+          description: Unknown case or course
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataRefusedTheDecision:
+                  value:
+                    detail: 'Курси різного рівня: об''єднати можна лише однакові.'
+                    code: ukma_data_refused
+                    status: 409
+                  summary: UKMA Data refused the decision
+          description: UKMA Data refused the decision
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
   /api/v1/ukma-data/departments/:
     get:
       operationId: ukma_data_departments_list
@@ -3458,6 +3668,105 @@ paths:
                     status: 403
                   summary: UKMA Data key refused
           description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+  /api/v1/ukma-data/review-cases/{case_id}/decide/:
+    post:
+      operationId: ukma_data_review_case_decide
+      description: Close an open `student_match` case as the same person. Needs the
+        server's decide key with `review:decide`; without it the answer is 403 `ukma_data_forbidden`
+        before UKMA Data is called. Superusers only.
+      summary: Decide a UKMA Data review case
+      parameters:
+      - in: path
+        name: case_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataDecisionResponse'
+          description: Decision written to UKMA Data
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataDecideForbidden'
+              examples:
+                UKMADataDecisionsDisabled:
+                  value:
+                    detail: 'Тут лише перегляд: рішення змінюють спільні дані САЗ'
+                    code: ukma_data_forbidden
+                    status: 403
+                  summary: UKMA Data decisions disabled
+          description: Read-only
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataDoesNotKnowTheCaseOrCourse:
+                  value:
+                    detail: UKMA Data не знає такої справи або курсу
+                    code: ukma_data_not_found
+                    status: 404
+                  summary: UKMA Data does not know the case or course
+          description: Unknown case or course
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataRefusedTheDecision:
+                  value:
+                    detail: 'Курси різного рівня: об''єднати можна лише однакові.'
+                    code: ukma_data_refused
+                    status: 409
+                  summary: UKMA Data refused the decision
+          description: UKMA Data refused the decision
         '502':
           content:
             application/json:
@@ -4898,18 +5207,6 @@ components:
         * `BRAND` - Brand
         * `INFO` - Info
         * `WARNING` - Warning
-    ActionEnum:
-      enum:
-      - apply
-      - reject
-      - revert
-      - preview
-      type: string
-      description: |-
-        * `apply` - Apply
-        * `reject` - Reject
-        * `revert` - Revert
-        * `preview` - Preview
     AnswerEnum:
       enum:
       - keep_apart
@@ -7147,6 +7444,18 @@ components:
       required:
       - client_key
       - token
+    SyncApprovalActionEnum:
+      enum:
+      - apply
+      - reject
+      - revert
+      - preview
+      type: string
+      description: |-
+        * `apply` - Apply
+        * `reject` - Reject
+        * `revert` - Revert
+        * `preview` - Preview
     SyncApprovalDetail:
       type: object
       properties:
@@ -7155,7 +7464,7 @@ components:
         run_id:
           type: integer
         action:
-          $ref: '#/components/schemas/ActionEnum'
+          $ref: '#/components/schemas/SyncApprovalActionEnum'
         scope:
           $ref: '#/components/schemas/ScopeEnum'
         group:
@@ -7485,7 +7794,7 @@ components:
           type: integer
           nullable: true
         action:
-          $ref: '#/components/schemas/ActionEnum'
+          $ref: '#/components/schemas/SyncApprovalActionEnum'
         outcome:
           $ref: '#/components/schemas/SyncApprovalOutcomeEnum'
         detail:
@@ -7578,6 +7887,13 @@ components:
         into:
           type: string
           nullable: true
+        action:
+          $ref: '#/components/schemas/UkmaDataDecisionActionEnum'
+        target_id:
+          type: string
+        related_id:
+          type: string
+          nullable: true
     SyncJournalEntry:
       type: object
       properties:
@@ -7593,6 +7909,8 @@ components:
           format: date-time
         outcome:
           $ref: '#/components/schemas/SyncJournalEntryOutcomeEnum'
+        error:
+          type: string
         counts:
           $ref: '#/components/schemas/SyncJournalCounts'
         approval_id:
@@ -7614,6 +7932,7 @@ components:
       required:
       - approval_id
       - counts
+      - error
       - group
       - id
       - kind
@@ -7637,6 +7956,7 @@ components:
       - move
       - place
       - relink
+      - done
       type: string
       description: |-
         * `started` - Started
@@ -7650,6 +7970,7 @@ components:
         * `move` - Move
         * `place` - Place
         * `relink` - Relink
+        * `done` - Done
     SyncJournalKindEnum:
       enum:
       - apply
@@ -7657,6 +7978,7 @@ components:
       - revert
       - policy
       - answer
+      - decision
       type: string
       description: |-
         * `apply` - Apply
@@ -7664,6 +7986,7 @@ components:
         * `revert` - Revert
         * `policy` - Policy
         * `answer` - Answer
+        * `decision` - Decision
     SyncJournalResponse:
       type: object
       properties:
@@ -8600,6 +8923,63 @@ components:
       - after
       - before
       - count
+    UkmaDataCourseMergeRequest:
+      type: object
+      properties:
+        into:
+          type: string
+          description: UKMA Data course id the course merges into; both must share
+            a level
+          maxLength: 64
+      required:
+      - into
+    UkmaDataDecideForbidden:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Always `ukma_data_forbidden`
+        detail:
+          type: string
+      required:
+      - code
+      - detail
+    UkmaDataDecisionActionEnum:
+      enum:
+      - decide_case
+      - merge_course
+      - unmerge_course
+      type: string
+      description: |-
+        * `decide_case` - Decide case
+        * `merge_course` - Merge course
+        * `unmerge_course` - Unmerge course
+    UkmaDataDecisionOutcomeEnum:
+      enum:
+      - done
+      - refused
+      - failed
+      type: string
+      description: |-
+        * `done` - Done
+        * `refused` - Refused
+        * `failed` - Failed
+    UkmaDataDecisionResponse:
+      type: object
+      properties:
+        decision_id:
+          type: integer
+        action:
+          $ref: '#/components/schemas/UkmaDataDecisionActionEnum'
+        outcome:
+          $ref: '#/components/schemas/UkmaDataDecisionOutcomeEnum'
+        detail:
+          type: string
+      required:
+      - action
+      - decision_id
+      - detail
+      - outcome
     UkmaDataDepartment:
       type: object
       properties:
@@ -9111,6 +9491,11 @@ components:
           items:
             type: string
           readOnly: true
+        decide_scopes:
+          type: array
+          items:
+            type: string
+          readOnly: true
         key_expires_at:
           type: string
           format: date-time
@@ -9122,6 +9507,7 @@ components:
           nullable: true
       required:
       - data_updated_at
+      - decide_scopes
       - key_expires_at
       - key_id
       - scopes
