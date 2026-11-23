@@ -11,6 +11,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
+            model_name="syncpreview",
+            name="selection_sha",
+            field=models.CharField(blank=True, default="", max_length=64),
+        ),
+        migrations.AddField(
             model_name="syncapproval",
             name="reverts",
             field=models.ForeignKey(

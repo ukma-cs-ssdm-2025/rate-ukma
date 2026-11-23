@@ -50,6 +50,7 @@ def applied_approval(sync_approval_factory, catalog_run, user):
         action=SyncApprovalAction.APPLY,
         outcome=APPLIED,
         change_ids=[],
+        counts={"plans_deduplicated_by_move": 0},
     )
 
 
@@ -448,6 +449,54 @@ def test_revert_lists_an_auto_kind_as_a_blocker(
 
     assert result.blockers[0].reason == "auto"
     assert "автоматично" in result.blockers[0].text
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_revert_blocks_a_move_applied_before_its_plans_were_counted(
+    make_applied, applied_approval, user, course_factory, course_offering_factory
+):
+    applied_approval.counts = {"applied": 1}
+    applied_approval.save(update_fields=["counts"])
+    source = course_factory(title="Тестова дисципліна А")
+    target = course_factory(title="Тестова дисципліна Б")
+    offering = course_offering_factory(course=target)
+    make_applied(
+        "move_offering",
+        str(offering.pk),
+        target_id=str(offering.pk),
+        before={"from_course": str(source.pk)},
+        after={"from_course": str(source.pk), "to_course_id": str(target.pk)},
+    )
+
+    result = decisions.revert(applied_approval.pk, user, dry_run=True)
+
+    assert [blocker.reason for blocker in result.blockers] == ["plans"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_revert_dry_run_fails_like_the_real_one_when_the_old_course_is_gone(
+    make_applied, applied_approval, user, course_factory, course_offering_factory
+):
+    source = course_factory(title="Тестова дисципліна А")
+    target = course_factory(title="Тестова дисципліна Б")
+    offering = course_offering_factory(course=target)
+    make_applied(
+        "move_offering",
+        str(offering.pk),
+        target_id=str(offering.pk),
+        before={"from_course": str(source.pk)},
+        after={"from_course": str(source.pk), "to_course_id": str(target.pk)},
+    )
+    source.delete()
+
+    dry = decisions.revert(applied_approval.pk, user, dry_run=True)
+    real = decisions.revert(applied_approval.pk, user, dry_run=False)
+
+    assert dry.outcome == real.outcome == "failed"
+    offering.refresh_from_db()
+    assert offering.course_id == target.pk
 
 
 @pytest.mark.django_db

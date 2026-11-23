@@ -208,7 +208,13 @@ def preview(
     if result.outcome != SyncApprovalOutcome.APPLIED or result.run_id is None:
         return PreviewResult(result=result)
     token = secrets.token_urlsafe(24)
-    SyncPreview.objects.create(token=token, run_id=result.run_id, user=user, count=len(set(ids)))
+    SyncPreview.objects.create(
+        token=token,
+        run_id=result.run_id,
+        user=user,
+        count=len(set(ids)),
+        selection_sha=apply.selection_sha(ids),
+    )
     return PreviewResult(result=result, token=token)
 
 

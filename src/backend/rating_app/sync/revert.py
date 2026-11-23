@@ -20,7 +20,7 @@ from decimal import Decimal
 from typing import Any, cast
 
 from django.contrib.auth.models import User
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 import structlog
@@ -159,6 +159,7 @@ def revert(approval_id: int, user: User, *, dry_run: bool) -> RevertResult:
                 return _refuse(approval, "nothing_to_revert", [], dry_run)
             with transaction.atomic():
                 _write_back(writable)
+                connection.check_constraints()
                 now = timezone.now()
                 _mark_reverted(writable, now)
                 _supersede_decisions(writable, now)
@@ -205,18 +206,19 @@ def quick_verdict(approval: SyncApproval) -> tuple[bool, str]:
         return False, REFUSAL_TEXT["not_applied"]
     if _reverted_by(approval) is not None:
         return False, REFUSAL_TEXT["already_reverted"]
-    changes = _applied_changes(approval)
-    modes: dict[str, str] = {}
-    writes = 0
-    for change in changes:
-        state, text = kind_policy(change.kind)
+    kinds = set(
+        SyncChange.objects.filter(approval=approval, state=SyncChangeState.APPLIED)
+        .values_list("kind", flat=True)
+        .distinct()
+    )
+    writes = False
+    for kind in sorted(kinds):
+        state, text = kind_policy(kind)
         if state == "manual":
             return False, text
         if state == "write":
-            writes += 1
-            if change.kind not in modes:
-                modes[change.kind] = mode_for(change.kind)
-            if modes[change.kind] == SyncPolicyMode.AUTO:
+            writes = True
+            if mode_for(kind) == SyncPolicyMode.AUTO:
                 return False, AUTO_TEXT
     if not writes:
         return False, REFUSAL_TEXT["nothing_to_revert"]
@@ -312,7 +314,7 @@ def _blockers(original: SyncApproval, changes: list[SyncChange]) -> list[RevertB
             modes[change.kind] = mode_for(change.kind)
         if modes[change.kind] == SyncPolicyMode.AUTO:
             blockers.append(_blocker(change, "auto", AUTO_TEXT))
-        if change.kind == "move_offering" and plans:
+        if change.kind == "move_offering" and plans != 0:
             blockers.append(_blocker(change, "plans", PLANS_TEXT))
         other = later.get(change.pk)
         if other is not None:
@@ -339,10 +341,10 @@ def _blocker(change: SyncChange, reason: str, text: str) -> RevertBlocker:
     return RevertBlocker(change_id=change.pk, kind=change.kind, reason=reason, text=text)
 
 
-def _moved_plans(original: SyncApproval) -> int:
+def _moved_plans(original: SyncApproval) -> int | None:
     counts = original.counts if isinstance(original.counts, dict) else {}
     value = counts.get("plans_deduplicated_by_move")
-    return value if isinstance(value, int) else 0
+    return value if isinstance(value, int) else None
 
 
 def _snapshot(changes: list[SyncChange]) -> RateUkmaSnapshot | None:
@@ -422,15 +424,18 @@ def _later_touches(original: SyncApproval, changes: list[SyncChange]) -> dict[in
     )
     by_target: dict[str, int] = {}
     by_pair: dict[tuple[str, str], int] = {}
-    for approval in later:
-        rows = SyncChange.objects.filter(approval=approval, state=SyncChangeState.APPLIED)
-        for row in rows:
-            if row.target_id is not None and row.target_id in targets:
-                by_target.setdefault(row.target_id, approval.pk)
-            for entry in row.requires or []:
-                pair = _pair(entry)
-                if pair is not None and pair in pairs:
-                    by_pair.setdefault(pair, approval.pk)
+    rows = (
+        SyncChange.objects.filter(approval__in=later, state=SyncChangeState.APPLIED)
+        .order_by("approval_id", "pk")
+        .values_list("approval_id", "target_id", "requires")
+    )
+    for approval_id, target_id, requires in rows:
+        if target_id is not None and target_id in targets:
+            by_target.setdefault(target_id, approval_id)
+        for entry in requires or []:
+            pair = _pair(entry)
+            if pair is not None and pair in pairs:
+                by_pair.setdefault(pair, approval_id)
     touches: dict[int, int] = {}
     for change in changes:
         other = by_target.get(change.target_id or "")

@@ -325,6 +325,70 @@ def test_approve_caps_the_selection_and_reports_what_remains(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_approve_rolls_back_when_the_deadline_passes_after_the_last_write(
+    admin, catalog_run, course_factory, sync_change_factory, monkeypatch
+):
+    course = course_factory(title="Тестова дисципліна А")
+    change = sync_change_factory(
+        run=catalog_run,
+        source="catalog",
+        group="change",
+        kind="change_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        before={"title": "Тестова дисципліна А"},
+        after={"title": "Тестова дисципліна Б"},
+    )
+    clock = {"now": 0.0}
+    monkeypatch.setattr(apply, "monotonic", lambda: clock["now"])
+    write_catalog = apply._apply_catalog
+
+    def slow_catalog(*args, **kwargs):
+        written = write_catalog(*args, **kwargs)
+        clock["now"] = 100.0
+        return written
+
+    monkeypatch.setattr(apply, "_apply_catalog", slow_catalog)
+
+    result = decisions.approve([change.pk], admin, dry_run=False, deadline_seconds=40)
+
+    assert result.error == "deadline_exceeded"
+    course.refresh_from_db()
+    assert course.title == "Тестова дисципліна А"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_refuses_a_preview_token_for_a_different_selection_of_the_same_size(
+    admin, catalog_run, course_factory, sync_change_factory
+):
+    def build():
+        course = course_factory(title="Тестова дисципліна А")
+        return sync_change_factory(
+            run=catalog_run,
+            source="catalog",
+            group="change",
+            kind="change_course",
+            key=str(course.pk),
+            target_id=str(course.pk),
+            before={"title": "Тестова дисципліна А"},
+            after={"title": "Тестова дисципліна Б"},
+        )
+
+    first, second, third = build(), build(), build()
+    preview = decisions.preview([first.pk, second.pk], admin, group="change")
+
+    refused = decisions.approve(
+        [first.pk, third.pk], admin, dry_run=False, group="change", preview_token=preview.token
+    )
+
+    assert refused.error == "selection_changed"
+    third.refresh_from_db()
+    assert third.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_approve_rolls_everything_back_past_its_deadline(
     admin, catalog_run, course_factory, sync_change_factory, monkeypatch
 ):
