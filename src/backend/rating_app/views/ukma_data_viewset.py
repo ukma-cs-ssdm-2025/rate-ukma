@@ -38,6 +38,7 @@ from rating_app.views.responses import (
     R_UKMA_DATA_DECISION,
     R_UKMA_DATA_DEPARTMENTS,
     R_UKMA_DATA_FACULTIES,
+    R_UKMA_DATA_MERGE,
     R_UKMA_DATA_OFFERINGS,
     R_UKMA_DATA_PROGRAMMES,
     R_UKMA_DATA_REVIEW_CASES,
@@ -54,6 +55,10 @@ PAGE_DESCRIPTION = (
     "One page of UKMA Data's list in change-number order, removed rows included. "
     "Pass the response's `cursor` as `after` while `has_more` is true. Superusers only."
 )
+
+
+# Written before the call, so an attempt whose answer never got recorded still shows who sent it.
+NO_ANSWER = "no_answer"
 
 
 class IsSuperuser(BasePermission):
@@ -188,7 +193,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         "decision. Needs the server's UKMA Data key with `review:decide`, otherwise 403 "
         "`ukma_data_forbidden`. Superusers only.",
         request=UkmaDataCourseMergeRequestSerializer,
-        responses=R_UKMA_DATA_DECISION,
+        responses=R_UKMA_DATA_MERGE,
         operation_id="ukma_data_course_merge",
     )
     def merge_course(self, request: Request, course_id: str) -> Response:
@@ -241,12 +246,18 @@ class UkmaDataViewSet(viewsets.ViewSet):
             logger.warning("ukma_data_decide_forbidden", action=action, target_id=target_id)
             raise UkmaDataDecideDisabledError()
 
+        row = UkmaDataDecision.objects.create(
+            user=request.user,
+            action=action,
+            target_id=target_id,
+            related_id=related_id,
+            outcome=UkmaDataDecisionOutcome.FAILED,
+            error=NO_ANSWER,
+        )
         try:
             call()
         except UkmaDataDecisionRefusedError as exc:
-            self._record(
-                request, action, target_id, related_id, UkmaDataDecisionOutcome.REFUSED, exc.reason
-            )
+            self._settle(row, UkmaDataDecisionOutcome.REFUSED, exc.reason)
             logger.info(
                 "ukma_data_decision_refused",
                 action=action,
@@ -255,30 +266,19 @@ class UkmaDataViewSet(viewsets.ViewSet):
             )
             raise
         except UkmaDataDecisionNotFoundError:
-            self._record(
-                request, action, target_id, related_id, UkmaDataDecisionOutcome.REFUSED, "not_found"
-            )
+            self._settle(row, UkmaDataDecisionOutcome.REFUSED, "not_found")
             logger.info("ukma_data_decision_not_found", action=action, target_id=target_id)
             raise
         except UkmaDataForbiddenError:
-            self._record(
-                request, action, target_id, related_id, UkmaDataDecisionOutcome.REFUSED, "forbidden"
-            )
+            self._settle(row, UkmaDataDecisionOutcome.REFUSED, "forbidden")
             logger.warning("ukma_data_decision_forbidden", action=action, target_id=target_id)
             raise
         except UkmaDataUnavailableError as exc:
-            self._record(
-                request,
-                action,
-                target_id,
-                related_id,
-                UkmaDataDecisionOutcome.FAILED,
-                str(exc.detail),
-            )
+            self._settle(row, UkmaDataDecisionOutcome.FAILED, str(exc.detail))
             logger.warning("ukma_data_decision_failed", action=action, target_id=target_id)
             raise
 
-        row = self._record(request, action, target_id, related_id, UkmaDataDecisionOutcome.DONE, "")
+        self._settle(row, UkmaDataDecisionOutcome.DONE, "")
         logger.info(
             "ukma_data_decision_done",
             decision_id=row.pk,
@@ -295,23 +295,10 @@ class UkmaDataViewSet(viewsets.ViewSet):
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 
-    def _record(
-        self,
-        request: Request,
-        action: str,
-        target_id: str,
-        related_id: str,
-        outcome: str,
-        error: str,
-    ) -> UkmaDataDecision:
-        return UkmaDataDecision.objects.create(
-            user=request.user,
-            action=action,
-            target_id=target_id,
-            related_id=related_id,
-            outcome=outcome,
-            error=error,
-        )
+    def _settle(self, row: UkmaDataDecision, outcome: str, error: str) -> None:
+        row.outcome = outcome
+        row.error = error
+        row.save(update_fields=["outcome", "error"])
 
     def _page_params(self, request: Request) -> UkmaDataPageParams:
         return self._query(request, UkmaDataPageParams)

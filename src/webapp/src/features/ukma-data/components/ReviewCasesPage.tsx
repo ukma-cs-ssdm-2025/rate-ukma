@@ -26,6 +26,7 @@ import {
 	ReviewCaseTable,
 	useCaseFilterParams,
 } from "./ReviewCaseList";
+import { KeyCheckError } from "./CaseActions";
 import { DataSection } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
 
@@ -44,6 +45,11 @@ export function ReviewCasesPage() {
 			>
 				<p className="text-sm text-muted-foreground">{DECIDED_ELSEWHERE}</p>
 				<ReviewCaseFilters />
+				<KeyCheckError
+					failed={status.isError}
+					retrying={status.isFetching}
+					onRetry={() => void status.refetch()}
+				/>
 				{cases.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
 				{cases.error ? (
 					<UkmaDataError

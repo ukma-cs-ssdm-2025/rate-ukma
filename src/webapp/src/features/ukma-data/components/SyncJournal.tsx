@@ -29,7 +29,7 @@ import {
 import { PAGE_SIZE } from "../syncLabels";
 import { NO_RETRY } from "../syncOverview";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
-import { UnmergeAction } from "./CaseActions";
+import { KeyCheckError, UnmergeAction } from "./CaseActions";
 import { SyncRevertButton, SyncRevertDialog } from "./SyncRevertDialog";
 import { Ago } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
@@ -111,6 +111,11 @@ export function SyncJournal() {
 			<p className="text-sm text-muted-foreground">
 				Усі рішення на сайті і в UKMA Data, новіші вгорі.
 			</p>
+			<KeyCheckError
+				failed={status.isError}
+				retrying={status.isFetching}
+				onRetry={() => void status.refetch()}
+			/>
 			{journal.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
 			{journal.error ? (
 				<UkmaDataError

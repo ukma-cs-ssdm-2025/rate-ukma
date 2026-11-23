@@ -143,4 +143,49 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 			screen.queryByText("UKMA Data is unreachable."),
 		).not.toBeInTheDocument();
 	});
+
+	it("reloads the journal after a refused unmerge", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock.onPost(UNMERGE_URL).reply(409, {
+			detail: "Цей курс не об'єднано, тож роз'єднувати нічого.",
+			status: 409,
+		});
+
+		// Act
+		renderJournal([journalDecisionMerge]);
+		await user.click(await screen.findByRole("button", { name: "Роз'єднати" }));
+		await user.click(
+			within(await screen.findByRole("alertdialog")).getByRole("button", {
+				name: "Роз'єднати",
+			}),
+		);
+
+		// Assert
+		expect(
+			await screen.findByText(/Цей курс не об'єднано/),
+		).toBeInTheDocument();
+		await waitFor(() =>
+			expect(
+				mock.history.get.filter((request) => request.url === JOURNAL_URL)
+					.length,
+			).toBeGreaterThan(1),
+		);
+	});
+
+	it("says when the key could not be checked", async () => {
+		// Arrange
+		mock.onGet(STATUS_URL).reply(500, { detail: "boom", status: 500 });
+
+		// Act
+		renderJournal([journalDecisionMerge]);
+
+		// Assert
+		expect(
+			await screen.findByText(
+				"Не вдалося перевірити ключ UKMA Data, тому кнопки рішень вимкнено.",
+			),
+		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Роз'єднати" })).toBeDisabled();
+	});
 });

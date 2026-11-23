@@ -395,6 +395,11 @@ R_UKMA_DATA_DECISION = {
     503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
 }
 
+R_UKMA_DATA_MERGE = {
+    **R_UKMA_DATA_DECISION,
+    400: OpenApiResponse(Err, BAD_REQUEST, [EX_400]),
+}
+
 
 def sync_responses(serializer, include_400=True, include_404=False) -> dict:
     return {

@@ -8,6 +8,7 @@ from django.urls import reverse
 import pytest
 
 from rating_app.models import UkmaDataDecision, UkmaDataDecisionOutcome
+from rating_app.services.ukma_data_service import UkmaDataService
 
 API_KEY = "test-ukma-data-key"
 KEY = {
@@ -481,3 +482,24 @@ def test_decide_returns_403_and_records_a_refusal_when_the_key_is_rejected(
     decision = UkmaDataDecision.objects.get()
     assert decision.outcome == UkmaDataDecisionOutcome.REFUSED
     assert decision.error == "forbidden"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_merge_records_the_attempt_before_ukma_data_is_called(
+    superuser_client, ukma_data, merge_url, monkeypatch
+):
+    seen_during_call: list[tuple[str, str]] = []
+
+    def merge_course(self, course_id: str, into: str) -> None:
+        seen_during_call.extend(UkmaDataDecision.objects.values_list("outcome", "error"))
+
+    monkeypatch.setattr(UkmaDataService, "merge_course", merge_course)
+
+    response = superuser_client.post(merge_url, {"into": "c-102"}, format="json")
+
+    assert response.status_code == 200
+    assert seen_during_call == [(UkmaDataDecisionOutcome.FAILED, "no_answer")]
+    decision = UkmaDataDecision.objects.get()
+    assert decision.outcome == UkmaDataDecisionOutcome.DONE
+    assert decision.error == ""

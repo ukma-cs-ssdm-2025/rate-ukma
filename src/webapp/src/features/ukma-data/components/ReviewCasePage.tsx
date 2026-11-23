@@ -129,6 +129,16 @@ export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 	const { source, reviewCase, order } = useCaseLookup(caseId);
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
 	const decideEnabled = status.data?.scopes.includes("review:decide") ?? false;
+	if (source.error) {
+		return (
+			<UkmaDataError
+				error={source.error}
+				title="Не вдалося завантажити справу"
+				onRetry={() => void source.refetch()}
+				isRetrying={source.isRefetching}
+			/>
+		);
+	}
 	if (reviewCase !== undefined) {
 		return (
 			<CaseBody
@@ -140,16 +150,6 @@ export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 	}
 	if (source.isLoading) {
 		return <Skeleton className="h-96 rounded-xl" />;
-	}
-	if (source.error) {
-		return (
-			<UkmaDataError
-				error={source.error}
-				title="Не вдалося завантажити справу"
-				onRetry={() => void source.refetch()}
-				isRetrying={source.isRefetching}
-			/>
-		);
 	}
 	return (
 		<Empty className="border">

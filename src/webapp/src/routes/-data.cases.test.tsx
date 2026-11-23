@@ -132,7 +132,7 @@ describe("/data/cases", () => {
 		).toBeInTheDocument();
 	});
 
-	it("disables every action with a tooltip when the decide key has no scope", async () => {
+	it("disables every action with a tooltip when the server key lacks review:decide", async () => {
 		const user = userEvent.setup();
 		mock.onGet(CASES_URL).reply(200, casePage([studentCase]));
 

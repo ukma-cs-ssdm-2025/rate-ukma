@@ -98,6 +98,29 @@ function ResultLine({ result }: Readonly<{ result: Result | null }>) {
 	);
 }
 
+export function KeyCheckError({
+	failed,
+	retrying,
+	onRetry,
+}: Readonly<{ failed: boolean; retrying: boolean; onRetry: () => void }>) {
+	if (!failed) {
+		return null;
+	}
+	return (
+		<div
+			role="alert"
+			className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 text-sm"
+		>
+			<p>Не вдалося перевірити ключ UKMA Data, тому кнопки рішень вимкнено.</p>
+			<Button variant="outline" size="sm" disabled={retrying} onClick={onRetry}>
+				Спробувати ще
+			</Button>
+		</div>
+	);
+}
+
+type CaseResult = Result & { caseId: string };
+
 export function CaseActions({
 	reviewCase,
 	decideEnabled,
@@ -106,22 +129,25 @@ export function CaseActions({
 	const decide = useUkmaDataReviewCaseDecide();
 	const merge = useUkmaDataCourseMerge();
 	const [pending, setPending] = useState<Pending | null>(null);
-	const [result, setResult] = useState<Result | null>(null);
+	const [answer, setAnswer] = useState<CaseResult | null>(null);
+	const result = answer?.caseId === reviewCase.id ? answer : null;
 	const busy = decide.isPending || merge.isPending;
 	const candidates =
 		reviewCase.kind === "course_match" ? candidateIds(reviewCase) : [];
 
-	const onSuccess = (detail: string) => {
-		setResult({ ok: true, text: detail });
-		invalidateCaseQueries(queryClient);
-	};
-	const onError = (error: unknown) => {
-		setResult({ ok: false, text: caseActionError(error) });
-	};
 	const confirm = () => {
 		if (!pending || busy) {
 			return;
 		}
+		const caseId = pending.reviewCase.id;
+		const onSuccess = (detail: string) => {
+			setAnswer({ caseId, ok: true, text: detail });
+			invalidateCaseQueries(queryClient);
+		};
+		const onError = (error: unknown) => {
+			setAnswer({ caseId, ok: false, text: caseActionError(error) });
+			invalidateCaseQueries(queryClient);
+		};
 		if (pending.kind === "decide") {
 			decide.mutate(
 				{ caseId: pending.reviewCase.id },
@@ -243,8 +269,10 @@ export function UnmergeAction({
 								setResult({ ok: true, text: response.detail });
 								invalidateCaseQueries(queryClient);
 							},
-							onError: (error) =>
-								setResult({ ok: false, text: caseActionError(error) }),
+							onError: (error) => {
+								setResult({ ok: false, text: caseActionError(error) });
+								invalidateCaseQueries(queryClient);
+							},
 							onSettled: () => setOpen(false),
 						},
 					);
