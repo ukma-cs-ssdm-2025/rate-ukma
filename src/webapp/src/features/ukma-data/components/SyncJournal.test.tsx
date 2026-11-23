@@ -252,6 +252,32 @@ describe("/data/sync journal", () => {
 		).toBeInTheDocument();
 	});
 
+	it("lists two blockers of one change separately", async () => {
+		// Arrange
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+		const [first] = revertBlocked.blockers;
+		mock.onPost(REVERT_URL).reply(200, {
+			...revertBlocked,
+			blockers: [
+				first,
+				{ ...first, reason: "auto", text: "цей вид змін застосовується сам" },
+			],
+		});
+
+		// Act
+		const { dialog } = await openRevert();
+
+		// Assert
+		const blockers = within(
+			await within(dialog).findByRole("list", { name: "Перешкоди" }),
+		);
+		expect(blockers.getAllByRole("listitem")).toHaveLength(2);
+		expect(
+			errors.mock.calls.some((call) => String(call[0]).includes("same key")),
+		).toBe(false);
+		errors.mockRestore();
+	});
+
 	it("shows a refused dry run with only Закрити", async () => {
 		// Arrange
 		mock.onPost(REVERT_URL).reply(200, revertRefused);

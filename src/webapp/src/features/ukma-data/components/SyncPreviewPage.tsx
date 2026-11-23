@@ -15,6 +15,7 @@ import {
 	previewLoadText,
 	previewReasons,
 	previewSummary,
+	canReject,
 	selectionSize,
 } from "../syncActions";
 import { changesText } from "../syncOverview";
@@ -68,7 +69,7 @@ export function SyncPreviewPage() {
 		!preview.isError &&
 		group !== "mapping" &&
 		group !== "removed" &&
-		preview.data.counts.applied > 0;
+		canReject(preview.data.counts);
 	const refresh = () => {
 		setDecided(false);
 		void preview.refetch();

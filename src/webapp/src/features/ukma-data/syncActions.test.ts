@@ -95,6 +95,12 @@ describe("previewSummary", () => {
 		expect(summary.applied).toBe("Нічого не застосується.");
 		expect(summary.leftOut).toBe(`Не увійде ${formatCount(213)}.`);
 	});
+
+	it("names the changes past the cap", () => {
+		expect(previewSummary(overCapCounts).leftOut).toBe(
+			`Не увійде 0. Ще ${formatCount(19_290)} — наступного разу.`,
+		);
+	});
 });
 
 describe("actionFailure", () => {

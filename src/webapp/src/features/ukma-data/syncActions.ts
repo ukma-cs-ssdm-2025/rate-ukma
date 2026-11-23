@@ -108,11 +108,18 @@ export function previewSummary(counts: SyncDecisionCounts): PreviewSummary {
 		counts.applied === 0
 			? "Нічого не застосується."
 			: `Застосується ${formatCount(counts.applied)}${parts.length > 0 ? `: ${parts}` : ""}.`;
+	const later =
+		counts.remaining > 0
+			? ` Ще ${formatCount(counts.remaining)} — наступного разу.`
+			: "";
 	return {
 		applied,
-		leftOut: `Не увійде ${formatCount(counts.waiting + counts.skipped)}.`,
+		leftOut: `Не увійде ${formatCount(counts.waiting + counts.skipped)}.${later}`,
 	};
 }
+
+export const canReject = (counts: SyncDecisionCounts): boolean =>
+	counts.applied + counts.waiting + counts.remaining > 0;
 
 export function previewReasons(preview: SyncPreviewResponse): string[] {
 	return [...preview.waiting_reasons, ...preview.skipped_reasons].map(

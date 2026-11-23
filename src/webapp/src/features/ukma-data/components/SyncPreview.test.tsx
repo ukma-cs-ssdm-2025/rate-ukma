@@ -136,7 +136,7 @@ describe("/data/sync/preview", () => {
 		).toBeInTheDocument();
 	});
 
-	it("says nothing applies when the selection has nothing to write", async () => {
+	it("offers only reject when nothing would apply but changes wait", async () => {
 		// Arrange
 		mock.onPost(PREVIEW_URL).reply(
 			200,
@@ -150,10 +150,31 @@ describe("/data/sync/preview", () => {
 
 		// Assert
 		expect(
-			await screen.findByText("Нічого не застосовувати."),
+			await screen.findByRole("button", { name: "Відхилити 213 змін" }),
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole("button", { name: /^Застосувати/ }),
+		).not.toBeInTheDocument();
+	});
+
+	it("says nothing applies when nothing in the selection is proposed", async () => {
+		// Arrange
+		mock.onPost(PREVIEW_URL).reply(
+			200,
+			previewFixture({
+				counts: decisionCounts({ skipped: 4, total: 4 }),
+			}),
+		);
+
+		// Act
+		renderPreview("?group=change");
+
+		// Assert
+		expect(
+			await screen.findByText("Нічого не застосовувати."),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /^Відхилити/ }),
 		).not.toBeInTheDocument();
 	});
 

@@ -30,7 +30,10 @@ function BlockerList({ result }: Readonly<{ result: SyncRevertResponse }>) {
 			{result.blockers.length > 0 ? (
 				<ul aria-label="Перешкоди" className="space-y-1 text-sm">
 					{result.blockers.map((blocker) => (
-						<li key={blocker.change_id} className="break-words">
+						<li
+							key={`${blocker.change_id}-${blocker.reason}`}
+							className="break-words"
+						>
 							<span className="text-muted-foreground">
 								зміна #{blocker.change_id}
 							</span>{" "}
