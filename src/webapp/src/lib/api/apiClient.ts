@@ -21,6 +21,7 @@ const LOGIN_PATH_PREFIX = "/login";
 const AUTH_PATH_PREFIX = "/auth";
 const AUTH_SESSION_ENDPOINT_SUBSTRING = "/auth/session";
 const UKMA_DATA_PATH_PREFIX = "/api/v1/ukma-data/";
+const UKMA_DATA_SYNC_PATH_PREFIX = "/api/v1/ukma-data/sync/";
 
 const getCsrfToken = () => {
 	if (typeof document === "undefined") {
@@ -89,6 +90,18 @@ const handleSessionExpiry = (error: unknown): boolean => {
 	return true;
 };
 
+const isSyncDecisionRequest = (error: unknown): boolean => {
+	if (!axios.isAxiosError(error)) {
+		return false;
+	}
+	const method = error.config?.method?.toUpperCase();
+	return (
+		method !== undefined &&
+		unsafeMethods.has(method) &&
+		error.config?.url?.startsWith(UKMA_DATA_SYNC_PATH_PREFIX) === true
+	);
+};
+
 const logErrorToSentry = (error: unknown) => {
 	if (!axios.isAxiosError(error) || axios.isCancel(error)) {
 		return;
@@ -116,7 +129,9 @@ const logErrorToSentry = (error: unknown) => {
 authorizedHttpClient.interceptors.response.use(
 	(response) => response,
 	(error) => {
-		handleConnectionIssue(error);
+		if (!isSyncDecisionRequest(error)) {
+			handleConnectionIssue(error);
+		}
 
 		const isSessionExpired = handleSessionExpiry(error);
 

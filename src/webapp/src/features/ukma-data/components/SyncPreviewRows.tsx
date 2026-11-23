@@ -9,6 +9,7 @@ import type {
 import { ukmaDataSyncPendingList } from "@/lib/api/generated";
 import { formatCount } from "../syncFormat";
 import { PAGE_SIZE } from "../syncLabels";
+import { PREVIEW_ROWS_QUERY_KEY } from "../syncQueries";
 import { SyncChangeCard } from "./SyncChangeCard";
 
 export function SyncPreviewRows({
@@ -19,7 +20,7 @@ export function SyncPreviewRows({
 	kind: SyncChangeKindEnum | null;
 }>) {
 	const rows = useInfiniteQuery({
-		queryKey: ["ukma-data-sync-preview-rows", group, kind],
+		queryKey: [PREVIEW_ROWS_QUERY_KEY, group, kind],
 		queryFn: ({ pageParam, signal }) =>
 			ukmaDataSyncPendingList(
 				{
@@ -34,6 +35,8 @@ export function SyncPreviewRows({
 		initialPageParam: 1,
 		getNextPageParam: (last) => last.next_page,
 		retry: false,
+		staleTime: 0,
+		gcTime: 0,
 	});
 	const pages = rows.data?.pages ?? [];
 	const items = pages.flatMap((page) => page.items);

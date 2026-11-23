@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 
@@ -17,16 +19,17 @@ import type {
 import { ukmaDataSyncJournal } from "@/lib/api/generated";
 import { journalEntryNumber, journalTitle } from "../syncActions";
 import { PAGE_SIZE } from "../syncLabels";
-import { SyncRevertAction } from "./SyncRevertDialog";
+import { JOURNAL_QUERY_KEY } from "../syncQueries";
+import { SyncRevertButton, SyncRevertDialog } from "./SyncRevertDialog";
 import { Ago } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
 
 function JournalRow({
 	entry,
-	onReverted,
+	onRevert,
 }: Readonly<{
 	entry: SyncJournalEntry;
-	onReverted: () => void;
+	onRevert: (entry: SyncJournalEntry) => void;
 }>) {
 	const reason =
 		entry.kind === "apply" && !entry.revertible && !entry.reverted
@@ -52,15 +55,16 @@ function JournalRow({
 				{entry.who ?? "—"}, <Ago iso={entry.when} />
 			</span>
 			{entry.revertible ? (
-				<SyncRevertAction entry={entry} onReverted={onReverted} />
+				<SyncRevertButton entry={entry} onStart={onRevert} />
 			) : null}
 		</li>
 	);
 }
 
 export function SyncJournal() {
+	const [reverting, setReverting] = useState<SyncJournalEntry | null>(null);
 	const journal = useInfiniteQuery({
-		queryKey: ["ukma-data-sync-journal"],
+		queryKey: [JOURNAL_QUERY_KEY],
 		queryFn: ({ pageParam, signal }) => {
 			const params: UkmaDataSyncJournalParams = { limit: PAGE_SIZE };
 			if (pageParam.length > 0) {
@@ -73,7 +77,6 @@ export function SyncJournal() {
 		retry: false,
 	});
 	const entries = journal.data?.pages.flatMap((page) => page.items) ?? [];
-	const onReverted = () => void journal.refetch();
 	return (
 		<div className="space-y-4">
 			<p className="text-sm text-muted-foreground">
@@ -111,7 +114,7 @@ export function SyncJournal() {
 							<JournalRow
 								key={`${entry.kind}-${entry.id}`}
 								entry={entry}
-								onReverted={onReverted}
+								onRevert={setReverting}
 							/>
 						))}
 					</ul>
@@ -129,6 +132,12 @@ export function SyncJournal() {
 					) : null}
 				</>
 			) : null}
+			{reverting === null ? null : (
+				<SyncRevertDialog
+					entry={reverting}
+					onClose={() => setReverting(null)}
+				/>
+			)}
 		</div>
 	);
 }

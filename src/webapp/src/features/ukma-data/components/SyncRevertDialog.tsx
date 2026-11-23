@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
@@ -17,8 +18,11 @@ import { useUkmaDataSyncRevert } from "@/lib/api/generated";
 import {
 	journalApplySummary,
 	revertFailureText,
+	revertIsRefused,
+	revertRefusal,
 	revertSummary,
 } from "../syncActions";
+import { invalidateSyncQueries } from "../syncQueries";
 import { Ago } from "./Term";
 
 function BlockerList({ result }: Readonly<{ result: SyncRevertResponse }>) {
@@ -49,108 +53,144 @@ function CloseOnly() {
 	);
 }
 
-export function SyncRevertAction({
+export function SyncRevertButton({
 	entry,
-	onReverted,
+	onStart,
 }: Readonly<{
 	entry: SyncJournalEntry;
-	onReverted: () => void;
+	onStart: (entry: SyncJournalEntry) => void;
 }>) {
-	const [open, setOpen] = useState(false);
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			onClick={() => onStart(entry)}
+			className="shrink-0"
+			aria-label={`Відкотити рішення #${entry.approval_id ?? "—"}`}
+		>
+			<RotateCcw aria-hidden="true" />
+			Відкотити
+		</Button>
+	);
+}
+
+export function SyncRevertDialog({
+	entry,
+	onClose,
+}: Readonly<{
+	entry: SyncJournalEntry;
+	onClose: () => void;
+}>) {
+	const queryClient = useQueryClient();
 	const revert = useUkmaDataSyncRevert({
 		mutation: {
-			onSuccess: (_result, variables) => {
+			onSettled: (_result, _error, variables) => {
 				if (variables.data.dry_run === false) {
-					onReverted();
+					invalidateSyncQueries(queryClient);
 				}
 			},
 		},
 	});
+	const { mutate } = revert;
 	const approvalId = entry.approval_id;
-	const close = () => {
-		setOpen(false);
-		revert.reset();
-	};
-	const start = () => {
-		if (approvalId === null) {
+	const started = useRef(false);
+	useEffect(() => {
+		if (started.current || approvalId === null) {
 			return;
 		}
-		revert.reset();
-		setOpen(true);
-		revert.mutate({ data: { approval_id: approvalId, dry_run: true } });
-	};
-	const confirm = () => {
-		if (approvalId === null) {
-			return;
-		}
-		revert.mutate({ data: { approval_id: approvalId, dry_run: false } });
-	};
+		started.current = true;
+		mutate({ data: { approval_id: approvalId, dry_run: true } });
+	}, [approvalId, mutate]);
 	const writing = revert.isPending && revert.variables?.data.dry_run === false;
+	const requestClose = () => {
+		if (!writing) {
+			onClose();
+		}
+	};
+	const refused = revertRefusal(revert.error);
 	const result = revert.data;
 	return (
-		<>
-			<Button variant="outline" size="sm" onClick={start} className="shrink-0">
-				<RotateCcw />
-				Відкотити
-			</Button>
-			<Dialog
-				open={open}
-				onOpenChange={(next) => {
-					if (!next) {
-						close();
+		<Dialog
+			open
+			onOpenChange={(next) => {
+				if (!next) {
+					requestClose();
+				}
+			}}
+		>
+			<DialogContent
+				onEscapeKeyDown={(event) => {
+					if (writing) {
+						event.preventDefault();
 					}
 				}}
 			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Відкотити рішення #{approvalId ?? "—"}?</DialogTitle>
-						<DialogDescription>
-							{journalApplySummary(entry)} · {entry.who ?? "—"} ·{" "}
-							<Ago iso={entry.when} />
-						</DialogDescription>
-					</DialogHeader>
-					{revert.isPending ? (
-						<p role="status" className="text-sm text-muted-foreground">
-							{writing ? "Відкочую…" : "Перевіряю…"}
+				<DialogHeader>
+					<DialogTitle>Відкотити рішення #{approvalId ?? "—"}?</DialogTitle>
+					<DialogDescription>
+						{journalApplySummary(entry)} · {entry.who ?? "—"} ·{" "}
+						<Ago iso={entry.when} />
+					</DialogDescription>
+				</DialogHeader>
+				{revert.isPending ? (
+					<p role="status" className="text-sm text-muted-foreground">
+						{writing ? "Відкочую…" : "Перевіряю…"}
+					</p>
+				) : null}
+				{!revert.isPending && refused ? (
+					<>
+						<BlockerList result={refused} />
+						<CloseOnly />
+					</>
+				) : null}
+				{!revert.isPending && !refused && revert.error ? (
+					<>
+						<p role="alert" className="text-sm text-destructive">
+							<span aria-hidden="true">✗</span>{" "}
+							{revertFailureText(revert.error)}
 						</p>
-					) : null}
-					{!revert.isPending && revert.error ? (
+						<CloseOnly />
+					</>
+				) : null}
+				{!revert.isPending && result ? (
+					result.blockers.length > 0 ? (
 						<>
-							<p role="alert" className="text-sm text-destructive">
-								✗ {revertFailureText(revert.error)}
+							<BlockerList result={result} />
+							<CloseOnly />
+						</>
+					) : revertIsRefused(result) ? (
+						<>
+							<p className="text-sm">{result.detail}</p>
+							<CloseOnly />
+						</>
+					) : result.dry_run ? (
+						<>
+							<p className="text-sm">{revertSummary(result)}</p>
+							<DialogFooter>
+								<Button
+									onClick={() =>
+										revert.mutate({
+											data: { approval_id: result.approval_id, dry_run: false },
+										})
+									}
+								>
+									Відкотити рішення #{result.approval_id}
+								</Button>
+								<DialogClose asChild>
+									<Button variant="outline">Закрити</Button>
+								</DialogClose>
+							</DialogFooter>
+						</>
+					) : (
+						<>
+							<p role="status" className="text-sm">
+								<span aria-hidden="true">✓</span> {result.detail}
 							</p>
 							<CloseOnly />
 						</>
-					) : null}
-					{!revert.isPending && result ? (
-						result.blockers.length > 0 ? (
-							<>
-								<BlockerList result={result} />
-								<CloseOnly />
-							</>
-						) : result.dry_run ? (
-							<>
-								<p className="text-sm">{revertSummary(result)}</p>
-								<DialogFooter>
-									<Button onClick={confirm}>
-										Відкотити рішення #{result.approval_id}
-									</Button>
-									<DialogClose asChild>
-										<Button variant="outline">Закрити</Button>
-									</DialogClose>
-								</DialogFooter>
-							</>
-						) : (
-							<>
-								<p role="status" className="text-sm">
-									✓ {result.detail}
-								</p>
-								<CloseOnly />
-							</>
-						)
-					) : null}
-				</DialogContent>
-			</Dialog>
-		</>
+					)
+				) : null}
+			</DialogContent>
+		</Dialog>
 	);
 }

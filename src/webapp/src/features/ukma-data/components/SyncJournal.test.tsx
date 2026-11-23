@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MockAdapter from "axios-mock-adapter";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -18,6 +18,7 @@ import {
 	journalAnswer,
 	journalApply,
 	journalAuto,
+	journalApplyReverted,
 	journalPolicy,
 	journalRejected,
 	journalRevert,
@@ -25,6 +26,7 @@ import {
 	revertBlocked,
 	revertDone,
 	revertDryRun,
+	revertRefused,
 } from "./syncActionsTestData";
 import { SyncPage } from "./SyncPage";
 
@@ -51,9 +53,16 @@ async function openRevert() {
 	const user = userEvent.setup();
 	renderJournal();
 	await screen.findByRole("list", { name: "Журнал" });
-	await user.click(await screen.findByRole("button", { name: "Відкотити" }));
+	await user.click(
+		await screen.findByRole("button", { name: "Відкотити рішення #74" }),
+	);
 	return { user, dialog: await screen.findByRole("dialog") };
 }
+
+const revertRequests = () =>
+	mock.history.post
+		.filter((request) => request.url === REVERT_URL)
+		.map((request) => JSON.parse(String(request.data)));
 
 beforeEach(() => {
 	vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
@@ -105,7 +114,12 @@ describe("/data/sync journal", () => {
 
 		// Assert
 		const list = within(await screen.findByRole("list", { name: "Журнал" }));
-		expect(list.getAllByRole("button", { name: "Відкотити" })).toHaveLength(1);
+		expect(
+			list.getAllByRole("button", { name: /^Відкотити рішення #/ }),
+		).toHaveLength(1);
+		expect(
+			list.getByRole("button", { name: "Відкотити рішення #74" }),
+		).toBeInTheDocument();
 		expect(
 			screen.getByText(
 				"Цей тип застосовується автоматично. Спершу переведіть його в «Потребує рішення» (catalog_sync policy).",
@@ -149,11 +163,27 @@ describe("/data/sync journal", () => {
 		});
 	});
 
-	it("reverts an applied decision after a dry run", async () => {
+	it("keeps the revert result after the journal reloads", async () => {
 		// Arrange
 		let calls = 0;
-		mock.onPost(REVERT_URL).reply((config) => {
+		mock.onGet(JOURNAL_URL).reply(() => {
 			calls += 1;
+			return [
+				200,
+				{
+					items: [
+						journalRevert,
+						journalRejected,
+						calls === 1 ? journalApply : journalApplyReverted,
+						journalPolicy,
+						journalAnswer,
+						journalAuto,
+					],
+					next_before: null,
+				},
+			];
+		});
+		mock.onPost(REVERT_URL).reply((config) => {
 			const body = JSON.parse(String(config.data));
 			return body.dry_run === true ? [200, revertDryRun] : [200, revertDone];
 		});
@@ -175,13 +205,16 @@ describe("/data/sync journal", () => {
 		expect(
 			await screen.findByText(/Відкочено\. Рішення #76\./),
 		).toBeInTheDocument();
-		expect(calls).toBe(2);
+		await waitFor(() => expect(calls).toBeGreaterThan(1));
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		expect(screen.getByText(/Відкочено\. Рішення #76\./)).toBeInTheDocument();
+		await user.click(within(dialog).getByRole("button", { name: "Закрити" }));
+		const list = within(screen.getByRole("list", { name: "Журнал" }));
+		expect(list.getByText("відкочено")).toBeInTheDocument();
 		expect(
-			mock.history.get.filter((request) => request.url === JOURNAL_URL),
-		).not.toHaveLength(1);
-		const [dry, write] = mock.history.post
-			.filter((request) => request.url === REVERT_URL)
-			.map((request) => JSON.parse(String(request.data)));
+			list.queryByRole("button", { name: "Відкотити рішення #74" }),
+		).not.toBeInTheDocument();
+		const [dry, write] = revertRequests();
 		expect(dry).toEqual({ approval_id: 74, dry_run: true });
 		expect(write).toEqual({ approval_id: 74, dry_run: false });
 	});
@@ -212,6 +245,85 @@ describe("/data/sync journal", () => {
 		).not.toBeInTheDocument();
 		expect(
 			within(dialog).getByRole("button", { name: "Закрити" }),
+		).toBeInTheDocument();
+	});
+
+	it("shows a refused dry run with only Закрити", async () => {
+		// Arrange
+		mock.onPost(REVERT_URL).reply(200, revertRefused);
+
+		// Act
+		const { dialog } = await openRevert();
+
+		// Assert
+		expect(dialog).toHaveTextContent(
+			"Зараз іде нічне читання САЗ. Спробуйте за кілька хвилин.",
+		);
+		expect(dialog).not.toHaveTextContent(/Повернеться/);
+		expect(
+			within(dialog).queryByRole("button", {
+				name: "Відкотити рішення #74",
+			}),
+		).not.toBeInTheDocument();
+		expect(
+			within(dialog).getByRole("button", { name: "Закрити" }),
+		).toBeInTheDocument();
+	});
+
+	it("shows the blockers of a refused real revert", async () => {
+		// Arrange
+		mock.onPost(REVERT_URL).reply((config) => {
+			const body = JSON.parse(String(config.data));
+			return body.dry_run === true
+				? [200, revertDryRun]
+				: [409, { ...revertBlocked, dry_run: false }];
+		});
+
+		// Act
+		const { user, dialog } = await openRevert();
+		await user.click(
+			await within(dialog).findByRole("button", {
+				name: "Відкотити рішення #74",
+			}),
+		);
+
+		// Assert
+		expect(await within(dialog).findByText("зміна #48121")).toBeInTheDocument();
+		expect(dialog).toHaveTextContent(
+			"спершу відкотіть рішення #77 (пізніше застосоване)",
+		);
+		expect(dialog).not.toHaveTextContent(/Відкочено\. Рішення/);
+	});
+
+	it("keeps the dialog open while the revert is written", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		let release = () => {};
+		mock.onPost(REVERT_URL).reply((config) => {
+			const body = JSON.parse(String(config.data));
+			if (body.dry_run === true) {
+				return [200, revertDryRun];
+			}
+			return new Promise((resolve) => {
+				release = () => resolve([200, revertDone]);
+			});
+		});
+		const { dialog } = await openRevert();
+
+		// Act
+		await user.click(
+			within(dialog).getByRole("button", { name: "Відкотити рішення #74" }),
+		);
+		expect(await screen.findByText("Відкочую…")).toBeInTheDocument();
+		await user.keyboard("{Escape}");
+
+		// Assert
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Close" }));
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		release();
+		expect(
+			await screen.findByText(/Відкочено\. Рішення #76\./),
 		).toBeInTheDocument();
 	});
 });

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/Button";
@@ -23,6 +24,7 @@ import {
 	rejectLabel,
 	rejectProgress,
 } from "../syncActions";
+import { invalidateSyncQueries } from "../syncQueries";
 
 type Outcome =
 	| { kind: "applied"; response: SyncDecisionResponse }
@@ -32,12 +34,15 @@ type Outcome =
 export function PreviewClose({
 	disabled = false,
 }: Readonly<{ disabled?: boolean }>) {
+	if (disabled) {
+		return (
+			<Button variant="ghost" disabled>
+				Закрити
+			</Button>
+		);
+	}
 	return (
-		<Button
-			variant="ghost"
-			asChild
-			className={disabled ? "pointer-events-none opacity-50" : undefined}
-		>
+		<Button variant="ghost" asChild>
 			<Link to="/data/sync" search={{ tab: "pending" }}>
 				Закрити
 			</Link>
@@ -49,12 +54,21 @@ function OutcomeView({
 	outcome,
 	onRetry,
 }: Readonly<{ outcome: Outcome; onRetry: () => void }>) {
+	const result = useRef<HTMLParagraphElement>(null);
+	useEffect(() => {
+		result.current?.focus();
+	}, []);
 	if (outcome.kind === "failure") {
 		const { failure } = outcome;
 		return (
 			<div className="space-y-3 rounded-xl border bg-card p-4">
-				<p role="alert" className="text-sm text-destructive">
-					✗ {failure.text}
+				<p
+					ref={result}
+					role="alert"
+					tabIndex={-1}
+					className="text-sm text-destructive"
+				>
+					<span aria-hidden="true">✗</span> {failure.text}
 				</p>
 				<div className="flex flex-wrap items-center gap-2">
 					{failure.retry ? (
@@ -79,8 +93,8 @@ function OutcomeView({
 	const { response } = outcome;
 	return (
 		<div className="space-y-3 rounded-xl border bg-card p-4">
-			<p role="status" className="text-sm">
-				✓ {response.detail}
+			<p ref={result} role="status" tabIndex={-1} className="text-sm">
+				<span aria-hidden="true">✓</span> {response.detail}
 			</p>
 			<div className="flex flex-wrap items-center gap-2">
 				{outcome.kind === "applied" && response.counts.remaining > 0 ? (
@@ -113,41 +127,44 @@ export function SyncPreviewActions({
 	onDecided: () => void;
 }>) {
 	const [outcome, setOutcome] = useState<Outcome | null>(null);
-	const [pending, setPending] = useState<"apply" | "reject" | null>(null);
 	const [confirmOpen, setConfirmOpen] = useState(false);
+	const queryClient = useQueryClient();
+	const settle = () => invalidateSyncQueries(queryClient);
 	const apply = useUkmaDataSyncApply({
 		mutation: {
 			onSuccess: (response) => {
-				setPending(null);
 				setOutcome({ kind: "applied", response });
 				onDecided();
 			},
 			onError: (error) => {
-				setPending(null);
 				setOutcome({ kind: "failure", failure: actionFailure(error) });
 			},
+			onSettled: settle,
 		},
 	});
 	const reject = useUkmaDataSyncReject({
 		mutation: {
 			onSuccess: (response) => {
-				setPending(null);
 				setOutcome({ kind: "rejected", response });
 				onDecided();
 			},
 			onError: (error) => {
-				setPending(null);
 				setOutcome({ kind: "failure", failure: actionFailure(error) });
 			},
+			onSettled: settle,
 		},
 	});
+	const pending = apply.isPending
+		? "apply"
+		: reject.isPending
+			? "reject"
+			: null;
 	const retry = () => {
 		setOutcome(null);
 		onRefresh();
 	};
 	const startApply = () => {
 		setOutcome(null);
-		setPending("apply");
 		apply.mutate({
 			data: {
 				source: "catalog",
@@ -160,7 +177,7 @@ export function SyncPreviewActions({
 	};
 	const startReject = () => {
 		setOutcome(null);
-		setPending("reject");
+		setConfirmOpen(false);
 		reject.mutate({
 			data: {
 				run: preview.run.id,

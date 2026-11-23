@@ -109,6 +109,12 @@ export const journalApply: SyncJournalEntry = {
 	reverted: false,
 };
 
+export const journalApplyReverted: SyncJournalEntry = {
+	...journalApply,
+	revertible: false,
+	reverted: true,
+};
+
 export const journalRevert: SyncJournalEntry = {
 	id: 76,
 	kind: "revert",
@@ -194,7 +200,7 @@ export const revertDryRun = {
 	decision_id: null,
 	dry_run: true,
 	outcome: "applied",
-	code: "",
+	code: null,
 	detail: "Відкотило б 1 855 змін.",
 	changes: [{ id: 48_121, kind: "change_course" }],
 	blockers: [],
@@ -208,6 +214,15 @@ export const revertDone = {
 	dry_run: false,
 	detail:
 		"Відкочено. Рішення #76. Зміни повернуться в «Чекають рішення» після наступного читання.",
+};
+
+export const revertRefused = {
+	...revertDryRun,
+	outcome: "refused",
+	code: "lock_held",
+	detail: "Зараз іде нічне читання САЗ. Спробуйте за кілька хвилин.",
+	changes: [],
+	reverted: 0,
 };
 
 export const revertBlocked = {

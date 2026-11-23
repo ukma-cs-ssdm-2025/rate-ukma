@@ -176,6 +176,48 @@ describe("apiClient axios interceptor integration", () => {
 		expect(notifySessionExpired).toHaveBeenCalledOnce();
 	});
 
+	it("keeps the page when a sync decision loses its connection", async () => {
+		// Arrange
+		mockAxios.onPost("/api/v1/ukma-data/sync/apply/").networkError();
+
+		// Act
+		const request = authorizedHttpClient.post(
+			"/api/v1/ukma-data/sync/apply/",
+			{},
+		);
+
+		// Assert
+		await expect(request).rejects.toBeDefined();
+		expect(mockWindowReplace).not.toHaveBeenCalled();
+	});
+
+	it("keeps the page when a sync decision times out", async () => {
+		// Arrange
+		mockAxios.onPost("/api/v1/ukma-data/sync/revert/").timeout();
+
+		// Act
+		const request = authorizedHttpClient.post(
+			"/api/v1/ukma-data/sync/revert/",
+			{},
+		);
+
+		// Assert
+		await expect(request).rejects.toBeDefined();
+		expect(mockWindowReplace).not.toHaveBeenCalled();
+	});
+
+	it("redirects when a sync read loses its connection", async () => {
+		// Arrange
+		mockAxios.onGet("/api/v1/ukma-data/sync/pending/").networkError();
+
+		// Act
+		const request = authorizedHttpClient.get("/api/v1/ukma-data/sync/pending/");
+
+		// Assert
+		await expect(request).rejects.toBeDefined();
+		expectConnectionErrorRedirect("server");
+	});
+
 	it("keeps the session on a 403 from the UKMA Data proxy", async () => {
 		// Arrange
 		mockAxios.onGet("/api/v1/ukma-data/status/").reply(403);

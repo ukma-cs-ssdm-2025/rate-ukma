@@ -1,20 +1,20 @@
 import axios from "axios";
 
-import { SyncPolicyModeEnum, SyncRefusalCodeEnum } from "@/lib/api/generated";
+import { SyncRefusalCodeEnum } from "@/lib/api/generated";
 import type {
 	SyncDecisionCounts,
 	SyncJournalEntry,
 	SyncJournalKindEnum,
+	SyncPolicyModeEnum,
 	SyncPreviewResponse,
+	SyncRevertResponse,
 } from "@/lib/api/generated";
 import { errorStatus } from "./ukmaDataErrors";
-import { kindLabel, numberAt, readPath } from "./sync";
+import { kindLabel } from "./sync";
 import { CHANGES_ACCUSATIVE, countWith, formatCount } from "./syncFormat";
 import { ANSWER_LABELS } from "./syncLabels";
 import { GROUP_ORDER, kindParts } from "./syncOverview";
 import { TERMS } from "./syncTerms";
-
-const APPLY_CAP = 5000;
 
 const LOST_ANSWER_TEXT =
 	"Відповідь не прийшла. Перевірте Журнал, перш ніж повторювати.";
@@ -65,13 +65,13 @@ const REFUSAL_TEXT = {
 } satisfies Record<SyncRefusalCodeEnum, string>;
 
 const isRefusalCode = (value: string): value is SyncRefusalCodeEnum =>
-	value in SyncRefusalCodeEnum;
+	Object.hasOwn(SyncRefusalCodeEnum, value);
 
 const isOverCap = (counts: SyncDecisionCounts): boolean => counts.remaining > 0;
 
 export function applyLabel(counts: SyncDecisionCounts): string {
 	if (isOverCap(counts)) {
-		return `Застосувати перші ${formatCount(APPLY_CAP)} з ${formatCount(counts.total)}`;
+		return `Застосувати перші ${formatCount(counts.applied)} з ${formatCount(counts.total)}`;
 	}
 	return `Застосувати ${countWith(counts.applied, CHANGES_ACCUSATIVE)}`;
 }
@@ -200,21 +200,11 @@ const MODE_LABELS = {
 	needs_approval: TERMS.needs_approval.label,
 } satisfies Record<SyncPolicyModeEnum, string>;
 
-const isMode = (value: string): value is SyncPolicyModeEnum =>
-	value in SyncPolicyModeEnum;
-
-const modeName = (value: string | null): string =>
-	value !== null && isMode(value) ? MODE_LABELS[value] : (value ?? "—");
-
-const countAt = (raw: unknown, key: string): number => numberAt(raw, key) ?? 0;
-
-const textAt = (raw: unknown, key: string): string | null => {
-	const value = readPath(raw, key);
-	return typeof value === "string" && value.length > 0 ? value : null;
-};
+const modeName = (value: SyncPolicyModeEnum | null): string =>
+	value === null ? "—" : MODE_LABELS[value];
 
 const isAnswer = (value: string): value is keyof typeof ANSWER_LABELS =>
-	value in ANSWER_LABELS;
+	Object.hasOwn(ANSWER_LABELS, value);
 
 const groupSuffix = (group: string | null): string =>
 	group === null ? "" : ` (${groupName(group)})`;
@@ -224,19 +214,19 @@ const autoSuffix = (entry: SyncJournalEntry): string =>
 
 const JOURNAL_TITLES = {
 	apply: (entry) =>
-		`Застосовано ${formatCount(countAt(entry.counts, "applied"))}${groupSuffix(entry.group)}${autoSuffix(entry)}`,
+		`Застосовано ${formatCount(entry.counts.applied ?? 0)}${groupSuffix(entry.group)}${autoSuffix(entry)}`,
 	reject: (entry) =>
-		`Відхилено ${formatCount(countAt(entry.counts, "rejected"))}${groupSuffix(entry.group)}${autoSuffix(entry)}`,
+		`Відхилено ${formatCount(entry.counts.rejected ?? 0)}${groupSuffix(entry.group)}${autoSuffix(entry)}`,
 	revert: (entry) => {
 		const source = entry.reverts_id === null ? "" : ` #${entry.reverts_id}`;
-		return `Відкочено${source} (${formatCount(countAt(entry.counts, "reverted"))})${autoSuffix(entry)}`;
+		return `Відкочено${source} (${formatCount(entry.counts.reverted ?? 0)})${autoSuffix(entry)}`;
 	},
 	policy: (entry) =>
-		`Правило: ${kindLabel(textAt(entry.counts, "kind") ?? "—")} → ${modeName(textAt(entry.counts, "new_mode"))}`,
+		`Правило: ${kindLabel(entry.counts.kind ?? "—")} → ${modeName(entry.counts.new_mode ?? null)}`,
 	answer: (entry) => {
-		const answer = textAt(entry.counts, "answer");
-		const head = `Відповідь: ${kindLabel(textAt(entry.counts, "kind") ?? "—")}`;
-		return answer !== null && isAnswer(answer)
+		const answer = entry.counts.answer;
+		const head = `Відповідь: ${kindLabel(entry.counts.kind ?? "—")}`;
+		return answer !== undefined && isAnswer(answer)
 			? `${head} — ${ANSWER_LABELS[answer]}`
 			: head;
 	},
@@ -246,7 +236,7 @@ export const journalTitle = (entry: SyncJournalEntry): string =>
 	JOURNAL_TITLES[entry.kind](entry);
 
 export function journalApplySummary(entry: SyncJournalEntry): string {
-	return `Застосовано ${countWith(countAt(entry.counts, "applied"), CHANGES_ACCUSATIVE)}${groupSuffix(entry.group)}`;
+	return `Застосовано ${countWith(entry.counts.applied ?? 0, CHANGES_ACCUSATIVE)}${groupSuffix(entry.group)}`;
 }
 
 export const journalEntryNumber = (entry: SyncJournalEntry): string =>
@@ -261,3 +251,17 @@ export function revertFailureText(error: unknown): string {
 	}
 	return actionFailure(error).text;
 }
+
+export function revertRefusal(error: unknown): SyncRevertResponse | null {
+	if (!axios.isAxiosError<SyncRevertResponse>(error)) {
+		return null;
+	}
+	const data = error.response?.data;
+	if (error.response?.status !== 409 || data === undefined) {
+		return null;
+	}
+	return Array.isArray(data.blockers) ? data : null;
+}
+
+export const revertIsRefused = (result: SyncRevertResponse): boolean =>
+	result.outcome === "refused" || result.code !== null;

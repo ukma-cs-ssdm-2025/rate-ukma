@@ -18,6 +18,7 @@ import {
 } from "../syncActions";
 import { changesText } from "../syncOverview";
 import { previewGroupParser, previewKindParser } from "../syncPreviewParams";
+import { PREVIEW_QUERY_KEY } from "../syncQueries";
 import { TERMS } from "../syncTerms";
 import { PreviewClose, SyncPreviewActions } from "./SyncPreviewActions";
 import { SyncPreviewRows } from "./SyncPreviewRows";
@@ -48,17 +49,22 @@ export function SyncPreviewPage() {
 	const [kind] = useQueryState("kind", previewKindParser);
 	const [decided, setDecided] = useState(false);
 	const preview = useQuery({
-		queryKey: ["ukma-data-sync-preview", group, kind],
+		queryKey: [PREVIEW_QUERY_KEY, group, kind],
 		queryFn: ({ signal }) =>
 			ukmaDataSyncPreview({ source: "catalog", group, kind }, signal),
 		retry: false,
 		refetchOnWindowFocus: false,
 		refetchOnReconnect: false,
+		staleTime: 0,
+		gcTime: 0,
 	});
 	const run = preview.data?.run ?? null;
 	const total = preview.data?.counts.total ?? null;
+	const busy = preview.isLoading || preview.isFetching;
 	const canAct =
 		preview.data !== undefined &&
+		!busy &&
+		!preview.isError &&
 		group !== "mapping" &&
 		group !== "removed" &&
 		preview.data.counts.applied > 0;
@@ -94,7 +100,7 @@ export function SyncPreviewPage() {
 					</p>
 				)}
 			</div>
-			{preview.isLoading ? (
+			{busy ? (
 				<div className="space-y-3">
 					<p role="status" className="text-sm text-muted-foreground">
 						Завантажую…
@@ -102,20 +108,19 @@ export function SyncPreviewPage() {
 					<Skeleton className="h-40 rounded-xl" />
 				</div>
 			) : null}
-			{preview.error ? (
+			{preview.error && !busy ? (
 				<div className="space-y-2 rounded-lg border bg-card p-4">
 					<p className="text-sm">{previewLoadText(preview.error)}</p>
 					<Button
 						variant="outline"
 						size="sm"
 						onClick={() => void preview.refetch()}
-						disabled={preview.isRefetching}
 					>
 						Спробувати ще
 					</Button>
 				</div>
 			) : null}
-			{preview.data === undefined ? null : (
+			{preview.data === undefined || busy || preview.isError ? null : (
 				<>
 					{decided ? null : (
 						<>

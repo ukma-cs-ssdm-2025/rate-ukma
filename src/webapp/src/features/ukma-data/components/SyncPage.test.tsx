@@ -17,6 +17,7 @@ import {
 	question,
 	titleChange,
 } from "./dataTestData";
+import { GROUP_ORDER } from "../syncOverview";
 import { SyncPage } from "./SyncPage";
 
 vi.mock("@tanstack/react-router", async () => ({
@@ -91,10 +92,13 @@ describe("/data/sync", () => {
 		const list = within(
 			await screen.findByRole("list", { name: "Що чекає рішення" }),
 		);
-		for (const row of list.getAllByRole("listitem")) {
-			expect(
-				within(row).getByRole("link", { name: "Переглянути" }),
-			).toHaveAttribute("href", "/data/sync/preview");
+		const rows = list.getAllByRole("listitem");
+		for (const [index, row] of rows.entries()) {
+			const link = within(row).getByRole("link", { name: "Переглянути" });
+			expect(link).toHaveAttribute("href", "/data/sync/preview");
+			expect(JSON.parse(link.getAttribute("data-search") ?? "{}")).toEqual({
+				group: GROUP_ORDER[index],
+			});
 		}
 	});
 

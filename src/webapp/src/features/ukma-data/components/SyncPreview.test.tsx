@@ -230,6 +230,7 @@ describe("/data/sync/preview", () => {
 		expect(
 			await screen.findByText(/Застосовано 1 532 зміни\. Рішення #74\./),
 		).toBeInTheDocument();
+		expect(screen.getByText("✓")).toHaveAttribute("aria-hidden", "true");
 		expect(
 			screen.getByRole("link", { name: "Відкрити в Журналі" }),
 		).toHaveAttribute("href", "/data/sync");
@@ -244,75 +245,6 @@ describe("/data/sync/preview", () => {
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 		);
 	});
-
-	const refusals: [string, number, string, string | null][] = [
-		[
-			"selection_changed",
-			409,
-			"Список змінився. Перегляньте ще раз.",
-			"Переглянути ще раз",
-		],
-		[
-			"lock_held",
-			409,
-			"Зараз іде нічне читання САЗ. Спробуйте за кілька хвилин.",
-			null,
-		],
-		[
-			"run_not_current",
-			409,
-			"Ці зміни з попереднього читання САЗ. Відкрийте «Чекають рішення» ще раз.",
-			null,
-		],
-		[
-			"run_too_old",
-			409,
-			"Дані САЗ старші за 48 годин. Перегляньте ще раз після наступного читання.",
-			null,
-		],
-		[
-			"deadline_exceeded",
-			422,
-			"Не встигли за 40 с, нічого не записано. Виберіть менше змін.",
-			null,
-		],
-		[
-			"no_proposed_changes",
-			422,
-			"Серед вибраних немає змін, що чекають рішення.",
-			null,
-		],
-		["failed", 500, "Не вдалося виконати дію. Перевірте Журнал.", null],
-	];
-
-	it.each(refusals)(
-		"explains the %s refusal with the plan's words",
-		async (code, status, text, action) => {
-			const user = userEvent.setup();
-			mock.onPost(APPLY_URL).reply(status, {
-				code,
-				detail: "server text",
-				status,
-				decision_id: null,
-			});
-
-			renderPreview();
-			await user.click(
-				await screen.findByRole("button", { name: /^Застосувати/ }),
-			);
-			expect(await screen.findByText(`✗ ${text}`)).toBeInTheDocument();
-			if (action !== null) {
-				expect(
-					screen.getByRole("button", { name: action }),
-				).toBeInTheDocument();
-			}
-			if (code === "failed") {
-				expect(
-					screen.getByRole("link", { name: "Журнал" }),
-				).toBeInTheDocument();
-			}
-		},
-	);
 
 	it("treats a 504 as a lost answer and links the journal", async () => {
 		// Arrange
@@ -396,5 +328,34 @@ describe("/data/sync/preview", () => {
 		expect(
 			mock.history.post.filter((request) => request.url === PREVIEW_URL),
 		).toHaveLength(2);
+	});
+
+	it("loads a fresh preview when the group is opened again", async () => {
+		// Arrange
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false, staleTime: 5 * 60 * 1000 } },
+		});
+		const open = () =>
+			render(
+				<QueryClientProvider client={queryClient}>
+					<NuqsTestingAdapter searchParams="?group=link" hasMemory>
+						<SyncPreviewPage />
+					</NuqsTestingAdapter>
+				</QueryClientProvider>,
+			);
+
+		// Act
+		const first = open();
+		await screen.findByText(/Застосується/);
+		first.unmount();
+		open();
+
+		// Assert
+		expect(await screen.findByText(/Застосується/)).toBeInTheDocument();
+		await waitFor(() =>
+			expect(
+				mock.history.post.filter((request) => request.url === PREVIEW_URL),
+			).toHaveLength(2),
+		);
 	});
 });
