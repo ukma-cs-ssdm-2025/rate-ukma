@@ -176,6 +176,9 @@ export function SyncPreviewActions({
 		});
 	};
 	const startReject = () => {
+		if (reject.isPending) {
+			return;
+		}
 		setOutcome(null);
 		setConfirmOpen(false);
 		reject.mutate({
@@ -195,9 +198,11 @@ export function SyncPreviewActions({
 	return (
 		<div className="space-y-3 rounded-xl border bg-card p-4">
 			<div className="flex flex-wrap items-center gap-2">
-				<Button onClick={startApply} disabled={pending !== null}>
-					{applyLabel(preview.counts)}
-				</Button>
+				{preview.counts.applied > 0 ? (
+					<Button onClick={startApply} disabled={pending !== null}>
+						{applyLabel(preview.counts)}
+					</Button>
+				) : null}
 				<Button
 					variant="outline"
 					onClick={() => setConfirmOpen(true)}

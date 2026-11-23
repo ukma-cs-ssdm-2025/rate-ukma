@@ -95,6 +95,9 @@ describe("/data/sync/preview", () => {
 				name: /Застосувати перші 5.000 з 24.290/,
 			}),
 		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /^Відхилити 24.290 змін$/ }),
+		).toBeInTheDocument();
 	});
 
 	it("shows that it is loading", async () => {
@@ -133,7 +136,7 @@ describe("/data/sync/preview", () => {
 		).toBeInTheDocument();
 	});
 
-	it("says nothing applies when the selection has nothing to write", async () => {
+	it("offers only reject when nothing would apply but changes wait", async () => {
 		// Arrange
 		mock.onPost(PREVIEW_URL).reply(
 			200,
@@ -147,10 +150,31 @@ describe("/data/sync/preview", () => {
 
 		// Assert
 		expect(
-			await screen.findByText("Нічого не застосовувати."),
+			await screen.findByRole("button", { name: "Відхилити 213 змін" }),
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole("button", { name: /^Застосувати/ }),
+		).not.toBeInTheDocument();
+	});
+
+	it("says nothing applies when nothing in the selection is proposed", async () => {
+		// Arrange
+		mock.onPost(PREVIEW_URL).reply(
+			200,
+			previewFixture({
+				counts: decisionCounts({ skipped: 4, total: 4 }),
+			}),
+		);
+
+		// Act
+		renderPreview("?group=change");
+
+		// Assert
+		expect(
+			await screen.findByText("Нічого не застосовувати."),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /^Відхилити/ }),
 		).not.toBeInTheDocument();
 	});
 
@@ -305,7 +329,7 @@ describe("/data/sync/preview", () => {
 			decisionResponse({
 				counts: decisionCounts({
 					applied: 5000,
-					total: 24_290,
+					total: 5000,
 					remaining: 19_290,
 				}),
 				detail: "Застосовано 5 000 змін. Рішення #74.",

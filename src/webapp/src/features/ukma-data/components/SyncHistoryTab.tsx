@@ -1,16 +1,25 @@
-import { parseAsInteger, useQueryState } from "nuqs";
+import { useQueryStates } from "nuqs";
 
-import { URL_OPTIONS } from "../syncParams";
+import { changeParams, changeUrlKeys, historyParams } from "../syncParams";
 import { SyncJournal } from "./SyncJournal";
 import { SyncRunPage } from "./SyncRunPage";
+import { SyncRunsList } from "./SyncRunsList";
 
 export function SyncHistoryTab() {
-	const [openRun, setOpenRun] = useQueryState(
-		"openRun",
-		parseAsInteger.withOptions(URL_OPTIONS),
+	const [{ openRun }, setParams] = useQueryStates(
+		{ ...historyParams, ...changeParams },
+		changeUrlKeys,
 	);
+	const open = (run: number | null) => {
+		void setParams({ openRun: run, state: null, page: null });
+	};
 	if (openRun !== null) {
-		return <SyncRunPage runId={openRun} onBack={() => void setOpenRun(null)} />;
+		return <SyncRunPage runId={openRun} onBack={() => open(null)} />;
 	}
-	return <SyncJournal />;
+	return (
+		<div className="space-y-8">
+			<SyncJournal />
+			<SyncRunsList onOpen={open} />
+		</div>
+	);
 }

@@ -15,6 +15,8 @@ import {
 	previewLoadText,
 	previewReasons,
 	previewSummary,
+	canReject,
+	selectionSize,
 } from "../syncActions";
 import { changesText } from "../syncOverview";
 import { previewGroupParser, previewKindParser } from "../syncPreviewParams";
@@ -59,7 +61,7 @@ export function SyncPreviewPage() {
 		gcTime: 0,
 	});
 	const run = preview.data?.run ?? null;
-	const total = preview.data?.counts.total ?? null;
+	const total = preview.data ? selectionSize(preview.data.counts) : null;
 	const busy = preview.isLoading || preview.isFetching;
 	const canAct =
 		preview.data !== undefined &&
@@ -67,7 +69,7 @@ export function SyncPreviewPage() {
 		!preview.isError &&
 		group !== "mapping" &&
 		group !== "removed" &&
-		preview.data.counts.applied > 0;
+		canReject(preview.data.counts);
 	const refresh = () => {
 		setDecided(false);
 		void preview.refetch();

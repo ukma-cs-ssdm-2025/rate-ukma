@@ -234,6 +234,7 @@ describe("/data/sync/preview actions", () => {
 	it("shows the new decision in the journal after an apply", async () => {
 		// Arrange
 		const user = userEvent.setup();
+		mock.onPost(APPLY_URL).reply(200, decisionResponse());
 		let journalCalls = 0;
 		mock.onGet(JOURNAL_URL).reply(() => {
 			journalCalls += 1;
@@ -256,6 +257,9 @@ describe("/data/sync/preview actions", () => {
 		);
 
 		// Assert
+		expect(
+			await screen.findByText(decisionResponse().detail, { exact: false }),
+		).toBeInTheDocument();
 		expect(
 			await screen.findByText(/Застосовано 1 855 \(Змінити\)/),
 		).toBeInTheDocument();

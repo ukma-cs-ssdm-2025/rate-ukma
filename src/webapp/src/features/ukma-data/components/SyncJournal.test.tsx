@@ -1,3 +1,5 @@
+import { StrictMode } from "react";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -45,11 +47,13 @@ function renderJournal(search = "?tab=history") {
 		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 	});
 	render(
-		<QueryClientProvider client={queryClient}>
-			<NuqsTestingAdapter searchParams={search} hasMemory>
-				<SyncPage />
-			</NuqsTestingAdapter>
-		</QueryClientProvider>,
+		<StrictMode>
+			<QueryClientProvider client={queryClient}>
+				<NuqsTestingAdapter searchParams={search} hasMemory>
+					<SyncPage />
+				</NuqsTestingAdapter>
+			</QueryClientProvider>
+		</StrictMode>,
 	);
 }
 
@@ -297,6 +301,58 @@ describe("/data/sync journal", () => {
 		expect(
 			within(dialog).getByRole("button", { name: "Закрити" }),
 		).toBeInTheDocument();
+	});
+
+	it("lists two blockers of one change separately", async () => {
+		// Arrange
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+		const [first] = revertBlocked.blockers;
+		mock.onPost(REVERT_URL).reply(200, {
+			...revertBlocked,
+			blockers: [
+				first,
+				{ ...first, reason: "auto", text: "цей вид змін застосовується сам" },
+			],
+		});
+
+		// Act
+		const { dialog } = await openRevert();
+
+		// Assert
+		const blockers = within(
+			await within(dialog).findByRole("list", { name: "Перешкоди" }),
+		);
+		expect(blockers.getAllByRole("listitem")).toHaveLength(2);
+		expect(
+			errors.mock.calls.some((call) => String(call[0]).includes("same key")),
+		).toBe(false);
+		errors.mockRestore();
+	});
+
+	it("shows a refused write without an empty blocker list", async () => {
+		// Arrange
+		mock.onPost(REVERT_URL).reply((config) => {
+			const body = JSON.parse(String(config.data));
+			return body.dry_run === true
+				? [200, revertDryRun]
+				: [409, { ...revertRefused, dry_run: false }];
+		});
+
+		// Act
+		const { user, dialog } = await openRevert();
+		await user.click(
+			await within(dialog).findByRole("button", {
+				name: "Відкотити рішення #74",
+			}),
+		);
+
+		// Assert
+		expect(
+			await within(dialog).findByText(revertRefused.detail),
+		).toBeInTheDocument();
+		expect(
+			within(dialog).queryByRole("list", { name: "Перешкоди" }),
+		).not.toBeInTheDocument();
 	});
 
 	it("shows a refused dry run with only Закрити", async () => {

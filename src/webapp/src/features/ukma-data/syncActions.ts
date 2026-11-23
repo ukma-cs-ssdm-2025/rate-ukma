@@ -69,24 +69,27 @@ const isRefusalCode = (value: string): value is SyncRefusalCodeEnum =>
 
 const isOverCap = (counts: SyncDecisionCounts): boolean => counts.remaining > 0;
 
+export const selectionSize = (counts: SyncDecisionCounts): number =>
+	counts.total + counts.remaining;
+
 export function applyLabel(counts: SyncDecisionCounts): string {
 	if (isOverCap(counts)) {
-		return `Застосувати перші ${formatCount(counts.applied)} з ${formatCount(counts.total)}`;
+		return `Застосувати перші ${formatCount(counts.applied)} з ${formatCount(selectionSize(counts))}`;
 	}
 	return `Застосувати ${countWith(counts.applied, CHANGES_ACCUSATIVE)}`;
 }
 
 export const rejectLabel = (counts: SyncDecisionCounts): string =>
-	`Відхилити ${countWith(counts.total, CHANGES_ACCUSATIVE)}`;
+	`Відхилити ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}`;
 
 export const applyProgress = (counts: SyncDecisionCounts): string =>
 	`Застосовую ${countWith(counts.applied, CHANGES_ACCUSATIVE)}…`;
 
 export const rejectProgress = (counts: SyncDecisionCounts): string =>
-	`Відхиляю ${countWith(counts.total, CHANGES_ACCUSATIVE)}…`;
+	`Відхиляю ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}…`;
 
 export const rejectConfirm = (counts: SyncDecisionCounts) => ({
-	title: `Відхилити ${countWith(counts.total, CHANGES_ACCUSATIVE)}?`,
+	title: `Відхилити ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}?`,
 	description:
 		"На сайті нічого не зміниться. Вони повернуться після наступного читання, якщо САЗ не зміниться.",
 });
@@ -105,11 +108,18 @@ export function previewSummary(counts: SyncDecisionCounts): PreviewSummary {
 		counts.applied === 0
 			? "Нічого не застосується."
 			: `Застосується ${formatCount(counts.applied)}${parts.length > 0 ? `: ${parts}` : ""}.`;
+	const later =
+		counts.remaining > 0
+			? ` Ще ${formatCount(counts.remaining)} — наступного разу.`
+			: "";
 	return {
 		applied,
-		leftOut: `Не увійде ${formatCount(counts.waiting + counts.skipped)}.`,
+		leftOut: `Не увійде ${formatCount(counts.waiting + counts.skipped)}.${later}`,
 	};
 }
+
+export const canReject = (counts: SyncDecisionCounts): boolean =>
+	counts.applied + counts.waiting + counts.remaining > 0;
 
 export function previewReasons(preview: SyncPreviewResponse): string[] {
 	return [...preview.waiting_reasons, ...preview.skipped_reasons].map(
@@ -282,11 +292,17 @@ export const journalEntryNumber = (entry: SyncJournalEntry): string =>
 export const revertSummary = (result: Readonly<{ reverted: number }>): string =>
 	`Повернеться ${formatCount(result.reverted)}: поля отримають попередні значення. Нічого не видаляється.`;
 
-export function revertFailureText(error: unknown): string {
+export const REVERT_CHECK_LOST_TEXT =
+	"Перевірка не відповіла. Нічого не змінилося; спробуйте ще раз.";
+
+export function revertFailureText(error: unknown, writing: boolean): string {
 	if (errorStatus(error) === 404) {
 		return "Рішення не знайдено.";
 	}
-	return actionFailure(error).text;
+	const failure = actionFailure(error);
+	return failure.kind === "lost" && !writing
+		? REVERT_CHECK_LOST_TEXT
+		: failure.text;
 }
 
 export function revertRefusal(error: unknown): SyncRevertResponse | null {
