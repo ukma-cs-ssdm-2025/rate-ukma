@@ -60,6 +60,8 @@ const REFUSAL_TEXT = {
 		"Не встигли за 40 с, нічого не записано. Виберіть менше змін.",
 	no_proposed_changes: "Серед вибраних немає змін, що чекають рішення.",
 	failed: "Не вдалося виконати дію. Перевірте Журнал.",
+	in_progress:
+		"Рішення ще виконується. Перевірте Журнал, перш ніж повторювати.",
 } satisfies Record<SyncRefusalCodeEnum, string>;
 
 const isRefusalCode = (value: string): value is SyncRefusalCodeEnum =>
@@ -168,7 +170,7 @@ export function actionFailure(error: unknown): ActionFailure {
 				code,
 				text: REFUSAL_TEXT[code],
 				retry: code === "selection_changed",
-				journal: code === "failed",
+				journal: code === "failed" || code === "in_progress",
 			};
 		}
 		return {
@@ -214,8 +216,8 @@ const textAt = (raw: unknown, key: string): string | null => {
 const isAnswer = (value: string): value is keyof typeof ANSWER_LABELS =>
 	value in ANSWER_LABELS;
 
-const groupSuffix = (group: string): string =>
-	group.length === 0 ? "" : ` (${groupName(group)})`;
+const groupSuffix = (group: string | null): string =>
+	group === null ? "" : ` (${groupName(group)})`;
 
 const autoSuffix = (entry: SyncJournalEntry): string =>
 	entry.who === null ? " (автоматично)" : "";

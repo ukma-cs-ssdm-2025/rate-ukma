@@ -163,6 +163,7 @@ export function SyncPreviewActions({
 		setPending("reject");
 		reject.mutate({
 			data: {
+				run: preview.run.id,
 				source: "catalog",
 				group,
 				kind,

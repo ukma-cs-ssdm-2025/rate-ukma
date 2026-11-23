@@ -356,6 +356,7 @@ describe("/data/sync/preview", () => {
 		).toBeInTheDocument();
 		const body = JSON.parse(String(mock.history.post.at(-1)?.data));
 		expect(body).toMatchObject({
+			run: previewFixture().run.id,
 			source: "catalog",
 			group: "link",
 			kind: null,
