@@ -103,6 +103,7 @@ export function SyncRevertDialog({
 		gcTime: 0,
 		retry: false,
 		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
 	});
 	const writing = revert.isPending;
 	const requestClose = () => {

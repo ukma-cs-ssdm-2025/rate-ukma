@@ -278,6 +278,32 @@ describe("/data/sync journal", () => {
 		errors.mockRestore();
 	});
 
+	it("shows a refused write without an empty blocker list", async () => {
+		// Arrange
+		mock.onPost(REVERT_URL).reply((config) => {
+			const body = JSON.parse(String(config.data));
+			return body.dry_run === true
+				? [200, revertDryRun]
+				: [409, { ...revertRefused, dry_run: false }];
+		});
+
+		// Act
+		const { user, dialog } = await openRevert();
+		await user.click(
+			await within(dialog).findByRole("button", {
+				name: "Відкотити рішення #74",
+			}),
+		);
+
+		// Assert
+		expect(
+			await within(dialog).findByText(revertRefused.detail),
+		).toBeInTheDocument();
+		expect(
+			within(dialog).queryByRole("list", { name: "Перешкоди" }),
+		).not.toBeInTheDocument();
+	});
+
 	it("shows a refused dry run with only Закрити", async () => {
 		// Arrange
 		mock.onPost(REVERT_URL).reply(200, revertRefused);
