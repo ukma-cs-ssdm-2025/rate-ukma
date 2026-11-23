@@ -3555,14 +3555,15 @@ paths:
       description: 'Apply at most 5 000 changes of the previewed selection, lowest
         change numbers first, in one transaction. The 40 s budget starts once the
         selection is read and is checked between batches and before the decision is
-        saved; past it the request rolls back and answers 422 `deadline_exceeded`.
-        One SQL statement may run at most 30 s, so a batch started near the end can
-        finish after 40 s. The `token` from `preview` binds the selected change ids:
-        if that id set changed, the answer is 409 `selection_changed`. A change in
-        the set that another decision took since the preview is not applied and is
-        counted as skipped, so `counts` can differ from the preview. A retry with
-        the same `client_key` returns the first decision with 200 instead of applying
-        twice; each new attempt needs a new `client_key`. Superusers only.'
+        saved; past it no change is written, the refused decision is kept for the
+        Журнал, and the answer is 422 `deadline_exceeded`. One SQL statement may run
+        at most 30 s; a statement cut there answers 500 `failed`, and a batch started
+        near the end can finish after 40 s. The `token` from `preview` binds the selected
+        change ids: if that id set changed, the answer is 409 `selection_changed`.
+        A change in the set that another decision took since the preview is not applied
+        and is counted as skipped, so `counts` can differ from the preview. A retry
+        with the same `client_key` returns the first decision with 200 instead of
+        applying twice; each new attempt needs a new `client_key`. Superusers only.'
       summary: Apply a previewed sync selection
       tags:
       - ukma-data
@@ -3648,7 +3649,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SyncRefusal'
-          description: Nothing to apply or preview
+          description: Nothing to apply or preview, or past the deadline
         '500':
           content:
             application/json:
@@ -4113,7 +4114,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SyncRefusal'
-          description: Nothing to apply or preview
+          description: Nothing to apply or preview, or past the deadline
         '500':
           content:
             application/json:
@@ -4323,7 +4324,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SyncRefusal'
-          description: Nothing to apply or preview
+          description: Nothing to apply or preview, or past the deadline
         '500':
           content:
             application/json:
@@ -7108,7 +7109,8 @@ components:
       type: object
       description: |-
         Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
-        `change_ids` list. Neither, both, or an empty list answers 400.
+        `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+        every id in `change_ids` must belong to that run.
       properties:
         run:
           type: integer
@@ -7916,7 +7918,8 @@ components:
       type: object
       description: |-
         Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
-        `change_ids` list. Neither, both, or an empty list answers 400.
+        `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+        every id in `change_ids` must belong to that run.
       properties:
         run:
           type: integer
@@ -8201,7 +8204,8 @@ components:
       type: object
       description: |-
         Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
-        `change_ids` list. Neither, both, or an empty list answers 400.
+        `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+        every id in `change_ids` must belong to that run.
       properties:
         run:
           type: integer

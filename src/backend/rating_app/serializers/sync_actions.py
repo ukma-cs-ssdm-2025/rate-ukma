@@ -77,6 +77,10 @@ REFUSAL_CODES = [
 
 
 class SyncActionSelectionSerializer(serializers.Serializer):
+    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+    `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+    every id in `change_ids` must belong to that run."""
+
     run = serializers.IntegerField(
         required=False, allow_null=True, min_value=1, help_text="Pin one run; omit for the current"
     )
@@ -105,14 +109,10 @@ class SyncActionSelectionSerializer(serializers.Serializer):
 
 
 class SyncPreviewRequestSerializer(SyncActionSelectionSerializer):
-    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
-    `change_ids` list. Neither, both, or an empty list answers 400."""
+    pass
 
 
 class SyncApplyRequestSerializer(SyncActionSelectionSerializer):
-    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
-    `change_ids` list. Neither, both, or an empty list answers 400."""
-
     token = serializers.CharField(help_text="The token `preview` returned for this selection")
     client_key = serializers.UUIDField(
         help_text="Idempotency key; a retry with the same key returns the first result. "
@@ -121,9 +121,6 @@ class SyncApplyRequestSerializer(SyncActionSelectionSerializer):
 
 
 class SyncRejectRequestSerializer(SyncActionSelectionSerializer):
-    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
-    `change_ids` list. Neither, both, or an empty list answers 400."""
-
     run = serializers.IntegerField(min_value=1, help_text="The run the person looked at")
     client_key = serializers.UUIDField(
         help_text="Idempotency key; a retry with the same key returns the first result. "

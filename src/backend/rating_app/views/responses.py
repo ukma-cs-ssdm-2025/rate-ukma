@@ -387,19 +387,21 @@ R_SYNC_APPROVALS = sync_responses(
 )
 
 
-def sync_action_responses(serializer, *, include_404=False) -> dict:
+def sync_action_responses(serializer) -> dict:
     return {
         200: OpenApiResponse(serializer, "OK"),
-        **common_errors(include_400=True, include_404=include_404),
+        **common_errors(include_400=True, include_404=True),
         409: OpenApiResponse(SyncRefusalSerializer, "Refused: nothing written"),
-        422: OpenApiResponse(SyncRefusalSerializer, "Nothing to apply or preview"),
+        422: OpenApiResponse(
+            SyncRefusalSerializer, "Nothing to apply or preview, or past the deadline"
+        ),
         500: OpenApiResponse(SyncRefusalSerializer, "Apply failed"),
     }
 
 
-R_SYNC_PREVIEW = sync_action_responses(SyncPreviewResponseSerializer, include_404=True)
-R_SYNC_APPLY = sync_action_responses(SyncDecisionResponseSerializer, include_404=True)
-R_SYNC_REJECT = sync_action_responses(SyncDecisionResponseSerializer, include_404=True)
+R_SYNC_PREVIEW = sync_action_responses(SyncPreviewResponseSerializer)
+R_SYNC_APPLY = sync_action_responses(SyncDecisionResponseSerializer)
+R_SYNC_REJECT = sync_action_responses(SyncDecisionResponseSerializer)
 R_SYNC_REVERT = {
     200: OpenApiResponse(SyncRevertResponseSerializer, "Revert result"),
     **common_errors(include_400=True, include_404=False),

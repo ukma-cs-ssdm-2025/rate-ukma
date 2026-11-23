@@ -1145,4 +1145,8 @@ def test_a_replayed_reject_reports_the_first_counts(
 
     assert first.status_code == 200, first.json()
     assert second.status_code == 200
+    assert first.json()["counts"]["rejected"] == 1
+    assert first.json()["counts"]["skipped"] == 1
     assert second.json()["counts"] == first.json()["counts"]
+    assert second.json()["decision_id"] == first.json()["decision_id"]
+    assert SyncApproval.objects.filter(action="reject").count() == 1
