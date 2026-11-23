@@ -1,10 +1,12 @@
 from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse
-from django.urls import path
+from django.urls import path, register_converter
+from django.urls.converters import StringConverter
 
 from rateukma.ioc.decorators import once
 
+from ..application_schemas.ukma_data_params import UKMA_DATA_ID_PATTERN
 from ..views import (
     AnalyticsViewSet,
     CommentViewset,
@@ -41,6 +43,13 @@ from .services import (
     ukma_data_service,
     vote_service,
 )
+
+
+class UkmaDataIdConverter(StringConverter):
+    regex = UKMA_DATA_ID_PATTERN
+
+
+register_converter(UkmaDataIdConverter, "ukma_data_id")
 
 
 @once
@@ -645,17 +654,17 @@ def rest_urlpatterns() -> list:
             name="ukma-data-review-cases",
         ),
         path(
-            "ukma-data/review-cases/<str:case_id>/decide/",
+            "ukma-data/review-cases/<ukma_data_id:case_id>/decide/",
             ukma_data_review_case_decide_view(),
             name="ukma-data-review-case-decide",
         ),
         path(
-            "ukma-data/courses/<str:course_id>/merge/",
+            "ukma-data/courses/<ukma_data_id:course_id>/merge/",
             ukma_data_course_merge_view(),
             name="ukma-data-course-merge",
         ),
         path(
-            "ukma-data/courses/<str:course_id>/unmerge/",
+            "ukma-data/courses/<ukma_data_id:course_id>/unmerge/",
             ukma_data_course_unmerge_view(),
             name="ukma-data-course-unmerge",
         ),

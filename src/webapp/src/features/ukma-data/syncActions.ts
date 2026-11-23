@@ -9,6 +9,7 @@ import type {
 	SyncPreviewResponse,
 	SyncRevertResponse,
 } from "@/lib/api/generated";
+import { DECISION_FAILED_TEXT } from "./caseActions";
 import { errorStatus } from "./ukmaDataErrors";
 import { kindLabel } from "./sync";
 import { CHANGES_ACCUSATIVE, countWith, formatCount } from "./syncFormat";
@@ -266,8 +267,16 @@ const isDecisionError = (
 ): value is keyof typeof DECISION_ERRORS =>
 	Object.hasOwn(DECISION_ERRORS, value);
 
-export const decisionErrorText = (error: string): string =>
-	isDecisionError(error) ? DECISION_ERRORS[error] : error;
+export function decisionErrorText(
+	entry: Pick<SyncJournalEntry, "outcome" | "error">,
+): string {
+	if (entry.outcome === "failed") {
+		return DECISION_FAILED_TEXT;
+	}
+	return isDecisionError(entry.error)
+		? DECISION_ERRORS[entry.error]
+		: entry.error;
+}
 
 function decisionTitle(entry: SyncJournalEntry): string {
 	const action = entry.counts.action;

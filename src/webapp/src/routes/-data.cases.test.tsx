@@ -197,7 +197,9 @@ describe("/data/cases", () => {
 			await screen.findByRole("button", { name: "Об'єднати з c-202" }),
 		);
 		const dialog = await screen.findByRole("alertdialog");
-		expect(dialog).toHaveTextContent("Об'єднати дисципліну c-201 з c-202?");
+		expect(dialog).toHaveTextContent(
+			"Об'єднати семестр c-201 з дисципліною c-202?",
+		);
 		await user.click(within(dialog).getByRole("button", { name: "Об'єднати" }));
 
 		expect(await screen.findByText("Курс об'єднано.")).toBeInTheDocument();

@@ -27,6 +27,7 @@ import {
 } from "../syncActions";
 import { PAGE_SIZE } from "../syncLabels";
 import { NO_RETRY } from "../syncOverview";
+import { undoneMergeIds } from "../caseActions";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
 import { UnmergeAction } from "./CaseActions";
 import { SyncRevertButton, SyncRevertDialog } from "./SyncRevertDialog";
@@ -37,10 +38,12 @@ function JournalRow({
 	entry,
 	onRevert,
 	decideEnabled,
+	undone,
 }: Readonly<{
 	entry: SyncJournalEntry;
 	onRevert: (entry: SyncJournalEntry) => void;
 	decideEnabled: boolean;
+	undone: boolean;
 }>) {
 	const reason =
 		entry.kind === "apply" && !entry.revertible && !entry.reverted
@@ -50,7 +53,7 @@ function JournalRow({
 		entry.kind === "decision" &&
 		entry.outcome !== "done" &&
 		entry.error.length > 0
-			? decisionErrorText(entry.error)
+			? decisionErrorText(entry)
 			: "";
 	return (
 		<li className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-3 sm:px-5">
@@ -77,7 +80,9 @@ function JournalRow({
 			{entry.revertible ? (
 				<SyncRevertButton entry={entry} onStart={onRevert} />
 			) : null}
-			<UnmergeAction entry={entry} decideEnabled={decideEnabled} />
+			{undone ? null : (
+				<UnmergeAction entry={entry} decideEnabled={decideEnabled} />
+			)}
 		</li>
 	);
 }
@@ -101,6 +106,7 @@ export function SyncJournal() {
 		retry: false,
 	});
 	const entries = journal.data?.pages.flatMap((page) => page.items) ?? [];
+	const undone = undoneMergeIds(entries);
 	return (
 		<div className="space-y-4">
 			<p className="text-sm text-muted-foreground">
@@ -140,6 +146,7 @@ export function SyncJournal() {
 								entry={entry}
 								onRevert={setReverting}
 								decideEnabled={decideEnabled}
+								undone={undone.has(entry.id)}
 							/>
 						))}
 					</ul>

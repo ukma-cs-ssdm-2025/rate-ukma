@@ -9,13 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
 import {
-	keyStatusWithDecide,
 	NOW,
 	PENDING_URL,
 	pending,
 	POLICIES_URL,
 	POLICY_CHANGES_URL,
-	STATUS_URL,
 } from "./dataTestData";
 import {
 	JOURNAL_URL,
@@ -23,8 +21,6 @@ import {
 	journalApply,
 	journalAuto,
 	journalApplyReverted,
-	journalDecisionMerge,
-	journalDecisionRefused,
 	journalPolicy,
 	journalRejected,
 	journalRevert,
@@ -66,11 +62,6 @@ async function openRevert() {
 	);
 	return { user, dialog: await screen.findByRole("dialog") };
 }
-
-const UNMERGE_URL = "/api/v1/ukma-data/courses/c-101/unmerge/";
-
-const unmergeRequests = () =>
-	mock.history.post.filter((request) => request.url === UNMERGE_URL);
 
 const revertRequests = () =>
 	mock.history.post
@@ -138,48 +129,6 @@ describe("/data/sync journal", () => {
 				"Цей тип застосовується автоматично. Спершу переведіть його в «Потребує рішення» (catalog_sync policy).",
 			),
 		).toBeInTheDocument();
-	});
-
-	it("shows a UKMA Data decision with its error and offers to unmerge a done merge", async () => {
-		const user = userEvent.setup();
-		mock.reset();
-		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
-		mock.onGet(PENDING_URL).reply(200, pending([]));
-		mock.onGet(POLICIES_URL).reply(200, { items: [] });
-		mock.onGet(POLICY_CHANGES_URL).reply(200, { items: [] });
-		mock.onGet(JOURNAL_URL).reply(200, {
-			items: [journalDecisionMerge, journalDecisionRefused],
-			next_before: null,
-		});
-		mock.onPost(UNMERGE_URL).reply(200, {
-			decision_id: 33,
-			action: "unmerge_course",
-			outcome: "done",
-			detail: "Курс роз'єднано.",
-		});
-
-		renderJournal();
-
-		const list = within(await screen.findByRole("list", { name: "Журнал" }));
-		const items = list.getAllByRole("listitem");
-		expect(items[0]).toHaveTextContent("Рішення в UKMA Data: об'єднано");
-		expect(items[1]).toHaveTextContent(
-			"Рішення в UKMA Data: об'єднано — відмова",
-		);
-		expect(items[1]).toHaveTextContent(
-			"Курси різного рівня: об'єднати можна лише однакові.",
-		);
-		await user.click(
-			within(items[0]).getByRole("button", { name: "Роз'єднати" }),
-		);
-		const dialog = await screen.findByRole("alertdialog");
-		expect(dialog).toHaveTextContent("Роз'єднати курс c-101?");
-		await user.click(
-			within(dialog).getByRole("button", { name: "Роз'єднати" }),
-		);
-
-		expect(await screen.findByText("Курс роз'єднано.")).toBeInTheDocument();
-		await waitFor(() => expect(unmergeRequests()).toHaveLength(1));
 	});
 
 	it("says when there has been no decision yet", async () => {

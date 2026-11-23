@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Link, useNavigate } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/Badge";
@@ -47,8 +49,12 @@ function useCaseLookup(caseId: string) {
 		query: { retry: false, enabled: needsAll },
 	});
 	const source = needsAll ? all : filtered;
-	const reviewCase =
-		inOrder ?? all.data?.items.find((item) => item.id === caseId);
+	const found = inOrder ?? all.data?.items.find((item) => item.id === caseId);
+	const [kept, setKept] = useState(found);
+	if (found !== undefined && found !== kept) {
+		setKept(found);
+	}
+	const reviewCase = found ?? (kept?.id === caseId ? kept : undefined);
 	return {
 		source,
 		reviewCase,
@@ -123,6 +129,15 @@ export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
 	const decideEnabled =
 		status.data?.decide_scopes.includes("review:decide") ?? false;
+	if (reviewCase !== undefined) {
+		return (
+			<CaseBody
+				reviewCase={reviewCase}
+				order={order}
+				decideEnabled={decideEnabled}
+			/>
+		);
+	}
 	if (source.isLoading) {
 		return <Skeleton className="h-96 rounded-xl" />;
 	}
@@ -136,23 +151,14 @@ export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 			/>
 		);
 	}
-	if (reviewCase === undefined) {
-		return (
-			<Empty className="border">
-				<EmptyHeader>
-					<EmptyTitle>Справу не знайдено</EmptyTitle>
-					<EmptyDescription>
-						Можливо, її вже вирішено або дані в САЗ змінились.
-					</EmptyDescription>
-				</EmptyHeader>
-			</Empty>
-		);
-	}
 	return (
-		<CaseBody
-			reviewCase={reviewCase}
-			order={order}
-			decideEnabled={decideEnabled}
-		/>
+		<Empty className="border">
+			<EmptyHeader>
+				<EmptyTitle>Справу не знайдено</EmptyTitle>
+				<EmptyDescription>
+					Можливо, її вже вирішено або дані в САЗ змінились.
+				</EmptyDescription>
+			</EmptyHeader>
+		</Empty>
 	);
 }

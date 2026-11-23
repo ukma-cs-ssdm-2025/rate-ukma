@@ -3004,6 +3004,7 @@ paths:
         name: course_id
         schema:
           type: string
+          pattern: ^[A-Za-z0-9_-]{1,64}$
         required: true
       tags:
       - ukma-data
@@ -3115,6 +3116,7 @@ paths:
         name: course_id
         schema:
           type: string
+          pattern: ^[A-Za-z0-9_-]{1,64}$
         required: true
       tags:
       - ukma-data
@@ -3704,6 +3706,7 @@ paths:
         name: case_id
         schema:
           type: string
+          pattern: ^[A-Za-z0-9_-]{1,64}$
         required: true
       tags:
       - ukma-data
@@ -8933,6 +8936,7 @@ components:
           type: string
           description: UKMA Data course id the course merges into; both must share
             a level
+          pattern: ^[A-Za-z0-9_-]{1,64}$
           maxLength: 64
       required:
       - into

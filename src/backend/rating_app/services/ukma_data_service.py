@@ -97,14 +97,26 @@ class UkmaDataService:
             raise UkmaDataUnavailableError("UKMA Data sent an unexpected response.") from exc
 
     def decide_scopes(self) -> list[str]:
-        """The decide key's scopes; `[]` without a key, and that key is then never read."""
+        """The decide key's scopes for the status card; `[]` when they can't be read."""
+        try:
+            return self.read_decide_scopes()
+        except UkmaDataUnavailableError:
+            logger.warning("ukma_data_decide_scopes_unavailable")
+            return []
+
+    def read_decide_scopes(self) -> list[str]:
+        """The decide key's scopes; `[]` without a key or with one UKMA Data refuses.
+
+        Raises `UkmaDataUnavailableError` when UKMA Data is down, so a decision answers 502
+        rather than claiming the page is read-only.
+        """
         decide_key = settings.UKMA_DATA_DECIDE_API_KEY
         if not decide_key:
             return []
         try:
             return self._get("/v1/key", {}, UkmaDataKey, api_key=decide_key).scopes
-        except (UkmaDataForbiddenError, UkmaDataNotConfiguredError, UkmaDataUnavailableError):
-            logger.warning("ukma_data_decide_scopes_unavailable")
+        except (UkmaDataForbiddenError, UkmaDataNotConfiguredError):
+            logger.warning("ukma_data_decide_key_refused")
             return []
 
     def decide_case(self, case_id: str) -> None:

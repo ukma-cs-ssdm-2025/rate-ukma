@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MockAdapter from "axios-mock-adapter";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -122,5 +122,66 @@ describe("/data/cases/$caseId", () => {
 			await screen.findByText("Справу закрито: це та сама людина."),
 		).toBeInTheDocument();
 		expect(mock.history.post).toHaveLength(1);
+	});
+
+	it("keeps the result on screen while the decided case reloads", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		let decided = false;
+		let releaseAll = () => {};
+		mock.reset();
+		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
+		mock.onGet(CASES_URL).reply((config) => {
+			if (!decided) {
+				return [200, page([studentCase])];
+			}
+			if (config.params?.status === "open") {
+				return [200, page([])];
+			}
+			return new Promise((resolve) => {
+				releaseAll = () =>
+					resolve([200, page([{ ...studentCase, status: "decided" }])]);
+			});
+		});
+		mock.onPost(DECIDE_URL).reply(() => {
+			decided = true;
+			return [
+				200,
+				{
+					decision_id: 41,
+					action: "decide_case",
+					outcome: "done",
+					detail: "Справу закрито: це та сама людина.",
+				},
+			];
+		});
+
+		// Act
+		renderCase();
+		await user.click(
+			await screen.findByRole("button", { name: "Це та сама людина" }),
+		);
+		await user.click(
+			within(await screen.findByRole("alertdialog")).getByRole("button", {
+				name: "Закрити справу",
+			}),
+		);
+		await waitFor(() =>
+			expect(
+				mock.history.get.filter(
+					(request) =>
+						request.url === CASES_URL && request.params?.status !== "open",
+				),
+			).toHaveLength(1),
+		);
+
+		// Assert
+		expect(
+			screen.getByText("Справу закрито: це та сама людина."),
+		).toBeInTheDocument();
+		releaseAll();
+		expect(
+			await screen.findByText("Справу закрито: це та сама людина."),
+		).toBeInTheDocument();
 	});
 });

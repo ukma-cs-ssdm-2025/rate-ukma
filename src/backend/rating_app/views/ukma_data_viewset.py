@@ -237,7 +237,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         detail: str,
     ) -> Response:
         service = self._service()
-        if "review:decide" not in service.decide_scopes():
+        if "review:decide" not in service.read_decide_scopes():
             logger.warning("ukma_data_decide_forbidden", action=action, target_id=target_id)
             raise UkmaDataDecideDisabledError()
 

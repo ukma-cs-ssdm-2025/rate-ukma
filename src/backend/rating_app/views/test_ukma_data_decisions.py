@@ -430,6 +430,48 @@ def test_decision_returns_502_and_records_a_failure_when_ukma_data_is_down(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_decision_returns_502_when_ukma_data_is_down_before_the_key_is_read(
+    superuser_client, ukma_data, decide_url
+):
+    ukma_data.down_paths.add("/v1/key")
+
+    response = superuser_client.post(decide_url, format="json")
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "UKMA Data is unreachable."
+    assert _posts(ukma_data) == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("course_id", ["c.101", "c%3F1", "c" * 65])
+def test_decision_returns_404_for_an_id_unfit_for_the_parser_path(
+    superuser_client, ukma_data, merge_url, course_id
+):
+    url = merge_url.replace("c-101", course_id)
+
+    response = superuser_client.post(url, {"into": "c-102"}, format="json")
+
+    assert response.status_code == 404
+    assert ukma_data.received == []
+    assert not UkmaDataDecision.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("into", ["../merge", "c-102?x=1", "c" * 65])
+def test_merge_returns_400_for_an_into_unfit_for_the_parser_path(
+    superuser_client, ukma_data, merge_url, into
+):
+    response = superuser_client.post(merge_url, {"into": into}, format="json")
+
+    assert response.status_code == 400
+    assert list(response.json()["fields"]) == ["into"]
+    assert _posts(ukma_data) == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_decide_returns_403_and_records_a_refusal_when_the_key_is_rejected(
     superuser_client, ukma_data, decide_url
 ):
