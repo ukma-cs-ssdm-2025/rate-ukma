@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
@@ -97,6 +98,14 @@ class SyncPendingParams(SyncChangeListParams):
 
 class SyncRunChangesPathParams(BaseModel):
     run_id: int = Field(ge=1, description="Identifier of the sync run")
+
+
+class SyncJournalParams(BaseModel):
+    limit: int = Field(default=20, ge=1, le=100, description="Entries per page, up to 100")
+    before: datetime | None = Field(
+        default=None,
+        description="Only entries older than this ISO 8601 time; pass `next_before`",
+    )
 
 
 class SyncSummaryParams(BaseModel):

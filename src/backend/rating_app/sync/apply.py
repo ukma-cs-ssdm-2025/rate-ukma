@@ -248,12 +248,29 @@ def approve(
         )
 
 
-def reject(change_ids: Iterable[int], user: User) -> SyncApproval:
-    """Reject the selected units; their dependents become ``dependency_rejected``."""
+def reject(
+    change_ids: Iterable[int], user: User, *, client_key: uuid.UUID | None = None
+) -> SyncApproval:
+    """Reject the selected units; their dependents become ``dependency_rejected``.
+
+    A second request with the same ``client_key`` returns the first approval.
+    """
     sweep_interrupted_approvals()
     ids = _selection_ids(change_ids)
     run = _selection_run(ids)
-    approval = _start_approval(run, ids, user=user, action=SyncApprovalAction.REJECT)
+    try:
+        approval = _start_approval(
+            run,
+            ids,
+            user=user,
+            action=SyncApprovalAction.REJECT,
+            client_key=client_key,
+        )
+    except IntegrityError:
+        existing = SyncApproval.objects.filter(client_key=client_key).first()
+        if client_key is None or existing is None:
+            raise
+        return existing
     with _source_lock(run.source) as held:
         if not held:
             return _refuse(approval, "lock_held")

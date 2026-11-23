@@ -39,6 +39,13 @@ from rating_app.serializers.sync import (
     SyncPolicyListResponseSerializer,
     SyncRunListResponseSerializer,
 )
+from rating_app.serializers.sync_actions import (
+    SyncDecisionResponseSerializer,
+    SyncJournalResponseSerializer,
+    SyncPreviewResponseSerializer,
+    SyncRefusalSerializer,
+    SyncRevertResponseSerializer,
+)
 from rating_app.serializers.sync_review import (
     SyncApprovalListResponseSerializer,
     SyncQuestionListResponseSerializer,
@@ -377,6 +384,30 @@ R_SYNC_APPROVALS = sync_responses(
     forced_singular_serializer(SyncApprovalListResponseSerializer),
     include_400=True,
     include_404=True,
+)
+
+
+def sync_action_responses(serializer, *, include_404=False) -> dict:
+    return {
+        200: OpenApiResponse(serializer, "OK"),
+        **common_errors(include_400=True, include_404=include_404),
+        409: OpenApiResponse(SyncRefusalSerializer, "Refused: nothing written"),
+        422: OpenApiResponse(SyncRefusalSerializer, "Nothing to apply or preview"),
+        500: OpenApiResponse(SyncRefusalSerializer, "Apply failed"),
+    }
+
+
+R_SYNC_PREVIEW = sync_action_responses(SyncPreviewResponseSerializer)
+R_SYNC_APPLY = sync_action_responses(SyncDecisionResponseSerializer)
+R_SYNC_REJECT = sync_action_responses(SyncDecisionResponseSerializer)
+R_SYNC_REVERT = {
+    200: OpenApiResponse(SyncRevertResponseSerializer, "Revert result"),
+    **common_errors(include_400=True, include_404=True),
+    409: OpenApiResponse(SyncRevertResponseSerializer, "Refused: nothing written"),
+    500: OpenApiResponse(SyncRevertResponseSerializer, "Revert failed"),
+}
+R_SYNC_JOURNAL = sync_responses(
+    forced_singular_serializer(SyncJournalResponseSerializer), include_400=True
 )
 R_PERSONAL_PLAN = {
     200: OpenApiResponse(PersonalPlanSerializer, "OK"),

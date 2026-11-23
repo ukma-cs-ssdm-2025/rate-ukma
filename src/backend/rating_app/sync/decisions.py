@@ -228,10 +228,20 @@ def revert(approval_id: int, user: User, *, dry_run: bool) -> revert_service.Rev
     return rolled_back(lambda: revert_service.revert(approval_id, user, dry_run=True))
 
 
-def reject(change_ids: Iterable[int], user: User, *, dry_run: bool) -> DecisionResult:
+def reject(
+    change_ids: Iterable[int],
+    user: User,
+    *,
+    dry_run: bool,
+    client_key: uuid.UUID | None = None,
+) -> DecisionResult:
     """Reject the selection through `apply.reject`; a dry run rolls it all back."""
     ids = list(change_ids)
-    return _decide(lambda: apply.reject(ids, user), ids, dry_run=dry_run)
+    return _decide(
+        lambda: apply.reject(ids, user, client_key=client_key),
+        ids,
+        dry_run=dry_run,
+    )
 
 
 def rolled_back[T](call: Callable[[], T]) -> T:

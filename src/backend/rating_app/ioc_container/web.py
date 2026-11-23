@@ -19,6 +19,7 @@ from ..views import (
     RatingViewSet,
     RatingVoteViewSet,
     StudentStatisticsViewSet,
+    SyncActionsViewSet,
     SyncReviewViewSet,
     SyncViewSet,
     UkmaDataViewSet,
@@ -372,6 +373,31 @@ def sync_policy_changes_view():
 
 
 @once
+def sync_preview_view():
+    return SyncActionsViewSet.as_view({"post": "preview"})
+
+
+@once
+def sync_apply_view():
+    return SyncActionsViewSet.as_view({"post": "apply"})
+
+
+@once
+def sync_reject_view():
+    return SyncActionsViewSet.as_view({"post": "reject"})
+
+
+@once
+def sync_revert_view():
+    return SyncActionsViewSet.as_view({"post": "revert"})
+
+
+@once
+def sync_journal_view():
+    return SyncActionsViewSet.as_view({"get": "journal"})
+
+
+@once
 def sync_summary_view():
     return SyncReviewViewSet.as_view({"get": "summary"})
 
@@ -638,6 +664,31 @@ def rest_urlpatterns() -> list:
             "ukma-data/sync/policies/changes/",
             sync_policy_changes_view(),
             name="ukma-data-sync-policy-changes",
+        ),
+        path(
+            "ukma-data/sync/preview/",
+            sync_preview_view(),
+            name="ukma-data-sync-preview",
+        ),
+        path(
+            "ukma-data/sync/apply/",
+            sync_apply_view(),
+            name="ukma-data-sync-apply",
+        ),
+        path(
+            "ukma-data/sync/reject/",
+            sync_reject_view(),
+            name="ukma-data-sync-reject",
+        ),
+        path(
+            "ukma-data/sync/revert/",
+            sync_revert_view(),
+            name="ukma-data-sync-revert",
+        ),
+        path(
+            "ukma-data/sync/journal/",
+            sync_journal_view(),
+            name="ukma-data-sync-journal",
         ),
     ]
 

@@ -257,6 +257,9 @@ SPECTACULAR_SETTINGS = {
         "SyncChangeGroupEnum": "rating_app.models.sync.SyncChangeGroup",
         "SyncChangeStateEnum": "rating_app.models.sync.SyncChangeState",
         "SyncPolicyModeEnum": "rating_app.models.sync.SyncPolicyMode",
+        "SyncChangeKindEnum": "rating_app.serializers.sync_actions.KIND_CHOICES",
+        "SyncSelectionGroupEnum": "rating_app.serializers.sync.SELECTION_GROUP_CHOICES",
+        "SyncJournalKindEnum": "rating_app.serializers.sync_actions.JOURNAL_KINDS",
         "SortOrderEnum": [("asc", "asc"), ("desc", "desc")],
     },
 }
