@@ -100,6 +100,25 @@ def test_entries_page_past_the_same_timestamp(user, sync_run_factory, sync_appro
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_entries_page_one_by_one_past_an_apply_and_a_revert_at_the_same_time(
+    user, sync_run_factory, sync_approval_factory
+):
+    run = sync_run_factory(source="catalog", status="succeeded")
+    now = timezone.now()
+    revert = sync_approval_factory(run=run, user=user, action=SyncApprovalAction.REVERT)
+    apply = sync_approval_factory(run=run, user=user, action=SyncApprovalAction.APPLY)
+    SyncApproval.objects.filter(pk__in=[apply.pk, revert.pk]).update(created_at=now)
+
+    first = journal.entries(limit=1)
+    before = journal.parse_cursor(journal.cursor_of(first[-1]))
+    assert before is not None
+    second = journal.entries(limit=1, before=before)
+
+    assert {entry.id for entry in [*first, *second]} == {apply.pk, revert.pk}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_entries_page_past_a_shared_timestamp_across_kinds(
     user,
     sync_run_factory,

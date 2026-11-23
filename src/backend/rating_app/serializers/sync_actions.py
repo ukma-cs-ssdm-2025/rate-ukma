@@ -15,10 +15,10 @@ from rating_app.models.sync import (
     SyncPolicyMode,
     SyncSource,
 )
+from rating_app.serializers.sync import SELECTION_GROUP_CHOICES
 from rating_app.sync.kinds import KIND_BY_NAME
 
 KIND_CHOICES = [(kind, kind) for kind in KIND_BY_NAME]
-SELECTION_GROUP_CHOICES = [*SyncChangeGroup.choices, ("other", "Other")]
 
 JOURNAL_KINDS = [
     ("apply", "Apply"),
