@@ -95,6 +95,9 @@ export function approvalTerm(approval: SyncApprovalDetail): TermName | null {
 	if (approval.outcome !== "applied") {
 		return null;
 	}
+	if (approval.action === "revert") {
+		return "reverted";
+	}
 	return approval.action === "reject" ? "rejected" : "applied";
 }
 
@@ -110,6 +113,7 @@ export interface ApprovalCounts {
 	waiting: number;
 	superseded: number;
 	rejected: number;
+	reverted: number;
 }
 
 export function approvalCounts(counts: unknown): ApprovalCounts {
@@ -118,5 +122,6 @@ export function approvalCounts(counts: unknown): ApprovalCounts {
 		waiting: numberAt(counts, "waiting") ?? 0,
 		superseded: numberAt(counts, "superseded") ?? 0,
 		rejected: numberAt(counts, "rejected") ?? 0,
+		reverted: numberAt(counts, "reverted") ?? 0,
 	};
 }

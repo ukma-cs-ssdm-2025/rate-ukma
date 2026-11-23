@@ -298,6 +298,7 @@ def state_text(state: str, reason: str = "") -> str:
         "applied": "застосовано",
         "rejected": "відхилено",
         "superseded": "неактуальна",
+        "reverted": "відкочено",
     }
     text = labels.get(state, state)
     if reason:

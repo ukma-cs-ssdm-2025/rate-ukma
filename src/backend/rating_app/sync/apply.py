@@ -15,6 +15,7 @@ hold teacher names and emails and Sentry sends PII.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
@@ -209,6 +210,7 @@ def approve(
             return _refuse(approval, "lock_held")
         if preview is not None and (
             preview.count != len(ids)
+            or preview.selection_sha != selection_sha(ids)
             or preview.run_id != run.pk
             or user is None
             or preview.user_id != user.pk
@@ -451,6 +453,7 @@ def _write_apply(
                 applied += len(members)
             elif outcome == "waiting":
                 waiting += len(members)
+        _check(deadline)
         approval.outcome = SyncApprovalOutcome.APPLIED
         counts: dict[str, object] = {
             "applied": applied,
@@ -1315,6 +1318,11 @@ def _record_waiting(members: list[SyncChange], change_ids: list[int]) -> None:
     SyncChange.objects.filter(
         pk__in=[change.pk for change in members], state=SyncChangeState.PROPOSED
     ).update(waiting_on=change_ids)
+
+
+def selection_sha(change_ids: Iterable[int]) -> str:
+    ids = ",".join(str(change_id) for change_id in sorted(set(change_ids)))
+    return hashlib.sha256(ids.encode()).hexdigest()
 
 
 def _selection_ids(change_ids: Iterable[int]) -> list[int]:

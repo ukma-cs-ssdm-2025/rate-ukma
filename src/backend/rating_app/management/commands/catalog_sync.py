@@ -272,7 +272,8 @@ class Command(BaseCommand):
         if result.outcome != SyncApprovalOutcome.APPLIED:
             if result.outcome == SyncApprovalOutcome.FAILED:
                 raise CommandError(
-                    f"Рішення #{result.approval_id} не вдалося відкотити ({result.error})."
+                    f"Рішення #{result.original_id} не вдалося відкотити, нічого не записано. "
+                    "Див. розділ «Збій» у runbook."
                 )
             raise CommandError(result.refusal_text())
         if dry_run:

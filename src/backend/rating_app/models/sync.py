@@ -255,6 +255,7 @@ class SyncPreview(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sync_previews"
     )
     count = models.PositiveIntegerField()
+    selection_sha = models.CharField(max_length=64, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
