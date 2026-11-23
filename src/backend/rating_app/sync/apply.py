@@ -210,7 +210,7 @@ def approve(
             return _refuse(approval, "lock_held")
         if preview is not None and (
             preview.count != len(ids)
-            or (preview.selection_sha and preview.selection_sha != selection_sha(ids))
+            or preview.selection_sha != selection_sha(ids)
             or preview.run_id != run.pk
             or user is None
             or preview.user_id != user.pk
