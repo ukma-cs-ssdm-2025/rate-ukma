@@ -75,7 +75,7 @@ def parse_cursor(value: str) -> Cursor | None:
 
 
 def _approvals(limit: int, before: Cursor | None) -> list[JournalEntry]:
-    rows = SyncApproval.objects.select_related("user").order_by("-created_at", "-id")
+    rows = SyncApproval.objects.select_related("user").order_by("-created_at", "-action", "-id")
     if before is not None:
         rows = rows.filter(
             Q(created_at__lt=before.when)

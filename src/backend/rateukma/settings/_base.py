@@ -254,6 +254,7 @@ SPECTACULAR_SETTINGS = {
         "CourseTypeKindEnum": "rating_app.models.choices.CourseTypeKind",
         "VoteTypeEnum": "rating_app.models.choices.RatingVoteStrType",
         "SyncSourceEnum": "rating_app.models.sync.SyncSource",
+        "SyncApprovalOutcomeEnum": "rating_app.models.sync.SyncApprovalOutcome",
         "SyncChangeGroupEnum": "rating_app.models.sync.SyncChangeGroup",
         "SyncChangeStateEnum": "rating_app.models.sync.SyncChangeState",
         "SyncPolicyModeEnum": "rating_app.models.sync.SyncPolicyMode",

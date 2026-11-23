@@ -6282,18 +6282,6 @@ components:
       - message
       - rating_id
       - source_object_id
-    OutcomeA5cEnum:
-      enum:
-      - started
-      - applied
-      - refused
-      - failed
-      type: string
-      description: |-
-        * `started` - Started
-        * `applied` - Applied
-        * `refused` - Refused
-        * `failed` - Failed
     PatchedCommentPatchParams:
       properties:
         content:
@@ -7128,7 +7116,7 @@ components:
         kind:
           type: string
         outcome:
-          $ref: '#/components/schemas/OutcomeA5cEnum'
+          $ref: '#/components/schemas/SyncApprovalOutcomeEnum'
         counts: {}
         error:
           type: string
@@ -7196,6 +7184,18 @@ components:
       - previous_page
       - total
       - total_pages
+    SyncApprovalOutcomeEnum:
+      enum:
+      - started
+      - applied
+      - refused
+      - failed
+      type: string
+      description: |-
+        * `started` - Started
+        * `applied` - Applied
+        * `refused` - Refused
+        * `failed` - Failed
     SyncChange:
       type: object
       properties:
@@ -7440,7 +7440,7 @@ components:
         action:
           $ref: '#/components/schemas/ActionEnum'
         outcome:
-          $ref: '#/components/schemas/OutcomeA5cEnum'
+          $ref: '#/components/schemas/SyncApprovalOutcomeEnum'
         detail:
           type: string
         counts:
@@ -8223,7 +8223,7 @@ components:
         dry_run:
           type: boolean
         outcome:
-          $ref: '#/components/schemas/OutcomeA5cEnum'
+          $ref: '#/components/schemas/SyncApprovalOutcomeEnum'
         code:
           allOf:
           - $ref: '#/components/schemas/SyncRevertResponseCodeEnum'
