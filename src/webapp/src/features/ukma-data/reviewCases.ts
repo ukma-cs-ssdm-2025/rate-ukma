@@ -60,7 +60,7 @@ const DAYS = { one: "день", few: "дні", many: "днів" } satisfies Plur
 export const READ_ONLY = "Тут лише перегляд: рішення змінюють спільні дані САЗ";
 
 export const DECIDED_ELSEWHERE =
-	"Рішення змінюють спільні дані САЗ, тому їх ухвалюють тут лише із ключем рішень. Без нього сторінка показує, що сталося.";
+	"Рішення змінюють спільні дані САЗ, тому кнопки працюють лише там, де ключ сервера має на це право. Інакше сторінка лише показує, що сталося.";
 
 const countWord = (count: number, forms: PluralForms): string =>
 	`${formatCount(count)} ${pluralForm(count, forms)}`;
