@@ -140,6 +140,33 @@ def test_link_handlers_set_each_rows_ukma_data_id(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_link_course_applies_the_majority_share_the_builder_records(course_factory):
+    # Arrange
+    one, many = course_factory(), course_factory()
+    after = {"ukma_data_id": "ud-one", "majority_share": 2 / 3}
+
+    # Act
+    handler("link_course").apply(change("link_course", str(one.pk), after, target_id=str(one.pk)))
+    handler("link_course").apply_many(
+        [
+            change(
+                "link_course",
+                str(many.pk),
+                {"ukma_data_id": "ud-many", "majority_share": 1.0},
+                target_id=str(many.pk),
+            )
+        ]
+    )
+
+    # Assert
+    one.refresh_from_db()
+    many.refresh_from_db()
+    assert one.ukma_data_id == "ud-one"
+    assert many.ukma_data_id == "ud-many"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_a_link_batch_is_one_statement_whatever_the_row_count(
     django_assert_num_queries,
     faculty_factory,

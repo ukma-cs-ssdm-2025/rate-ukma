@@ -29,6 +29,7 @@ from rating_app.sync.handlers import MissingRowError, register
 from rating_app.sync.payloads import (
     ChangeCoursePayload,
     ChangeOfferingPayload,
+    LinkCoursePayload,
     NamePayload,
     NewCoursePayload,
     NewDepartmentPayload,
@@ -85,7 +86,11 @@ class _Semesters:
 _LINK_BATCH_SIZE = 1000
 
 
-def _set_ukma_data_ids(model: type[models.Model], changes: list[SyncChange]) -> None:
+def _set_ukma_data_ids(
+    model: type[models.Model],
+    changes: list[SyncChange],
+    payload_type: type[UkmaDataIdPayload] = UkmaDataIdPayload,
+) -> None:
     """Link a batch with ``UPDATE ... FROM (VALUES ...)``.
 
     One statement per :data:`_LINK_BATCH_SIZE` rows: a ``bulk_update`` becomes
@@ -94,7 +99,7 @@ def _set_ukma_data_ids(model: type[models.Model], changes: list[SyncChange]) -> 
     """
     rows = []
     for change in changes:
-        payload = UkmaDataIdPayload.model_validate(change.after)
+        payload = payload_type.model_validate(change.after)
         pk = _uuid(change.target_id)
         if pk is None:
             continue
@@ -155,12 +160,12 @@ def apply_link_department(change: SyncChange) -> None:
 
 
 def _apply_link_courses(changes: list[SyncChange]) -> None:
-    _set_ukma_data_ids(Course, changes)
+    _set_ukma_data_ids(Course, changes, LinkCoursePayload)
 
 
 @register("link_course", exists=_linked_exists(Course), apply_many=_apply_link_courses)
 def apply_link_course(change: SyncChange) -> None:
-    _set_ukma_data_ids(Course, [change])
+    _set_ukma_data_ids(Course, [change], LinkCoursePayload)
 
 
 def _apply_link_offerings(changes: list[SyncChange]) -> None:
