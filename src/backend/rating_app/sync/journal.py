@@ -12,6 +12,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from django.db.models import Q
+from django.utils import timezone
+
 from rating_app.models import CatalogMappingDecision, SyncApproval, SyncPolicyChange
 from rating_app.sync import revert as revert_service
 
@@ -32,23 +35,53 @@ class JournalEntry:
     outcome: str = ""
     approval_id: int | None = None
     reverts_id: int | None = None
-    group: str = ""
+    group: str | None = None
     revertible: bool = False
     revert_reason: str = ""
     reverted: bool = False
 
 
-def entries(limit: int = 20, before: datetime | None = None) -> list[JournalEntry]:
-    """Entries newest first; ``before`` pages past the given time."""
+@dataclass(frozen=True)
+class Cursor:
+    """A page break that stays put when several entries share one timestamp."""
+
+    when: datetime
+    kind: str
+    id: int
+
+
+def entries(limit: int = 20, before: Cursor | None = None) -> list[JournalEntry]:
+    """Entries newest first; ``before`` pages past the given entry."""
     merged = [*_approvals(limit, before), *_policies(limit, before), *_answers(limit, before)]
-    merged.sort(key=lambda entry: (entry.when, entry.id), reverse=True)
+    merged.sort(key=lambda entry: (entry.when, entry.kind, entry.id), reverse=True)
     return merged[:limit]
 
 
-def _approvals(limit: int, before: datetime | None) -> list[JournalEntry]:
+def cursor_of(entry: JournalEntry) -> str:
+    return f"{entry.when.isoformat()}|{entry.kind}|{entry.id}"
+
+
+def parse_cursor(value: str) -> Cursor | None:
+    parts = value.split("|")
+    if len(parts) != 3 or not parts[2].isdigit():
+        return None
+    try:
+        when = datetime.fromisoformat(parts[0])
+    except ValueError:
+        return None
+    if timezone.is_naive(when):
+        when = timezone.make_aware(when, timezone.get_default_timezone())
+    return Cursor(when=when, kind=parts[1], id=int(parts[2]))
+
+
+def _approvals(limit: int, before: Cursor | None) -> list[JournalEntry]:
     rows = SyncApproval.objects.select_related("user").order_by("-created_at", "-id")
     if before is not None:
-        rows = rows.filter(created_at__lt=before)
+        rows = rows.filter(
+            Q(created_at__lt=before.when)
+            | Q(created_at=before.when, action__lt=before.kind)
+            | Q(created_at=before.when, action=before.kind, id__lt=before.id)
+        )
     result = []
     for approval in rows[:limit]:
         revertible, reason = (False, "")
@@ -64,7 +97,7 @@ def _approvals(limit: int, before: datetime | None) -> list[JournalEntry]:
                 outcome=str(approval.outcome),
                 approval_id=approval.pk,
                 reverts_id=approval.reverts_id,
-                group=approval.group,
+                group=approval.group or None,
                 revertible=revertible,
                 revert_reason=reason,
                 reverted=reason == revert_service.REFUSAL_TEXT["already_reverted"],
@@ -73,10 +106,10 @@ def _approvals(limit: int, before: datetime | None) -> list[JournalEntry]:
     return result
 
 
-def _policies(limit: int, before: datetime | None) -> list[JournalEntry]:
+def _policies(limit: int, before: Cursor | None) -> list[JournalEntry]:
     rows = SyncPolicyChange.objects.select_related("user").order_by("-changed_at", "-id")
     if before is not None:
-        rows = rows.filter(changed_at__lt=before)
+        rows = rows.filter(_after("changed_at", POLICY, before))
     return [
         JournalEntry(
             id=row.pk,
@@ -90,12 +123,12 @@ def _policies(limit: int, before: datetime | None) -> list[JournalEntry]:
     ]
 
 
-def _answers(limit: int, before: datetime | None) -> list[JournalEntry]:
+def _answers(limit: int, before: Cursor | None) -> list[JournalEntry]:
     rows = CatalogMappingDecision.objects.select_related("decided_by").order_by(
         "-decided_at", "-id"
     )
     if before is not None:
-        rows = rows.filter(decided_at__lt=before)
+        rows = rows.filter(_after("decided_at", ANSWER, before))
     return [
         JournalEntry(
             id=row.pk,
@@ -111,3 +144,12 @@ def _answers(limit: int, before: datetime | None) -> list[JournalEntry]:
         )
         for row in rows[:limit]
     ]
+
+
+def _after(field: str, kind: str, before: Cursor) -> Q:
+    older = Q(**{f"{field}__lt": before.when})
+    if kind < before.kind:
+        return older | Q(**{field: before.when})
+    if kind == before.kind:
+        return older | Q(**{field: before.when, "id__lt": before.id})
+    return older

@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
@@ -102,9 +101,10 @@ class SyncRunChangesPathParams(BaseModel):
 
 class SyncJournalParams(BaseModel):
     limit: int = Field(default=20, ge=1, le=100, description="Entries per page, up to 100")
-    before: datetime | None = Field(
+    before: str | None = Field(
         default=None,
-        description="Only entries older than this ISO 8601 time; pass `next_before`",
+        max_length=120,
+        description="Opaque cursor from `next_before`; pass it unchanged",
     )
 
 

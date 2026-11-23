@@ -1,9 +1,9 @@
 """Approve and reject a selection of sync changes, for real or as a dry run.
 
-The console (`manage.py catalog_sync`) decides through here, and the sync API
-reads the current runs and their age through here, so both see one code path.
-A dry run runs the very same `apply.approve` or `apply.reject` inside a
-transaction that is rolled back, and reports what each selected change became.
+The console (`manage.py catalog_sync`) and /data decide through here, and the
+sync API reads the current runs and their age through here, so both see one
+code path. A dry run runs the very same `apply.approve` or `apply.reject` inside
+a transaction that is rolled back, and reports what each selected change became.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import secrets
 import uuid
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from django.contrib.auth.models import User
@@ -45,11 +46,19 @@ REFUSAL_TEXT = {
     "deadline_exceeded": "Не встигли вчасно, нічого не записано. Виберіть менше змін.",
 }
 
+API_REFUSAL_TEXT = {
+    "run_too_old": "Дані САЗ старші за 48 год. Дочекайтеся нічного читання або "
+    "застосуйте в консолі з --confirm-stale.",
+    "run_not_current": "Вже є новіше читання САЗ. Перегляньте ще раз.",
+    "in_progress": "Рішення ще виконується. Перевірте Журнал, перш ніж повторювати.",
+}
+
 INPUT_ERROR_TEXT = {
     "no change ids": "Не вибрано жодної зміни",
     "unknown change ids": "Деяких вибраних змін не існує",
     "changes from several runs": "Вибрані зміни належать різним читанням САЗ",
     "unknown preview token": "Перегляд не знайдено. Перегляньте ще раз.",
+    "client key conflict": "Цей ключ уже використано для іншого рішення. Спробуйте ще раз.",
 }
 
 
@@ -62,6 +71,17 @@ class ChangeOutcome:
     state_reason: str
     waiting_on: list[Any]
     decided_now: bool
+
+
+@dataclass(frozen=True)
+class RunInfo:
+    """One run as the API shows it, without the model."""
+
+    id: int
+    source: str
+    finished_at: datetime | None
+    data_updated_at: datetime | None
+    age_hours: int | None
 
 
 @dataclass
@@ -79,6 +99,7 @@ class DecisionResult:
     plans_moved: int = 0
     run_age_hours: int | None = None
     run_id: int | None = None
+    run: RunInfo | None = None
 
     def in_state(self, state: str) -> list[ChangeOutcome]:
         return [item for item in self.outcomes if item.state == state]
@@ -127,8 +148,18 @@ def age_hours(run: SyncRun) -> int | None:
     return int((timezone.now() - min(stamps)).total_seconds() // 3600)
 
 
+def run_info(run: SyncRun) -> RunInfo:
+    return RunInfo(
+        id=run.pk,
+        source=str(run.source),
+        finished_at=run.finished_at,
+        data_updated_at=run.data_updated_at,
+        age_hours=age_hours(run),
+    )
+
+
 def input_error_text(exc: apply.SyncApplyInputError) -> str:
-    return INPUT_ERROR_TEXT.get(str(exc), "Некоректна вибірка змін")
+    return INPUT_ERROR_TEXT.get(exc.code, "Некоректна вибірка змін")
 
 
 def refusal_text(reason: str, run: SyncRun | None) -> str:
@@ -140,6 +171,12 @@ def refusal_text(reason: str, run: SyncRun | None) -> str:
             "застосовуєте, додайте --confirm-stale."
         )
     return REFUSAL_TEXT.get(reason, reason or "Не вдалося виконати дію")
+
+
+def api_refusal_text(reason: str) -> str:
+    return API_REFUSAL_TEXT.get(reason) or REFUSAL_TEXT.get(
+        reason, reason or "Не вдалося виконати дію"
+    )
 
 
 def approve(
@@ -180,7 +217,7 @@ def approve(
             preview=preview,
         )
 
-    return _decide(run, ids, dry_run=dry_run)
+    return _decide(run, dry_run=dry_run)
 
 
 def preview(
@@ -243,11 +280,7 @@ def reject(
 ) -> DecisionResult:
     """Reject the selection through `apply.reject`; a dry run rolls it all back."""
     ids = list(change_ids)
-    return _decide(
-        lambda: apply.reject(ids, user, client_key=client_key),
-        ids,
-        dry_run=dry_run,
-    )
+    return _decide(lambda: apply.reject(ids, user, client_key=client_key), dry_run=dry_run)
 
 
 def rolled_back[T](call: Callable[[], T]) -> T:
@@ -259,14 +292,36 @@ def rolled_back[T](call: Callable[[], T]) -> T:
     return result
 
 
-def _decide(
-    run: Callable[[], SyncApproval], ids: Sequence[int], *, dry_run: bool
-) -> DecisionResult:
+def _decide(run: Callable[[], SyncApproval], *, dry_run: bool) -> DecisionResult:
     """A real decision commits as `apply` commits it, approval row first; a dry
     run wraps the same call in `rolled_back`."""
     if not dry_run:
-        return _result(run(), ids, dry_run=False)
-    return rolled_back(lambda: _result(run(), ids, dry_run=True))
+        return result_of(run())
+    return rolled_back(lambda: result_of(run(), dry_run=True))
+
+
+def result_of(approval: SyncApproval, *, dry_run: bool = False) -> DecisionResult:
+    """The answer for a decision row: the same shape a write and a replay return."""
+    return _result(approval, dry_run=dry_run)
+
+
+def replay(client_key: uuid.UUID | None, user: User, action: str) -> DecisionResult | None:
+    """The first decision this user made on this endpoint with the key, if any."""
+    if client_key is None:
+        return None
+    approval = SyncApproval.objects.filter(client_key=client_key, user=user, action=action).first()
+    return None if approval is None else result_of(approval)
+
+
+def change_kinds(change_ids: Sequence[int]) -> list[dict[str, Any]]:
+    if not change_ids:
+        return []
+    kinds = dict(SyncChange.objects.filter(pk__in=change_ids).values_list("pk", "kind"))
+    return [
+        {"id": change_id, "kind": kinds[change_id]}
+        for change_id in change_ids
+        if change_id in kinds
+    ]
 
 
 def skipped_count(approval: SyncApproval, counts: dict[str, Any]) -> int:
@@ -278,7 +333,7 @@ def skipped_count(approval: SyncApproval, counts: dict[str, Any]) -> int:
     return max(0, remaining - int(counts.get("waiting") or 0))
 
 
-def _result(approval: SyncApproval, selected: Sequence[int], *, dry_run: bool) -> DecisionResult:
+def _result(approval: SyncApproval, *, dry_run: bool) -> DecisionResult:
     run = approval.run
     counts = {str(key): value for key, value in (approval.counts or {}).items()}
     result = DecisionResult(
@@ -290,10 +345,11 @@ def _result(approval: SyncApproval, selected: Sequence[int], *, dry_run: bool) -
         counts=counts,
         run_age_hours=None if run is None else age_hours(run),
         run_id=approval.run_ref,
+        run=None if run is None else run_info(run),
     )
     if approval.outcome != SyncApprovalOutcome.APPLIED:
         return result
-    ids = sorted(set(approval.change_ids or []) | set(selected))
+    ids = sorted(set(approval.change_ids or []))
     changes = list(SyncChange.objects.filter(pk__in=ids).order_by("pk"))
     result.outcomes = [
         ChangeOutcome(

@@ -673,7 +673,7 @@ def test_a_revert_that_fails_midway_writes_nothing(
     result = decisions.revert(applied_approval.pk, user, dry_run=False)
 
     assert result.outcome == SyncApprovalOutcome.FAILED
-    assert result.error == "revert_failed:RuntimeError"
+    assert result.error == "revert_failed"
     assert Course.objects.get(pk=linked.pk).ukma_data_id == "ud-new"
     assert Course.objects.get(pk=renamed.pk).title == "Тестова дисципліна Б"
     for change in (link, title):

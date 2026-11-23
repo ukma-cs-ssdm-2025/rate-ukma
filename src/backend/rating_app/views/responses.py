@@ -402,7 +402,8 @@ R_SYNC_APPLY = sync_action_responses(SyncDecisionResponseSerializer)
 R_SYNC_REJECT = sync_action_responses(SyncDecisionResponseSerializer)
 R_SYNC_REVERT = {
     200: OpenApiResponse(SyncRevertResponseSerializer, "Revert result"),
-    **common_errors(include_400=True, include_404=True),
+    **common_errors(include_400=True, include_404=False),
+    404: OpenApiResponse(SyncRevertResponseSerializer, "Unknown decision"),
     409: OpenApiResponse(SyncRevertResponseSerializer, "Refused: nothing written"),
     500: OpenApiResponse(SyncRevertResponseSerializer, "Revert failed"),
 }

@@ -206,8 +206,8 @@ def test_preview_returns_a_token_counts_and_the_run_age(
     assert response.status_code == 200
     body = response.json()
     assert body["token"]
-    assert body["dry_run"] is True
-    assert body["outcome"] == "applied"
+    assert "dry_run" not in body
+    assert "outcome" not in body
     assert body["counts"]["applied"] == 1
     assert body["counts"]["by_kind"] == [{"kind": "change_course", "count": 1}]
     assert body["counts"]["remaining"] == 0
@@ -310,6 +310,61 @@ def test_preview_returns_400_for_an_unknown_kind(superuser_client, catalog_run):
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_the_cap_reports_over_cap_changes_only_as_remaining(
+    superuser_client, free_sync_locks, monkeypatch, catalog_run, course_factory, make_change
+):
+    monkeypatch.setattr("rating_app.views.sync_actions_viewset.MAX_CHANGES", 2)
+    for _ in range(3):
+        make_change(course_factory(title="Тестова дисципліна А"))
+    key = uuid.uuid4()
+
+    preview = _preview(superuser_client, catalog_run)
+
+    assert preview.status_code == 200
+    body = preview.json()
+    assert body["counts"] == {
+        "applied": 2,
+        "rejected": 0,
+        "skipped": 0,
+        "waiting": 0,
+        "superseded": 0,
+        "remaining": 1,
+        "total": 2,
+        "by_kind": [{"kind": "change_course", "count": 2}],
+    }
+    assert body["skipped_reasons"] == []
+    assert body["waiting_reasons"] == []
+
+    applied = _apply(superuser_client, catalog_run, body["token"], key)
+    replay = _apply(superuser_client, catalog_run, body["token"], key)
+
+    assert applied.status_code == 200, applied.json()
+    assert replay.status_code == 200, replay.json()
+    assert applied.json()["counts"] == body["counts"]
+    assert replay.json()["counts"] == body["counts"]
+    assert SyncApproval.objects.count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_of_an_empty_group_answers_422(
+    superuser_client, catalog_run, course_factory, make_change
+):
+    make_change(
+        course_factory(title="Тестова дисципліна А"),
+        state=SyncChangeState.APPLIED,
+        decided_at=timezone.now(),
+    )
+
+    response = _preview(superuser_client, catalog_run)
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "no_proposed_changes"
+    assert response.json()["detail"] == "Серед вибраних немає змін, що чекають рішення."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_preview_returns_409_when_the_lock_is_held(
     superuser_client, free_sync_locks, monkeypatch, catalog_run, course_factory, make_change
 ):
@@ -362,7 +417,10 @@ def test_preview_returns_409_for_a_run_older_than_48_hours(
 
     assert response.status_code == 409
     assert response.json()["code"] == "run_too_old"
-    assert response.json()["detail"].startswith("Дані старші за 48 год")
+    assert response.json()["detail"] == (
+        "Дані САЗ старші за 48 год. Дочекайтеся нічного читання або "
+        "застосуйте в консолі з --confirm-stale."
+    )
 
 
 @pytest.mark.django_db
@@ -544,6 +602,157 @@ def test_apply_returns_400_for_an_unknown_preview_token(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_apply_of_an_empty_group_answers_409_selection_changed(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    change = make_change(course_factory(title="Тестова дисципліна А"))
+    token = _token(superuser_client, catalog_run)
+    SyncChange.objects.filter(pk=change.pk).update(
+        state=SyncChangeState.APPLIED, decided_at=timezone.now()
+    )
+
+    response = _apply(superuser_client, catalog_run, token, uuid.uuid4())
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "selection_changed"
+    assert response.json()["detail"] == "Список змінився. Перегляньте ще раз."
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_refused_attempt_replays_its_refusal(
+    superuser_client, free_sync_locks, monkeypatch, catalog_run, course_factory, make_change
+):
+    make_change(course_factory(title="Тестова дисципліна А"))
+    token = _token(superuser_client, catalog_run)
+    key = uuid.uuid4()
+    monkeypatch.setattr("rating_app.sync.apply.advisory_lock", _lock_taken)
+
+    first = _apply(superuser_client, catalog_run, token, key)
+    second = _apply(superuser_client, catalog_run, token, key)
+
+    assert first.status_code == 409
+    assert second.status_code == 409
+    assert second.json()["code"] == "lock_held"
+    assert second.json()["decision_id"] == first.json()["decision_id"]
+    assert SyncApproval.objects.count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_running_attempt_answers_409_in_progress(
+    superuser_client, catalog_run, course_factory, make_change, sync_approval_factory
+):
+    make_change(course_factory(title="Тестова дисципліна А"))
+    key = uuid.uuid4()
+    sync_approval_factory(
+        run=catalog_run,
+        user=superuser_client.user,
+        action="apply",
+        outcome="started",
+        client_key=key,
+    )
+
+    response = _apply(superuser_client, catalog_run, "token", key)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "in_progress"
+    assert response.json()["detail"] == (
+        "Рішення ще виконується. Перевірте Журнал, перш ніж повторювати."
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_reject_key_does_not_replay_on_apply(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    first = make_change(course_factory(title="Тестова дисципліна А"))
+    second = make_change(course_factory(title="Тестова дисципліна В"))
+    key = uuid.uuid4()
+    rejected = _reject(superuser_client, catalog_run, key, change_ids=[first.pk])
+    assert rejected.status_code == 200, rejected.json()
+
+    token = _token(superuser_client, catalog_run, change_ids=[second.pk])
+    response = _apply(superuser_client, catalog_run, token, key, change_ids=[second.pk])
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["client_key"] == [
+        "Цей ключ уже використано для іншого рішення. Спробуйте ще раз."
+    ]
+    assert rejected.json()["action"] == "reject"
+    assert SyncApproval.objects.count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("route", [PREVIEW, APPLY, REJECT])
+def test_an_unknown_run_answers_404(superuser_client, route):
+    body: dict[str, object] = {"run": 999_999, "group": "change"}
+    if route in {APPLY, REJECT}:
+        body["client_key"] = str(uuid.uuid4())
+    if route == APPLY:
+        body["token"] = "token"
+
+    response = _call(superuser_client, "post", route, body)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Запуск синхронізації не знайдено"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_reject_requires_exactly_one_selection(superuser_client, catalog_run):
+    neither = superuser_client.post(
+        reverse(REJECT), {"run": catalog_run.pk, "client_key": str(uuid.uuid4())}, format="json"
+    )
+    both = superuser_client.post(
+        reverse(REJECT),
+        {
+            "run": catalog_run.pk,
+            "group": "change",
+            "change_ids": [1],
+            "client_key": str(uuid.uuid4()),
+        },
+        format="json",
+    )
+
+    assert neither.status_code == 400
+    assert both.status_code == 400
+    assert neither.json()["fields"]["non_field_errors"] == ["Вкажіть або групу, або зміни"]
+    assert both.json()["fields"]["non_field_errors"] == ["Вкажіть або групу, або зміни"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_reject_requires_a_run(superuser_client):
+    response = superuser_client.post(
+        reverse(REJECT), {"group": "change", "client_key": str(uuid.uuid4())}, format="json"
+    )
+
+    assert response.status_code == 400
+    assert "run" in response.json()["fields"]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_reject_of_an_empty_group_answers_422(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    make_change(
+        course_factory(title="Тестова дисципліна А"),
+        state=SyncChangeState.APPLIED,
+        decided_at=timezone.now(),
+    )
+
+    response = _reject(superuser_client, catalog_run, uuid.uuid4())
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "no_proposed_changes"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_reject_marks_changes_rejected_with_a_ukrainian_result(
     superuser_client, free_sync_locks, catalog_run, course_factory, make_change
 ):
@@ -630,6 +839,7 @@ def test_revert_dry_run_lists_what_would_be_reverted(
     assert body["decision_id"] is None
     assert body["dry_run"] is True
     assert body["outcome"] == "applied"
+    assert body["code"] is None
     assert body["changes"] == [{"id": change.pk, "kind": "change_course"}]
     assert body["blockers"] == []
     assert body["reverted"] == 1
@@ -653,11 +863,36 @@ def test_revert_writes_back_and_returns_the_new_decision(
     assert body["approval_id"] == decision_id
     assert body["decision_id"] is not None
     assert body["outcome"] == "applied"
+    assert body["code"] is None
     assert body["reverted"] == 1
     course.refresh_from_db()
     change.refresh_from_db()
     assert course.title == "Тестова дисципліна А"
     assert change.state == SyncChangeState.REVERTED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_failed_revert_answers_the_stable_code(
+    superuser_client, free_sync_locks, monkeypatch, catalog_run, course_factory, make_change
+):
+    course = course_factory(title="Тестова дисципліна А")
+    make_change(course)
+    decision_id = _applied_decision(superuser_client, catalog_run)
+
+    def explode(*_args, **_kwargs):
+        raise RuntimeError("test")
+
+    monkeypatch.setattr("rating_app.sync.revert._write_back", explode)
+
+    response = _revert(superuser_client, decision_id, dry_run=False)
+
+    assert response.status_code == 500
+    assert response.json()["code"] == "revert_failed"
+    assert response.json()["detail"] == "Не вдалося відкотити рішення. Перегляньте Журнал."
+    assert "RuntimeError" not in response.text
+    course.refresh_from_db()
+    assert course.title == NEW_TITLE
 
 
 @pytest.mark.django_db

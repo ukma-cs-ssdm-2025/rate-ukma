@@ -3556,7 +3556,7 @@ paths:
         change numbers first, and stop by 40 s. The `token` from `preview` must match
         the selection again; a changed set answers 409 `selection_changed`. A retry
         with the same `client_key` returns the first decision with 200 instead of
-        applying twice. Superusers only.
+        applying twice; each new attempt needs a new `client_key`. Superusers only.
       summary: Apply a previewed sync selection
       tags:
       - ukma-data
@@ -3642,14 +3642,14 @@ paths:
       operationId: ukma_data_sync_journal
       description: 'Every apply, reject, revert, policy change and mapping answer,
         newest first, with whether an apply can be reverted. Page with `before`: pass
-        the previous response''s `next_before`. Superusers only.'
+        the previous response''s `next_before` unchanged. Superusers only.'
       summary: Read the sync journal
       parameters:
       - in: query
         name: before
         schema:
           type: string
-        description: Only entries older than this ISO 8601 time; pass `next_before`
+        description: Opaque cursor from `next_before`; pass it unchanged
       - in: query
         name: limit
         schema:
@@ -4203,10 +4203,11 @@ paths:
   /api/v1/ukma-data/sync/reject/:
     post:
       operationId: ukma_data_sync_reject
-      description: Mark the selected proposed changes rejected and supersede the changes
-        waiting on them; nothing on the site changes. A rejected change comes back
-        after the next read if САЗ still differs. A retry with the same `client_key`
-        returns the first decision with 200. Superusers only.
+      description: Mark the selected proposed changes of one run rejected and supersede
+        the changes waiting on them; nothing on the site changes. A rejected change
+        comes back after the next read if САЗ still differs. A retry with the same
+        `client_key` returns the first decision with 200; each new attempt needs a
+        new `client_key`. Superusers only.
       summary: Reject a sync selection
       tags:
       - ukma-data
@@ -4360,14 +4361,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                NotFound:
-                  value:
-                    detail: Not found
-                    status: 404
-                  summary: Not found
-          description: Not found
+                $ref: '#/components/schemas/SyncRevertResponse'
+          description: Unknown decision
         '409':
           content:
             application/json:
@@ -6287,7 +6282,7 @@ components:
       - message
       - rating_id
       - source_object_id
-    OutcomeEnum:
+    OutcomeA5cEnum:
       enum:
       - started
       - applied
@@ -7113,7 +7108,7 @@ components:
           type: string
           format: uuid
           description: Idempotency key; a retry with the same key returns the first
-            result
+            result. Each new attempt needs a new key.
       required:
       - client_key
       - token
@@ -7133,7 +7128,7 @@ components:
         kind:
           type: string
         outcome:
-          $ref: '#/components/schemas/OutcomeEnum'
+          $ref: '#/components/schemas/OutcomeA5cEnum'
         counts: {}
         error:
           type: string
@@ -7445,7 +7440,7 @@ components:
         action:
           $ref: '#/components/schemas/ActionEnum'
         outcome:
-          $ref: '#/components/schemas/OutcomeEnum'
+          $ref: '#/components/schemas/OutcomeA5cEnum'
         detail:
           type: string
         counts:
@@ -7500,6 +7495,42 @@ components:
           type: integer
       required:
       - total
+    SyncJournalCounts:
+      type: object
+      properties:
+        applied:
+          type: integer
+        rejected:
+          type: integer
+        reverted:
+          type: integer
+        skipped:
+          type: integer
+        waiting:
+          type: integer
+        superseded:
+          type: integer
+        remaining:
+          type: integer
+        blockers:
+          type: integer
+        deadline_seconds:
+          type: integer
+        plans_deduplicated:
+          type: integer
+        plans_deduplicated_by_move:
+          type: integer
+        kind:
+          $ref: '#/components/schemas/SyncChangeKindEnum'
+        old_mode:
+          $ref: '#/components/schemas/SyncPolicyModeEnum'
+        new_mode:
+          $ref: '#/components/schemas/SyncPolicyModeEnum'
+        answer:
+          $ref: '#/components/schemas/AnswerEnum'
+        into:
+          type: string
+          nullable: true
     SyncJournalEntry:
       type: object
       properties:
@@ -7514,9 +7545,9 @@ components:
           type: string
           format: date-time
         outcome:
-          type: string
+          $ref: '#/components/schemas/SyncJournalEntryOutcomeEnum'
         counts:
-          description: Counts of the decision; the keys differ per `kind`
+          $ref: '#/components/schemas/SyncJournalCounts'
         approval_id:
           type: integer
           nullable: true
@@ -7524,7 +7555,9 @@ components:
           type: integer
           nullable: true
         group:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeGroupEnum'
+          nullable: true
         revertible:
           type: boolean
         revert_reason:
@@ -7544,6 +7577,32 @@ components:
       - reverts_id
       - when
       - who
+    SyncJournalEntryOutcomeEnum:
+      enum:
+      - started
+      - applied
+      - refused
+      - failed
+      - changed
+      - keep_apart
+      - merge
+      - keep
+      - move
+      - place
+      - relink
+      type: string
+      description: |-
+        * `started` - Started
+        * `applied` - Applied
+        * `refused` - Refused
+        * `failed` - Failed
+        * `changed` - Changed
+        * `keep_apart` - Keep apart
+        * `merge` - Merge
+        * `keep` - Keep
+        * `move` - Move
+        * `place` - Place
+        * `relink` - Relink
     SyncJournalKindEnum:
       enum:
       - apply
@@ -7567,7 +7626,6 @@ components:
             $ref: '#/components/schemas/SyncJournalEntry'
         next_before:
           type: string
-          format: date-time
           nullable: true
           description: Pass as `before` for the next page
       required:
@@ -7841,12 +7899,6 @@ components:
       properties:
         token:
           type: string
-        dry_run:
-          type: boolean
-        outcome:
-          $ref: '#/components/schemas/OutcomeEnum'
-        error:
-          type: string
         detail:
           type: string
         counts:
@@ -7864,9 +7916,6 @@ components:
       required:
       - counts
       - detail
-      - dry_run
-      - error
-      - outcome
       - run
       - skipped_reasons
       - token
@@ -8086,6 +8135,7 @@ components:
       - lock_held
       - run_not_current
       - run_too_old
+      - in_progress
       - deadline_exceeded
       - no_proposed_changes
       - failed
@@ -8095,6 +8145,7 @@ components:
         * `lock_held` - Sync lock held
         * `run_not_current` - Run is not current
         * `run_too_old` - Run is too old
+        * `in_progress` - Decision still running
         * `deadline_exceeded` - Deadline exceeded
         * `no_proposed_changes` - Nothing proposed
         * `failed` - Apply failed
@@ -8104,8 +8155,7 @@ components:
         run:
           type: integer
           minimum: 1
-          nullable: true
-          description: Pin one run; omit for the current
+          description: The run the person looked at
         source:
           allOf:
           - $ref: '#/components/schemas/SyncSourceEnum'
@@ -8129,9 +8179,10 @@ components:
           type: string
           format: uuid
           description: Idempotency key; a retry with the same key returns the first
-            result
+            result. Each new attempt needs a new key.
       required:
       - client_key
+      - run
     SyncRevertBlocker:
       type: object
       properties:
@@ -8172,9 +8223,11 @@ components:
         dry_run:
           type: boolean
         outcome:
-          $ref: '#/components/schemas/OutcomeEnum'
+          $ref: '#/components/schemas/OutcomeA5cEnum'
         code:
-          $ref: '#/components/schemas/SyncRevertResponseCodeEnum'
+          allOf:
+          - $ref: '#/components/schemas/SyncRevertResponseCodeEnum'
+          nullable: true
         detail:
           type: string
         changes:

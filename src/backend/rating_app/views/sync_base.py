@@ -1,5 +1,6 @@
-"""Shared machinery of the read-only sync endpoints: pagination, validation and
-the approval history. Decisions are made in the console (`manage.py catalog_sync`).
+"""Shared machinery of the sync endpoints: pagination, validation and the
+approval history. Decisions are made in the console (`manage.py catalog_sync`) or
+on /data, through `rating_app.sync.decisions`.
 """
 
 from __future__ import annotations
@@ -28,7 +29,6 @@ from rating_app.models.sync import (
     SyncChange,
     SyncChangeState,
     SyncRun,
-    SyncSource,
 )
 from rating_app.pagination.paginator import GenericQuerysetPaginator
 from rating_app.sync import decisions, review
@@ -97,7 +97,7 @@ class SyncViewSetBase(viewsets.ViewSet):
             )
         return details
 
-    def _request_run(self, source: SyncSource, run_id: int | None) -> SyncRun:
+    def _request_run(self, source: str, run_id: int | None) -> SyncRun:
         if run_id is not None:
             run = SyncRun.objects.filter(pk=run_id).first()
             if run is None:
