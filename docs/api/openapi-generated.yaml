@@ -3656,6 +3656,7 @@ paths:
           - applied
           - proposed
           - rejected
+          - reverted
           - superseded
         description: State to list; `proposed` by default
       - in: query
@@ -4164,6 +4165,7 @@ paths:
           - applied
           - proposed
           - rejected
+          - reverted
           - superseded
         description: Only changes in this state; omit for every state
       tags:
@@ -4440,11 +4442,13 @@ components:
       enum:
       - apply
       - reject
+      - revert
       - preview
       type: string
       description: |-
         * `apply` - Apply
         * `reject` - Reject
+        * `revert` - Revert
         * `preview` - Preview
     AnswerEnum:
       enum:
@@ -6866,12 +6870,14 @@ components:
       - applied
       - rejected
       - superseded
+      - reverted
       type: string
       description: |-
         * `proposed` - Proposed
         * `applied` - Applied
         * `rejected` - Rejected
         * `superseded` - Superseded
+        * `reverted` - Reverted
     SyncFieldRow:
       type: object
       properties:

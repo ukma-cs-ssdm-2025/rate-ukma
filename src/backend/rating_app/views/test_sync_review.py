@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from datetime import timedelta
 
 from django.urls import reverse
@@ -15,7 +14,7 @@ from rating_app.models import (
     SyncRunStatus,
     SyncSource,
 )
-from rating_app.sync import apply, decisions
+from rating_app.sync import decisions
 from rating_app.sync.kinds import KIND_BY_NAME
 
 ENDPOINTS = [
@@ -784,11 +783,6 @@ def test_summary_counts_a_relink_with_plans_as_a_rated_question(
     assert steps["other_questions"]["count"] == 0
 
 
-@contextmanager
-def _lock_free(_key: int):
-    yield True
-
-
 def _teacher_unit(sync_change_factory, run, offering, email="sync.teacher@example.com"):
     created = sync_change_factory(
         run=run,
@@ -970,12 +964,11 @@ def test_run_approvals_and_export_return_404_for_an_unknown_run(superuser_client
 @pytest.mark.integration
 def test_history_names_a_real_approval_by_the_group_it_applied(
     superuser_client,
-    monkeypatch,
+    free_sync_lock,
     sync_run_factory,
     sync_change_factory,
     course_offering_factory,
 ):
-    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
     teacher_run = sync_run_factory(
         source=SyncSource.TEACHERS,
         status=SyncRunStatus.SUCCEEDED,

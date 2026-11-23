@@ -31,6 +31,7 @@ class SyncChangeState(models.TextChoices):
     APPLIED = "applied", "Applied"
     REJECTED = "rejected", "Rejected"
     SUPERSEDED = "superseded", "Superseded"
+    REVERTED = "reverted", "Reverted"
 
 
 class SyncChangeStateReason(models.TextChoices):
@@ -49,6 +50,7 @@ class SyncPolicyMode(models.TextChoices):
 class SyncApprovalAction(models.TextChoices):
     APPLY = "apply", "Apply"
     REJECT = "reject", "Reject"
+    REVERT = "revert", "Revert"
     PREVIEW = "preview", "Preview"
 
 
@@ -198,6 +200,7 @@ class SyncApproval(models.Model):
     run_id: int | None
     user_id: int | None
     policy_change_id: int | None
+    reverts_id: int | None
 
     run = models.ForeignKey(
         SyncRun, on_delete=models.SET_NULL, null=True, blank=True, related_name="approvals"
@@ -226,6 +229,13 @@ class SyncApproval(models.Model):
         null=True,
         blank=True,
         related_name="approvals",
+    )
+    reverts = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reverted_by",
     )
 
     def __str__(self) -> str:

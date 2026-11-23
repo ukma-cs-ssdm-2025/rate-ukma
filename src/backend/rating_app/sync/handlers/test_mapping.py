@@ -1071,6 +1071,7 @@ def test_a_move_keeps_one_plan_per_student_on_the_target(
         premise=_move_premise(offering, source, target),
     )
 
-    approve([change.pk], user)
+    approval = approve([change.pk], user)
 
+    assert approval.counts["plans_deduplicated_by_move"] == 1
     assert PlannedCourse.objects.filter(student=student, offering__course=target).count() == 1

@@ -8,6 +8,8 @@ transaction that is rolled back, and reports what each selected change became.
 
 from __future__ import annotations
 
+import secrets
+import uuid
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -23,11 +25,15 @@ from rating_app.models.sync import (
     SyncApprovalOutcome,
     SyncChange,
     SyncChangeState,
+    SyncPreview,
     SyncRun,
     SyncRunStatus,
     SyncSource,
 )
 from rating_app.sync import apply, review
+from rating_app.sync import revert as revert_service
+
+SyncApplyInputError = apply.SyncApplyInputError
 
 REFUSAL_TEXT = {
     "lock_held": "Синхронізація саме триває (нічне читання або інше застосування). "
@@ -35,12 +41,15 @@ REFUSAL_TEXT = {
     "run_not_current": "Ці зміни з попереднього читання САЗ, вже є новіше. "
     "Подивіться status і show ще раз.",
     "no_proposed_changes": "Серед вибраних немає змін, що чекають рішення.",
+    "selection_changed": "Список змінився. Перегляньте ще раз.",
+    "deadline_exceeded": "Не встигли вчасно, нічого не записано. Виберіть менше змін.",
 }
 
 INPUT_ERROR_TEXT = {
     "no change ids": "Не вибрано жодної зміни",
     "unknown change ids": "Деяких вибраних змін не існує",
     "changes from several runs": "Вибрані зміни належать різним читанням САЗ",
+    "unknown preview token": "Перегляд не знайдено. Перегляньте ще раз.",
 }
 
 
@@ -69,6 +78,7 @@ class DecisionResult:
     ratings_moved: int = 0
     plans_moved: int = 0
     run_age_hours: int | None = None
+    run_id: int | None = None
 
     def in_state(self, state: str) -> list[ChangeOutcome]:
         return [item for item in self.outcomes if item.state == state]
@@ -76,6 +86,18 @@ class DecisionResult:
     def decided(self, state: str) -> list[ChangeOutcome]:
         """Changes this decision put into `state`; one decided earlier is not counted."""
         return [item for item in self.in_state(state) if item.decided_now]
+
+    @property
+    def remaining(self) -> int:
+        return int(self.counts.get("remaining") or 0)
+
+
+@dataclass(frozen=True)
+class PreviewResult:
+    """A dry run and, when it would apply something, a token for the apply."""
+
+    result: DecisionResult
+    token: str = ""
 
 
 def current_run(source: str) -> SyncRun | None:
@@ -129,25 +151,81 @@ def approve(
     group: str = "",
     kind: str = "",
     excluded: Iterable[int] = (),
+    client_key: uuid.UUID | None = None,
+    max_changes: int | None = None,
+    deadline_seconds: float | None = None,
+    preview_token: str | None = None,
 ) -> DecisionResult:
     """Apply the selection through `apply.approve`; a dry run rolls it all back.
 
-    Raises `apply.SyncApplyInputError` for an empty, unknown or mixed selection.
+    A `preview_token` from `preview` makes the apply refuse as `selection_changed`
+    when the selection no longer matches it. Raises `apply.SyncApplyInputError`
+    for an empty, unknown or mixed selection.
     """
     ids = list(change_ids)
     scope_group = "" if group == review.OTHER_GROUP else group
+    preview = _preview(preview_token, user)
 
     def run() -> SyncApproval:
         return apply.approve(
             ids,
             user,
             confirm_old_run=confirm_stale,
+            client_key=client_key,
             group=scope_group,
             kind=kind,
             excluded=excluded,
+            max_changes=max_changes,
+            deadline_seconds=deadline_seconds,
+            preview=preview,
         )
 
     return _decide(run, ids, dry_run=dry_run)
+
+
+def preview(
+    change_ids: Iterable[int],
+    user: User,
+    *,
+    group: str = "",
+    kind: str = "",
+    excluded: Iterable[int] = (),
+    max_changes: int | None = None,
+    deadline_seconds: float | None = None,
+) -> PreviewResult:
+    """Dry-run the selection and, when it would apply, issue a `SyncPreview` token."""
+    ids = list(change_ids)
+    result = approve(
+        ids,
+        user,
+        dry_run=True,
+        group=group,
+        kind=kind,
+        excluded=excluded,
+        max_changes=max_changes,
+        deadline_seconds=deadline_seconds,
+    )
+    if result.outcome != SyncApprovalOutcome.APPLIED or result.run_id is None:
+        return PreviewResult(result=result)
+    token = secrets.token_urlsafe(24)
+    SyncPreview.objects.create(token=token, run_id=result.run_id, user=user, count=len(set(ids)))
+    return PreviewResult(result=result, token=token)
+
+
+def _preview(token: str | None, user: User) -> SyncPreview | None:
+    if not token:
+        return None
+    preview = SyncPreview.objects.filter(token=token, user=user).first()
+    if preview is None:
+        raise apply.SyncApplyInputError("unknown preview token")
+    return preview
+
+
+def revert(approval_id: int, user: User, *, dry_run: bool) -> revert_service.RevertResult:
+    """Revert one applied decision through `sync.revert`; a dry run rolls back."""
+    if not dry_run:
+        return revert_service.revert(approval_id, user, dry_run=False)
+    return rolled_back(lambda: revert_service.revert(approval_id, user, dry_run=True))
 
 
 def reject(change_ids: Iterable[int], user: User, *, dry_run: bool) -> DecisionResult:
@@ -195,6 +273,7 @@ def _result(approval: SyncApproval, selected: Sequence[int], *, dry_run: bool) -
         error=str(approval.error or ""),
         counts=counts,
         run_age_hours=None if run is None else age_hours(run),
+        run_id=approval.run_ref,
     )
     if approval.outcome != SyncApprovalOutcome.APPLIED:
         return result

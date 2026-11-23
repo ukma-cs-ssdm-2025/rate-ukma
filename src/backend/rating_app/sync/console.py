@@ -17,6 +17,7 @@ from rating_app.models import SyncChange, SyncChangeState
 from rating_app.sync import fields as field_pairs
 from rating_app.sync.answers import ANSWERS_BY_KIND, MAPPING_KINDS
 from rating_app.sync.decisions import ChangeOutcome, DecisionResult
+from rating_app.sync.journal import JournalEntry
 from rating_app.sync.questions import Question
 
 WIDTH = 100
@@ -89,52 +90,7 @@ POLICY_LABELS: dict[str, str] = {
     "removed_offering": "Курси в семестрі, що зникли",
 }
 
-FIELD_LABELS: dict[str, str] = {
-    "name": "назва",
-    "title": "назва",
-    "department": "кафедра",
-    "education_level": "рівень освіти",
-    "level": "рівень",
-    "status": "стан",
-    "description": "опис",
-    "year": "рік",
-    "term": "семестр",
-    "exam_type": "форма контролю",
-    "study_year": "рік навчання",
-    "max_students": "макс. студентів",
-    "max_groups": "макс. груп",
-    "group_size_min": "мін. у групі",
-    "group_size_max": "макс. у групі",
-    "credits": "кредити",
-    "weekly_hours": "годин на тиждень",
-    "lecture_count": "лекцій",
-    "practice_count": "практик",
-    "practice_type": "тип практик",
-    "specialities": "спеціальності",
-    "terms": "семестри",
-    "saz_code": "код САЗ",
-    "ukma_data_id": "id в UKMA Data",
-    "majority_share": "частка збігу",
-    "faculty_ukma_id": "факультет в UKMA Data",
-    "department_ukma_id": "кафедра в UKMA Data",
-    "course_id": "курс",
-    "course_ukma_id": "курс в UKMA Data",
-    "candidates": "курси-кандидати",
-    "from_course": "з курсу",
-    "to_course_id": "до курсу",
-    "to_course_ukma_id": "до курсу в UKMA Data",
-    "ukma_course_id": "курс в UKMA Data",
-    "merge_source": "джерело об'єднання",
-    "email": "пошта",
-    "teacher_email": "пошта викладача",
-    "last_name": "прізвище",
-    "first_name": "ім'я",
-    "middle_name": "по батькові",
-    "role": "роль",
-    "instructor_id": "викладач",
-    "removed_at": "зник з САЗ",
-    "other": "інше",
-}
+FIELD_LABELS = field_pairs.FIELD_LABELS
 
 STATE_REASON_TEXT: dict[str, str] = {
     "replaced": "замінена новішою зміною",
@@ -463,8 +419,63 @@ def why_left(item: ChangeOutcome) -> str:
         return "уже відхилена"
     if item.state == SyncChangeState.APPLIED:
         return "уже застосована"
+    if item.state == SyncChangeState.REVERTED:
+        return "уже відкочена"
     if item.waiting_on:
         return "чекає на інші зміни (спершу застосуйте їх або вкажіть усю групу)"
     if item.change.kind in MAPPING_KINDS:
         return "питання без відповіді: спершу catalog_sync answer"
     return "пропущено цього разу (рядок на сайті змінився або вибірку звужено)"
+
+
+def journal_summary(entry: JournalEntry) -> str:
+    """One line of «Журнал»: what the decision did and how much of it."""
+    counts = entry.counts
+    if entry.kind == "apply":
+        summary = f"Застосовано {number(int(counts.get('applied') or 0))}"
+        return _with_group(summary, entry.group)
+    if entry.kind == "reject":
+        summary = f"Відхилено {number(int(counts.get('rejected') or 0))}"
+        return _with_group(summary, entry.group)
+    if entry.kind == "revert":
+        original = entry.reverts_id or 0
+        return f"Відкочено #{original} ({number(int(counts.get('reverted') or 0))})"
+    if entry.kind == "policy":
+        label = POLICY_LABELS.get(str(counts.get("kind")), str(counts.get("kind")))
+        mode = MODE_TEXT.get(str(counts.get("new_mode")), str(counts.get("new_mode")))
+        return f"Правило: {label} → {mode}"
+    if entry.kind == "answer":
+        label = KIND_LABELS.get(str(counts.get("kind")), str(counts.get("kind")))
+        return f"Відповідь: {label} → {counts.get('answer')}"
+    return entry.kind
+
+
+def _with_group(summary: str, group: str) -> str:
+    label = GROUP_LABELS.get(group)
+    return f"{summary} ({label})" if label else summary
+
+
+def journal_line(entry: JournalEntry) -> str:
+    head = "—" if entry.kind in {"policy", "answer"} else f"рішення #{entry.id}"
+    who = entry.who or "автоматично"
+    marker = "відкочено" if entry.reverted else ""
+    line = f"{head:<14}{journal_summary(entry):<36}{who:<16}{ago(entry.when)}"
+    if marker:
+        line += f"  {marker}"
+    return line[:WIDTH]
+
+
+def journal_json(entry: JournalEntry) -> dict[str, Any]:
+    return {
+        "id": entry.id,
+        "entry": entry.kind,
+        "who": entry.who,
+        "when": entry.when,
+        "counts": entry.counts,
+        "outcome": entry.outcome,
+        "approval_id": entry.approval_id,
+        "reverts_id": entry.reverts_id,
+        "group": entry.group,
+        "revertible": entry.revertible,
+        "revert_reason": entry.revert_reason,
+    }

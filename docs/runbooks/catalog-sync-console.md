@@ -1,6 +1,6 @@
 # Catalog Sync from the Console
 
-Runbook for deciding the changes the nightly read of UKMA Data proposes: apply them, reject them, answer mapping questions, and set which kinds apply by themselves. Decisions are made here, in the console; the /data page only shows them ([ADR-0022](../architecture/decisions/0022-sync-runs-changes-and-policies.md), update of 2026-11-22).
+Runbook for deciding the changes the nightly read of UKMA Data proposes: apply them, reject them, undo an applied decision, answer mapping questions, set which kinds apply by themselves, and read the journal. Decisions are made here, in the console; the /data page only shows them ([ADR-0022](../architecture/decisions/0022-sync-runs-changes-and-policies.md), updates of 2026-11-22 and 2026-11-23).
 
 ## Before You Start
 
@@ -27,7 +27,8 @@ You already have a shell where `python manage.py` runs for the backend (or `node
 - Use the same selection flags for the dry run and for `--yes`. If the nightly read ran in between, run the dry run again.
 - Change ids (`#48121`) are printed by `show` and the dry run, and shown on /data. `status` prints only counts.
 - Mapping questions, and changes that move ratings between courses, are «лише вручну»: no policy can make them `auto`.
-- Output is Ukrainian. `status`, `show` and `policy` take `--json` for machine reading.
+- `revert` is a write command like the rest: dry run first, show the owner, then `--yes`.
+- Output is Ukrainian. `status`, `show`, `log` and `policy` take `--json` for machine reading.
 
 ## Steps
 
@@ -35,7 +36,7 @@ Steps 2 and 3 only read; they may run before the dump.
 
 ### 1. Take a database dump (before the first `--yes` of the session)
 
-Take a database dump with the environment's usual backup tool and keep it until the apply is verified. Applies are not undone by a command; the dump is the way back. If you do not know how to take a dump on this environment, ask the owner to take one or to confirm one was taken tonight, and wait for their yes. Run no `--yes` before that.
+Take a database dump with the environment's usual backup tool and keep it until the apply is verified. `revert` undoes only the kinds in [Undo a Decision](#undo-a-decision); new records, merges and placements still need the dump. If you do not know how to take a dump on this environment, ask the owner to take one or to confirm one was taken tonight, and wait for their yes. Run no `--yes` before that.
 
 ### 2. See what waits
 
@@ -110,6 +111,54 @@ Done when, for every group the owner chose, `status` shows no waiting changes in
 
 Finish with a report to the owner: per group, the decision numbers, the counts applied, the changes left waiting and why, and any check that was not done.
 
+## Undo a Decision
+
+An applied decision can be undone with `revert`. It writes back what the decision wrote; it never deletes rows and cannot be undone itself.
+
+```bash
+python manage.py catalog_sync log
+python manage.py catalog_sync revert 74 --by <username>
+python manage.py catalog_sync revert 74 --by <username> --yes
+```
+
+The dry run lists every change that blocks the whole revert, one line each (invented data):
+
+```text
+Пробний запуск, нічого не записано.
+Не можна відкотити рішення #74: 2 зміни заважають.
+  зміна #48121  запис змінився після застосування (назва)
+  зміна #48130  спершу відкотіть рішення #77 (пізніше застосоване)
+Спершу приберіть перешкоди.
+```
+
+A revert is all-or-nothing: while one blocker stays, nothing is written. What blocks it:
+
+- the record changed after the apply (someone edited it, or a later decision did);
+- a later decision that was not reverted touched the same record, or one of its changes needs a change in this decision;
+- the kind is currently `auto`, so the next nightly read would apply it again; set the kind to `needs_approval` first;
+- a move merged study plans away; restore those plans by hand instead.
+
+Which kinds can be reverted: `link_*`, `relink_course`, `change_*` and `move_offering`. `new_*` cannot («Лише вручну: нові записи вже можуть мати оцінки»), and neither can `merge_courses` or `place_offering` («Лише вручну, з резервної копії бази»). `removed_*` wrote nothing, so there is nothing to undo. Only applied decisions can be reverted; a rejected change simply comes back after the next read.
+
+When the dry run has no blockers, it says how many changes it would return and their fields get their previous values. After `--yes` it prints a new decision number; the changes become «відкочено», keep their original decision number for counting, and come back to «Чекають рішення» after the next read if САЗ still differs. Check:
+
+```bash
+python manage.py catalog_sync log --limit 5
+python manage.py catalog_sync show --group change --state reverted --limit 0
+```
+
+## Journal
+
+`log` lists every decision, newest first: applies, rejections and reverts (by a person or «автоматично»), policy changes and mapping answers. One line per entry: the decision number, what it did with counts, who, when, and «відкочено» on a decision that a later revert undid.
+
+```bash
+python manage.py catalog_sync log
+python manage.py catalog_sync log --limit 50
+python manage.py catalog_sync log --json
+```
+
+Use it to find the decision number for `revert`, to check what a dry run would touch, and to answer the owner's «що вже сталося».
+
 ## Mapping Questions
 
 Group `mapping` holds questions: two courses that may be one, a semester course without a course, a course that may belong elsewhere.
@@ -174,6 +223,11 @@ Turning it on for live is the owner's call.
 | `Відмовлено: Дані старші за 48 год…` | The run is old. Show the owner its age from `status`. Add `--confirm-stale` only if they say so. |
 | `Під цю вибірку не підходить жодна зміна…` | Nothing waiting matches the flags. Check them with `show`. |
 | `Користувача «…» не знайдено` or `«…» не адміністратор` | `--by` must name an active superuser, by username or email. |
+| `Рішення не знайдено.` | Check the decision number with `log`. |
+| `Відкотити можна лише застосоване рішення.` or `Це рішення нічого не застосувало.` | Only an applied decision can be reverted; a rejection needs no undo. |
+| `Це рішення вже відкочено.` | A second revert would undo the undo. Check `log`. |
+| `Нічого відкочувати: ці зміни нічого не записали.` | The decision only acknowledged `removed_*` changes or was itself a revert. |
+| `Не можна відкотити рішення #N: …` | The dry run lists every blocker; fix them or restore the dump instead. |
 | `status` shows the last read failed | `status` and /data keep showing the previous good read. Stop and tell the owner; decide from the previous read only if they say so. |
 
 ### Збій

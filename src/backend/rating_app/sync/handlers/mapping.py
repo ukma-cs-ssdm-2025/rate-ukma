@@ -91,10 +91,10 @@ def apply_place_offering(change: SyncChange) -> None:
 
 
 @register("move_offering")
-def apply_move_offering(change: SyncChange) -> None:
+def apply_move_offering(change: SyncChange) -> dict[str, object]:
     decision = _holding_decision(change)
     if decision is None:
-        return
+        return {}
     payload = MoveOfferingPayload.model_validate(change.after)
     offering_id = _uuid(change.target_id)
     source_id = _uuid(payload.from_course)
@@ -109,10 +109,11 @@ def apply_move_offering(change: SyncChange) -> None:
     )
     if not moved:
         raise ChangeStaleError
-    _deduplicate_plans(target_id)
+    plans = _deduplicate_plans(target_id)
     for course_id in (source_id, target_id):
-        _recompute_aggregates(course_id)
+        recompute_aggregates(course_id)
         transaction.on_commit(partial(_recompute_after_commit, course_id))
+    return {"plans_deduplicated_by_move": plans}
 
 
 # Merge
@@ -147,7 +148,7 @@ def apply_merge_courses(change: SyncChange) -> dict[str, object]:
         plans += moved_plans
     if change.ukma_data_id:
         Course.objects.filter(pk=target_id).update(ukma_data_id=change.ukma_data_id)
-    _recompute_aggregates(target_id)
+    recompute_aggregates(target_id)
     transaction.on_commit(lambda: _recompute_after_commit(target_id))
     return {
         "merges": [
@@ -257,7 +258,7 @@ def _names_course(decision: CatalogMappingDecision, course_id: str) -> bool:
     return isinstance(course_ids, list) and course_id in {str(value) for value in course_ids}
 
 
-def _recompute_aggregates(course_id: uuid.UUID) -> None:
+def recompute_aggregates(course_id: uuid.UUID) -> None:
     stats = Rating.objects.filter(course_offering__course_id=course_id).aggregate(
         avg_difficulty=Avg("difficulty"),
         avg_usefulness=Avg("usefulness"),
@@ -277,7 +278,7 @@ def _decimal(value: object) -> Decimal:
 def _recompute_after_commit(course_id: uuid.UUID) -> None:
     """Ratings saved while the merge ran may have recomputed against the old course."""
     try:
-        _recompute_aggregates(course_id)
+        recompute_aggregates(course_id)
     except Exception as exc:
         logger.error(
             "sync_merge_aggregates_failed", course_id=str(course_id), err=type(exc).__name__

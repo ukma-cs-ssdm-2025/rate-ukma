@@ -148,12 +148,11 @@ def is_stale(
     if kind in BEFORE_PAYLOADS:
         return values != before
     return any(
-        key not in values or _differs(kind, key, values[key], value)
-        for key, value in before.items()
+        key not in values or differs(kind, key, values[key], value) for key, value in before.items()
     )
 
 
-def _differs(kind: str, key: str, current: object, recorded: object) -> bool:
+def differs(kind: str, key: str, current: object, recorded: object) -> bool:
     """Compare the values a change writes; a ``change_course`` department by id.
 
     A department linked or renamed earlier in the same run changes its
