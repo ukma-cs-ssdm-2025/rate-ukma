@@ -18,6 +18,7 @@ from rating_app.models import (
     SyncRunStatus,
     SyncSource,
 )
+from rating_app.sync import decisions
 
 PREVIEW = "ukma-data-sync-preview"
 APPLY = "ukma-data-sync-apply"
@@ -1150,3 +1151,41 @@ def test_a_replayed_reject_reports_the_first_counts(
     assert second.json()["counts"] == first.json()["counts"]
     assert second.json()["decision_id"] == first.json()["decision_id"]
     assert SyncApproval.objects.filter(action="reject").count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("action", "send"),
+    [
+        ("apply", lambda client, run, key: _apply(client, run, "token", key)),
+        ("reject", lambda client, run, key: _reject(client, run, key)),
+    ],
+)
+def test_a_retry_that_finds_the_selection_empty_replays_the_first_decision(
+    superuser_client, catalog_run, sync_approval_factory, monkeypatch, action, send
+):
+    key = uuid.uuid4()
+    first = sync_approval_factory(
+        run=catalog_run,
+        user=superuser_client.user,
+        action=action,
+        outcome="applied",
+        client_key=key,
+    )
+    real_replay = decisions.replay
+    lookups: list[str] = []
+
+    def misses_the_first_lookup(*args, **kwargs):
+        lookups.append(action)
+        return None if len(lookups) == 1 else real_replay(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "rating_app.views.sync_actions_viewset.decisions.replay", misses_the_first_lookup
+    )
+
+    response = send(superuser_client, catalog_run, key)
+
+    assert response.status_code == 200, response.json()
+    assert response.json()["decision_id"] == first.pk
+    assert len(lookups) == 2

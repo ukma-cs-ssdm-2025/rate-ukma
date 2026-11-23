@@ -437,7 +437,10 @@ def left_reason(item: ChangeOutcome) -> tuple[str, str]:
     if item.waiting_on:
         return "waiting_on", "чекає на інші зміни (спершу застосуйте їх або вкажіть усю групу)"
     if item.change.kind in MAPPING_KINDS:
-        return "mapping_unanswered", "питання без відповіді: спершу дайте відповідь"
+        return (
+            "mapping_unanswered",
+            "питання без відповіді: спершу дайте відповідь (catalog_sync answer)",
+        )
     return "not_ready", "пропущено цього разу (рядок на сайті змінився або вибірку звужено)"
 
 

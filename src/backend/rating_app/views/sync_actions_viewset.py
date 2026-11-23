@@ -120,9 +120,10 @@ class SyncActionsViewSet(SyncViewSetBase):
         "from `preview` binds the selected change ids: if that id set changed, the answer "
         "is 409 `selection_changed`. A change in the set that another decision took since "
         "the preview is not applied and is counted as skipped, so `counts` can differ from "
-        "the preview. A retry with the same `client_key` returns the first decision with "
-        "200 instead of applying twice; each new attempt needs a new `client_key`. "
-        "Superusers only.",
+        "the preview. A retry with the same `client_key` never applies twice: it returns "
+        "the first decision with its own status (200 when it applied, the same refusal "
+        "when it was refused) or 409 `in_progress` while it still runs. Each new attempt "
+        "needs a new `client_key`. Superusers only.",
         request=SyncApplyRequestSerializer,
         responses=R_SYNC_APPLY,
         operation_id="ukma_data_sync_apply",
@@ -135,7 +136,7 @@ class SyncActionsViewSet(SyncViewSetBase):
         run = self._request_run(_source(data), data.get("run"))
         ids, group, kind = self._selection(data, run)
         if not ids:
-            return _refusal("selection_changed", decisions.run_info(run))
+            return _replay_or_refusal(data, request, "apply", "selection_changed", run)
         try:
             result = decisions.approve(
                 ids,
@@ -157,8 +158,9 @@ class SyncActionsViewSet(SyncViewSetBase):
         description="Mark the selected proposed changes of one run rejected and supersede the "
         "changes waiting on them; nothing on the site changes. A rejected change comes back "
         "after the next read if САЗ still differs. A retry with the same `client_key` "
-        "returns the first decision with 200; each new attempt needs a new `client_key`. "
-        "Superusers only.",
+        "returns the first decision with its own status (200 when it rejected, the same "
+        "refusal when it was refused) or 409 `in_progress` while it still runs. Each new "
+        "attempt needs a new `client_key`. Superusers only.",
         request=SyncRejectRequestSerializer,
         responses=R_SYNC_REJECT,
         operation_id="ukma_data_sync_reject",
@@ -171,7 +173,7 @@ class SyncActionsViewSet(SyncViewSetBase):
         run = self._request_run(_source(data), data.get("run"))
         ids, _, _ = self._selection(data, run)
         if not ids:
-            return _refusal("no_proposed_changes", decisions.run_info(run))
+            return _replay_or_refusal(data, request, "reject", "no_proposed_changes", run)
         try:
             result = decisions.reject(
                 ids,
@@ -267,6 +269,16 @@ class SyncActionsViewSet(SyncViewSetBase):
         kind = str(data.get("kind") or "")
         ids = selection.filter_ids(run, str(run.source), {"group": group, "kind": kind})
         return ids, group, kind
+
+
+def _replay_or_refusal(
+    data: dict[str, Any], request: Request, action: str, code: str, run: SyncRun
+) -> Response:
+    """An empty selection may mean this key's first request has just decided it."""
+    replayed = decisions.replay(data["client_key"], request.user, action)
+    if replayed is not None:
+        return _decision_response(replayed)
+    return _refusal(code, decisions.run_info(run))
 
 
 def _outside_run(ids: list[int], run: SyncRun) -> bool:

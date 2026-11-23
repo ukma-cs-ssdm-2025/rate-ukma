@@ -3871,8 +3871,10 @@ paths:
         change ids: if that id set changed, the answer is 409 `selection_changed`.
         A change in the set that another decision took since the preview is not applied
         and is counted as skipped, so `counts` can differ from the preview. A retry
-        with the same `client_key` returns the first decision with 200 instead of
-        applying twice; each new attempt needs a new `client_key`. Superusers only.'
+        with the same `client_key` never applies twice: it returns the first decision
+        with its own status (200 when it applied, the same refusal when it was refused)
+        or 409 `in_progress` while it still runs. Each new attempt needs a new `client_key`.
+        Superusers only.'
       summary: Apply a previewed sync selection
       tags:
       - ukma-data
@@ -4546,8 +4548,9 @@ paths:
       description: Mark the selected proposed changes of one run rejected and supersede
         the changes waiting on them; nothing on the site changes. A rejected change
         comes back after the next read if САЗ still differs. A retry with the same
-        `client_key` returns the first decision with 200; each new attempt needs a
-        new `client_key`. Superusers only.
+        `client_key` returns the first decision with its own status (200 when it rejected,
+        the same refusal when it was refused) or 409 `in_progress` while it still
+        runs. Each new attempt needs a new `client_key`. Superusers only.
       summary: Reject a sync selection
       tags:
       - ukma-data
