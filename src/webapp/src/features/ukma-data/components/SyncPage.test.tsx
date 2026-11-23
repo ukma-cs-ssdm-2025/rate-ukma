@@ -13,11 +13,16 @@ import {
 	policies,
 	POLICIES_URL,
 	POLICY_CHANGES_URL,
-	question,
 	QUESTIONS_URL,
+	question,
 	titleChange,
 } from "./dataTestData";
+import { GROUP_ORDER } from "../syncOverview";
 import { SyncPage } from "./SyncPage";
+
+vi.mock("@tanstack/react-router", async () => ({
+	Link: (await import("@/test-utils/router")).MockLink,
+}));
 
 let mock: MockAdapter;
 
@@ -56,48 +61,64 @@ afterEach(() => {
 });
 
 describe("/data/sync", () => {
-	it("lists a group's waiting changes with their number and old → new", async () => {
+	it("shows one row per group with its count and what it means", async () => {
 		// Act
-		renderSync("?group=change");
+		renderSync();
 
 		// Assert
 		const list = within(
-			await screen.findByRole("list", { name: "Зміни, що чекають рішення" }),
+			await screen.findByRole("list", { name: "Що чекає рішення" }),
 		);
-		const [card] = list.getAllByRole("listitem");
-		expect(card).toHaveTextContent("#48121");
-		expect(card).toHaveTextContent(
-			"Тестова дисципліна А → Тестова дисципліна Б",
+		const items = list.getAllByRole("listitem");
+		expect(items).toHaveLength(5);
+		expect(items[0]).toHaveTextContent("Нові812На сайті з'явиться новий запис");
+		expect(items[1]).toHaveTextContent(
+			"Зв'язати301Запис отримає id з САЗ, на сайті нічого не видно",
 		);
-		expect(card).toHaveTextContent("12 оцінок");
-		expect(mock.history.get.at(-1)?.params).toMatchObject({ group: "change" });
+		expect(items[3]).toHaveTextContent(
+			"Питання18Відповісти: catalog_sync answer (у консолі)",
+		);
+		expect(items[4]).toHaveTextContent(
+			"Зникли з САЗ3Нічого не записується, лише для відома",
+		);
 		noDecisionButtons();
 	});
 
-	it("explains each group in one plain line", async () => {
+	it("links every group to its preview", async () => {
 		// Act
-		renderSync("?group=link");
+		renderSync();
+
+		// Assert
+		const list = within(
+			await screen.findByRole("list", { name: "Що чекає рішення" }),
+		);
+		const rows = list.getAllByRole("listitem");
+		for (const [index, row] of rows.entries()) {
+			const link = within(row).getByRole("link", { name: "Переглянути" });
+			expect(link).toHaveAttribute("href", "/data/sync/preview");
+			expect(JSON.parse(link.getAttribute("data-search") ?? "{}")).toEqual({
+				group: GROUP_ORDER[index],
+			});
+		}
+	});
+
+	it("says when nothing waits", async () => {
+		// Arrange
+		mock.onGet(PENDING_URL).reply(200, {
+			...pending([], 0),
+			groups: { new: 0, link: 0, change: 0, mapping: 0, removed: 0 },
+		});
+
+		// Act
+		renderSync();
 
 		// Assert
 		expect(
-			await screen.findByText(
-				/Застосування лише запам'ятовує, що це той самий запис/,
-			),
+			await screen.findByText("Нічого не чекає рішення"),
 		).toBeInTheDocument();
-	});
-
-	it("shows a mapping question's courses read-only", async () => {
-		// Act
-		renderSync("?group=mapping");
-
-		// Assert
-		const list = within(await screen.findByRole("list", { name: "Питання" }));
-		expect(list.getByText("#50011")).toBeInTheDocument();
-		expect(list.getAllByText(/На сайті: «Тестова дисципліна В»/)).toHaveLength(
-			2,
-		);
-		expect(list.getByText("Відповіді ще немає.")).toBeInTheDocument();
-		noDecisionButtons();
+		expect(
+			screen.getByText("Наступне читання САЗ о 02:30."),
+		).toBeInTheDocument();
 	});
 
 	it("lists the rules read-only, marking kinds that are never automatic", async () => {

@@ -1,6 +1,12 @@
 # Catalog Sync from the Console
 
-Runbook for deciding the changes the nightly read of UKMA Data proposes: apply them, reject them, undo an applied decision, answer mapping questions, set which kinds apply by themselves, and read the journal. Decisions are made here, in the console; the /data page only shows them ([ADR-0022](../architecture/decisions/0022-sync-runs-changes-and-policies.md), updates of 2026-11-22 and 2026-11-23).
+Runbook for deciding the changes the nightly read of UKMA Data proposes: apply them, reject them, undo an applied decision, answer mapping questions, set which kinds apply by themselves, and read the journal. Decisions are made here, in the console, or on the /data page ([ADR-0022](../architecture/decisions/0022-sync-runs-changes-and-policies.md), updates of 2026-11-22 and 2026-11-23).
+
+## Making Decisions on /data
+
+A superuser can make the same decisions on the site without this console: open /data, then «Оновлення з САЗ» → «Чекають рішення», press «Переглянути» on a group, and then «Застосувати» or «Відхилити». The same selection and idempotency rules apply; one request applies at most 5 000 changes and the page reopens on the rest.
+
+Every decision appears in «Журнал», where an applied decision can be undone with «Відкотити»: a dry run lists every blocker first, and the confirmation writes a new decision. Mapping questions are still answered only here with `catalog_sync answer`; the page lists them and shows the command.
 
 ## Before You Start
 

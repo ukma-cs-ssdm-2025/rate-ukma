@@ -8,7 +8,7 @@ import { SyncRulesTab } from "./SyncRulesTab";
 
 const TAB_LABELS = {
 	pending: "Чекають рішення",
-	history: "Історія",
+	history: "Журнал",
 	rules: "Правила",
 } satisfies Record<(typeof SYNC_TABS)[number], string>;
 

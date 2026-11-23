@@ -1,6 +1,7 @@
+import { Link } from "@tanstack/react-router";
 import { Inbox } from "lucide-react";
-import { useQueryStates } from "nuqs";
 
+import { buttonVariants } from "@/components/ui/Button";
 import {
 	Empty,
 	EmptyDescription,
@@ -10,66 +11,45 @@ import {
 } from "@/components/ui/Empty";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useUkmaDataSyncPendingList } from "@/lib/api/generated";
-import { PAGE_SIZE } from "../syncLabels";
+import { GROUP_ROW_LABEL, GROUP_ROW_TEXT } from "../syncActions";
+import { formatCount } from "../syncFormat";
 import { GROUP_ORDER, NO_RETRY } from "../syncOverview";
-import { pendingParams } from "../syncParams";
-import { TERMS } from "../syncTerms";
-import { DataSegments } from "./DataBits";
-import { SyncChangeCard } from "./SyncChangeCard";
-import { SyncPagination } from "./SyncPagination";
-import { SyncQuestionList } from "./SyncQuestionList";
 import { Term } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
 
-function Nothing() {
+function NothingWaits() {
 	return (
 		<Empty className="border">
 			<EmptyHeader>
 				<EmptyMedia variant="icon">
 					<Inbox />
 				</EmptyMedia>
-				<EmptyTitle>У цій групі нічого не чекає</EmptyTitle>
-				<EmptyDescription>
-					Нові зміни з'являться після наступного нічного читання САЗ.
-				</EmptyDescription>
+				<EmptyTitle>Нічого не чекає рішення</EmptyTitle>
+				<EmptyDescription>Наступне читання САЗ о 02:30.</EmptyDescription>
 			</EmptyHeader>
 		</Empty>
 	);
 }
 
 export function SyncPendingTab() {
-	const [{ group, page }, setParams] = useQueryStates(pendingParams);
 	const pending = useUkmaDataSyncPendingList(
-		{ source: "catalog", group, page, page_size: PAGE_SIZE },
+		{ source: "catalog", page: 1, page_size: 1 },
 		NO_RETRY,
 	);
 	const counts = pending.data?.groups ?? {};
-	const total = pending.data?.total ?? 0;
+	const total = GROUP_ORDER.reduce(
+		(sum, group) => sum + (counts[group] ?? 0),
+		0,
+	);
 	return (
 		<div className="space-y-4">
 			<p className="text-sm text-muted-foreground">
 				Зміни з останнього читання САЗ, які ще{" "}
-				<Term name="waiting">чекають рішення</Term>. Номер зміни (#) назвіть
-				Claude у <Term name="console" />, щоб застосувати чи відхилити її.
+				<Term name="waiting">чекають рішення</Term>. Відкрийте групу, щоб
+				переглянути зміни.
 			</p>
-			<DataSegments
-				label="Групи змін"
-				value={group}
-				onChange={(value) => void setParams({ group: value, page: null })}
-				items={GROUP_ORDER.map((item) => ({
-					value: item,
-					label: TERMS[item].label,
-					count: counts[item] ?? 0,
-				}))}
-			/>
-			<p className="text-sm">
-				<Term name={group} />: {TERMS[group].hint}
-			</p>
-			{group === "mapping" ? <SyncQuestionList /> : null}
-			{group !== "mapping" && pending.isLoading ? (
-				<Skeleton className="h-64 rounded-xl" />
-			) : null}
-			{group !== "mapping" && pending.error ? (
+			{pending.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
+			{pending.error ? (
 				<UkmaDataError
 					error={pending.error}
 					title="Не вдалося завантажити зміни"
@@ -77,24 +57,36 @@ export function SyncPendingTab() {
 					isRetrying={pending.isRefetching}
 				/>
 			) : null}
-			{group !== "mapping" && pending.data && total === 0 ? <Nothing /> : null}
-			{group !== "mapping" && pending.data && total > 0 ? (
-				<>
-					<ul className="space-y-3" aria-label="Зміни, що чекають рішення">
-						{pending.data.items.map((change) => (
-							<li key={change.id}>
-								<SyncChangeCard change={change} />
-							</li>
-						))}
-					</ul>
-					<SyncPagination
-						page={pending.data.page}
-						totalPages={pending.data.total_pages}
-						nextPage={pending.data.next_page}
-						previousPage={pending.data.previous_page}
-						onPageChange={(next) => void setParams({ page: next })}
-					/>
-				</>
+			{pending.data && !pending.error && total === 0 ? <NothingWaits /> : null}
+			{pending.data && !pending.error && total > 0 ? (
+				<ul
+					aria-label="Що чекає рішення"
+					className="divide-y overflow-hidden rounded-xl border bg-card"
+				>
+					{GROUP_ORDER.map((group) => (
+						<li
+							key={group}
+							className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-5"
+						>
+							<span className="w-24 shrink-0 font-medium sm:w-28">
+								<Term name={group}>{GROUP_ROW_LABEL[group]}</Term>
+							</span>
+							<span className="shrink-0 text-right text-lg font-semibold tabular-nums sm:w-20">
+								{formatCount(counts[group] ?? 0)}
+							</span>
+							<span className="order-last w-full min-w-0 text-sm text-muted-foreground sm:order-none sm:flex-1">
+								{GROUP_ROW_TEXT[group]}
+							</span>
+							<Link
+								to="/data/sync/preview"
+								search={{ group }}
+								className={buttonVariants({ variant: "outline", size: "sm" })}
+							>
+								Переглянути
+							</Link>
+						</li>
+					))}
+				</ul>
 			) : null}
 		</div>
 	);

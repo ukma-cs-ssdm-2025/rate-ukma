@@ -138,7 +138,7 @@ export function SyncRunApprovals({ runId }: Readonly<{ runId: number }>) {
 						</EmptyMedia>
 						<EmptyTitle>Рішень ще немає</EmptyTitle>
 						<EmptyDescription>
-							Кожне застосування чи відхилення з консолі запишеться сюди.
+							Кожне застосування, відхилення чи відкат запишеться сюди.
 						</EmptyDescription>
 					</EmptyHeader>
 				</Empty>

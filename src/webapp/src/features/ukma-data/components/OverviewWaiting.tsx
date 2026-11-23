@@ -45,7 +45,7 @@ export function OverviewWaiting({
 			lead={
 				<>
 					Зміни, які ще ніхто не застосував і не відхилив, по групах. Рішення
-					ухвалюють у <Term name="console" />.
+					ухвалюють тут або в <Term name="console" />.
 				</>
 			}
 		>

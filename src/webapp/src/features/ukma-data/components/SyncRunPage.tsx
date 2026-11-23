@@ -77,7 +77,7 @@ export function SyncRunPage({
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				<Button variant="ghost" size="sm" onClick={onBack}>
 					<ArrowLeft />
-					Усі читання
+					Журнал
 				</Button>
 				<h2 className="text-lg font-semibold">Читання САЗ #{runId}</h2>
 			</div>

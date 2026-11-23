@@ -176,7 +176,7 @@ for (const width of [1440, 390]) {
 
 		await page.goto("/data");
 		await expect(page.getByText(/відкритих справ:\s*2\./)).toBeVisible();
-		await expect(page.getByText(/Рішення ухвалюються в/)).toBeVisible();
+		await expect(page.getByText(/Рішення можна ухвалювати/)).toBeVisible();
 		await expect(page.getByRole("link", { name: "Справи" })).toHaveCount(0);
 		await shot(page, `overview-${width}`);
 	});
