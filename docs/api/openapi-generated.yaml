@@ -3549,6 +3549,180 @@ paths:
                     status: 503
                   summary: UKMA Data not configured
           description: UKMA Data is not configured
+  /api/v1/ukma-data/sync/apply/:
+    post:
+      operationId: ukma_data_sync_apply
+      description: 'Apply at most 5 000 changes of the previewed selection, lowest
+        change numbers first, in one transaction. The 40 s budget starts once the
+        selection is read and is checked between batches and before the decision is
+        saved; past it no change is written, the refused decision is kept for the
+        Журнал, and the answer is 422 `deadline_exceeded`. One SQL statement may run
+        at most 30 s; a statement cut there answers 500 `failed`, and a batch started
+        near the end can finish after 40 s. The `token` from `preview` binds the selected
+        change ids: if that id set changed, the answer is 409 `selection_changed`.
+        A change in the set that another decision took since the preview is not applied
+        and is counted as skipped, so `counts` can differ from the preview. A retry
+        with the same `client_key` returns the first decision with 200 instead of
+        applying twice; each new attempt needs a new `client_key`. Superusers only.'
+      summary: Apply a previewed sync selection
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncApplyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncApplyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncApplyRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncDecisionResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: 'Refused: nothing written'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: Nothing to apply or preview, or past the deadline
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: Apply failed
+  /api/v1/ukma-data/sync/journal/:
+    get:
+      operationId: ukma_data_sync_journal
+      description: 'Every apply, reject, revert, policy change and mapping answer,
+        newest first, with whether an apply can be reverted. Page with `before`: pass
+        the previous response''s `next_before` unchanged. Superusers only.'
+      summary: Read the sync journal
+      parameters:
+      - in: query
+        name: before
+        schema:
+          type: string
+        description: Opaque cursor from `next_before`; pass it unchanged
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Entries per page, up to 100
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncJournalResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/ukma-data/sync/pending/:
     get:
       operationId: ukma_data_sync_pending_list
@@ -3848,6 +4022,105 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/ukma-data/sync/preview/:
+    post:
+      operationId: ukma_data_sync_preview
+      description: Dry-run the apply of a run's group (optionally one kind) or of
+        explicit `change_ids` and roll it back. Returns a token that binds «Застосувати»
+        to this exact set, what would apply per kind, what stays and why, how many
+        changes the 5 000 cap leaves for the next request, and the run's data age.
+        Superusers only.
+      summary: Preview a sync selection
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPreviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncPreviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncPreviewRequest'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPreviewResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: 'Refused: nothing written'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: Nothing to apply or preview, or past the deadline
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: Apply failed
   /api/v1/ukma-data/sync/questions/:
     get:
       operationId: ukma_data_sync_questions_list
@@ -3958,6 +4231,193 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/ukma-data/sync/reject/:
+    post:
+      operationId: ukma_data_sync_reject
+      description: Mark the selected proposed changes of one run rejected and supersede
+        the changes waiting on them; nothing on the site changes. A rejected change
+        comes back after the next read if САЗ still differs. A retry with the same
+        `client_key` returns the first decision with 200; each new attempt needs a
+        new `client_key`. Superusers only.
+      summary: Reject a sync selection
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRejectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncRejectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncRejectRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncDecisionResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: 'Refused: nothing written'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: Nothing to apply or preview, or past the deadline
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRefusal'
+          description: Apply failed
+  /api/v1/ukma-data/sync/revert/:
+    post:
+      operationId: ukma_data_sync_revert
+      description: Write an applied decision's `before` values back, or list every
+        blocker of the dry run (the default). A dry run answers 200 with `changes`
+        or `blockers`; a write with a blocker answers 409. Reverting writes a new
+        decision. Superusers only.
+      summary: Revert an applied decision
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRevertRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncRevertRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncRevertRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRevertResponse'
+          description: Revert result
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRevertResponse'
+          description: Unknown decision
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRevertResponse'
+          description: 'Refused: nothing written'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncRevertResponse'
+          description: Revert failed
   /api/v1/ukma-data/sync/runs/:
     get:
       operationId: ukma_data_sync_runs_list
@@ -5865,18 +6325,6 @@ components:
       - message
       - rating_id
       - source_object_id
-    OutcomeEnum:
-      enum:
-      - started
-      - applied
-      - refused
-      - failed
-      type: string
-      description: |-
-        * `started` - Started
-        * `applied` - Applied
-        * `refused` - Refused
-        * `failed` - Failed
     PatchedCommentPatchParams:
       properties:
         content:
@@ -6455,6 +6903,20 @@ components:
       - previous_page
       - total
       - total_pages
+    ReasonEnum:
+      enum:
+      - manual
+      - auto
+      - plans
+      - later
+      - changed
+      type: string
+      description: |-
+        * `manual` - Manual only
+        * `auto` - Auto kind
+        * `plans` - Plans merged by the move
+        * `later` - A later decision touched the record
+        * `changed` - The record changed after the apply
     ScopeEnum:
       enum:
       - change
@@ -6643,6 +7105,48 @@ components:
       required:
       - id
       - offerings
+    SyncApplyRequest:
+      type: object
+      description: |-
+        Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+        `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+        every id in `change_ids` must belong to that run.
+      properties:
+        run:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Pin one run; omit for the current
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          default: catalog
+        group:
+          allOf:
+          - $ref: '#/components/schemas/SyncSelectionGroupEnum'
+          nullable: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeKindEnum'
+          nullable: true
+        change_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: Explicit changes; an alternative to `group`
+          maxItems: 5000
+        token:
+          type: string
+          description: The token `preview` returned for this selection
+        client_key:
+          type: string
+          format: uuid
+          description: Idempotency key; a retry with the same key returns the first
+            result. Each new attempt needs a new key.
+      required:
+      - client_key
+      - token
     SyncApprovalDetail:
       type: object
       properties:
@@ -6659,7 +7163,7 @@ components:
         kind:
           type: string
         outcome:
-          $ref: '#/components/schemas/OutcomeEnum'
+          $ref: '#/components/schemas/SyncApprovalOutcomeEnum'
         counts: {}
         error:
           type: string
@@ -6727,6 +7231,18 @@ components:
       - previous_page
       - total
       - total_pages
+    SyncApprovalOutcomeEnum:
+      enum:
+      - started
+      - applied
+      - refused
+      - failed
+      type: string
+      description: |-
+        * `started` - Started
+        * `applied` - Applied
+        * `refused` - Refused
+        * `failed` - Failed
     SyncChange:
       type: object
       properties:
@@ -6833,6 +7349,52 @@ components:
       - by_field
       - offerings
       - total
+    SyncChangeKindEnum:
+      enum:
+      - new_faculty
+      - link_faculty
+      - change_faculty
+      - new_department
+      - link_department
+      - change_department
+      - new_course
+      - link_course
+      - change_course
+      - new_offering
+      - link_offering
+      - change_offering
+      - teacher_created
+      - teacher_link_added
+      - teacher_link_removed
+      - relink_course
+      - place_offering
+      - move_offering
+      - merge_courses
+      - removed_course
+      - removed_offering
+      type: string
+      description: |-
+        * `new_faculty` - new_faculty
+        * `link_faculty` - link_faculty
+        * `change_faculty` - change_faculty
+        * `new_department` - new_department
+        * `link_department` - link_department
+        * `change_department` - change_department
+        * `new_course` - new_course
+        * `link_course` - link_course
+        * `change_course` - change_course
+        * `new_offering` - new_offering
+        * `link_offering` - link_offering
+        * `change_offering` - change_offering
+        * `teacher_created` - teacher_created
+        * `teacher_link_added` - teacher_link_added
+        * `teacher_link_removed` - teacher_link_removed
+        * `relink_course` - relink_course
+        * `place_offering` - place_offering
+        * `move_offering` - move_offering
+        * `merge_courses` - merge_courses
+        * `removed_course` - removed_course
+        * `removed_offering` - removed_offering
     SyncChangeListResponse:
       type: object
       properties:
@@ -6878,6 +7440,67 @@ components:
         * `rejected` - Rejected
         * `superseded` - Superseded
         * `reverted` - Reverted
+    SyncDecisionCounts:
+      type: object
+      properties:
+        applied:
+          type: integer
+          minimum: 0
+        rejected:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+        waiting:
+          type: integer
+          minimum: 0
+        superseded:
+          type: integer
+          minimum: 0
+        remaining:
+          type: integer
+          minimum: 0
+          description: Selected changes left for the next request by the 5 000 cap
+        total:
+          type: integer
+          minimum: 0
+        by_kind:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncKindCount'
+      required:
+      - applied
+      - by_kind
+      - rejected
+      - remaining
+      - skipped
+      - superseded
+      - total
+      - waiting
+    SyncDecisionResponse:
+      type: object
+      properties:
+        decision_id:
+          type: integer
+          nullable: true
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        outcome:
+          $ref: '#/components/schemas/SyncApprovalOutcomeEnum'
+        detail:
+          type: string
+        counts:
+          $ref: '#/components/schemas/SyncDecisionCounts'
+        run:
+          $ref: '#/components/schemas/SyncRunAge'
+      required:
+      - action
+      - counts
+      - decision_id
+      - detail
+      - outcome
+      - run
     SyncFieldRow:
       type: object
       properties:
@@ -6919,6 +7542,153 @@ components:
           type: integer
       required:
       - total
+    SyncJournalCounts:
+      type: object
+      properties:
+        applied:
+          type: integer
+        rejected:
+          type: integer
+        reverted:
+          type: integer
+        skipped:
+          type: integer
+        waiting:
+          type: integer
+        superseded:
+          type: integer
+        remaining:
+          type: integer
+        blockers:
+          type: integer
+        deadline_seconds:
+          type: integer
+        plans_deduplicated:
+          type: integer
+        plans_deduplicated_by_move:
+          type: integer
+        kind:
+          $ref: '#/components/schemas/SyncChangeKindEnum'
+        old_mode:
+          $ref: '#/components/schemas/SyncPolicyModeEnum'
+        new_mode:
+          $ref: '#/components/schemas/SyncPolicyModeEnum'
+        answer:
+          $ref: '#/components/schemas/AnswerEnum'
+        into:
+          type: string
+          nullable: true
+    SyncJournalEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        kind:
+          $ref: '#/components/schemas/SyncJournalKindEnum'
+        who:
+          type: string
+          nullable: true
+        when:
+          type: string
+          format: date-time
+        outcome:
+          $ref: '#/components/schemas/SyncJournalEntryOutcomeEnum'
+        counts:
+          $ref: '#/components/schemas/SyncJournalCounts'
+        approval_id:
+          type: integer
+          nullable: true
+        reverts_id:
+          type: integer
+          nullable: true
+        group:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeGroupEnum'
+          nullable: true
+        revertible:
+          type: boolean
+        revert_reason:
+          type: string
+        reverted:
+          type: boolean
+      required:
+      - approval_id
+      - counts
+      - group
+      - id
+      - kind
+      - outcome
+      - revert_reason
+      - reverted
+      - revertible
+      - reverts_id
+      - when
+      - who
+    SyncJournalEntryOutcomeEnum:
+      enum:
+      - started
+      - applied
+      - refused
+      - failed
+      - changed
+      - keep_apart
+      - merge
+      - keep
+      - move
+      - place
+      - relink
+      type: string
+      description: |-
+        * `started` - Started
+        * `applied` - Applied
+        * `refused` - Refused
+        * `failed` - Failed
+        * `changed` - Changed
+        * `keep_apart` - Keep apart
+        * `merge` - Merge
+        * `keep` - Keep
+        * `move` - Move
+        * `place` - Place
+        * `relink` - Relink
+    SyncJournalKindEnum:
+      enum:
+      - apply
+      - reject
+      - revert
+      - policy
+      - answer
+      type: string
+      description: |-
+        * `apply` - Apply
+        * `reject` - Reject
+        * `revert` - Revert
+        * `policy` - Policy
+        * `answer` - Answer
+    SyncJournalResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncJournalEntry'
+        next_before:
+          type: string
+          nullable: true
+          description: Pass as `before` for the next page
+      required:
+      - items
+      - next_before
+    SyncKindCount:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/SyncChangeKindEnum'
+        count:
+          type: integer
+          minimum: 0
+      required:
+      - count
+      - kind
     SyncMergeGroupParts:
       type: object
       properties:
@@ -7144,6 +7914,63 @@ components:
       description: |-
         * `needs_approval` - Needs approval
         * `auto` - Auto
+    SyncPreviewRequest:
+      type: object
+      description: |-
+        Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+        `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+        every id in `change_ids` must belong to that run.
+      properties:
+        run:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Pin one run; omit for the current
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          default: catalog
+        group:
+          allOf:
+          - $ref: '#/components/schemas/SyncSelectionGroupEnum'
+          nullable: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeKindEnum'
+          nullable: true
+        change_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: Explicit changes; an alternative to `group`
+          maxItems: 5000
+    SyncPreviewResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        detail:
+          type: string
+        counts:
+          $ref: '#/components/schemas/SyncDecisionCounts'
+        skipped_reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncReasonCount'
+        waiting_reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncReasonCount'
+        run:
+          $ref: '#/components/schemas/SyncRunAge'
+      required:
+      - counts
+      - detail
+      - run
+      - skipped_reasons
+      - token
+      - waiting_reasons
     SyncQuestion:
       type: object
       properties:
@@ -7296,6 +8123,223 @@ components:
       - saz_code
       - term
       - year
+    SyncReasonCount:
+      type: object
+      properties:
+        code:
+          $ref: '#/components/schemas/SyncReasonCountCodeEnum'
+        text:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+      required:
+      - code
+      - count
+      - text
+    SyncReasonCountCodeEnum:
+      enum:
+      - replaced
+      - stale
+      - exists
+      - identity_collision
+      - dependency_rejected
+      - waiting_on
+      - mapping_unanswered
+      - not_ready
+      - rejected
+      - already_applied
+      - reverted
+      type: string
+      description: |-
+        * `replaced` - replaced
+        * `stale` - stale
+        * `exists` - exists
+        * `identity_collision` - identity_collision
+        * `dependency_rejected` - dependency_rejected
+        * `waiting_on` - Waiting on other changes
+        * `mapping_unanswered` - Mapping question unanswered
+        * `not_ready` - Not ready
+        * `rejected` - Rejected
+        * `already_applied` - Already applied
+        * `reverted` - Reverted
+    SyncRefusal:
+      type: object
+      properties:
+        detail:
+          type: string
+        code:
+          $ref: '#/components/schemas/SyncRefusalCodeEnum'
+        status:
+          type: integer
+        decision_id:
+          type: integer
+          nullable: true
+      required:
+      - code
+      - decision_id
+      - detail
+      - status
+    SyncRefusalCodeEnum:
+      enum:
+      - selection_changed
+      - lock_held
+      - run_not_current
+      - run_too_old
+      - in_progress
+      - deadline_exceeded
+      - no_proposed_changes
+      - failed
+      type: string
+      description: |-
+        * `selection_changed` - The selection changed
+        * `lock_held` - Sync lock held
+        * `run_not_current` - Run is not current
+        * `run_too_old` - Run is too old
+        * `in_progress` - Decision still running
+        * `deadline_exceeded` - Deadline exceeded
+        * `no_proposed_changes` - Nothing proposed
+        * `failed` - Apply failed
+    SyncRejectRequest:
+      type: object
+      description: |-
+        Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+        `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+        every id in `change_ids` must belong to that run.
+      properties:
+        run:
+          type: integer
+          minimum: 1
+          description: The run the person looked at
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SyncSourceEnum'
+          default: catalog
+        group:
+          allOf:
+          - $ref: '#/components/schemas/SyncSelectionGroupEnum'
+          nullable: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeKindEnum'
+          nullable: true
+        change_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: Explicit changes; an alternative to `group`
+          maxItems: 5000
+        client_key:
+          type: string
+          format: uuid
+          description: Idempotency key; a retry with the same key returns the first
+            result. Each new attempt needs a new key.
+      required:
+      - client_key
+      - run
+    SyncRevertBlocker:
+      type: object
+      properties:
+        change_id:
+          type: integer
+        kind:
+          $ref: '#/components/schemas/SyncChangeKindEnum'
+        reason:
+          $ref: '#/components/schemas/ReasonEnum'
+        text:
+          type: string
+      required:
+      - change_id
+      - kind
+      - reason
+      - text
+    SyncRevertRequest:
+      type: object
+      properties:
+        approval_id:
+          type: integer
+          minimum: 1
+        dry_run:
+          type: boolean
+          default: true
+      required:
+      - approval_id
+    SyncRevertResponse:
+      type: object
+      properties:
+        approval_id:
+          type: integer
+          description: The decision that would be reverted
+        decision_id:
+          type: integer
+          nullable: true
+          description: The new revert decision, once written
+        dry_run:
+          type: boolean
+        outcome:
+          $ref: '#/components/schemas/SyncApprovalOutcomeEnum'
+        code:
+          allOf:
+          - $ref: '#/components/schemas/SyncRevertResponseCodeEnum'
+          nullable: true
+        detail:
+          type: string
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncRevertedChange'
+        blockers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncRevertBlocker'
+        reverted:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+      required:
+      - approval_id
+      - blockers
+      - changes
+      - code
+      - decision_id
+      - detail
+      - dry_run
+      - outcome
+      - reverted
+      - skipped
+    SyncRevertResponseCodeEnum:
+      enum:
+      - unknown_approval
+      - not_an_apply
+      - not_applied
+      - already_reverted
+      - nothing_to_revert
+      - lock_held
+      - revert_blocked
+      - revert_failed
+      type: string
+      description: |-
+        * `unknown_approval` - Unknown decision
+        * `not_an_apply` - Not an apply
+        * `not_applied` - Nothing was applied
+        * `already_reverted` - Already reverted
+        * `nothing_to_revert` - Nothing to revert
+        * `lock_held` - Sync lock held
+        * `revert_blocked` - Blockers
+        * `revert_failed` - Revert failed
+    SyncRevertedChange:
+      type: object
+      properties:
+        id:
+          type: integer
+        kind:
+          $ref: '#/components/schemas/SyncChangeKindEnum'
+      required:
+      - id
+      - kind
     SyncRun:
       type: object
       properties:
@@ -7351,6 +8395,30 @@ components:
       - source
       - started_at
       - status
+    SyncRunAge:
+      type: object
+      properties:
+        id:
+          type: integer
+        source:
+          $ref: '#/components/schemas/SyncSourceEnum'
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+        data_updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        age_hours:
+          type: integer
+          nullable: true
+      required:
+      - age_hours
+      - data_updated_at
+      - finished_at
+      - id
+      - source
     SyncRunListResponse:
       type: object
       properties:
@@ -7392,6 +8460,22 @@ components:
         * `running` - Running
         * `succeeded` - Succeeded
         * `failed` - Failed
+    SyncSelectionGroupEnum:
+      enum:
+      - link
+      - new
+      - change
+      - mapping
+      - removed
+      - other
+      type: string
+      description: |-
+        * `link` - Link
+        * `new` - New
+        * `change` - Change
+        * `mapping` - Mapping
+        * `removed` - Removed
+        * `other` - Other
     SyncSourceEnum:
       enum:
       - teachers

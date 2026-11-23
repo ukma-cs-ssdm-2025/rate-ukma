@@ -60,7 +60,7 @@ Conventions: [docs/testing/backend-tests.md](../../docs/testing/backend-tests.md
 
 ## Catalog sync decisions
 
-Sync changes are applied, rejected and answered from the console with `manage.py catalog_sync` (dry run unless `--yes`); /data only shows them. Runbook: [docs/runbooks/catalog-sync-console.md](../../docs/runbooks/catalog-sync-console.md).
+Sync changes are previewed, applied, rejected and answered from the console with `manage.py catalog_sync` (dry run unless `--yes`) or on /data, through `rating_app.sync.decisions`. Runbook: [docs/runbooks/catalog-sync-console.md](../../docs/runbooks/catalog-sync-console.md).
 
 ## Logging style
 

@@ -99,6 +99,15 @@ class SyncRunChangesPathParams(BaseModel):
     run_id: int = Field(ge=1, description="Identifier of the sync run")
 
 
+class SyncJournalParams(BaseModel):
+    limit: int = Field(default=20, ge=1, le=100, description="Entries per page, up to 100")
+    before: str | None = Field(
+        default=None,
+        max_length=120,
+        description="Opaque cursor from `next_before`; pass it unchanged",
+    )
+
+
 class SyncSummaryParams(BaseModel):
     source: SyncSource = Field(default=SyncSource.CATALOG, description="Source of the run")
     run: int | None = Field(default=None, ge=1, description="Pin one run; omit for the current run")

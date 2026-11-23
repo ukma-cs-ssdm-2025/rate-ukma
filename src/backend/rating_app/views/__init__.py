@@ -10,6 +10,7 @@ from .personal_plan_viewset import PersonalPlanViewSet
 from .promo_banner_viewset import PromoBannerViewSet
 from .rating_viewset import RatingViewSet
 from .student_viewset import StudentStatisticsViewSet
+from .sync_actions_viewset import SyncActionsViewSet
 from .sync_review_viewset import SyncReviewViewSet
 from .sync_viewset import SyncViewSet
 from .ukma_data_viewset import UkmaDataViewSet
@@ -29,6 +30,7 @@ __all__ = [
     "FlagsViewSet",
     "PromoBannerViewSet",
     "FeedViewSet",
+    "SyncActionsViewSet",
     "SyncReviewViewSet",
     "SyncViewSet",
     "UkmaDataViewSet",

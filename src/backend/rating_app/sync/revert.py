@@ -192,7 +192,9 @@ def revert(approval_id: int, user: User, *, dry_run: bool) -> RevertResult:
         dry_run=dry_run,
         approval_id=None if dry_run else approval.pk,
         outcome=str(approval.outcome),
-        error=str(approval.error or ""),
+        error="revert_failed"
+        if approval.outcome == SyncApprovalOutcome.FAILED
+        else str(approval.error or ""),
         change_ids=[change.pk for change in writable],
         counts=dict(approval.counts or {}),
     )

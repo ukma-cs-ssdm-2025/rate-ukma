@@ -99,7 +99,11 @@ _IDENTITY_KINDS = frozenset({"new_course", "change_course"})
 
 
 class SyncApplyInputError(ValueError):
-    """The selection is empty or spans several runs."""
+    """The selection is empty, spans several runs, or reuses another key."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
 
 
 @dataclass
@@ -201,9 +205,13 @@ def approve(
         )
     except IntegrityError:
         # A second request with the same client key lost the race to the first.
-        existing = SyncApproval.objects.filter(client_key=client_key).first()
-        if client_key is None or existing is None:
+        if client_key is None:
             raise
+        existing = SyncApproval.objects.filter(
+            client_key=client_key, user=user, action=SyncApprovalAction.APPLY
+        ).first()
+        if existing is None:
+            raise SyncApplyInputError("client key conflict") from None
         return existing
     with _source_lock(run.source) as held:
         if not held:
@@ -231,7 +239,7 @@ def approve(
         if not confirm_old_run and _run_age(run) > APPROVAL_MAX_AGE:
             return _refuse(approval, "run_too_old")
         _set_approval_changes(
-            approval, _unit_members(units + held) or changes, group=group, kind=kind
+            approval, _with_selection(changes, units + held), group=group, kind=kind
         )
         for unit in held:
             _record_waiting(unit.changes, unit.waiting_on)
@@ -250,12 +258,33 @@ def approve(
         )
 
 
-def reject(change_ids: Iterable[int], user: User) -> SyncApproval:
-    """Reject the selected units; their dependents become ``dependency_rejected``."""
+def reject(
+    change_ids: Iterable[int], user: User, *, client_key: uuid.UUID | None = None
+) -> SyncApproval:
+    """Reject the selected units; their dependents become ``dependency_rejected``.
+
+    A second request with the same ``client_key`` returns the first approval.
+    """
     sweep_interrupted_approvals()
     ids = _selection_ids(change_ids)
     run = _selection_run(ids)
-    approval = _start_approval(run, ids, user=user, action=SyncApprovalAction.REJECT)
+    try:
+        approval = _start_approval(
+            run,
+            ids,
+            user=user,
+            action=SyncApprovalAction.REJECT,
+            client_key=client_key,
+        )
+    except IntegrityError:
+        if client_key is None:
+            raise
+        existing = SyncApproval.objects.filter(
+            client_key=client_key, user=user, action=SyncApprovalAction.REJECT
+        ).first()
+        if existing is None:
+            raise SyncApplyInputError("client key conflict") from None
+        return existing
     with _source_lock(run.source) as held:
         if not held:
             return _refuse(approval, "lock_held")
@@ -268,7 +297,7 @@ def reject(change_ids: Iterable[int], user: User) -> SyncApproval:
             return _refuse(approval, "no_proposed_changes")
 
         members = _unit_members(units)
-        _set_approval_changes(approval, members or changes)
+        _set_approval_changes(approval, _with_selection(changes, units))
         now = timezone.now()
         with transaction.atomic():
             rejected = SyncChange.objects.filter(
@@ -1354,6 +1383,14 @@ def _start_approval(
             client_key=client_key,
             outcome=SyncApprovalOutcome.STARTED,
         )
+
+
+def _with_selection(changes: list[SyncChange], units: list[_Unit]) -> list[SyncChange]:
+    """The loaded selection plus every unit member it pulls in."""
+    by_id = {change.pk: change for change in changes}
+    for member in _unit_members(units):
+        by_id.setdefault(member.pk, member)
+    return [by_id[pk] for pk in sorted(by_id)]
 
 
 def _set_approval_changes(

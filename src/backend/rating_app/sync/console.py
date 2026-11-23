@@ -412,21 +412,27 @@ def _left_out(
     return lines
 
 
+def left_reason(item: ChangeOutcome) -> tuple[str, str]:
+    """Why a selected change did not apply: a stable code and words to act on."""
+    if item.state == SyncChangeState.SUPERSEDED:
+        reason = item.state_reason or "superseded"
+        return reason, STATE_REASON_TEXT.get(reason, "неактуальна")
+    if item.state == SyncChangeState.REJECTED:
+        return "rejected", "уже відхилена"
+    if item.state == SyncChangeState.APPLIED:
+        return "already_applied", "уже застосована"
+    if item.state == SyncChangeState.REVERTED:
+        return "reverted", "уже відкочена"
+    if item.waiting_on:
+        return "waiting_on", "чекає на інші зміни (спершу застосуйте їх або вкажіть усю групу)"
+    if item.change.kind in MAPPING_KINDS:
+        return "mapping_unanswered", "питання без відповіді: спершу дайте відповідь"
+    return "not_ready", "пропущено цього разу (рядок на сайті змінився або вибірку звужено)"
+
+
 def why_left(item: ChangeOutcome) -> str:
     """Why a selected change did not apply, in words a newcomer can act on."""
-    if item.state == SyncChangeState.SUPERSEDED:
-        return "неактуальна, " + STATE_REASON_TEXT.get(item.state_reason, item.state_reason)
-    if item.state == SyncChangeState.REJECTED:
-        return "уже відхилена"
-    if item.state == SyncChangeState.APPLIED:
-        return "уже застосована"
-    if item.state == SyncChangeState.REVERTED:
-        return "уже відкочена"
-    if item.waiting_on:
-        return "чекає на інші зміни (спершу застосуйте їх або вкажіть усю групу)"
-    if item.change.kind in MAPPING_KINDS:
-        return "питання без відповіді: спершу catalog_sync answer"
-    return "пропущено цього разу (рядок на сайті змінився або вибірку звужено)"
+    return left_reason(item)[1]
 
 
 def journal_summary(entry: JournalEntry) -> str:
@@ -451,8 +457,8 @@ def journal_summary(entry: JournalEntry) -> str:
     return entry.kind
 
 
-def _with_group(summary: str, group: str) -> str:
-    label = GROUP_LABELS.get(group)
+def _with_group(summary: str, group: str | None) -> str:
+    label = GROUP_LABELS.get(group or "")
     return f"{summary} ({label})" if label else summary
 
 
