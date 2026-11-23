@@ -28,13 +28,15 @@ import { UkmaDataError } from "./UkmaDataError";
 function countsLine(approval: SyncApprovalDetail): string {
 	const counts = approvalCounts(approval.counts);
 	const parts =
-		approval.action === "reject"
-			? [`відхилено ${formatCount(counts.rejected)}`]
-			: [
-					`застосовано ${formatCount(counts.applied)}`,
-					`неактуальні ${formatCount(counts.superseded)}`,
-					`чекають ${formatCount(counts.waiting)}`,
-				];
+		approval.action === "revert"
+			? [`відкочено ${formatCount(counts.reverted)}`]
+			: approval.action === "reject"
+				? [`відхилено ${formatCount(counts.rejected)}`]
+				: [
+						`застосовано ${formatCount(counts.applied)}`,
+						`неактуальні ${formatCount(counts.superseded)}`,
+						`чекають ${formatCount(counts.waiting)}`,
+					];
 	if (approval.ratings_moved > 0 || approval.plans_moved > 0) {
 		parts.push(
 			`перенесено ${countWith(approval.ratings_moved, RATINGS)}, ${countWith(approval.plans_moved, PLANS)}`,

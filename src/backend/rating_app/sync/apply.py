@@ -15,6 +15,7 @@ hold teacher names and emails and Sentry sends PII.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
@@ -22,9 +23,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import partial
+from time import monotonic
 
 from django.contrib.auth.models import User
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
 
 import structlog
@@ -48,6 +50,7 @@ from rating_app.models import (
     SyncChangeStateReason,
     SyncCursor,
     SyncPolicyMode,
+    SyncPreview,
     SyncRun,
     SyncRunStatus,
     SyncSource,
@@ -138,6 +141,20 @@ class _UnitChangedError(Exception):
     """A member stopped being proposed between the unit's read and its write."""
 
 
+class _DeadlineExceededError(Exception):
+    """The apply ran past its own deadline; the whole transaction rolls back."""
+
+
+@dataclass
+class _Deadline:
+    seconds: float
+    started: float
+
+    def check(self) -> None:
+        if monotonic() - self.started > self.seconds:
+            raise _DeadlineExceededError
+
+
 class _ApplyFailedError(Exception):
     def __init__(self, change: SyncChange, original: Exception) -> None:
         super().__init__(change.pk, type(original).__name__)
@@ -147,13 +164,16 @@ class _ApplyFailedError(Exception):
 
 def approve(
     change_ids: Iterable[int],
-    user: User,
+    user: User | None,
     *,
     confirm_old_run: bool = False,
     client_key: uuid.UUID | None = None,
     group: str = "",
     kind: str = "",
     excluded: Iterable[int] = (),
+    max_changes: int | None = None,
+    deadline_seconds: float | None = None,
+    preview: SyncPreview | None = None,
 ) -> SyncApproval:
     """Apply the selected proposed changes, each expanded to its whole unit.
 
@@ -163,9 +183,14 @@ def approve(
     An ``excluded`` change never applies: a unit that holds one, or whose
     requirements name one, stays proposed and waits on it.
 
+    ``max_changes`` caps the selection to its lowest change ids; the approval's
+    counts say how many stayed for the next request. ``deadline_seconds`` stops
+    the apply between handler batches and rolls the whole write back.
+
     The approval row is written ``started`` before anything else. A run over
     :data:`APPROVAL_MAX_AGE` old is refused as ``run_too_old`` unless
-    ``confirm_old_run`` says a person saw its age.
+    ``confirm_old_run`` says a person saw its age. A ``preview`` token whose
+    selection no longer matches is refused as ``selection_changed``.
     """
     sweep_interrupted_approvals()
     ids = _selection_ids(change_ids)
@@ -183,6 +208,18 @@ def approve(
     with _source_lock(run.source) as held:
         if not held:
             return _refuse(approval, "lock_held")
+        if preview is not None and (
+            preview.count != len(ids)
+            or preview.selection_sha != selection_sha(ids)
+            or preview.run_id != run.pk
+            or user is None
+            or preview.user_id != user.pk
+        ):
+            return _refuse(approval, "selection_changed")
+        remaining = 0
+        if max_changes is not None and len(ids) > max_changes:
+            remaining = len(ids) - max_changes
+            ids = sorted(ids)[:max_changes]
         # The selection can change under us before the lock, so read it again.
         changes = _load_selection(ids)
         if not _is_current(run):
@@ -203,11 +240,14 @@ def approve(
                 change_ids=[member.pk for member in unit.changes],
                 waiting_on=unit.waiting_on,
             )
-        result = _run_apply(approval, run, units, held=len(_unit_members(held)))
-        if result.outcome == SyncApprovalOutcome.APPLIED:
-            # A change auto-policy depended on may have just applied.
-            apply_by_policy(run, lock_held=True)
-    return result
+        return _run_apply(
+            approval,
+            run,
+            units,
+            held=len(_unit_members(held)),
+            remaining=remaining,
+            deadline_seconds=deadline_seconds,
+        )
 
 
 def reject(change_ids: Iterable[int], user: User) -> SyncApproval:
@@ -324,41 +364,35 @@ def apply_by_policy(run: SyncRun, *, lock_held: bool = False) -> SyncApproval | 
 
 
 def _run_apply(
-    approval: SyncApproval, run: SyncRun, units: list[_Unit], *, held: int = 0
+    approval: SyncApproval,
+    run: SyncRun,
+    units: list[_Unit],
+    *,
+    held: int = 0,
+    remaining: int = 0,
+    deadline_seconds: float | None = None,
 ) -> SyncApproval:
-    applied = 0
-    waiting = held
-    catalog_applied: list[SyncChange] = []
+    deadline = (
+        None if deadline_seconds is None else _Deadline(deadline_seconds, started=monotonic())
+    )
     try:
-        with transaction.atomic():  # a stale link and the rest of its unit retire together
-            stale = _supersede_stale(units)
-            superseded = stale.superseded
-            if stale.dead_requirements:
-                superseded += _supersede_dependents(run.source, stale.dead_requirements)
-                _refresh_states(units)
-        with transaction.atomic():
-            catalog = _apply_catalog(units, approval)
-            catalog_applied = catalog.applied
-            applied += len(catalog.applied)
-            waiting += catalog.waiting
-            superseded += catalog.superseded
-            for unit in _ordered(_unit_teacher_units(units)):
-                outcome, members = _apply_unit(
-                    unit, approval, blocked=unit.key in stale.blocked_units
-                )
-                if outcome == "applied":
-                    applied += len(members)
-                elif outcome == "waiting":
-                    waiting += len(members)
-            approval.outcome = SyncApprovalOutcome.APPLIED
-            counts: dict[str, object] = {
-                "applied": applied,
-                "superseded": superseded,
-                "waiting": waiting,
-            }
-            counts.update(catalog.counts)
-            approval.counts = counts
-            approval.save(update_fields=["outcome", "counts"])
+        if deadline is None:
+            catalog_applied = _write_apply(approval, run, units, held=held, remaining=remaining)
+        else:
+            with transaction.atomic():
+                try:
+                    catalog_applied = _write_apply(
+                        approval, run, units, held=held, remaining=remaining, deadline=deadline
+                    )
+                except _DeadlineExceededError:
+                    transaction.set_rollback(True)
+                    raise
+    except _DeadlineExceededError:
+        _refuse(
+            approval,
+            "deadline_exceeded",
+            counts={"deadline_seconds": deadline_seconds},
+        )
     except _ApplyFailedError as failure:
         _fail_approval(approval, run, failure.change, failure.original)
     except Exception as exc:  # the pre-pass or a handler failed; sanitize it
@@ -369,7 +403,70 @@ def _run_apply(
     return approval
 
 
-def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> _CatalogPass:
+def _write_apply(
+    approval: SyncApproval,
+    run: SyncRun,
+    units: list[_Unit],
+    *,
+    held: int = 0,
+    remaining: int = 0,
+    deadline: _Deadline | None = None,
+) -> list[SyncChange]:
+    if deadline is not None:
+        _set_statement_timeout()
+    applied = 0
+    waiting = held
+    catalog_applied: list[SyncChange] = []
+    with transaction.atomic():  # a stale link and the rest of its unit retire together
+        stale = _supersede_stale(units)
+        superseded = stale.superseded
+        if stale.dead_requirements:
+            superseded += _supersede_dependents(run.source, stale.dead_requirements)
+            _refresh_states(units)
+    with transaction.atomic():
+        catalog = _apply_catalog(units, approval, deadline=deadline)
+        catalog_applied = catalog.applied
+        applied += len(catalog.applied)
+        waiting += catalog.waiting
+        superseded += catalog.superseded
+        for unit in _ordered(_unit_teacher_units(units)):
+            _check(deadline)
+            outcome, members = _apply_unit(unit, approval, blocked=unit.key in stale.blocked_units)
+            if outcome == "applied":
+                applied += len(members)
+            elif outcome == "waiting":
+                waiting += len(members)
+        _check(deadline)
+        approval.outcome = SyncApprovalOutcome.APPLIED
+        counts: dict[str, object] = {
+            "applied": applied,
+            "superseded": superseded,
+            "waiting": waiting,
+        }
+        if remaining:
+            counts["remaining"] = remaining
+        counts.update(catalog.counts)
+        approval.counts = counts
+        approval.save(update_fields=["outcome", "counts"])
+    return catalog_applied
+
+
+def _check(deadline: _Deadline | None) -> None:
+    if deadline is not None:
+        deadline.check()
+
+
+def _set_statement_timeout() -> None:
+    """Cap a single statement so a slow one cannot run past the request's budget."""
+    if connection.vendor != "postgresql" or not connection.in_atomic_block:
+        return
+    with connection.cursor() as cursor:
+        cursor.execute("SET LOCAL statement_timeout = '30s'")
+
+
+def _apply_catalog(
+    units: list[_Unit], approval: SyncApproval, *, deadline: _Deadline | None = None
+) -> _CatalogPass:
     """Write the selection's catalog changes in batches, one kind at a time.
 
     Kinds run in the registry's order, so a ``new_department`` finds its faculty
@@ -385,6 +482,7 @@ def _apply_catalog(units: list[_Unit], approval: SyncApproval) -> _CatalogPass:
 
     result = _CatalogPass()
     for kind in sorted(by_kind, key=_kind_order):
+        _check(deadline)
         batch = sorted(by_kind[kind], key=lambda change: change.pk)
         handler = handler_for(kind)
         if handler is None:
@@ -530,6 +628,10 @@ def _clear_cache(run_id: int) -> None:
         logger.error("sync_catalog_cache_clear_failed", run_id=run_id, error=type(exc).__name__)
 
 
+def clear_cache_on_commit(run_id: int) -> None:
+    transaction.on_commit(partial(_clear_cache, run_id))
+
+
 def _after_catalog_apply(run: SyncRun, applied_kinds: set[str]) -> None:
     """Clear the cache except sessions and save the cursors of the lists the
     applied kinds came from (D2).
@@ -538,7 +640,7 @@ def _after_catalog_apply(run: SyncRun, applied_kinds: set[str]) -> None:
     ``removed_*`` acknowledgement writes nothing and saves nothing, and neither
     does an approval that applied no change.
     """
-    transaction.on_commit(partial(_clear_cache, run.pk))
+    clear_cache_on_commit(run.pk)
     lists = sorted({name for kind in applied_kinds for name in KIND_LISTS.get(kind, ())})
     if not lists:
         return
@@ -1201,6 +1303,11 @@ def _record_waiting(members: list[SyncChange], change_ids: list[int]) -> None:
     ).update(waiting_on=change_ids)
 
 
+def selection_sha(change_ids: Iterable[int]) -> str:
+    ids = ",".join(str(change_id) for change_id in sorted(set(change_ids)))
+    return hashlib.sha256(ids.encode()).hexdigest()
+
+
 def _selection_ids(change_ids: Iterable[int]) -> list[int]:
     ids = list(dict.fromkeys(change_ids))
     if not ids:
@@ -1266,10 +1373,16 @@ def _set_approval_changes(
     approval.save(update_fields=["change_ids", "group", "kind"])
 
 
-def _refuse(approval: SyncApproval, reason: str) -> SyncApproval:
+def _refuse(
+    approval: SyncApproval, reason: str, *, counts: dict[str, object] | None = None
+) -> SyncApproval:
     approval.outcome = SyncApprovalOutcome.REFUSED
     approval.error = reason
-    approval.save(update_fields=["outcome", "error"])
+    fields = ["outcome", "error"]
+    if counts is not None:
+        approval.counts = counts
+        fields.append("counts")
+    approval.save(update_fields=fields)
     logger.info(
         "sync_approval_refused",
         approval_id=approval.pk,

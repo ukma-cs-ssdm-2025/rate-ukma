@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { approval, rejection, summary } from "./components/dataTestData";
 import { timeAgo } from "./syncFormat";
 import {
+	approvalCounts,
 	approvalTerm,
 	approverName,
 	groupCounts,
@@ -51,6 +52,17 @@ describe("approval words", () => {
 		expect(approvalTerm(approval)).toBe("applied");
 		expect(approvalTerm(rejection)).toBe("rejected");
 		expect(approvalTerm({ ...approval, outcome: "refused" })).toBeNull();
+	});
+
+	it("calls a revert «відкочено» and counts what it put back", () => {
+		const revert = {
+			...approval,
+			action: "revert" as const,
+			counts: { reverted: 3 },
+		};
+
+		expect(approvalTerm(revert)).toBe("reverted");
+		expect(approvalCounts(revert.counts).reverted).toBe(3);
 	});
 
 	it("names the approver by the email's local part, or auto", () => {

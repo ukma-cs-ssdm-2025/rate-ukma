@@ -174,7 +174,7 @@ def test_approve_applies_the_whole_offering_unit_from_one_selected_link(
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_approve_runs_the_auto_path_for_a_change_waiting_on_it(
+def test_approve_leaves_auto_changes_to_the_nightly_job(
     user,
     make_run,
     make_change,
@@ -213,8 +213,15 @@ def test_approve_runs_the_auto_path_for_a_change_waiting_on_it(
     auto.refresh_from_db()
     assert approved.state == SyncChangeState.APPLIED
     assert approved.approval_id == approval.pk
+    assert auto.state == SyncChangeState.PROPOSED
+    assert CourseInstructor.objects.filter(course_offering=auto_offering).count() == 0
+
+    auto_approval = apply_by_policy(run, lock_held=True)
+
+    assert auto_approval is not None
+    auto.refresh_from_db()
     assert auto.state == SyncChangeState.APPLIED
-    assert auto.approval_id != approval.pk
+    assert auto.approval_id == auto_approval.pk
     assert CourseInstructor.objects.filter(course_offering=approved_offering).count() == 1
     assert CourseInstructor.objects.filter(course_offering=auto_offering).count() == 1
 

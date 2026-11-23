@@ -1,12 +1,20 @@
 from __future__ import annotations
 
+import uuid
 from contextlib import contextmanager
 
 from django.utils import timezone
 
 import pytest
 
-from rating_app.models import SyncApproval, SyncChangeState, SyncRunStatus, SyncSource
+from rating_app.models import (
+    SyncApproval,
+    SyncApprovalOutcome,
+    SyncChangeState,
+    SyncPreview,
+    SyncRunStatus,
+    SyncSource,
+)
 from rating_app.sync import apply, decisions, handlers, selection
 from rating_app.sync.handlers import Handler
 from rating_app.sync.kinds import KIND_BY_NAME
@@ -279,3 +287,215 @@ def test_moved_counts_leave_out_a_merge_applied_earlier(
 
     assert [item.change.pk for item in result.decided("applied")] == [fresh.pk]
     assert counted == [[]]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_caps_the_selection_and_reports_what_remains(
+    admin, catalog_run, course_factory, sync_change_factory
+):
+    changes = []
+    for _ in range(3):
+        course = course_factory(title="Тестова дисципліна А")
+        changes.append(
+            sync_change_factory(
+                run=catalog_run,
+                source="catalog",
+                group="change",
+                kind="change_course",
+                key=str(course.pk),
+                target_id=str(course.pk),
+                before={"title": "Тестова дисципліна А"},
+                after={"title": "Тестова дисципліна Б"},
+            )
+        )
+
+    result = decisions.approve(
+        [change.pk for change in changes], admin, dry_run=False, max_changes=2, group="change"
+    )
+
+    assert result.counts["applied"] == 2
+    assert result.remaining == 1
+    for change in changes[:2]:
+        change.refresh_from_db()
+        assert change.state == SyncChangeState.APPLIED
+    changes[2].refresh_from_db()
+    assert changes[2].state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_rolls_back_when_the_deadline_passes_after_the_last_write(
+    admin, catalog_run, course_factory, sync_change_factory, monkeypatch
+):
+    course = course_factory(title="Тестова дисципліна А")
+    change = sync_change_factory(
+        run=catalog_run,
+        source="catalog",
+        group="change",
+        kind="change_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        before={"title": "Тестова дисципліна А"},
+        after={"title": "Тестова дисципліна Б"},
+    )
+    clock = {"now": 0.0}
+    monkeypatch.setattr(apply, "monotonic", lambda: clock["now"])
+    write_catalog = apply._apply_catalog
+
+    def slow_catalog(*args, **kwargs):
+        written = write_catalog(*args, **kwargs)
+        clock["now"] = 100.0
+        return written
+
+    monkeypatch.setattr(apply, "_apply_catalog", slow_catalog)
+
+    result = decisions.approve([change.pk], admin, dry_run=False, deadline_seconds=40)
+
+    assert result.error == "deadline_exceeded"
+    course.refresh_from_db()
+    assert course.title == "Тестова дисципліна А"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_refuses_a_preview_token_for_a_different_selection_of_the_same_size(
+    admin, catalog_run, course_factory, sync_change_factory
+):
+    def build():
+        course = course_factory(title="Тестова дисципліна А")
+        return sync_change_factory(
+            run=catalog_run,
+            source="catalog",
+            group="change",
+            kind="change_course",
+            key=str(course.pk),
+            target_id=str(course.pk),
+            before={"title": "Тестова дисципліна А"},
+            after={"title": "Тестова дисципліна Б"},
+        )
+
+    first, second, third = build(), build(), build()
+    preview = decisions.preview([first.pk, second.pk], admin, group="change")
+
+    refused = decisions.approve(
+        [first.pk, third.pk], admin, dry_run=False, group="change", preview_token=preview.token
+    )
+
+    assert refused.error == "selection_changed"
+    third.refresh_from_db()
+    assert third.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_rolls_everything_back_past_its_deadline(
+    admin, catalog_run, course_factory, sync_change_factory, monkeypatch
+):
+    course = course_factory(title="Тестова дисципліна А")
+    change = sync_change_factory(
+        run=catalog_run,
+        source="catalog",
+        group="change",
+        kind="change_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        before={"title": "Тестова дисципліна А"},
+        after={"title": "Тестова дисципліна Б"},
+    )
+    ticks = iter([0.0, 100.0])
+    monkeypatch.setattr(apply, "monotonic", lambda: next(ticks))
+
+    result = decisions.approve([change.pk], admin, dry_run=False, deadline_seconds=40)
+
+    assert result.outcome == "refused"
+    assert result.error == "deadline_exceeded"
+    assert result.counts["deadline_seconds"] == 40
+    course.refresh_from_db()
+    change.refresh_from_db()
+    assert course.title == "Тестова дисципліна А"
+    assert change.state == SyncChangeState.PROPOSED
+    approval = SyncApproval.objects.get()
+    assert approval.outcome == SyncApprovalOutcome.REFUSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_approve_returns_the_first_result_for_a_repeated_client_key(
+    admin, catalog_run, course_factory, sync_change_factory
+):
+    key = uuid.uuid4()
+    course = course_factory(title="Тестова дисципліна А")
+    change = sync_change_factory(
+        run=catalog_run,
+        source="catalog",
+        group="change",
+        kind="change_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        before={"title": "Тестова дисципліна А"},
+        after={"title": "Тестова дисципліна Б"},
+    )
+
+    first = decisions.approve([change.pk], admin, dry_run=False, client_key=key)
+    second = decisions.approve([change.pk], admin, dry_run=False, client_key=key)
+
+    assert first.approval_id is not None
+    assert second.approval_id == first.approval_id
+    assert second.counts == first.counts
+    assert SyncApproval.objects.count() == 1
+    course.refresh_from_db()
+    assert course.title == "Тестова дисципліна Б"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_token_refuses_a_changed_selection(
+    admin, catalog_run, course_factory, sync_change_factory
+):
+    def build():
+        course = course_factory(title="Тестова дисципліна А")
+        return sync_change_factory(
+            run=catalog_run,
+            source="catalog",
+            group="change",
+            kind="change_course",
+            key=str(course.pk),
+            target_id=str(course.pk),
+            before={"title": "Тестова дисципліна А"},
+            after={"title": "Тестова дисципліна Б"},
+        )
+
+    first, second = build(), build()
+    preview = decisions.preview([first.pk, second.pk], admin, group="change")
+
+    assert preview.token
+    assert SyncPreview.objects.get(token=preview.token).count == 2
+
+    refused = decisions.approve(
+        [first.pk], admin, dry_run=False, group="change", preview_token=preview.token
+    )
+
+    assert refused.outcome == "refused"
+    assert refused.error == "selection_changed"
+    first.refresh_from_db()
+    assert first.state == SyncChangeState.PROPOSED
+
+    applied = decisions.approve(
+        [first.pk, second.pk], admin, dry_run=False, group="change", preview_token=preview.token
+    )
+
+    assert applied.outcome == "applied"
+    first.refresh_from_db()
+    second.refresh_from_db()
+    assert first.state == SyncChangeState.APPLIED
+    assert second.state == SyncChangeState.APPLIED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_rejects_an_unknown_token(admin, catalog_run, sync_change_factory):
+    change = sync_change_factory(run=catalog_run)
+
+    with pytest.raises(apply.SyncApplyInputError, match="unknown preview token"):
+        decisions.approve([change.pk], admin, dry_run=True, preview_token="missing")

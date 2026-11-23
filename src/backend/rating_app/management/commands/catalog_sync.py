@@ -1,8 +1,8 @@
 """Decide UKMA Data sync changes from the console (ADR-0022, update 2026-11-22).
 
-`status` and `show` read; `apply`, `reject`, `answer` and `policy` run as a dry
-run unless `--yes` is given, and `--by <username>` names the superuser the
-decision is recorded for. Runbook: docs/runbooks/catalog-sync-console.md.
+`status`, `show` and `log` read; `apply`, `reject`, `revert`, `answer` and
+`policy` run as a dry run unless `--yes` is given, and `--by <username>` names the
+superuser the decision is recorded for. Runbook: docs/runbooks/catalog-sync-console.md.
 """
 
 from __future__ import annotations
@@ -32,9 +32,8 @@ from rating_app.models import (
     SyncRunStatus,
     SyncSource,
 )
-from rating_app.sync import answers, decisions, policies, questions, review, selection
+from rating_app.sync import answers, decisions, journal, policies, questions, review, selection
 from rating_app.sync import console as text
-from rating_app.sync.apply import SyncApplyInputError
 from rating_app.sync.constants import SWITCH_NAME
 from rating_app.sync.kinds import KIND_BY_NAME, KINDS, NEVER_AUTO_KINDS
 
@@ -78,6 +77,14 @@ class Command(BaseCommand):
         answer.add_argument("--unrated", action="store_true", help="Every unrated question")
         self._write_args(answer)
 
+        revert = sub.add_parser("revert", help="Undo an applied decision (dry run unless --yes)")
+        revert.add_argument("approval_id", type=int, help="Decision number from the journal")
+        self._write_args(revert)
+
+        log = sub.add_parser("log", help="Every decision, newest first")
+        log.add_argument("--limit", type=int, default=20)
+        log.add_argument("--json", action="store_true")
+
         policy = sub.add_parser("policy", help="List policies, or set one kind")
         policy.add_argument("kind", nargs="?")
         policy.add_argument("mode", nargs="?", choices=["auto", "needs_approval"])
@@ -105,6 +112,8 @@ class Command(BaseCommand):
             "show": self._show,
             "apply": self._apply,
             "reject": self._reject,
+            "revert": self._revert,
+            "log": self._log,
             "answer": self._answer,
             "policy": self._policy,
         }
@@ -218,7 +227,7 @@ class Command(BaseCommand):
                     kind=options["kind"] or "",
                     excluded=excluded,
                 )
-        except SyncApplyInputError as exc:
+        except decisions.SyncApplyInputError as exc:
             raise CommandError(decisions.input_error_text(exc)) from exc
         if result.outcome == SyncApprovalOutcome.REFUSED:
             raise CommandError("Відмовлено: " + decisions.refusal_text(result.error, run))
@@ -241,6 +250,55 @@ class Command(BaseCommand):
             )
         else:
             self._say(f"Рішення #{result.approval_id}. Кеш сайту оновиться після запису.")
+
+    def _revert(self, options: dict[str, Any]) -> None:
+        user = _decider(options)
+        dry_run = not options["yes"]
+        result = decisions.revert(options["approval_id"], user, dry_run=dry_run)
+        if result.blockers:
+            count = len(result.blockers)
+            verb = text.plural(count, "заважає", "заважають", "заважають")
+            self._say(
+                f"Не можна відкотити рішення #{result.original_id}: "
+                f"{text.changes_word(count)} {verb}."
+            )
+            self._say(
+                *(f"  зміна #{blocker.change_id}  {blocker.text}" for blocker in result.blockers)
+            )
+            if dry_run:
+                self._say("Спершу приберіть перешкоди.")
+                return
+            raise CommandError("Нічого не записано: спершу приберіть перешкоди.")
+        if result.outcome != SyncApprovalOutcome.APPLIED:
+            if result.outcome == SyncApprovalOutcome.FAILED:
+                raise CommandError(
+                    f"Рішення #{result.original_id} не вдалося відкотити, нічого не записано. "
+                    "Див. розділ «Збій» у runbook."
+                )
+            raise CommandError(result.refusal_text())
+        if dry_run:
+            self._say(DRY_RUN)
+            self._say(
+                f"Відкотило б {text.changes_accusative(len(result.change_ids))}: "
+                "поля отримають попередні значення, нічого не видаляється."
+            )
+            self._say(TO_WRITE)
+            return
+        self._say(
+            f"Відкочено. Рішення #{result.approval_id}. Зміни повернуться в «Чекають рішення» "
+            "після наступного читання."
+        )
+
+    def _log(self, options: dict[str, Any]) -> None:
+        rows = journal.entries(limit=options["limit"])
+        if options["json"]:
+            self._json([text.journal_json(entry) for entry in rows])
+            return
+        if not rows:
+            self._say("Ще не було жодного рішення.")
+            return
+        self._say("Журнал — усі рішення, найновіші першими:")
+        self._say(*(text.journal_line(entry) for entry in rows))
 
     def _answer(self, options: dict[str, Any]) -> None:
         user = _decider(options)

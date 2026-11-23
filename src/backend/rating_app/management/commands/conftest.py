@@ -10,7 +10,7 @@ from django.utils import timezone
 import pytest
 
 from rating_app.models import SyncChangeGroup, SyncRun, SyncRunStatus, SyncSource
-from rating_app.sync import apply
+from rating_app.sync import apply, revert
 
 OLD_TITLE = "Тестова дисципліна А"
 NEW_TITLE = "Тестова дисципліна Б"  # the test modules repeat both titles
@@ -25,6 +25,7 @@ def _lock_free(_key: int):
 def free_sync_lock(monkeypatch):
     """The tests run on SQLite, which has no advisory locks."""
     monkeypatch.setattr(apply, "advisory_lock", _lock_free)
+    monkeypatch.setattr(revert, "advisory_lock", _lock_free)
 
 
 @pytest.fixture

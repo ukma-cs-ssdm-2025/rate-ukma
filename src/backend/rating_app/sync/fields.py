@@ -29,6 +29,53 @@ TERM_FIELDS: tuple[str, ...] = (
 OTHER_FIELD = "other"
 TOP_PAIRS = 4
 
+FIELD_LABELS: dict[str, str] = {
+    "name": "назва",
+    "title": "назва",
+    "department": "кафедра",
+    "education_level": "рівень освіти",
+    "level": "рівень",
+    "status": "стан",
+    "description": "опис",
+    "year": "рік",
+    "term": "семестр",
+    "exam_type": "форма контролю",
+    "study_year": "рік навчання",
+    "max_students": "макс. студентів",
+    "max_groups": "макс. груп",
+    "group_size_min": "мін. у групі",
+    "group_size_max": "макс. у групі",
+    "credits": "кредити",
+    "weekly_hours": "годин на тиждень",
+    "lecture_count": "лекцій",
+    "practice_count": "практик",
+    "practice_type": "тип практик",
+    "specialities": "спеціальності",
+    "terms": "семестри",
+    "saz_code": "код САЗ",
+    "ukma_data_id": "id в UKMA Data",
+    "majority_share": "частка збігу",
+    "faculty_ukma_id": "факультет в UKMA Data",
+    "department_ukma_id": "кафедра в UKMA Data",
+    "course_id": "курс",
+    "course_ukma_id": "курс в UKMA Data",
+    "candidates": "курси-кандидати",
+    "from_course": "з курсу",
+    "to_course_id": "до курсу",
+    "to_course_ukma_id": "до курсу в UKMA Data",
+    "ukma_course_id": "курс в UKMA Data",
+    "merge_source": "джерело об'єднання",
+    "email": "пошта",
+    "teacher_email": "пошта викладача",
+    "last_name": "прізвище",
+    "first_name": "ім'я",
+    "middle_name": "по батькові",
+    "role": "роль",
+    "instructor_id": "викладач",
+    "removed_at": "зник з САЗ",
+    "other": "інше",
+}
+
 CHANGE_KINDS: frozenset[str] = frozenset(
     kind.name for kind in KIND_BY_NAME.values() if kind.group == SyncChangeGroup.CHANGE
 )

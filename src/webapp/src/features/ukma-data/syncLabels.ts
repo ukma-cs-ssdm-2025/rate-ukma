@@ -27,6 +27,7 @@ export const STATE_LABELS = {
 	applied: "Застосовано",
 	rejected: "Відхилено",
 	superseded: "Уже неактуальна",
+	reverted: "Відкочено",
 } satisfies Record<State, string>;
 
 export const RUN_STATUS_LABELS = {

@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from rest_framework.test import APIClient
 
 import pytest
@@ -104,3 +106,16 @@ def mock_cache_manager(monkeypatch):
     yield cache
 
     cache.clear()
+
+
+@contextmanager
+def _lock_free(_key: int):
+    yield True
+
+
+@pytest.fixture
+def free_sync_lock(monkeypatch):
+    """The tests run on SQLite, which has no advisory locks."""
+    from rating_app.sync import apply
+
+    monkeypatch.setattr(apply, "advisory_lock", _lock_free)
