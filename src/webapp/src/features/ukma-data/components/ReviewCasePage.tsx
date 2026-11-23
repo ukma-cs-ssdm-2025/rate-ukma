@@ -54,7 +54,8 @@ function useCaseLookup(caseId: string) {
 	if (found !== undefined && found !== kept) {
 		setKept(found);
 	}
-	const reviewCase = found ?? (kept?.id === caseId ? kept : undefined);
+	const reviewCase =
+		found ?? (source.isFetching && kept?.id === caseId ? kept : undefined);
 	return {
 		source,
 		reviewCase,

@@ -184,4 +184,51 @@ describe("/data/cases/$caseId", () => {
 			await screen.findByText("Справу закрито: це та сама людина."),
 		).toBeInTheDocument();
 	});
+
+	it("does not keep a stale case when the reload fails", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		let decided = false;
+		mock.reset();
+		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
+		mock.onGet(CASES_URL).reply((config) => {
+			if (!decided) {
+				return [200, page([studentCase])];
+			}
+			return config.params?.status === "open"
+				? [200, page([])]
+				: [500, { detail: "boom", status: 500 }];
+		});
+		mock.onPost(DECIDE_URL).reply(() => {
+			decided = true;
+			return [
+				200,
+				{
+					decision_id: 41,
+					action: "decide_case",
+					outcome: "done",
+					detail: "Справу закрито: це та сама людина.",
+				},
+			];
+		});
+
+		// Act
+		renderCase();
+		await user.click(
+			await screen.findByRole("button", { name: "Це та сама людина" }),
+		);
+		await user.click(
+			within(await screen.findByRole("alertdialog")).getByRole("button", {
+				name: "Закрити справу",
+			}),
+		);
+
+		// Assert
+		expect(
+			await screen.findByText("Не вдалося завантажити справу"),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Це та сама людина" }),
+		).not.toBeInTheDocument();
+	});
 });

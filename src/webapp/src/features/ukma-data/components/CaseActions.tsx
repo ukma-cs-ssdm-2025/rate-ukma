@@ -87,7 +87,11 @@ function ResultLine({ result }: Readonly<{ result: Result | null }>) {
 			ref={ref}
 			role={result.ok ? "status" : "alert"}
 			tabIndex={-1}
-			className={result.ok ? "text-sm" : "text-sm text-destructive"}
+			className={
+				result.ok
+					? "max-w-72 text-sm whitespace-normal"
+					: "max-w-72 text-sm whitespace-normal text-destructive"
+			}
 		>
 			<span aria-hidden="true">{result.ok ? "✓" : "✗"}</span> {result.text}
 		</p>

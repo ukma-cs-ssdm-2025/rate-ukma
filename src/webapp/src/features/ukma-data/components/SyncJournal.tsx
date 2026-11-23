@@ -20,6 +20,7 @@ import {
 	ukmaDataSyncJournal,
 	useUkmaDataStatusRetrieve,
 } from "@/lib/api/generated";
+import { undoneMergeIds } from "../caseActions";
 import {
 	journalEntryNumber,
 	journalTitle,
@@ -27,7 +28,6 @@ import {
 } from "../syncActions";
 import { PAGE_SIZE } from "../syncLabels";
 import { NO_RETRY } from "../syncOverview";
-import { undoneMergeIds } from "../caseActions";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
 import { UnmergeAction } from "./CaseActions";
 import { SyncRevertButton, SyncRevertDialog } from "./SyncRevertDialog";
