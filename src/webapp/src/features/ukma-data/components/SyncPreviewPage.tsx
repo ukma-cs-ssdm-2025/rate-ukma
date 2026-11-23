@@ -52,8 +52,8 @@ export function SyncPreviewPage() {
 		queryFn: ({ signal }) =>
 			ukmaDataSyncPreview({ source: "catalog", group, kind }, signal),
 		retry: false,
-		staleTime: Number.POSITIVE_INFINITY,
 		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
 	});
 	const run = preview.data?.run ?? null;
 	const total = preview.data?.counts.total ?? null;
