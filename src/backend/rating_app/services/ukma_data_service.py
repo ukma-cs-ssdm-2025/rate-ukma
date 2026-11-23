@@ -86,7 +86,6 @@ class UkmaDataService:
                 {
                     "key_id": key.id,
                     "scopes": key.scopes,
-                    "decide_scopes": self.decide_scopes(),
                     "key_expires_at": key.expires_at,
                     "data_updated_at": terms.data_updated_at,
                 }
@@ -95,29 +94,6 @@ class UkmaDataService:
             errors = exc.errors(include_input=False, include_url=False)
             logger.warning("ukma_data_unexpected_response", path="/v1/key", errors=errors)
             raise UkmaDataUnavailableError("UKMA Data sent an unexpected response.") from exc
-
-    def decide_scopes(self) -> list[str]:
-        """The decide key's scopes for the status card; `[]` when they can't be read."""
-        try:
-            return self.read_decide_scopes()
-        except UkmaDataUnavailableError:
-            logger.warning("ukma_data_decide_scopes_unavailable")
-            return []
-
-    def read_decide_scopes(self) -> list[str]:
-        """The decide key's scopes; `[]` without a key or with one UKMA Data refuses.
-
-        Raises `UkmaDataUnavailableError` when UKMA Data is down, so a decision answers 502
-        rather than claiming the page is read-only.
-        """
-        decide_key = settings.UKMA_DATA_DECIDE_API_KEY
-        if not decide_key:
-            return []
-        try:
-            return self._get("/v1/key", {}, UkmaDataKey, api_key=decide_key).scopes
-        except (UkmaDataForbiddenError, UkmaDataNotConfiguredError):
-            logger.warning("ukma_data_decide_key_refused")
-            return []
 
     def decide_case(self, case_id: str) -> None:
         """Close a `student_match` case as the same person."""
@@ -134,7 +110,7 @@ class UkmaDataService:
 
     def _decide(self, path: str, body: dict[str, str] | None) -> None:
         base_url = settings.UKMA_DATA_URL
-        api_key = settings.UKMA_DATA_DECIDE_API_KEY
+        api_key = settings.UKMA_DATA_API_KEY
         if not base_url or not api_key:
             raise UkmaDataNotConfiguredError()
 
@@ -182,24 +158,17 @@ class UkmaDataService:
             query["limit"] = min(params.limit, UKMA_DATA_MAX_PAGE_SIZE)
         return self._get(path, query, page)
 
-    def _get[M: BaseModel](
-        self,
-        path: str,
-        query: dict[str, int | str],
-        model: type[M],
-        *,
-        api_key: str | None = None,
-    ) -> M:
+    def _get[M: BaseModel](self, path: str, query: dict[str, int | str], model: type[M]) -> M:
         base_url = settings.UKMA_DATA_URL
-        key = settings.UKMA_DATA_API_KEY if api_key is None else api_key
-        if not base_url or not key:
+        api_key = settings.UKMA_DATA_API_KEY
+        if not base_url or not api_key:
             raise UkmaDataNotConfiguredError()
 
         try:
             response = requests.get(
                 f"{base_url.rstrip('/')}{path}",
                 params=query,
-                headers={"Authorization": f"Bearer {key}"},
+                headers={"Authorization": f"Bearer {api_key}"},
                 timeout=(UKMA_DATA_CONNECT_TIMEOUT_SECONDS, settings.UKMA_DATA_TIMEOUT_SECONDS),
             )
         except requests.Timeout as exc:

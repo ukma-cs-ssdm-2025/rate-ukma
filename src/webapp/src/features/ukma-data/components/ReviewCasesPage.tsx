@@ -33,8 +33,7 @@ export function ReviewCasesPage() {
 	const [filters, setParams] = useCaseFilterParams();
 	const cases = useUkmaDataReviewCasesList(caseListParams(filters), NO_RETRY);
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
-	const decideEnabled =
-		status.data?.decide_scopes.includes("review:decide") ?? false;
+	const decideEnabled = status.data?.scopes.includes("review:decide") ?? false;
 	const matching = sortCases(filterCases(cases.data?.items ?? [], filters));
 	const { rows, page, totalPages } = pageSlice(matching, filters.page);
 	return (

@@ -128,8 +128,7 @@ function CaseBody({
 export function ReviewCasePage({ caseId }: Readonly<{ caseId: string }>) {
 	const { source, reviewCase, order } = useCaseLookup(caseId);
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
-	const decideEnabled =
-		status.data?.decide_scopes.includes("review:decide") ?? false;
+	const decideEnabled = status.data?.scopes.includes("review:decide") ?? false;
 	if (reviewCase !== undefined) {
 		return (
 			<CaseBody

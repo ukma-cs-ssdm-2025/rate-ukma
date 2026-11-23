@@ -9,7 +9,7 @@ import pytest
 
 from rating_app.models import UkmaDataDecision, UkmaDataDecisionOutcome
 
-DECIDE_KEY = "test-ukma-data-decide-key"
+API_KEY = "test-ukma-data-key"
 KEY = {
     "id": "k-2",
     "scopes": ["catalog:read", "review:read", "review:decide"],
@@ -90,8 +90,7 @@ class FakeUkmaData:
 def ukma_data(settings):
     with FakeUkmaData() as fake:
         settings.UKMA_DATA_URL = fake.url
-        settings.UKMA_DATA_API_KEY = "test-ukma-data-read-key"
-        settings.UKMA_DATA_DECIDE_API_KEY = DECIDE_KEY
+        settings.UKMA_DATA_API_KEY = API_KEY
         settings.UKMA_DATA_TIMEOUT_SECONDS = 2
         fake.reply("/v1/key", KEY, status=200)
         yield fake
@@ -176,18 +175,17 @@ def test_decision_returns_403_when_staff_not_superuser(token_client, ukma_data, 
     "url_name",
     ["ukma-data-review-case-decide", "ukma-data-course-merge", "ukma-data-course-unmerge"],
 )
-def test_decision_returns_403_when_decide_key_is_not_configured(
+def test_decision_returns_503_when_the_key_is_not_configured(
     superuser_client, ukma_data, settings, url_name
 ):
     kwargs = {"case_id": "rc-101"} if "review" in url_name else {"course_id": "c-101"}
     body = {"into": "c-102"} if url_name == "ukma-data-course-merge" else None
-    settings.UKMA_DATA_DECIDE_API_KEY = ""
+    settings.UKMA_DATA_API_KEY = ""
 
     response = superuser_client.post(reverse(url_name, kwargs=kwargs), body, format="json")
 
-    assert response.status_code == 403
-    assert response.json()["code"] == "ukma_data_forbidden"
-    assert response.json()["detail"] == "Тут лише перегляд: рішення змінюють спільні дані САЗ"
+    assert response.status_code == 503
+    assert response.json()["code"] == "ukma_data_not_configured"
     assert ukma_data.received == []
     assert UkmaDataDecision.objects.count() == 0
 
@@ -198,9 +196,7 @@ def test_decision_returns_403_when_decide_key_is_not_configured(
     "url_name",
     ["ukma-data-review-case-decide", "ukma-data-course-merge", "ukma-data-course-unmerge"],
 )
-def test_decision_returns_403_when_decide_key_lacks_the_scope(
-    superuser_client, ukma_data, url_name
-):
+def test_decision_returns_403_when_the_key_lacks_the_scope(superuser_client, ukma_data, url_name):
     kwargs = {"case_id": "rc-101"} if "review" in url_name else {"course_id": "c-101"}
     body = {"into": "c-102"} if url_name == "ukma-data-course-merge" else None
     ukma_data.reply("/v1/key", READ_ONLY_KEY, status=200)
@@ -209,8 +205,9 @@ def test_decision_returns_403_when_decide_key_lacks_the_scope(
 
     assert response.status_code == 403
     assert response.json()["code"] == "ukma_data_forbidden"
+    assert response.json()["detail"] == "Тут лише перегляд: рішення змінюють спільні дані САЗ"
     assert [item["path"] for item in ukma_data.received] == ["/v1/key"]
-    assert ukma_data.received[0]["authorization"] == f"Bearer {DECIDE_KEY}"
+    assert ukma_data.received[0]["authorization"] == f"Bearer {API_KEY}"
     assert UkmaDataDecision.objects.count() == 0
 
 
@@ -229,7 +226,7 @@ def test_decide_closes_the_case_and_writes_the_decision(superuser_client, ukma_d
     post = _posts(ukma_data)[0]
     assert post["path"] == "/v1/review-cases/rc-101/decide"
     assert post["body"] == {"decision": "same_person"}
-    assert post["authorization"] == f"Bearer {DECIDE_KEY}"
+    assert post["authorization"] == f"Bearer {API_KEY}"
     decision = UkmaDataDecision.objects.get()
     assert decision.pk == body["decision_id"]
     assert decision.user == superuser_client.user

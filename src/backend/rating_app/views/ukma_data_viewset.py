@@ -166,7 +166,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Decide a UKMA Data review case",
         description="Close an open `student_match` case as the same person. Needs the "
-        "server's decide key with `review:decide`; without it the answer is 403 "
+        "server's UKMA Data key with `review:decide`; without it the answer is 403 "
         "`ukma_data_forbidden` before UKMA Data is called. Superusers only.",
         request=None,
         responses=R_UKMA_DATA_DECISION,
@@ -185,7 +185,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Merge a UKMA Data course",
         description="Merge a course into another of the same level; UKMA Data keeps the "
-        "decision. Needs the server's decide key with `review:decide`, otherwise 403 "
+        "decision. Needs the server's UKMA Data key with `review:decide`, otherwise 403 "
         "`ukma_data_forbidden`. Superusers only.",
         request=UkmaDataCourseMergeRequestSerializer,
         responses=R_UKMA_DATA_DECISION,
@@ -207,8 +207,8 @@ class UkmaDataViewSet(viewsets.ViewSet):
 
     @extend_schema(
         summary="Undo a UKMA Data course merge",
-        description="Unmerge a course that UKMA Data merged. Needs the server's decide key with "
-        "`review:decide`, otherwise 403 `ukma_data_forbidden`. Superusers only.",
+        description="Unmerge a course that UKMA Data merged. Needs the server's UKMA Data key "
+        "with `review:decide`, otherwise 403 `ukma_data_forbidden`. Superusers only.",
         request=None,
         responses=R_UKMA_DATA_DECISION,
         operation_id="ukma_data_course_unmerge",
@@ -237,7 +237,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
         detail: str,
     ) -> Response:
         service = self._service()
-        if "review:decide" not in service.read_decide_scopes():
+        if "review:decide" not in service.get_key().scopes:
             logger.warning("ukma_data_decide_forbidden", action=action, target_id=target_id)
             raise UkmaDataDecideDisabledError()
 

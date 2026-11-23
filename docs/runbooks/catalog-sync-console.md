@@ -1,6 +1,6 @@
 # Catalog Sync from the Console
 
-Runbook for deciding the changes the nightly read of UKMA Data proposes: apply them, reject them, undo an applied decision, answer mapping questions, set which kinds apply by themselves, and read the journal. Decisions are made here, in the console, or on the /data page ([ADR-0022](../architecture/decisions/0022-sync-runs-changes-and-policies.md), updates of 2026-11-22 and 2026-11-23).
+Runbook for deciding the changes the nightly read of UKMA Data proposes: apply them, reject them, undo an applied decision, answer mapping questions, set which kinds apply by themselves, and read the journal. Decisions are made here, in the console, or on the /data page; UKMA Data's own cases and course merges are decided on /data or from the parser shell (see the last section) ([ADR-0022](../architecture/decisions/0022-sync-runs-changes-and-policies.md), updates of 2026-11-22 and 2026-11-23).
 
 ## Making Decisions on /data
 
@@ -247,25 +247,54 @@ Run `status`: the selected changes still wait, except those now marked «неа�
 
 If a written apply turns out wrong, do not edit rows by hand. Stop and tell the owner. The restore from the dump of step 1 is the owner's decision and the owner's to run; you do not run one.
 
-## UKMA Data cases (parser)
+## UKMA Data Cases and Course Merges
 
-Review cases are the records UKMA Data could not match on its own. /data shows only how many are open; you decide them from the parser shell. `cases show` and `cases decide` print student names and study details, so run them in an interactive shell, never as a scheduled job whose output a log collector keeps, and never paste their output into an issue or PR.
+Review cases are the records UKMA Data could not match on its own; course merges join two UKMA Data courses into one. Both change UKMA Data itself, not Rate UKMA's database.
+
+**UKMA Data has one environment, and it is live.** Every `--yes` below and every decision button on /data writes shared live data that every reader of UKMA Data sees. There is no staging run first, and the dump of step 1 does not cover it. So for each write: show the owner the dry run (or the confirm text on /data), and act only on their explicit ok for that one write.
+
+**What can be undone.** A merge is undone by an unmerge. A `same_person` decision has no documented undo: say so to the owner before the write. The only decision a case takes is `same_person` («Це та сама людина»): the new record is the student it joined. If the owner says the two are different people, there is no command for it; leave the case open and note it for the owner.
+
+**Which path.** If /data shows the buttons enabled (on live; see «On /data»), decide there: the page records who decided. Otherwise use the parser shell. `cases list` and `cases show` exist only in the shell.
+
+### From the parser shell
+
+`cases show` and `cases decide` print student names and study details, so run them in an interactive shell, never as a scheduled job whose output a log collector keeps, and never paste their output into an issue or PR.
 
 ```bash
 node main.js cases list --status open                      # every open case, one line each
 node main.js cases list --kind student_match --status open
 node main.js cases show <case-id>                          # the case and its candidates
 node main.js cases decide <case-id> same_person            # dry run: what would change
-node main.js cases decide <case-id> same_person --yes      # write, after the owner says ok
-node main.js courses merge <course-id> --into <course-id>  # dry run
+node main.js cases decide <case-id> same_person --yes      # write, after the owner's ok
+node main.js courses merge <course-id> --into <course-id>  # dry run; --into is the course that stays
 node main.js courses merge <course-id> --into <course-id> --yes
 node main.js courses unmerge <course-id>                   # dry run; add --yes to write
 ```
 
-Same rules as above: show the owner the dry run, write only after their ok, then run `cases list --status open` (or `cases show <case-id>`) to check the case is decided. Only `student_match` cases can be decided here; other kinds are listed and refused with `not_student_match`. A refusal prints one line and exits non-zero: stop and tell the owner. The audit log records a command-line decision with no key.
+Check each write:
 
-## UKMA Data decisions on /data
+- after `cases decide … --yes`, run `cases show <case-id>` (or `cases list --status open`): the case is decided;
+- after `courses merge … --yes`, run the dry run `courses unmerge <course-id>` (no `--yes`): it lists what it would undo when the merge is in place, and refuses with `not_merged` when it is not;
+- after `courses unmerge … --yes`, the same dry run now refuses with `not_merged`.
 
-The review cases and course merges of UKMA Data have their own buttons on /data: «Це та сама людина» for a `student_match` case, «Об'єднати з …» for a `course_match` candidate, and «Роз'єднати» on a done merge in «Журнал». Each confirm names the case or both courses and says that the change affects the shared САЗ data. Each attempt that reaches UKMA Data is recorded in «Журнал» as «Рішення в UKMA Data» with who, what, and any refusal or error.
+For a `course_match` case the shell has no candidate view: take both course ids (`crs_…`) and which one stays (`--into`) from /data or from the owner, and run the `courses merge` dry run before the `--yes`. Only `student_match` cases can be decided; other kinds are refused with `not_student_match`. A refusal prints one line with its code (`not_student_match`, `not_open`, `not_merged`, `level_mismatch`, …) and exits non-zero: stop and tell the owner the code and the id. UKMA Data's audit log records a shell decision with no key and no person, so write the owner's name, the id and the time in your report to them.
 
-They work only when the server has a separate decide key, `UKMA_DATA_DECIDE_API_KEY`, whose scopes include `review:decide`. Without it, the buttons stay disabled with «Тут лише перегляд: рішення змінюють спільні дані САЗ», and the backend refuses every decision before calling UKMA Data. The key is set per environment; do not print, copy or paste its value. If the buttons are disabled where they should work, ask the owner to check that the environment has the key and the scope.
+### On /data
+
+The buttons work only when the server's UKMA Data key (`UKMA_DATA_API_KEY`, the same key the lists use) has the `review:decide` scope. Live's key has it; staging's has only `review:read`, so on staging the buttons stay disabled with «Тут лише перегляд: рішення змінюють спільні дані САЗ», and the backend refuses every decision before calling UKMA Data. Never give the staging key `review:decide`, and do not read, print, copy or paste a key's value. If the buttons are disabled on live, tell the owner the live key seems to have lost `review:decide`.
+
+1. Open /data → «Справи». Each open case is a row with its buttons: «Це та сама людина» for a `student_match` case, «Об'єднати з …» per candidate for a `course_match` case (the candidate is the course that stays). A row opens the case with its details.
+2. Press the button. The confirm names the case or both courses and says that the change affects the shared САЗ data. It is the only check before the write: read it to the owner and press the confirm only on their ok.
+3. The row shows the result: «✓ …» when done, or UKMA Data's reason. The case moves to «Стан: Вирішені» with the badge «Вирішено».
+4. Every attempt that reaches UKMA Data appears in «Оновлення з САЗ» → «Журнал» as «Рішення в UKMA Data» with who, what, and any refusal or error. A done merge has «Роз'єднати» there.
+
+When a decision does not go through:
+
+- **«UKMA Data не відповіла, тож рішення могло й не записатися…»**: UKMA Data was down or slow (the API answered 502). The decision may or may not have been written; the «Журнал» row says «помилка» either way. Before pressing again, check:
+  - a case: open «Справи» with «Стан: Усі»; the badge «Вирішено» means it was written;
+  - a merge: run the dry run `node main.js courses unmerge <course-id>` in the parser shell (no `--yes`). If it lists what it would undo, the merge happened: do not press again. If it refuses with `not_merged`, it did not: tell the owner and ask before retrying.
+- **A refusal** (for example «Курси різного рівня: об'єднати можна лише однакові.»): UKMA Data changed nothing. These are the shell's refusal codes in Ukrainian. Do not retry; tell the owner the case or course id.
+- **A merge made by mistake**: with the owner's ok, press «Роз'єднати» on its «Журнал» row. That writes a new decision; the merge row keeps its history and loses the button.
+
+Done when each write the owner approved has passed its check. Report to the owner, per write: the ids, the button or the exact command, the time and the check result; for a shell write also the owner's name, since UKMA Data records no person.

@@ -2996,7 +2996,7 @@ paths:
     post:
       operationId: ukma_data_course_merge
       description: Merge a course into another of the same level; UKMA Data keeps
-        the decision. Needs the server's decide key with `review:decide`, otherwise
+        the decision. Needs the server's UKMA Data key with `review:decide`, otherwise
         403 `ukma_data_forbidden`. Superusers only.
       summary: Merge a UKMA Data course
       parameters:
@@ -3107,8 +3107,8 @@ paths:
   /api/v1/ukma-data/courses/{course_id}/unmerge/:
     post:
       operationId: ukma_data_course_unmerge
-      description: Unmerge a course that UKMA Data merged. Needs the server's decide
-        key with `review:decide`, otherwise 403 `ukma_data_forbidden`. Superusers
+      description: Unmerge a course that UKMA Data merged. Needs the server's UKMA
+        Data key with `review:decide`, otherwise 403 `ukma_data_forbidden`. Superusers
         only.
       summary: Undo a UKMA Data course merge
       parameters:
@@ -3698,8 +3698,8 @@ paths:
     post:
       operationId: ukma_data_review_case_decide
       description: Close an open `student_match` case as the same person. Needs the
-        server's decide key with `review:decide`; without it the answer is 403 `ukma_data_forbidden`
-        before UKMA Data is called. Superusers only.
+        server's UKMA Data key with `review:decide`; without it the answer is 403
+        `ukma_data_forbidden` before UKMA Data is called. Superusers only.
       summary: Decide a UKMA Data review case
       parameters:
       - in: path
@@ -9498,11 +9498,6 @@ components:
           items:
             type: string
           readOnly: true
-        decide_scopes:
-          type: array
-          items:
-            type: string
-          readOnly: true
         key_expires_at:
           type: string
           format: date-time
@@ -9514,7 +9509,6 @@ components:
           nullable: true
       required:
       - data_updated_at
-      - decide_scopes
       - key_expires_at
       - key_id
       - scopes

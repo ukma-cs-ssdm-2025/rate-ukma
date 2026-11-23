@@ -37,14 +37,13 @@ export const listPage = <T>(items: T[], total = items.length) => ({
 export const keyStatus: UkmaDataStatus = {
 	key_id: "key-test-0001",
 	scopes: ["catalog:read", "review:read"],
-	decide_scopes: [],
 	key_expires_at: "2030-12-01T00:00:00Z",
 	data_updated_at: "2030-09-10T06:10:00Z",
 };
 
 export const keyStatusWithDecide: UkmaDataStatus = {
 	...keyStatus,
-	decide_scopes: ["catalog:read", "review:decide"],
+	scopes: ["catalog:read", "review:decide", "instructors:read"],
 };
 
 export const run: SyncRun = {

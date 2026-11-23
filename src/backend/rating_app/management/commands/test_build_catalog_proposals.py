@@ -88,7 +88,6 @@ class FakeUkmaData:
         return UkmaDataStatus(
             key_id="key-1",
             scopes=list(self.scopes),
-            decide_scopes=[],
             key_expires_at=datetime.datetime(2030, 1, 1, tzinfo=datetime.UTC),
             data_updated_at=self.statuses[index],
         )

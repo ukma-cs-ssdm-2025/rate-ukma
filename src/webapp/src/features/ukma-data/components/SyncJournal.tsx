@@ -90,8 +90,7 @@ function JournalRow({
 export function SyncJournal() {
 	const [reverting, setReverting] = useState<SyncJournalEntry | null>(null);
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
-	const decideEnabled =
-		status.data?.decide_scopes.includes("review:decide") ?? false;
+	const decideEnabled = status.data?.scopes.includes("review:decide") ?? false;
 	const journal = useInfiniteQuery({
 		queryKey: [JOURNAL_QUERY_KEY],
 		queryFn: ({ pageParam, signal }) => {

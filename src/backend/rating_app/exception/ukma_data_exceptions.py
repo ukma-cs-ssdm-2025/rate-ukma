@@ -23,7 +23,7 @@ class UkmaDataForbiddenError(APIException):
 
 
 class UkmaDataDecideDisabledError(UkmaDataForbiddenError):
-    """The server's keys do not include `review:decide`, so /data stays read-only."""
+    """The server's UKMA Data key lacks `review:decide`, so /data stays read-only."""
 
     default_detail = "Тут лише перегляд: рішення змінюють спільні дані САЗ"
 
