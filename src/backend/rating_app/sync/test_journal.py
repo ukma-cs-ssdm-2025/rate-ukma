@@ -69,10 +69,60 @@ def test_entries_page_with_before_and_limit(user, sync_run_factory, sync_approva
         )
 
     first = journal.entries(limit=2)
-    second = journal.entries(limit=2, before=first[-1].when)
+    before = journal.parse_cursor(journal.cursor_of(first[-1]))
+    assert before is not None
+    second = journal.entries(limit=2, before=before)
 
     assert [entry.id for entry in first] == [approvals[2].pk, approvals[1].pk]
     assert [entry.id for entry in second] == [approvals[0].pk]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_entries_page_past_the_same_timestamp(user, sync_run_factory, sync_approval_factory):
+    run = sync_run_factory(source="catalog", status="succeeded")
+    now = timezone.now()
+    approvals = [
+        sync_approval_factory(run=run, user=user, action=SyncApprovalAction.REJECT)
+        for _ in range(3)
+    ]
+    SyncApproval.objects.filter(pk__in=[item.pk for item in approvals]).update(created_at=now)
+
+    first = journal.entries(limit=2)
+    before = journal.parse_cursor(journal.cursor_of(first[-1]))
+    assert before is not None
+    second = journal.entries(limit=2, before=before)
+
+    seen = [entry.id for entry in [*first, *second]]
+    assert len(seen) == 3
+    assert len(set(seen)) == 3
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_entries_page_past_a_shared_timestamp_across_kinds(
+    user,
+    sync_run_factory,
+    sync_approval_factory,
+    sync_policy_change_factory,
+    catalog_mapping_decision_factory,
+):
+    run = sync_run_factory(source="catalog", status="succeeded")
+    now = timezone.now()
+    approval = sync_approval_factory(run=run, user=user, action=SyncApprovalAction.APPLY)
+    policy = sync_policy_change_factory(kind="link_course", user=user)
+    answer = catalog_mapping_decision_factory(answer="keep_apart", decided_by=user)
+    SyncApproval.objects.filter(pk=approval.pk).update(created_at=now)
+    SyncPolicyChange.objects.filter(pk=policy.pk).update(changed_at=now)
+    CatalogMappingDecision.objects.filter(pk=answer.pk).update(decided_at=now)
+
+    first = journal.entries(limit=2)
+    before = journal.parse_cursor(journal.cursor_of(first[-1]))
+    assert before is not None
+    second = journal.entries(limit=2, before=before)
+
+    seen = [entry.kind for entry in [*first, *second]]
+    assert sorted(seen) == ["answer", "apply", "policy"]
 
 
 @pytest.mark.django_db
