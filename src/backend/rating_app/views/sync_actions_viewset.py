@@ -18,6 +18,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from rating_app.application_schemas.sync import SyncJournalParams
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
+from rating_app.models.sync import SyncChange, SyncRun
 from rating_app.serializers.sync_actions import (
     SyncApplyRequestSerializer,
     SyncDecisionResponseSerializer,
@@ -110,10 +111,18 @@ class SyncActionsViewSet(SyncViewSetBase):
     @extend_schema(
         summary="Apply a previewed sync selection",
         description="Apply at most 5 000 changes of the previewed selection, lowest change "
-        "numbers first, and stop by 40 s. The `token` from `preview` must match the "
-        "selection again; a changed set answers 409 `selection_changed`. A retry with the "
-        "same `client_key` returns the first decision with 200 instead of applying twice; "
-        "each new attempt needs a new `client_key`. Superusers only.",
+        "numbers first, in one transaction. The 40 s budget starts once the selection is "
+        "read and is checked between batches and before the decision is saved; past it no "
+        "change is written, the refused decision is kept for the Журнал, and the answer is "
+        "422 `deadline_exceeded`. One SQL statement may run at most 30 s; a statement cut "
+        "there answers 500 `failed`, and a batch started near the end can finish after "
+        "40 s. The `token` "
+        "from `preview` binds the selected change ids: if that id set changed, the answer "
+        "is 409 `selection_changed`. A change in the set that another decision took since "
+        "the preview is not applied and is counted as skipped, so `counts` can differ from "
+        "the preview. A retry with the same `client_key` returns the first decision with "
+        "200 instead of applying twice; each new attempt needs a new `client_key`. "
+        "Superusers only.",
         request=SyncApplyRequestSerializer,
         responses=R_SYNC_APPLY,
         operation_id="ukma_data_sync_apply",
@@ -247,14 +256,21 @@ class SyncActionsViewSet(SyncViewSetBase):
         serializer.is_valid(raise_exception=True)
         return cast(dict[str, Any], serializer.validated_data)
 
-    def _selection(self, data: dict[str, Any], run: Any) -> tuple[list[int], str, str]:
+    def _selection(self, data: dict[str, Any], run: SyncRun) -> tuple[list[int], str, str]:
         given = cast(list[int] | None, data.get("change_ids"))
         if given:
-            return list(dict.fromkeys(given)), "", ""
+            ids = list(dict.fromkeys(given))
+            if data.get("run") is not None and _outside_run(ids, run):
+                raise ValidationError({"change_ids": ["Зміни мають бути з цього запуску"]})
+            return ids, "", ""
         group = str(data.get("group") or "")
         kind = str(data.get("kind") or "")
         ids = selection.filter_ids(run, str(run.source), {"group": group, "kind": kind})
         return ids, group, kind
+
+
+def _outside_run(ids: list[int], run: SyncRun) -> bool:
+    return SyncChange.objects.filter(pk__in=ids).exclude(run=run).exists()
 
 
 def _source(data: dict[str, Any]) -> str:

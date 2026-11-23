@@ -1071,3 +1071,82 @@ def test_a_post_without_the_csrf_token_is_refused(user_factory, catalog_run):
 
     assert response.status_code == 403
     assert response.json()["detail"].startswith("CSRF Failed")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("action", ["preview", "apply", "reject"])
+def test_change_ids_from_another_run_answer_400(
+    superuser_client,
+    free_sync_locks,
+    catalog_run,
+    sync_run_factory,
+    course_factory,
+    make_change,
+    action,
+):
+    other_run = sync_run_factory(
+        source=SyncSource.CATALOG, status=SyncRunStatus.SUCCEEDED, finished_at=timezone.now()
+    )
+    foreign = make_change(course_factory(title="Тестова дисципліна А"), run=other_run)
+
+    if action == "preview":
+        response = _preview(superuser_client, catalog_run, change_ids=[foreign.pk])
+    elif action == "apply":
+        response = _apply(
+            superuser_client, catalog_run, "token", uuid.uuid4(), change_ids=[foreign.pk]
+        )
+    else:
+        response = _reject(superuser_client, catalog_run, uuid.uuid4(), change_ids=[foreign.pk])
+
+    assert response.status_code == 400
+    assert response.json()["fields"]["change_ids"] == ["Зміни мають бути з цього запуску"]
+    assert SyncApproval.objects.count() == 0
+    foreign.refresh_from_db()
+    assert foreign.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_running_reject_answers_409_in_progress(
+    superuser_client, catalog_run, course_factory, make_change, sync_approval_factory
+):
+    change = make_change(course_factory(title="Тестова дисципліна А"))
+    key = uuid.uuid4()
+    sync_approval_factory(
+        run=catalog_run,
+        user=superuser_client.user,
+        action="reject",
+        outcome="started",
+        client_key=key,
+    )
+
+    response = _reject(superuser_client, catalog_run, key, change_ids=[change.pk])
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "in_progress"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_a_replayed_reject_reports_the_first_counts(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    proposed = make_change(course_factory(title="Тестова дисципліна А"))
+    applied = make_change(
+        course_factory(title="Тестова дисципліна В"),
+        state=SyncChangeState.APPLIED,
+        decided_at=timezone.now(),
+    )
+    key = uuid.uuid4()
+
+    first = _reject(superuser_client, catalog_run, key, change_ids=[proposed.pk, applied.pk])
+    second = _reject(superuser_client, catalog_run, key, change_ids=[proposed.pk, applied.pk])
+
+    assert first.status_code == 200, first.json()
+    assert second.status_code == 200
+    assert first.json()["counts"]["rejected"] == 1
+    assert first.json()["counts"]["skipped"] == 1
+    assert second.json()["counts"] == first.json()["counts"]
+    assert second.json()["decision_id"] == first.json()["decision_id"]
+    assert SyncApproval.objects.filter(action="reject").count() == 1

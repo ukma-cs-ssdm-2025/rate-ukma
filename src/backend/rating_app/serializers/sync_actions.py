@@ -77,6 +77,10 @@ REFUSAL_CODES = [
 
 
 class SyncActionSelectionSerializer(serializers.Serializer):
+    """Name exactly one selection: `group` (optionally narrowed by `kind`) or a nonempty
+    `change_ids` list. Neither, both, or an empty list answers 400. With `run` pinned,
+    every id in `change_ids` must belong to that run."""
+
     run = serializers.IntegerField(
         required=False, allow_null=True, min_value=1, help_text="Pin one run; omit for the current"
     )
