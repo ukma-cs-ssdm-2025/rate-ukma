@@ -404,11 +404,15 @@ def test_pending_counts_changed_fields_and_shows_each_change_in_words(
     credits = superuser_client.get(
         reverse("ukma-data-sync-pending"), {"group": "change", "changed_field": "credits"}
     )
+    later = superuser_client.get(
+        reverse("ukma-data-sync-pending"), {"group": "change", "year_from": 2027}
+    )
 
     assert everything.json()["changed_fields"] == {"credits": 1, "title": 1}
     assert rated.json()["changed_fields"] == {"credits": 1}
     assert credits.json()["changed_fields"] == {"credits": 1, "title": 1}
     assert credits.json()["total"] == 1
+    assert later.json()["changed_fields"] == {}
     view = credits.json()["items"][0]["view"]
     assert view["semester"] == "Осінь 2026"
     assert view["rows"] == [{"field": "credits", "label": "Кредити", "before": "5", "after": "6"}]

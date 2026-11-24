@@ -152,14 +152,22 @@ class SyncViewSet(SyncViewSetBase):
             fields_subset=params.fields_subset,
             q=params.q,
         )
-        field_counts = view.field_counts(changes)
         changes = selection.narrow(
             changes,
-            changed_field=params.changed_field,
+            changed_field=None,
             blanks=params.blanks,
             year_from=params.year_from,
             year_to=params.year_to,
         )
+        field_counts = view.field_counts(changes)
+        if params.changed_field is not None:
+            changes = selection.narrow(
+                changes,
+                changed_field=params.changed_field,
+                blanks=None,
+                year_from=None,
+                year_to=None,
+            )
         if params.view == "sample":
             items, metadata = self._sample_page(review.sample_ids(changes, params.seed), params)
         else:

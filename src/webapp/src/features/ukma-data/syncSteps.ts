@@ -111,8 +111,10 @@ function newText(summary: SyncSummary): string {
 }
 
 function questionsText(summary: SyncSummary): string {
-	const rated = countOf(summary, "rated_questions");
-	const other = countOf(summary, "other_questions");
+	const asked = stepOf(summary, "rated_questions");
+	const rated = asked?.rated ?? 0;
+	const other =
+		countOf(summary, "other_questions") + (asked?.count ?? 0) - rated;
 	if (rated === 0) {
 		return `Усі ${formatCount(other)} без оцінок. Відповіді поки в консолі.`;
 	}

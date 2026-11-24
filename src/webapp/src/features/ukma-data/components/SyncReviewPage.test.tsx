@@ -108,12 +108,14 @@ describe("/data/sync/preview", () => {
 		).toBeInTheDocument();
 		const previewBody = JSON.parse(String(mock.history.post[0]?.data));
 		expect(previewBody).toMatchObject({
+			run: 7,
 			group: "change",
 			rated: true,
 			exclude_ids: [48_122],
 		});
 		const applyBody = JSON.parse(String(mock.history.post[1]?.data));
 		expect(applyBody).toMatchObject({
+			run: 7,
 			token: "token-test",
 			exclude_ids: [48_122],
 		});

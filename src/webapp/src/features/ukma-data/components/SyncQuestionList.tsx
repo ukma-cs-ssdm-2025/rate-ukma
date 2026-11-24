@@ -18,6 +18,27 @@ import { UkmaDataError } from "./UkmaDataError";
 
 const SHOWN = 50;
 
+function termWord(term: string): string | null {
+	switch (term) {
+		case "FALL":
+			return "осінь";
+		case "SPRING":
+			return "весна";
+		case "SUMMER":
+			return "літо";
+		default:
+			return null;
+	}
+}
+
+function offeringText(offering: SyncQuestion["offering"]): string {
+	if (offering === null || offering === undefined) {
+		return "";
+	}
+	const term = termWord(offering.term);
+	return term === null ? `, ${offering.year}` : `, ${term} ${offering.year}`;
+}
+
 const ANSWER_WORDS = {
 	merge: "об'єднати",
 	keep_apart: "лишити окремо",
@@ -102,7 +123,7 @@ function QuestionCard({ question }: Readonly<{ question: SyncQuestion }>) {
 					<p className="text-sm text-muted-foreground">
 						У САЗ: {question.ukma_title}
 						{question.ukma_department ? `, ${question.ukma_department}` : ""}
-						{question.offering ? `, семестр ${question.offering.year}` : ""}
+						{offeringText(question.offering)}
 					</p>
 				) : null}
 			</div>

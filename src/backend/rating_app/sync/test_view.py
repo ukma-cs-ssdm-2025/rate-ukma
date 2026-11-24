@@ -89,6 +89,7 @@ def test_a_link_to_check_shows_the_title_in_saz():
 
 def test_credits_and_semesters_read_as_words():
     assert credits_text("6.0") == "6"
+    assert credits_text("10.0") == "10"
     assert credits_text("4.5") == "4.5"
     assert semester_text({"term": "SUMMER", "year": 2027}) == "Літо 2027"
     assert semester_text(None) is None

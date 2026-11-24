@@ -88,6 +88,7 @@ class SyncActionsViewSet(SyncViewSetBase):
                 request.user,
                 group=group,
                 kind=kind,
+                excluded=selection.excluded_ids(data),
                 max_changes=MAX_CHANGES,
             )
         except decisions.SyncApplyInputError as exc:
@@ -144,6 +145,7 @@ class SyncActionsViewSet(SyncViewSetBase):
                 dry_run=False,
                 group=group,
                 kind=kind,
+                excluded=selection.excluded_ids(data),
                 client_key=data["client_key"],
                 max_changes=MAX_CHANGES,
                 deadline_seconds=DEADLINE_SECONDS,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from contextlib import contextmanager
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -1234,3 +1235,28 @@ def test_preview_narrows_a_group_to_one_changed_field(
     assert title.status_code == 200
     assert title.json()["counts"]["applied"] == 1
     assert credits.status_code == 422
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_and_apply_hand_the_left_out_rows_to_the_decision(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    make_change(course_factory(title="Тестова дисципліна А"))
+    excluded = make_change(course_factory(title="Тестова дисципліна В"))
+
+    with patch.object(decisions, "approve", wraps=decisions.approve) as approve:
+        response = _preview(superuser_client, catalog_run, exclude_ids=[excluded.pk])
+        body = {
+            "run": catalog_run.pk,
+            "group": "change",
+            "exclude_ids": [excluded.pk],
+            "token": response.json()["token"],
+            "client_key": str(uuid.uuid4()),
+        }
+        superuser_client.post(reverse(APPLY), body, format="json")
+
+    assert [call.kwargs["excluded"] for call in approve.call_args_list] == [
+        [excluded.pk],
+        [excluded.pk],
+    ]

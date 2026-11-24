@@ -97,6 +97,9 @@ function ChangeList({
 	const first = pages[0];
 	const items = pages.flatMap((page) => page.items);
 	const total = first?.total ?? 0;
+	const left = items.flatMap((change) =>
+		excluded.has(change.id) ? [change.id] : [],
+	);
 	const toggle = (id: number, included: boolean) => {
 		setExcluded((current) => {
 			const next = new Set(current);
@@ -127,7 +130,8 @@ function ChangeList({
 		rated: copy.slice.rated,
 		match: copy.slice.match,
 		changed_field: field,
-		exclude_ids: [...excluded],
+		run: first.runs[0]?.id ?? null,
+		exclude_ids: left,
 	};
 	return (
 		<div className="space-y-4">
@@ -178,7 +182,7 @@ function ChangeList({
 				<SyncApplyBar
 					selection={selection}
 					runId={first.runs[0]?.id ?? null}
-					selected={Math.max(0, total - excluded.size)}
+					selected={Math.max(0, total - left.length)}
 					total={total}
 					onDecided={() => setExcluded(new Set())}
 				/>

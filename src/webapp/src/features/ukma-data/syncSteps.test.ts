@@ -34,6 +34,26 @@ describe("inboxSteps", () => {
 		);
 	});
 
+	it("counts a question with only study plans as without ratings", () => {
+		// Arrange
+		const plansOnly = {
+			...summary,
+			steps: summary.steps.map((item) =>
+				item.step === "rated_questions" ? { ...item, count: 4 } : item,
+			),
+		};
+
+		// Act
+		const questions = inboxSteps(plansOnly).find(
+			(item) => item.step === "questions",
+		);
+
+		// Assert
+		expect(questions?.text).toBe(
+			"3 з оцінками, 16 без оцінок. Відповіді поки в консолі.",
+		);
+	});
+
 	it("names what is new by kind", () => {
 		// Arrange & Act
 		const fresh = inboxSteps(summary).find((item) => item.step === "new");

@@ -229,7 +229,10 @@ export function SyncApplyBar({
 					>
 						Не зараз
 					</Button>
-					<Button disabled={nothing} onClick={() => setApplyOpen(true)}>
+					<Button
+						disabled={nothing || runId === null}
+						onClick={() => setApplyOpen(true)}
+					>
 						Застосувати
 					</Button>
 				</div>

@@ -91,7 +91,7 @@ def credits_text(value: str) -> str:
         number = Decimal(value)
     except InvalidOperation:
         return value
-    return str(number.normalize()) if number == number.to_integral() else str(number)
+    return format(number.normalize(), "f") if number == number.to_integral() else str(number)
 
 
 def value_text(name: str, value: str) -> str:
