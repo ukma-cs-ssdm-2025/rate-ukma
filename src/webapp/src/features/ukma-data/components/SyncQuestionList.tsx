@@ -1,7 +1,5 @@
 import { HelpCircle } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
 import {
 	Empty,
 	EmptyDescription,
@@ -29,49 +27,103 @@ const ANSWER_WORDS = {
 	relink: "переприв'язати",
 } satisfies Record<AnswerEnum, string>;
 
+interface QuestionCopy {
+	title: string;
+	answers: string;
+}
+
+function questionText(kind: string): QuestionCopy {
+	switch (kind) {
+		case "merge_courses":
+			return {
+				title: "Це одна дисципліна?",
+				answers: "keep_apart або merge --into <id>",
+			};
+		case "move_offering":
+			return {
+				title: "Перенести семестр на іншу сторінку?",
+				answers: "keep або move",
+			};
+		case "relink_course":
+			return {
+				title: "Звʼязати сторінку з іншим курсом САЗ?",
+				answers: "keep або relink",
+			};
+		case "place_offering":
+			return {
+				title: "До якої сторінки належить семестр?",
+				answers: "place --into <id>",
+			};
+		default:
+			return { title: kindLabel(kind), answers: "" };
+	}
+}
+
+function yearsText(years: readonly number[]): string {
+	const first = years[0];
+	const last = years.at(-1);
+	if (first === undefined || last === undefined) {
+		return "";
+	}
+	return first === last ? `${first}` : `${first}–${last}`;
+}
+
+function CourseColumn({
+	course,
+	suggested,
+}: Readonly<{ course: SyncQuestion["courses"][number]; suggested: boolean }>) {
+	const facts = [
+		course.department,
+		yearsText(course.years),
+		course.ratings > 0 ? countWith(course.ratings, RATINGS) : "без оцінок",
+	].filter((part) => part.length > 0);
+	return (
+		<div className="min-w-0 space-y-1 px-4 py-3 sm:px-5">
+			<a
+				href={course.url}
+				className="font-medium break-words underline-offset-4 hover:underline"
+			>
+				{course.title}
+			</a>
+			<p className="text-sm text-muted-foreground">{facts.join(", ")}</p>
+			{suggested ? (
+				<p className="text-sm text-muted-foreground">Пропонуємо лишити цю</p>
+			) : null}
+		</div>
+	);
+}
+
 function QuestionCard({ question }: Readonly<{ question: SyncQuestion }>) {
 	return (
-		<Card className="space-y-3 p-4">
-			<div className="flex flex-wrap items-center gap-2">
-				<Badge variant="outline" className="tabular-nums">
-					#{question.id}
-				</Badge>
-				<Badge variant="soft">{kindLabel(question.kind)}</Badge>
-				<Badge variant="secondary">
-					{question.ratings > 0
-						? countWith(question.ratings, RATINGS)
-						: "без оцінок"}
-				</Badge>
+		<div className="overflow-hidden rounded-xl border bg-card">
+			<div className="space-y-1 px-4 py-3 sm:px-5">
+				<h3 className="font-medium">{questionText(question.kind).title}</h3>
+				{question.ukma_title ? (
+					<p className="text-sm text-muted-foreground">
+						У САЗ: {question.ukma_title}
+						{question.ukma_department ? `, ${question.ukma_department}` : ""}
+						{question.offering ? `, семестр ${question.offering.year}` : ""}
+					</p>
+				) : null}
 			</div>
-			{question.ukma_title ? (
-				<p className="font-medium break-words">
-					У САЗ: «{question.ukma_title}»
-					{question.ukma_department ? `, ${question.ukma_department}` : ""}
-				</p>
-			) : null}
-			{question.offering ? (
-				<p className="text-sm text-muted-foreground">
-					Курс у семестрі: САЗ {question.offering.saz_code},{" "}
-					{question.offering.year}
-				</p>
-			) : null}
-			<ul className="space-y-1 text-sm" aria-label="Курси на сайті">
+			<div className="grid divide-y border-t sm:grid-flow-col sm:auto-cols-fr sm:divide-x sm:divide-y-0">
 				{question.courses.map((course) => (
-					<li key={course.id} className="break-words">
-						На сайті: «{course.title}», {course.department} ·{" "}
-						{countWith(course.ratings, RATINGS)}
-						{course.id === question.suggested_into ? (
-							<span className="text-muted-foreground">
-								{" "}
-								· пропонуємо лишити цей
-							</span>
-						) : null}
-					</li>
+					<CourseColumn
+						key={course.id}
+						course={course}
+						suggested={course.id === question.suggested_into}
+					/>
 				))}
-			</ul>
-			<p className="text-sm text-muted-foreground">
+			</div>
+			<p className="border-t px-4 py-3 text-sm text-muted-foreground sm:px-5">
 				{question.answer === null ? (
-					"Відповіді ще немає."
+					<>
+						Відповідь у консолі:{" "}
+						<code className="break-all">
+							catalog_sync answer {question.id}{" "}
+							{questionText(question.kind).answers}
+						</code>
+					</>
 				) : (
 					<>
 						Відповідь: {ANSWER_WORDS[question.answer.answer]},{" "}
@@ -79,7 +131,7 @@ function QuestionCard({ question }: Readonly<{ question: SyncQuestion }>) {
 					</>
 				)}
 			</p>
-		</Card>
+		</div>
 	);
 }
 
