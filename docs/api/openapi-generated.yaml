@@ -6591,6 +6591,14 @@ components:
           maxLength: 255
       required:
       - group_key
+    MatchEnum:
+      enum:
+      - exact
+      - review
+      type: string
+      description: |-
+        * `exact` - Exact
+        * `review` - Review
     NotificationGroup:
       type: object
       properties:
@@ -7454,6 +7462,31 @@ components:
             minimum: 1
           description: Explicit changes; an alternative to `group`
           maxItems: 5000
+        rated:
+          type: boolean
+          nullable: true
+          description: 'With `group`: only rows with ratings (`true`) or without (`false`)'
+        match:
+          allOf:
+          - $ref: '#/components/schemas/MatchEnum'
+          nullable: true
+          description: |-
+            With `group=link`: exact links or links to check
+
+            * `exact` - Exact
+            * `review` - Review
+        changed_field:
+          type: string
+          nullable: true
+          description: 'With `group=change`: rows that change this field'
+          maxLength: 50
+        exclude_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: 'With `group`: changes the person left out'
+          maxItems: 5000
         token:
           type: string
           description: The token `preview` returned for this selection
@@ -7628,6 +7661,10 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        view:
+          allOf:
+          - $ref: '#/components/schemas/SyncChangeView'
+          readOnly: true
       required:
       - after
       - before
@@ -7644,7 +7681,28 @@ components:
       - state_reason
       - target_id
       - ukma_data_id
+      - view
       - waiting_on
+    SyncChangeFieldView:
+      type: object
+      properties:
+        field:
+          type: string
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        before:
+          type: string
+          readOnly: true
+        after:
+          type: string
+          readOnly: true
+      required:
+      - after
+      - before
+      - field
+      - label
     SyncChangeGroupEnum:
       enum:
       - link
@@ -7770,6 +7828,33 @@ components:
         * `rejected` - Rejected
         * `superseded` - Superseded
         * `reverted` - Reverted
+    SyncChangeView:
+      type: object
+      description: |-
+        The change in plain words: name, department, semester and the fields a
+        student would notice, old and new.
+      properties:
+        title:
+          type: string
+          readOnly: true
+        place:
+          type: string
+          readOnly: true
+          nullable: true
+        semester:
+          type: string
+          readOnly: true
+          nullable: true
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncChangeFieldView'
+          readOnly: true
+      required:
+      - place
+      - rows
+      - semester
+      - title
     SyncDecisionCounts:
       type: object
       properties:
@@ -8112,7 +8197,14 @@ components:
           items:
             $ref: '#/components/schemas/SyncRun'
           description: Each listed source's current run.
+        changed_fields:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Field-change rows per changed field a student sees, after every
+            filter except `changed_field`.
       required:
+      - changed_fields
       - groups
       - items
       - kinds
@@ -8288,6 +8380,31 @@ components:
             type: integer
             minimum: 1
           description: Explicit changes; an alternative to `group`
+          maxItems: 5000
+        rated:
+          type: boolean
+          nullable: true
+          description: 'With `group`: only rows with ratings (`true`) or without (`false`)'
+        match:
+          allOf:
+          - $ref: '#/components/schemas/MatchEnum'
+          nullable: true
+          description: |-
+            With `group=link`: exact links or links to check
+
+            * `exact` - Exact
+            * `review` - Review
+        changed_field:
+          type: string
+          nullable: true
+          description: 'With `group=change`: rows that change this field'
+          maxLength: 50
+        exclude_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: 'With `group`: changes the person left out'
           maxItems: 5000
     SyncPreviewResponse:
       type: object
@@ -8573,6 +8690,31 @@ components:
             type: integer
             minimum: 1
           description: Explicit changes; an alternative to `group`
+          maxItems: 5000
+        rated:
+          type: boolean
+          nullable: true
+          description: 'With `group`: only rows with ratings (`true`) or without (`false`)'
+        match:
+          allOf:
+          - $ref: '#/components/schemas/MatchEnum'
+          nullable: true
+          description: |-
+            With `group=link`: exact links or links to check
+
+            * `exact` - Exact
+            * `review` - Review
+        changed_field:
+          type: string
+          nullable: true
+          description: 'With `group=change`: rows that change this field'
+          maxLength: 50
+        exclude_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: 'With `group`: changes the person left out'
           maxItems: 5000
         client_key:
           type: string

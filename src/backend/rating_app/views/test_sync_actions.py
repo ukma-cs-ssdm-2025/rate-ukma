@@ -1189,3 +1189,48 @@ def test_a_retry_that_finds_the_selection_empty_replays_the_first_decision(
     assert response.status_code == 200, response.json()
     assert response.json()["decision_id"] == first.pk
     assert len(lookups) == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_narrows_a_group_to_rated_rows_and_leaves_out_excluded_ones(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    rated = make_change(course_factory(title="Тестова дисципліна А"), ratings=3)
+    make_change(course_factory(title="Тестова дисципліна В"))
+    excluded = make_change(course_factory(title="Тестова дисципліна Г"), ratings=1)
+
+    response = _preview(superuser_client, catalog_run, rated=True, exclude_ids=[excluded.pk])
+
+    assert response.status_code == 200
+    assert response.json()["counts"]["applied"] == 1
+    token = response.json()["token"]
+    body = {
+        "run": catalog_run.pk,
+        "group": "change",
+        "rated": True,
+        "exclude_ids": [excluded.pk],
+        "token": token,
+        "client_key": str(uuid.uuid4()),
+    }
+    applied = superuser_client.post(reverse(APPLY), body, format="json")
+    assert applied.status_code == 200
+    rated.refresh_from_db()
+    excluded.refresh_from_db()
+    assert rated.state == SyncChangeState.APPLIED
+    assert excluded.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_narrows_a_group_to_one_changed_field(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    make_change(course_factory(title="Тестова дисципліна А"))
+
+    title = _preview(superuser_client, catalog_run, changed_field="title")
+    credits = _preview(superuser_client, catalog_run, changed_field="credits")
+
+    assert title.status_code == 200
+    assert title.json()["counts"]["applied"] == 1
+    assert credits.status_code == 422

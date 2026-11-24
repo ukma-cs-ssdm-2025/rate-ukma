@@ -372,3 +372,43 @@ def test_policy_changes_paginate(superuser_client, sync_policy_change_factory, u
     assert body["total"] == 2
     assert body["next_page"] == 2
     assert len(body["items"]) == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_pending_counts_changed_fields_and_shows_each_change_in_words(
+    superuser_client, make_succeeded_run, sync_change_factory
+):
+    run = make_succeeded_run(source=SyncSource.CATALOG)
+    term = {"term": "FALL", "year": 2026, "credits": "5.0", "exam_type": "EXAM"}
+    sync_change_factory(
+        run=run,
+        group=SyncChangeGroup.CHANGE,
+        kind="change_offering",
+        before={"semester": {"term": "FALL", "year": 2026}, "terms": [term]},
+        after={"terms": [{**term, "credits": "6.0"}]},
+        ratings=2,
+    )
+    sync_change_factory(
+        run=run,
+        group=SyncChangeGroup.CHANGE,
+        kind="change_course",
+        before={"title": "Тестова дисципліна А"},
+        after={"title": "Тестова дисципліна Б"},
+    )
+
+    everything = superuser_client.get(reverse("ukma-data-sync-pending"), {"group": "change"})
+    rated = superuser_client.get(
+        reverse("ukma-data-sync-pending"), {"group": "change", "rated": "true"}
+    )
+    credits = superuser_client.get(
+        reverse("ukma-data-sync-pending"), {"group": "change", "changed_field": "credits"}
+    )
+
+    assert everything.json()["changed_fields"] == {"credits": 1, "title": 1}
+    assert rated.json()["changed_fields"] == {"credits": 1}
+    assert credits.json()["changed_fields"] == {"credits": 1, "title": 1}
+    assert credits.json()["total"] == 1
+    view = credits.json()["items"][0]["view"]
+    assert view["semester"] == "Осінь 2026"
+    assert view["rows"] == [{"field": "credits", "label": "Кредити", "before": "5", "after": "6"}]

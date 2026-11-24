@@ -267,7 +267,15 @@ class SyncActionsViewSet(SyncViewSetBase):
             return ids, "", ""
         group = str(data.get("group") or "")
         kind = str(data.get("kind") or "")
-        ids = selection.filter_ids(run, str(run.source), {"group": group, "kind": kind})
+        filters = {
+            "group": group,
+            "kind": kind,
+            "rated": data.get("rated"),
+            "match": data.get("match"),
+            "changed_field": data.get("changed_field"),
+            "exclude_ids": data.get("exclude_ids") or [],
+        }
+        ids = selection.filter_ids(run, str(run.source), filters)
         return ids, group, kind
 
 
