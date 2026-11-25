@@ -232,6 +232,7 @@ def preview(
 ) -> PreviewResult:
     """Dry-run the selection and, when it would apply, issue a `SyncPreview` token."""
     ids = list(change_ids)
+    excluded = list(excluded)
     result = approve(
         ids,
         user,
@@ -250,7 +251,7 @@ def preview(
         run_id=result.run_id,
         user=user,
         count=len(set(ids)),
-        selection_sha=apply.selection_sha(ids),
+        selection_sha=apply.selection_sha(ids, excluded),
     )
     return PreviewResult(result=result, token=token)
 

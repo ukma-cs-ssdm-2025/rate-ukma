@@ -1260,3 +1260,28 @@ def test_preview_and_apply_hand_the_left_out_rows_to_the_decision(
         [excluded.pk],
         [excluded.pk],
     ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_apply_refuses_other_left_out_rows_than_the_preview_had(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    selected = make_change(course_factory(title="Тестова дисципліна А"))
+    excluded = make_change(course_factory(title="Тестова дисципліна В"))
+    preview = _preview(
+        superuser_client, catalog_run, change_ids=[selected.pk], exclude_ids=[excluded.pk]
+    )
+    body = {
+        "run": catalog_run.pk,
+        "change_ids": [selected.pk],
+        "token": preview.json()["token"],
+        "client_key": str(uuid.uuid4()),
+    }
+
+    response = superuser_client.post(reverse(APPLY), body, format="json")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "selection_changed"
+    excluded.refresh_from_db()
+    assert excluded.state == SyncChangeState.PROPOSED
