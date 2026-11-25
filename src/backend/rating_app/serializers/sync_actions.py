@@ -105,6 +105,33 @@ class SyncActionSelectionSerializer(serializers.Serializer):
         max_length=5000,
         help_text="Explicit changes; an alternative to `group`",
     )
+    rated = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="With `group`: only rows with ratings (`true`) or without (`false`)",
+    )
+    match = serializers.ChoiceField(
+        choices=[("exact", "Exact"), ("review", "Review")],
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="With `group=link`: exact links or links to check",
+    )
+    changed_field = serializers.CharField(
+        required=False,
+        allow_null=True,
+        default=None,
+        max_length=50,
+        help_text="With `group=change`: rows that change this field",
+    )
+    exclude_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        default=list,
+        max_length=5000,
+        help_text="With `group`: changes the person left out",
+    )
 
     def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         if (attrs.get("change_ids") is None) == (attrs.get("group") is None):

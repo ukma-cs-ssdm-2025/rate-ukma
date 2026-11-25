@@ -189,6 +189,19 @@ export const titleChange: SyncChange = {
 	state_reason: "",
 	never_auto: false,
 	decided_at: null,
+	view: {
+		title: "Тестова дисципліна А",
+		place: "Кафедра прикладів",
+		semester: null,
+		rows: [
+			{
+				field: "title",
+				label: "Назва",
+				before: "Тестова дисципліна А",
+				after: "Тестова дисципліна Б",
+			},
+		],
+	},
 };
 
 export const pending = (
@@ -198,6 +211,7 @@ export const pending = (
 	...listPage(items, total),
 	groups: { new: 812, link: 301, change: 150, mapping: 18, removed: 3 },
 	kinds: {},
+	changed_fields: {},
 	runs: [run],
 });
 

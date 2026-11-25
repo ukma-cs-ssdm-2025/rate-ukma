@@ -218,7 +218,7 @@ def approve(
             return _refuse(approval, "lock_held")
         if preview is not None and (
             preview.count != len(ids)
-            or preview.selection_sha != selection_sha(ids)
+            or preview.selection_sha != selection_sha(ids, excluded)
             or preview.run_id != run.pk
             or user is None
             or preview.user_id != user.pk
@@ -1332,8 +1332,13 @@ def _record_waiting(members: list[SyncChange], change_ids: list[int]) -> None:
     ).update(waiting_on=change_ids)
 
 
-def selection_sha(change_ids: Iterable[int]) -> str:
+def selection_sha(change_ids: Iterable[int], excluded: Iterable[int] = ()) -> str:
+    """Binds a preview to its selection and to the changes it left out: the same
+    ids with other exclusions hold other units."""
     ids = ",".join(str(change_id) for change_id in sorted(set(change_ids)))
+    left_out = sorted(set(excluded))
+    if left_out:
+        ids += "|" + ",".join(str(change_id) for change_id in left_out)
     return hashlib.sha256(ids.encode()).hexdigest()
 
 

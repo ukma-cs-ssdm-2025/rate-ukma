@@ -2,34 +2,25 @@ import { AxiosError } from "axios";
 import { describe, expect, it } from "vitest";
 
 import {
-	decisionCounts,
 	journalAnswer,
 	journalApply,
 	journalAuto,
 	journalPolicy,
 	journalRejected,
 	journalRevert,
-	linkCounts,
-	overCapCounts,
 	revertDryRun,
 } from "./components/syncActionsTestData";
 import {
 	actionFailure,
-	applyLabel,
-	applyProgress,
 	journalApplySummary,
 	journalEntryNumber,
 	journalTitle,
-	previewSummary,
-	rejectConfirm,
-	rejectLabel,
 	REVERT_CHECK_LOST_TEXT,
 	revertFailureText,
 	revertSummary,
 } from "./syncActions";
 import { formatCount } from "./syncFormat";
 import { ANSWER_LABELS } from "./syncLabels";
-import { kindParts } from "./syncOverview";
 
 const axiosError = (status: number | null, data?: unknown) => {
 	const error = new AxiosError("test");
@@ -38,70 +29,6 @@ const axiosError = (status: number | null, data?: unknown) => {
 	}
 	return error;
 };
-
-describe("apply and reject words", () => {
-	it("applies a selection under the cap", () => {
-		expect(applyLabel(linkCounts)).toBe(
-			`Застосувати ${formatCount(1532)} зміни`,
-		);
-	});
-
-	it("offers the first 5 000 of a bigger selection", () => {
-		expect(applyLabel(overCapCounts)).toBe(
-			`Застосувати перші ${formatCount(5000)} з ${formatCount(24_290)}`,
-		);
-	});
-
-	it("rejects the whole selection", () => {
-		expect(rejectLabel(overCapCounts)).toBe(
-			`Відхилити ${formatCount(24_290)} змін`,
-		);
-	});
-
-	it("shows what is running", () => {
-		expect(applyProgress(linkCounts)).toBe(
-			`Застосовую ${formatCount(1532)} зміни…`,
-		);
-		expect(applyProgress(overCapCounts)).toBe(
-			`Застосовую ${formatCount(5000)} змін…`,
-		);
-	});
-
-	it("asks before rejecting, naming the count", () => {
-		const confirm = rejectConfirm(linkCounts);
-		expect(confirm.title).toBe(`Відхилити ${formatCount(1532)} зміни?`);
-		expect(confirm.description).toContain("На сайті нічого не зміниться.");
-	});
-});
-
-describe("previewSummary", () => {
-	it("names what applies per kind and what stays behind", () => {
-		const summary = previewSummary(linkCounts);
-		const parts = kindParts(
-			Object.fromEntries(
-				linkCounts.by_kind.map((item) => [item.kind, item.count]),
-			),
-		);
-		expect(summary.applied).toBe(
-			`Застосується ${formatCount(1532)}: ${parts}.`,
-		);
-		expect(summary.leftOut).toBe("Не увійде 0.");
-	});
-
-	it("says nothing applies when the dry run writes nothing", () => {
-		const summary = previewSummary(
-			decisionCounts({ waiting: 213, total: 213 }),
-		);
-		expect(summary.applied).toBe("Нічого не застосується.");
-		expect(summary.leftOut).toBe(`Не увійде ${formatCount(213)}.`);
-	});
-
-	it("names the changes past the cap", () => {
-		expect(previewSummary(overCapCounts).leftOut).toBe(
-			`Не увійде 0. Ще ${formatCount(19_290)} — наступного разу.`,
-		);
-	});
-});
 
 describe("actionFailure", () => {
 	it("treats a 504, a 502 and a network error as a lost answer", () => {

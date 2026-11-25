@@ -6,18 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
 import {
+	emptySummary,
 	listPage,
 	NOW,
-	pending,
-	PENDING_URL,
 	policies,
 	POLICIES_URL,
 	POLICY_CHANGES_URL,
 	QUESTIONS_URL,
 	question,
-	titleChange,
+	summary,
+	SUMMARY_URL,
 } from "./dataTestData";
-import { GROUP_ORDER } from "../syncOverview";
 import { SyncPage } from "./SyncPage";
 
 vi.mock("@tanstack/react-router", async () => ({
@@ -49,7 +48,7 @@ const noDecisionButtons = () =>
 beforeEach(() => {
 	vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
 	mock = new MockAdapter(authorizedHttpClient);
-	mock.onGet(PENDING_URL).reply(200, pending([titleChange], 150));
+	mock.onGet(SUMMARY_URL).reply(200, summary);
 	mock.onGet(QUESTIONS_URL).reply(200, { items: [question], next_after: null });
 	mock.onGet(POLICIES_URL).reply(200, { items: policies });
 	mock.onGet(POLICY_CHANGES_URL).reply(200, listPage([]));
@@ -61,7 +60,7 @@ afterEach(() => {
 });
 
 describe("/data/sync", () => {
-	it("shows one row per group with its count and what it means", async () => {
+	it("shows one step per kind of decision, in apply order", async () => {
 		// Act
 		renderSync();
 
@@ -70,21 +69,19 @@ describe("/data/sync", () => {
 			await screen.findByRole("list", { name: "Що чекає рішення" }),
 		);
 		const items = list.getAllByRole("listitem");
-		expect(items).toHaveLength(5);
-		expect(items[0]).toHaveTextContent("Нові812На сайті з'явиться новий запис");
-		expect(items[1]).toHaveTextContent(
-			"Зв'язати301Запис отримає id з САЗ, на сайті нічого не видно",
-		);
-		expect(items[3]).toHaveTextContent(
-			"Питання18Відповісти: catalog_sync answer (у консолі)",
-		);
-		expect(items[4]).toHaveTextContent(
-			"Зникли з САЗ3Нічого не записується, лише для відома",
-		);
+		expect(items.map((item) => item.querySelector("h3")?.textContent)).toEqual([
+			"Звʼязки без змін на сайті",
+			"Нові записи",
+			"Зміни на сторінках без оцінок",
+			"Зміни на сторінках з оцінками",
+			"Питання",
+			"Зникли з САЗ",
+		]);
+		expect(items[3]).toHaveTextContent("4");
 		noDecisionButtons();
 	});
 
-	it("links every group to its preview", async () => {
+	it("links every step to its review", async () => {
 		// Act
 		renderSync();
 
@@ -92,22 +89,16 @@ describe("/data/sync", () => {
 		const list = within(
 			await screen.findByRole("list", { name: "Що чекає рішення" }),
 		);
-		const rows = list.getAllByRole("listitem");
-		for (const [index, row] of rows.entries()) {
-			const link = within(row).getByRole("link", { name: "Переглянути" });
-			expect(link).toHaveAttribute("href", "/data/sync/preview");
-			expect(JSON.parse(link.getAttribute("data-search") ?? "{}")).toEqual({
-				group: GROUP_ORDER[index],
-			});
-		}
+		const link = within(list.getAllByRole("listitem")[0]).getByRole("link");
+		expect(link).toHaveAttribute("href", "/data/sync/preview");
+		expect(JSON.parse(link.getAttribute("data-search") ?? "{}")).toEqual({
+			step: "links",
+		});
 	});
 
 	it("says when nothing waits", async () => {
 		// Arrange
-		mock.onGet(PENDING_URL).reply(200, {
-			...pending([], 0),
-			groups: { new: 0, link: 0, change: 0, mapping: 0, removed: 0 },
-		});
+		mock.onGet(SUMMARY_URL).reply(200, emptySummary);
 
 		// Act
 		renderSync();
@@ -116,8 +107,20 @@ describe("/data/sync", () => {
 		expect(
 			await screen.findByText("Нічого не чекає рішення"),
 		).toBeInTheDocument();
+	});
+
+	it("says nothing waits before the first read", async () => {
+		// Arrange
+		mock
+			.onGet(SUMMARY_URL)
+			.reply(404, { detail: "Синхронізацію ще не запускали" });
+
+		// Act
+		renderSync();
+
+		// Assert
 		expect(
-			screen.getByText("Наступне читання САЗ о 02:30."),
+			await screen.findByText("Нічого не чекає рішення"),
 		).toBeInTheDocument();
 	});
 

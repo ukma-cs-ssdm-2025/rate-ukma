@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from contextlib import contextmanager
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -1189,3 +1190,98 @@ def test_a_retry_that_finds_the_selection_empty_replays_the_first_decision(
     assert response.status_code == 200, response.json()
     assert response.json()["decision_id"] == first.pk
     assert len(lookups) == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_narrows_a_group_to_rated_rows_and_leaves_out_excluded_ones(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    rated = make_change(course_factory(title="Тестова дисципліна А"), ratings=3)
+    make_change(course_factory(title="Тестова дисципліна В"))
+    excluded = make_change(course_factory(title="Тестова дисципліна Г"), ratings=1)
+
+    response = _preview(superuser_client, catalog_run, rated=True, exclude_ids=[excluded.pk])
+
+    assert response.status_code == 200
+    assert response.json()["counts"]["applied"] == 1
+    token = response.json()["token"]
+    body = {
+        "run": catalog_run.pk,
+        "group": "change",
+        "rated": True,
+        "exclude_ids": [excluded.pk],
+        "token": token,
+        "client_key": str(uuid.uuid4()),
+    }
+    applied = superuser_client.post(reverse(APPLY), body, format="json")
+    assert applied.status_code == 200
+    rated.refresh_from_db()
+    excluded.refresh_from_db()
+    assert rated.state == SyncChangeState.APPLIED
+    assert excluded.state == SyncChangeState.PROPOSED
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_narrows_a_group_to_one_changed_field(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    make_change(course_factory(title="Тестова дисципліна А"))
+
+    title = _preview(superuser_client, catalog_run, changed_field="title")
+    credits = _preview(superuser_client, catalog_run, changed_field="credits")
+
+    assert title.status_code == 200
+    assert title.json()["counts"]["applied"] == 1
+    assert credits.status_code == 422
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_preview_and_apply_hand_the_left_out_rows_to_the_decision(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    make_change(course_factory(title="Тестова дисципліна А"))
+    excluded = make_change(course_factory(title="Тестова дисципліна В"))
+
+    with patch.object(decisions, "approve", wraps=decisions.approve) as approve:
+        response = _preview(superuser_client, catalog_run, exclude_ids=[excluded.pk])
+        body = {
+            "run": catalog_run.pk,
+            "group": "change",
+            "exclude_ids": [excluded.pk],
+            "token": response.json()["token"],
+            "client_key": str(uuid.uuid4()),
+        }
+        superuser_client.post(reverse(APPLY), body, format="json")
+
+    assert [call.kwargs["excluded"] for call in approve.call_args_list] == [
+        [excluded.pk],
+        [excluded.pk],
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_apply_refuses_other_left_out_rows_than_the_preview_had(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    selected = make_change(course_factory(title="Тестова дисципліна А"))
+    excluded = make_change(course_factory(title="Тестова дисципліна В"))
+    preview = _preview(
+        superuser_client, catalog_run, change_ids=[selected.pk], exclude_ids=[excluded.pk]
+    )
+    body = {
+        "run": catalog_run.pk,
+        "change_ids": [selected.pk],
+        "token": preview.json()["token"],
+        "client_key": str(uuid.uuid4()),
+    }
+
+    response = superuser_client.post(reverse(APPLY), body, format="json")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "selection_changed"
+    excluded.refresh_from_db()
+    assert excluded.state == SyncChangeState.PROPOSED

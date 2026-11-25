@@ -2,11 +2,9 @@ import axios from "axios";
 
 import { SyncRefusalCodeEnum } from "@/lib/api/generated";
 import type {
-	SyncDecisionCounts,
 	SyncJournalEntry,
 	SyncJournalKindEnum,
 	SyncPolicyModeEnum,
-	SyncPreviewResponse,
 	SyncRevertResponse,
 } from "@/lib/api/generated";
 import { DECISION_FAILED_TEXT } from "./caseActions";
@@ -14,21 +12,13 @@ import { errorStatus } from "./ukmaDataErrors";
 import { kindLabel } from "./sync";
 import { CHANGES_ACCUSATIVE, countWith, formatCount } from "./syncFormat";
 import { ANSWER_LABELS } from "./syncLabels";
-import { GROUP_ORDER, kindParts } from "./syncOverview";
+import { GROUP_ORDER } from "./syncOverview";
 import { TERMS } from "./syncTerms";
 
 const LOST_ANSWER_TEXT =
 	"Відповідь не прийшла. Перевірте Журнал, перш ніж повторювати.";
 
-export const GROUP_ROW_TEXT = {
-	new: "На сайті з'явиться новий запис",
-	link: "Запис отримає id з САЗ, на сайті нічого не видно",
-	change: "Поле запису на сайті зміниться (назва, кафедра, кредити)",
-	mapping: "Відповісти: catalog_sync answer (у консолі)",
-	removed: "Нічого не записується, лише для відома",
-} satisfies Record<(typeof GROUP_ORDER)[number], string>;
-
-export const GROUP_ROW_LABEL = {
+const GROUP_ROW_LABEL = {
 	new: "Нові",
 	link: "Зв'язати",
 	change: "Змінити",
@@ -67,66 +57,6 @@ const REFUSAL_TEXT = {
 
 const isRefusalCode = (value: string): value is SyncRefusalCodeEnum =>
 	Object.hasOwn(SyncRefusalCodeEnum, value);
-
-const isOverCap = (counts: SyncDecisionCounts): boolean => counts.remaining > 0;
-
-export const selectionSize = (counts: SyncDecisionCounts): number =>
-	counts.total + counts.remaining;
-
-export function applyLabel(counts: SyncDecisionCounts): string {
-	if (isOverCap(counts)) {
-		return `Застосувати перші ${formatCount(counts.applied)} з ${formatCount(selectionSize(counts))}`;
-	}
-	return `Застосувати ${countWith(counts.applied, CHANGES_ACCUSATIVE)}`;
-}
-
-export const rejectLabel = (counts: SyncDecisionCounts): string =>
-	`Відхилити ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}`;
-
-export const applyProgress = (counts: SyncDecisionCounts): string =>
-	`Застосовую ${countWith(counts.applied, CHANGES_ACCUSATIVE)}…`;
-
-export const rejectProgress = (counts: SyncDecisionCounts): string =>
-	`Відхиляю ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}…`;
-
-export const rejectConfirm = (counts: SyncDecisionCounts) => ({
-	title: `Відхилити ${countWith(selectionSize(counts), CHANGES_ACCUSATIVE)}?`,
-	description:
-		"На сайті нічого не зміниться. Вони повернуться після наступного читання, якщо САЗ не зміниться.",
-});
-
-export interface PreviewSummary {
-	applied: string;
-	leftOut: string;
-}
-
-export function previewSummary(counts: SyncDecisionCounts): PreviewSummary {
-	const byKind = Object.fromEntries(
-		counts.by_kind.map((item) => [item.kind, item.count]),
-	);
-	const parts = kindParts(byKind);
-	const applied =
-		counts.applied === 0
-			? "Нічого не застосується."
-			: `Застосується ${formatCount(counts.applied)}${parts.length > 0 ? `: ${parts}` : ""}.`;
-	const later =
-		counts.remaining > 0
-			? ` Ще ${formatCount(counts.remaining)} — наступного разу.`
-			: "";
-	return {
-		applied,
-		leftOut: `Не увійде ${formatCount(counts.waiting + counts.skipped)}.${later}`,
-	};
-}
-
-export const canReject = (counts: SyncDecisionCounts): boolean =>
-	counts.applied + counts.waiting + counts.remaining > 0;
-
-export function previewReasons(preview: SyncPreviewResponse): string[] {
-	return [...preview.waiting_reasons, ...preview.skipped_reasons].map(
-		(reason) => `${reason.text} — ${formatCount(reason.count)}`,
-	);
-}
 
 export interface ActionFailure {
 	kind: "refused" | "lost" | "error";
@@ -199,11 +129,6 @@ export function actionFailure(error: unknown): ActionFailure {
 		retry: true,
 		journal: false,
 	};
-}
-
-export function previewLoadText(error: unknown): string {
-	const failure = actionFailure(error);
-	return failure.kind === "refused" ? failure.text : "Не вдалося завантажити.";
 }
 
 const MODE_LABELS = {

@@ -1,7 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { Inbox } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/Button";
 import {
 	Empty,
 	EmptyDescription,
@@ -10,11 +8,13 @@ import {
 	EmptyTitle,
 } from "@/components/ui/Empty";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useUkmaDataSyncPendingList } from "@/lib/api/generated";
-import { GROUP_ROW_LABEL, GROUP_ROW_TEXT } from "../syncActions";
-import { formatCount } from "../syncFormat";
-import { GROUP_ORDER, NO_RETRY } from "../syncOverview";
-import { Term } from "./Term";
+import type { SyncSummary } from "@/lib/api/generated";
+import { useUkmaDataSyncSummary } from "@/lib/api/generated";
+import { NO_RETRY } from "../syncOverview";
+import { inboxSteps } from "../syncSteps";
+import { errorStatus } from "../ukmaDataErrors";
+import { SyncStepList } from "./SyncStepList";
+import { Ago } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
 
 function NothingWaits() {
@@ -25,69 +25,44 @@ function NothingWaits() {
 					<Inbox />
 				</EmptyMedia>
 				<EmptyTitle>Нічого не чекає рішення</EmptyTitle>
-				<EmptyDescription>Наступне читання САЗ о 02:30.</EmptyDescription>
+				<EmptyDescription>Наступне читання САЗ уночі.</EmptyDescription>
 			</EmptyHeader>
 		</Empty>
 	);
 }
 
+function LastRead({ summary }: Readonly<{ summary: SyncSummary }>) {
+	const iso = summary.run.data_updated_at ?? summary.run.finished_at;
+	if (iso === null) {
+		return null;
+	}
+	return (
+		<p className="text-sm text-muted-foreground">
+			САЗ прочитано <Ago iso={iso} />. Зміни застосовуйте згори донизу.
+		</p>
+	);
+}
+
 export function SyncPendingTab() {
-	const pending = useUkmaDataSyncPendingList(
-		{ source: "catalog", page: 1, page_size: 1 },
-		NO_RETRY,
-	);
-	const counts = pending.data?.groups ?? {};
-	const total = GROUP_ORDER.reduce(
-		(sum, group) => sum + (counts[group] ?? 0),
-		0,
-	);
+	const summary = useUkmaDataSyncSummary({ source: "catalog" }, NO_RETRY);
+	const steps = summary.data ? inboxSteps(summary.data) : [];
+	const neverRead = errorStatus(summary.error) === 404;
+	const failed = summary.error !== null && !neverRead;
 	return (
 		<div className="space-y-4">
-			<p className="text-sm text-muted-foreground">
-				Зміни з останнього читання САЗ, які ще{" "}
-				<Term name="waiting">чекають рішення</Term>. Відкрийте групу, щоб
-				переглянути зміни.
-			</p>
-			{pending.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
-			{pending.error ? (
+			{summary.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
+			{neverRead ? <NothingWaits /> : null}
+			{failed ? (
 				<UkmaDataError
-					error={pending.error}
+					error={summary.error}
 					title="Не вдалося завантажити зміни"
-					onRetry={() => void pending.refetch()}
-					isRetrying={pending.isRefetching}
+					onRetry={() => void summary.refetch()}
+					isRetrying={summary.isRefetching}
 				/>
 			) : null}
-			{pending.data && !pending.error && total === 0 ? <NothingWaits /> : null}
-			{pending.data && !pending.error && total > 0 ? (
-				<ul
-					aria-label="Що чекає рішення"
-					className="divide-y overflow-hidden rounded-xl border bg-card"
-				>
-					{GROUP_ORDER.map((group) => (
-						<li
-							key={group}
-							className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-5"
-						>
-							<span className="w-24 shrink-0 font-medium sm:w-28">
-								<Term name={group}>{GROUP_ROW_LABEL[group]}</Term>
-							</span>
-							<span className="shrink-0 text-right text-lg font-semibold tabular-nums sm:w-20">
-								{formatCount(counts[group] ?? 0)}
-							</span>
-							<span className="order-last w-full min-w-0 text-sm text-muted-foreground sm:order-none sm:flex-1">
-								{GROUP_ROW_TEXT[group]}
-							</span>
-							<Link
-								to="/data/sync/preview"
-								search={{ group }}
-								className={buttonVariants({ variant: "outline", size: "sm" })}
-							>
-								Переглянути
-							</Link>
-						</li>
-					))}
-				</ul>
-			) : null}
+			{summary.data && !failed ? <LastRead summary={summary.data} /> : null}
+			{summary.data && !failed && steps.length === 0 ? <NothingWaits /> : null}
+			{steps.length > 0 && !failed ? <SyncStepList steps={steps} /> : null}
 		</div>
 	);
 }

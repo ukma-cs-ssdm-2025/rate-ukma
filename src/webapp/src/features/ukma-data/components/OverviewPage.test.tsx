@@ -62,7 +62,7 @@ afterEach(() => {
 });
 
 describe("/data overview", () => {
-	it("lists what waits, one line per group with its kinds", async () => {
+	it("lists what waits as steps in apply order", async () => {
 		// Act
 		renderOverview();
 
@@ -71,11 +71,12 @@ describe("/data overview", () => {
 			await screen.findByRole("list", { name: "Що чекає рішення" }),
 		);
 		const items = list.getAllByRole("listitem");
-		expect(items).toHaveLength(5);
-		expect(items[0]).toHaveTextContent(
-			"Нові812є в САЗ, ще немає на сайтікурси в семестрі 772, курси 40",
+		expect(items).toHaveLength(6);
+		expect(items[0]).toHaveTextContent("Звʼязки без змін на сайті");
+		expect(items[1]).toHaveTextContent(
+			"Нові записиКурси в семестрі 772, курси 40.812",
 		);
-		expect(items[2]).toHaveTextContent("з оцінками 4");
+		expect(items[3]).toHaveTextContent("Зміни на сторінках з оцінками");
 		expect(screen.getByText("Разом 1 284 зміни.")).toBeInTheDocument();
 		expect(
 			screen.getByText(/немає семестру 5, нуль кредитів 2/),
@@ -153,7 +154,7 @@ describe("/data overview", () => {
 
 		// Assert
 		expect(
-			await screen.findByText("Нічого не чекає. Наступне читання САЗ — уночі."),
+			await screen.findByText("Нічого не чекає. Наступне читання САЗ уночі."),
 		).toBeInTheDocument();
 	});
 

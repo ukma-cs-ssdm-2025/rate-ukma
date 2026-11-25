@@ -34,7 +34,7 @@ from rating_app.serializers.sync import (
     SyncPolicyListResponseSerializer,
     SyncRunListResponseSerializer,
 )
-from rating_app.sync import decisions, review, selection
+from rating_app.sync import decisions, review, selection, view
 from rating_app.sync.kinds import KINDS, NEVER_AUTO_KINDS, SyncKind
 from rating_app.views.responses import (
     R_SYNC_CHANGES,
@@ -154,11 +154,20 @@ class SyncViewSet(SyncViewSetBase):
         )
         changes = selection.narrow(
             changes,
-            changed_field=params.changed_field,
+            changed_field=None,
             blanks=params.blanks,
             year_from=params.year_from,
             year_to=params.year_to,
         )
+        field_counts = view.field_counts(changes)
+        if params.changed_field is not None:
+            changes = selection.narrow(
+                changes,
+                changed_field=params.changed_field,
+                blanks=None,
+                year_from=None,
+                year_to=None,
+            )
         if params.view == "sample":
             items, metadata = self._sample_page(review.sample_ids(changes, params.seed), params)
         else:
@@ -170,6 +179,7 @@ class SyncViewSet(SyncViewSetBase):
                 "groups": _counts_by(base, "group"),
                 "kinds": _counts_by(base, "kind"),
                 "runs": runs,
+                "changed_fields": field_counts,
                 **metadata,
             }
         )

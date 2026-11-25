@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+from typing import Any
+
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -21,6 +24,7 @@ from rating_app.models.sync import (
     SyncSource,
 )
 from rating_app.sync.kinds import NEVER_AUTO_KINDS
+from rating_app.sync.view import change_view
 
 
 class SyncRunSerializer(serializers.Serializer):
@@ -43,6 +47,23 @@ class SyncRunSerializer(serializers.Serializer):
         return int((timezone.now() - finished).total_seconds())
 
 
+class SyncChangeFieldViewSerializer(serializers.Serializer):
+    field = serializers.CharField(read_only=True)
+    label = serializers.CharField(read_only=True)
+    before = serializers.CharField(read_only=True, allow_blank=True)
+    after = serializers.CharField(read_only=True, allow_blank=True)
+
+
+class SyncChangeViewSerializer(serializers.Serializer):
+    """The change in plain words: name, department, semester and the fields a
+    student would notice, old and new."""
+
+    title = serializers.CharField(read_only=True)
+    place = serializers.CharField(read_only=True, allow_null=True)
+    semester = serializers.CharField(read_only=True, allow_null=True)
+    rows = SyncChangeFieldViewSerializer(many=True, read_only=True)
+
+
 class SyncChangeSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     run_id = serializers.IntegerField(read_only=True)
@@ -60,10 +81,15 @@ class SyncChangeSerializer(serializers.Serializer):
     state_reason = serializers.CharField(read_only=True, allow_blank=True)
     never_auto = serializers.SerializerMethodField()
     decided_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    view = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.BooleanField())
     def get_never_auto(self, change: SyncChange) -> bool:
         return change.kind in NEVER_AUTO_KINDS
+
+    @extend_schema_field(SyncChangeViewSerializer())
+    def get_view(self, change: SyncChange) -> dict[str, Any]:
+        return asdict(change_view(change))
 
 
 class SyncPolicySerializer(serializers.Serializer):
@@ -119,6 +145,11 @@ class SyncPendingResponseSerializer(SyncChangeListResponseSerializer):
         help_text="Waiting changes per kind, before the request's group and kind filters.",
     )
     runs = SyncRunSerializer(many=True, help_text="Each listed source's current run.")
+    changed_fields = serializers.DictField(
+        child=serializers.IntegerField(),
+        help_text="Field-change rows per changed field a student sees, after every filter "
+        "except `changed_field`.",
+    )
 
 
 class SyncPolicyListResponseSerializer(serializers.Serializer):

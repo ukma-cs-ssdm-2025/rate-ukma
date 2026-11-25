@@ -20,6 +20,5 @@ export function invalidateSyncQueries(queryClient: QueryClient): void {
 	});
 	void queryClient.invalidateQueries({
 		queryKey: [PREVIEW_ROWS_QUERY_KEY],
-		refetchType: "none",
 	});
 }

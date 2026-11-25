@@ -1,17 +1,13 @@
-import { parseAsStringEnum } from "nuqs";
+import { parseAsString, parseAsStringEnum } from "nuqs";
 
-import {
-	SyncChangeKindEnum,
-	SyncSelectionGroupEnum,
-} from "@/lib/api/generated";
 import { URL_OPTIONS } from "./syncParams";
+import { REVIEW_STEPS } from "./syncSteps";
 
-export const previewGroupParser = parseAsStringEnum(
-	Object.values(SyncSelectionGroupEnum),
-)
-	.withDefault("new")
+export const reviewStepParser = parseAsStringEnum([...REVIEW_STEPS])
+	.withDefault("links")
 	.withOptions(URL_OPTIONS);
 
-export const previewKindParser = parseAsStringEnum(
-	Object.values(SyncChangeKindEnum),
-).withOptions(URL_OPTIONS);
+export const reviewFieldParser = parseAsString.withOptions({
+	...URL_OPTIONS,
+	history: "replace",
+});
