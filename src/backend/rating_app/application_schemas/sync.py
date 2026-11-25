@@ -41,6 +41,9 @@ class SyncChangeListParams(SyncListParams):
     state: SyncChangeState | None = Field(
         default=None, description="Only changes in this state; omit for every state"
     )
+    approval: int | None = Field(
+        default=None, ge=1, description="Only changes this journal decision applied or rejected"
+    )
 
     @field_validator("kind")
     @classmethod

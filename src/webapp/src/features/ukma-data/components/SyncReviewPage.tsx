@@ -1,12 +1,13 @@
 import { useState } from "react";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useQueryState } from "nuqs";
 
 import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/lib/utils";
 import type {
 	SyncPendingResponse,
 	SyncPreviewRequest,
@@ -22,7 +23,11 @@ import type { ReviewStep } from "../syncSteps";
 import { DataSegments } from "./DataBits";
 import { SyncApplyBar } from "./SyncApplyBar";
 import { SyncQuestionList } from "./SyncQuestionList";
-import { SyncReviewHeader, SyncReviewRow } from "./SyncReviewRows";
+import {
+	SyncReviewHeader,
+	SyncReviewRow,
+	SyncReviewSkeleton,
+} from "./SyncReviewRows";
 import { UkmaDataError } from "./UkmaDataError";
 
 const ALL_FIELDS = "all";
@@ -76,6 +81,7 @@ function usePendingRows(step: ReviewStep, field: string | null) {
 			),
 		initialPageParam: 1,
 		getNextPageParam: (last) => last.next_page,
+		placeholderData: keepPreviousData,
 		retry: false,
 		staleTime: 0,
 	});
@@ -112,7 +118,7 @@ function ChangeList({
 		});
 	};
 	if (rows.isLoading) {
-		return <Skeleton className="h-64 rounded-xl" />;
+		return <SyncReviewSkeleton />;
 	}
 	if (rows.error || first === undefined) {
 		return (
@@ -148,8 +154,14 @@ function ChangeList({
 					Тут уже нічого не чекає.
 				</p>
 			) : (
-				<div className="overflow-hidden rounded-xl border bg-card">
-					<SyncReviewHeader selectable={copy.decidable} />
+				<div
+					aria-busy={rows.isPlaceholderData}
+					className={cn(
+						"overflow-hidden rounded-xl border bg-card transition-opacity duration-200",
+						rows.isPlaceholderData && "opacity-60",
+					)}
+				>
+					<SyncReviewHeader selectable={copy.decidable} column={copy.column} />
 					<ul aria-label={copy.title} className="divide-y">
 						{items.map((change) => (
 							<SyncReviewRow
@@ -174,6 +186,7 @@ function ChangeList({
 						onClick={() => void rows.fetchNextPage()}
 						disabled={rows.isFetchingNextPage}
 					>
+						{rows.isFetchingNextPage ? <Spinner /> : null}
 						Показати ще
 					</Button>
 				) : null}
@@ -184,6 +197,7 @@ function ChangeList({
 					runId={first.runs[0]?.id ?? null}
 					selected={Math.max(0, total - left.length)}
 					total={total}
+					disabled={rows.isPlaceholderData}
 					onDecided={() => setExcluded(new Set())}
 				/>
 			) : null}

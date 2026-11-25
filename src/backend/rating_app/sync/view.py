@@ -153,9 +153,10 @@ def _new_offering_fields(after: Mapping[str, Any]) -> list[FieldView]:
 def _link_fields(change: SyncChange, after: Mapping[str, Any]) -> list[FieldView]:
     if change.kind != "link_course" or link_course_is_exact(dict(after)):
         return []
-    ukma_course = _dict(_dict(after.get("display")).get("ukma_course"))
-    title = _text(ukma_course.get("title"))
-    return [] if title is None else [FieldView("title", "Назва в САЗ", "", title)]
+    display = _dict(after.get("display"))
+    title = _text(_dict(display.get("ukma_course")).get("title"))
+    site = _text(_dict(display.get("course")).get("title")) or ""
+    return [] if title is None else [FieldView("title", "Назва", site, title)]
 
 
 def change_view(change: SyncChange) -> ChangeView:

@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -25,69 +24,10 @@ import {
 	useUkmaDataSyncReject,
 } from "@/lib/api/generated";
 import { actionFailure } from "../syncActions";
-import type { ActionFailure } from "../syncActions";
 import { CHANGES_ACCUSATIVE, countWith, formatCount } from "../syncFormat";
 import { invalidateSyncQueries } from "../syncQueries";
-import { previewLines } from "../syncSteps";
-
-type Stage =
-	| { kind: "checking" }
-	| { kind: "ready"; preview: SyncPreviewResponse }
-	| { kind: "applying"; preview: SyncPreviewResponse }
-	| { kind: "done"; response: SyncDecisionResponse }
-	| { kind: "failed"; failure: ActionFailure };
-
-function JournalLink() {
-	return (
-		<Button variant="outline" asChild>
-			<Link to="/data/sync" search={{ tab: "history" }}>
-				Журнал
-			</Link>
-		</Button>
-	);
-}
-
-function StageBody({ stage }: Readonly<{ stage: Stage }>) {
-	if (stage.kind === "checking") {
-		return (
-			<p role="status" className="flex items-center gap-2 text-sm">
-				<Spinner /> Перевіряю, що застосується. Це може тривати до 30 с.
-			</p>
-		);
-	}
-	if (stage.kind === "failed") {
-		return (
-			<p role="alert" className="text-sm text-destructive">
-				{stage.failure.text}
-			</p>
-		);
-	}
-	if (stage.kind === "done") {
-		return (
-			<p role="status" className="text-sm">
-				{stage.response.detail}
-			</p>
-		);
-	}
-	const lines = previewLines(stage.preview);
-	return (
-		<div className="space-y-2 text-sm">
-			<p>{lines.main}</p>
-			{lines.notes.length > 0 ? (
-				<ul className="space-y-1 text-muted-foreground">
-					{lines.notes.map((note) => (
-						<li key={note}>{note}</li>
-					))}
-				</ul>
-			) : null}
-			{stage.kind === "applying" ? (
-				<p role="status" className="flex items-center gap-2">
-					<Spinner /> Застосовую…
-				</p>
-			) : null}
-		</div>
-	);
-}
+import { JournalLink, StageBody } from "./SyncApplyStages";
+import type { Progress, Stage } from "./SyncApplyStages";
 
 function ApplyDialog({
 	open,
@@ -100,23 +40,25 @@ function ApplyDialog({
 	selection: SyncPreviewRequest;
 	onDone: () => void;
 }>) {
-	const [stage, setStage] = useState<Stage>({ kind: "checking" });
+	const [stage, setStage] = useState<Stage>({
+		kind: "checking",
+		progress: null,
+	});
+	const stopAfterPart = useRef(false);
+	const [stopping, setStopping] = useState(false);
 	const queryClient = useQueryClient();
 	const preview = useUkmaDataSyncPreview();
 	const apply = useUkmaDataSyncApply();
-	const check = () => {
-		setStage({ kind: "checking" });
-		preview.mutate(
-			{ data: selection },
-			{
-				onSuccess: (result) => setStage({ kind: "ready", preview: result }),
-				onError: (error) =>
-					setStage({ kind: "failed", failure: actionFailure(error) }),
-			},
-		);
+	const finish = (
+		response: SyncDecisionResponse,
+		progress: Progress,
+		stopped: boolean,
+	) => {
+		setStage({ kind: "done", response, progress, stopped });
+		onDone();
 	};
-	const confirm = (checked: SyncPreviewResponse) => {
-		setStage({ kind: "applying", preview: checked });
+	const applyPart = (checked: SyncPreviewResponse, progress: Progress) => {
+		setStage({ kind: "applying", progress });
 		apply.mutate(
 			{
 				data: {
@@ -127,16 +69,70 @@ function ApplyDialog({
 			},
 			{
 				onSuccess: (response) => {
-					setStage({ kind: "done", response });
-					onDone();
+					const next = {
+						...progress,
+						applied: progress.applied + response.counts.applied,
+						parts: progress.parts + 1,
+					};
+					const more =
+						response.counts.remaining > 0 &&
+						response.counts.applied > 0 &&
+						next.applied < next.planned;
+					if (!more || stopAfterPart.current) {
+						finish(response, next, more);
+						return;
+					}
+					setStage({ kind: "checking", progress: next });
+					preview.mutate(
+						{ data: selection },
+						{
+							onSuccess: (result) => {
+								if (result.counts.applied === 0) {
+									finish(response, next, false);
+								} else {
+									applyPart(result, next);
+								}
+							},
+							onError: (error) =>
+								setStage({
+									kind: "failed",
+									failure: actionFailure(error),
+									progress: next,
+								}),
+						},
+					);
 				},
 				onError: (error) =>
-					setStage({ kind: "failed", failure: actionFailure(error) }),
+					setStage({
+						kind: "failed",
+						failure: actionFailure(error),
+						progress,
+					}),
 				onSettled: () => invalidateSyncQueries(queryClient),
 			},
 		);
 	};
+	const check = () => {
+		setStage({ kind: "checking", progress: null });
+		preview.mutate(
+			{ data: selection },
+			{
+				onSuccess: (result) => setStage({ kind: "ready", preview: result }),
+				onError: (error) =>
+					setStage({
+						kind: "failed",
+						failure: actionFailure(error),
+						progress: null,
+					}),
+			},
+		);
+	};
 	const busy = stage.kind === "checking" || stage.kind === "applying";
+	const inParts = busy && stage.progress !== null;
+	const planned =
+		stage.kind === "ready"
+			? stage.preview.counts.applied + stage.preview.counts.remaining
+			: 0;
 	return (
 		<Dialog
 			open={open}
@@ -162,8 +158,16 @@ function ApplyDialog({
 				<StageBody stage={stage} />
 				<DialogFooter>
 					{stage.kind === "ready" && stage.preview.counts.applied > 0 ? (
-						<Button onClick={() => confirm(stage.preview)}>
-							Застосувати {formatCount(stage.preview.counts.applied)}
+						<Button
+							onClick={() => {
+								stopAfterPart.current = false;
+								setStopping(false);
+								applyPart(stage.preview, { applied: 0, parts: 0, planned });
+							}}
+						>
+							{stage.preview.counts.remaining > 0
+								? `Застосувати всі ${formatCount(planned)}`
+								: `Застосувати ${formatCount(stage.preview.counts.applied)}`}
 						</Button>
 					) : null}
 					{stage.kind === "failed" && stage.failure.retry ? (
@@ -173,13 +177,26 @@ function ApplyDialog({
 					(stage.kind === "failed" && stage.failure.journal) ? (
 						<JournalLink />
 					) : null}
-					<Button
-						variant={stage.kind === "done" ? "default" : "ghost"}
-						disabled={busy}
-						onClick={() => onOpenChange(false)}
-					>
-						{stage.kind === "done" ? "Готово" : "Скасувати"}
-					</Button>
+					{inParts ? (
+						<Button
+							variant="outline"
+							disabled={stopping}
+							onClick={() => {
+								stopAfterPart.current = true;
+								setStopping(true);
+							}}
+						>
+							{stopping ? "Зупиняю після цієї частини…" : "Зупинити"}
+						</Button>
+					) : (
+						<Button
+							variant={stage.kind === "done" ? "default" : "ghost"}
+							disabled={busy}
+							onClick={() => onOpenChange(false)}
+						>
+							{stage.kind === "done" ? "Готово" : "Скасувати"}
+						</Button>
+					)}
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
@@ -191,12 +208,14 @@ export function SyncApplyBar({
 	runId,
 	selected,
 	total,
+	disabled = false,
 	onDecided,
 }: Readonly<{
 	selection: SyncPreviewRequest;
 	runId: number | null;
 	selected: number;
 	total: number;
+	disabled?: boolean;
 	onDecided: () => void;
 }>) {
 	const [applyOpen, setApplyOpen] = useState(false);
@@ -213,26 +232,38 @@ export function SyncApplyBar({
 			onSettled: () => invalidateSyncQueries(queryClient),
 		},
 	});
-	const nothing = selected === 0;
+	const nothing = selected === 0 || disabled || runId === null;
 	return (
 		<div className="sticky bottom-0 z-10 -mx-4 border-t bg-background px-4 py-3 shadow-lg sm:mx-0 sm:rounded-xl sm:border sm:px-5">
 			<div className="flex items-center gap-3">
-				<p className="text-sm tabular-nums" aria-live="polite">
-					<span className="hidden sm:inline">Вибрано </span>
-					{formatCount(selected)} з {formatCount(total)}
+				<p
+					className="min-w-0 text-sm whitespace-nowrap tabular-nums"
+					aria-live="polite"
+				>
+					{selected === total ? (
+						<>
+							<span className="hidden sm:inline">Вибрано </span>
+							<span className="sm:hidden">Усі </span>
+							<span className="hidden sm:inline">всі </span>
+							{formatCount(total)}
+						</>
+					) : (
+						<>
+							<span className="hidden sm:inline">Вибрано </span>
+							{formatCount(selected)} з {formatCount(total)}
+						</>
+					)}
 				</p>
-				<div className="ml-auto flex gap-2">
+				<div className="ml-auto flex shrink-0 gap-2">
 					<Button
 						variant="ghost"
-						disabled={nothing || reject.isPending || runId === null}
+						disabled={nothing || reject.isPending}
 						onClick={() => setRejectOpen(true)}
 					>
+						{reject.isPending ? <Spinner /> : null}
 						Не зараз
 					</Button>
-					<Button
-						disabled={nothing || runId === null}
-						onClick={() => setApplyOpen(true)}
-					>
+					<Button disabled={nothing} onClick={() => setApplyOpen(true)}>
 						Застосувати
 					</Button>
 				</div>

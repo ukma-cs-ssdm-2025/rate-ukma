@@ -186,6 +186,23 @@ def test_run_changes_filters_by_group_kind_and_state(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_run_changes_lists_what_one_decision_did(
+    superuser_client, make_succeeded_run, sync_change_factory, sync_approval_factory
+):
+    run = make_succeeded_run()
+    approval = sync_approval_factory(run=run, action="apply", outcome="applied")
+    decided = sync_change_factory(
+        run=run, kind="link_course", state=SyncChangeState.APPLIED, approval=approval
+    )
+    sync_change_factory(run=run, kind="link_course", state=SyncChangeState.APPLIED)
+
+    body = superuser_client.get(_run_changes_url(run), {"approval": approval.pk}).json()
+
+    assert [item["id"] for item in body["items"]] == [decided.pk]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_run_changes_paginate(superuser_client, make_succeeded_run, sync_change_factory):
     run = make_succeeded_run()
     sync_change_factory.create_batch(2, run=run, kind="link_course")

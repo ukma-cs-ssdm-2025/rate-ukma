@@ -279,6 +279,7 @@ class SyncJournalEntrySerializer(serializers.Serializer):
     error = serializers.CharField(allow_blank=True)
     counts = SyncJournalCountsSerializer()
     approval_id = serializers.IntegerField(allow_null=True)
+    run_id = serializers.IntegerField(allow_null=True)
     reverts_id = serializers.IntegerField(allow_null=True)
     group = serializers.ChoiceField(choices=SyncChangeGroup.choices, allow_null=True)
     revertible = serializers.BooleanField()

@@ -226,4 +226,6 @@ class SyncViewSet(SyncViewSetBase):
             queryset = queryset.filter(kind=params.kind)
         if params.state is not None:
             queryset = queryset.filter(state=params.state)
+        if params.approval is not None:
+            queryset = queryset.filter(approval_id=params.approval)
         return queryset.order_by("-ratings", "id")

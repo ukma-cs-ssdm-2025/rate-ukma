@@ -14,6 +14,7 @@ import {
 	actionFailure,
 	journalApplySummary,
 	journalEntryNumber,
+	journalNote,
 	journalTitle,
 	REVERT_CHECK_LOST_TEXT,
 	revertFailureText,
@@ -70,12 +71,24 @@ describe("actionFailure", () => {
 describe("journal words", () => {
 	it("names an apply with its group and author", () => {
 		expect(journalTitle(journalApply)).toBe(
-			`Застосовано ${formatCount(1855)} (Змінити)`,
+			`Оновлено на сайті: ${formatCount(1855)} записів`,
 		);
 		expect(journalEntryNumber(journalApply)).toBe("рішення #74");
 		expect(journalApplySummary(journalApply)).toBe(
-			`Застосовано ${formatCount(1855)} змін (Змінити)`,
+			`Оновлено на сайті: ${formatCount(1855)} записів`,
 		);
+	});
+
+	it("says what an apply left for later", () => {
+		expect(
+			journalNote({
+				...journalApply,
+				counts: { applied: 5000, remaining: 24_457, waiting: 12 },
+			}),
+		).toBe(
+			`Ще ${formatCount(24_457)} у наступних частинах, 12 чекають на інші зміни.`,
+		);
+		expect(journalNote(journalApply)).toBe("");
 	});
 
 	it("marks an automatic apply in words", () => {
@@ -85,10 +98,10 @@ describe("journal words", () => {
 
 	it("names a rejection and a revert", () => {
 		expect(journalTitle(journalRejected)).toBe(
-			`Відхилено ${formatCount(3)} (Нові)`,
+			"Відкладено нові записи: 3 записи",
 		);
 		expect(journalTitle(journalRevert)).toBe(
-			`Відкочено #74 (${formatCount(1855)})`,
+			`Відкочено рішення #74: ${formatCount(1855)} записів повернуто`,
 		);
 	});
 

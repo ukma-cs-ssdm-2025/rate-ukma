@@ -12,6 +12,7 @@ import {
 	NOW,
 	PENDING_URL,
 	pending,
+	titleChange,
 	POLICIES_URL,
 	POLICY_CHANGES_URL,
 } from "./dataTestData";
@@ -93,6 +94,26 @@ afterEach(() => {
 });
 
 describe("/data/sync journal", () => {
+	it("shows which records a decision touched", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock
+			.onGet("/api/v1/ukma-data/sync/runs/7/changes/")
+			.reply(200, pending([titleChange], 1));
+		renderJournal();
+		const list = within(await screen.findByRole("list", { name: "Журнал" }));
+
+		// Act
+		await user.click(list.getAllByRole("button", { name: "Що саме" })[1]);
+
+		// Assert
+		const records = await screen.findByRole("list", { name: "Записи рішення" });
+		expect(records).toHaveTextContent("Тестова дисципліна А");
+		expect(mock.history.get.at(-1)?.params).toMatchObject({
+			approval: journalApply.approval_id,
+		});
+	});
+
 	it("lists every decision newest first with who and when", async () => {
 		// Act
 		renderJournal();
@@ -101,14 +122,16 @@ describe("/data/sync journal", () => {
 		const list = within(await screen.findByRole("list", { name: "Журнал" }));
 		const items = list.getAllByRole("listitem");
 		expect(items[0]).toHaveTextContent("рішення #76");
-		expect(items[0]).toHaveTextContent("Відкочено #74 (1 855)");
+		expect(items[0]).toHaveTextContent(
+			"Відкочено рішення #74: 1 855 записів повернуто",
+		);
 		expect(items[0]).toHaveTextContent("admin.test, 1 год тому");
-		expect(items[1]).toHaveTextContent("Відхилено 3 (Нові)");
-		expect(items[2]).toHaveTextContent("Застосовано 1 855 (Змінити)");
+		expect(items[1]).toHaveTextContent("Відкладено нові записи: 3 записи");
+		expect(items[2]).toHaveTextContent("Оновлено на сайті: 1 855 записів");
 		expect(items[2]).toHaveTextContent("admin.test, 2 год тому");
 		expect(items[3]).toHaveTextContent("Правило: Звʼязок курсу → Авто");
 		expect(items[4]).toHaveTextContent("Відповідь: Обʼєднання курсів");
-		expect(items[5]).toHaveTextContent("Застосовано 27 925 (Зв'язати)");
+		expect(items[5]).toHaveTextContent("Звʼязано з САЗ: 27 925 записів");
 		expect(items[5]).toHaveTextContent("(автоматично)");
 	});
 
@@ -160,7 +183,9 @@ describe("/data/sync journal", () => {
 		await user.click(await screen.findByRole("button", { name: "Ще 20" }));
 
 		// Assert
-		expect(await screen.findByText(/Відкочено #74/)).toBeInTheDocument();
+		expect(
+			await screen.findByText(/Відкочено рішення #74/),
+		).toBeInTheDocument();
 		expect(mock.history.get.at(-1)?.params).toMatchObject({
 			limit: 20,
 			before: "2030-09-10T09:00:00Z",
@@ -197,7 +222,7 @@ describe("/data/sync journal", () => {
 
 		// Assert
 		expect(dialog).toHaveTextContent("Відкотити рішення #74?");
-		expect(dialog).toHaveTextContent("Застосовано 1 855 змін (Змінити)");
+		expect(dialog).toHaveTextContent("Оновлено на сайті: 1 855 записів");
 		expect(
 			await screen.findByText(
 				"Повернеться 1 855: поля отримають попередні значення. Нічого не видаляється.",
@@ -214,7 +239,7 @@ describe("/data/sync journal", () => {
 		expect(screen.getByText(/Відкочено\. Рішення #76\./)).toBeInTheDocument();
 		await user.click(within(dialog).getByRole("button", { name: "Закрити" }));
 		const list = within(screen.getByRole("list", { name: "Журнал" }));
-		expect(list.getByText("відкочено")).toBeInTheDocument();
+		expect(list.getByText(", відкочено")).toBeInTheDocument();
 		expect(
 			list.queryByRole("button", { name: "Відкотити рішення #74" }),
 		).not.toBeInTheDocument();

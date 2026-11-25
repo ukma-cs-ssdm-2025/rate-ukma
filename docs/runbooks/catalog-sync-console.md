@@ -4,9 +4,9 @@ Runbook for deciding the changes the nightly read of UKMA Data proposes: apply t
 
 ## Making Decisions on /data
 
-A superuser can make the same decisions on the site without this console: open /data, then «Оновлення з САЗ» → «Чекають рішення». It lists steps in apply order (links, links to check, new records, changes without ratings, changes with ratings, questions, removed). «Переглянути» opens a step's changes in words; untick a row to leave it out, then «Застосувати» runs the dry run and applies after a confirm, or «Не зараз» rejects. The same selection and idempotency rules apply; one request applies at most 5 000 changes and the step keeps the rest.
+A superuser can make the same decisions on the site without this console: open /data, then «Оновлення з САЗ» → «Чекають рішення». It lists steps in apply order (links, links to check, new records, changes without ratings, changes with ratings, questions, removed). «Переглянути» opens a step's changes in words; untick a row to leave it out, then «Застосувати» runs the dry run and applies after a confirm, or «Не зараз» rejects. The same selection and idempotency rules apply. One request applies at most 5 000 changes, so «Застосувати всі N» repeats preview and apply in parts of 5 000 until nothing is left; «Зупинити» stops after the current part and every finished part stays applied.
 
-Every decision appears in «Журнал», where an applied decision can be undone with «Відкотити»: a dry run lists every blocker first, and the confirmation writes a new decision. Mapping questions are still answered only here with `catalog_sync answer`; the page lists them and shows the command.
+Every decision appears in «Журнал» in words (for example «Звʼязано з САЗ: 5 000 записів»), and «Що саме» lists the records it touched. An applied decision can be undone with «Відкотити»: a dry run lists every blocker first, and the confirmation writes a new decision. Mapping questions are still answered only here with `catalog_sync answer`; the page lists them and shows the command.
 
 ## Before You Start
 
