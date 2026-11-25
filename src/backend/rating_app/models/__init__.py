@@ -6,6 +6,7 @@ from .course_offering_speciality import CourseOfferingSpeciality
 from .course_offering_term import CourseOfferingTerm
 from .department import Department
 from .enrollment import Enrollment
+from .excluded_account import ExcludedAccount
 from .faculty import Faculty
 from .feed_event import FeedEvent
 from .feed_post import FeedPost
@@ -89,4 +90,5 @@ __all__ = [
     "FeedEvent",
     "SignIn",
     "PlannedCourse",
+    "ExcludedAccount",
 ]
