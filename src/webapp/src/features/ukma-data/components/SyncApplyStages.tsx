@@ -102,7 +102,7 @@ export function StageBody({ stage }: Readonly<{ stage: Stage }>) {
 	if (stage.kind === "done") {
 		return (
 			<p role="status" className="text-sm">
-				{stage.progress.parts > 1
+				{stage.progress.parts > 1 || stage.stopped
 					? batchDoneText(stage.progress, stage.stopped)
 					: stage.response.detail}
 			</p>

@@ -165,6 +165,55 @@ describe("/data/sync/preview", () => {
 		).toHaveLength(2);
 	});
 
+	it("stops before the next part when asked while it is being checked", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		let release: () => void = () => undefined;
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const ready = previewFixture({
+			counts: decisionCounts({ applied: 1, total: 2, remaining: 1 }),
+		});
+		mock
+			.onPost(PREVIEW_URL)
+			.replyOnce(200, ready)
+			.onPost(PREVIEW_URL)
+			.replyOnce(async () => {
+				await held;
+				return [200, ready];
+			});
+		mock.onPost(APPLY_URL).reply(200, {
+			decision_id: 75,
+			action: "apply",
+			outcome: "applied",
+			detail: "Застосовано 1 зміну. Рішення #75.",
+			counts: decisionCounts({ applied: 1, total: 1, remaining: 1 }),
+			run: previewFixture().run,
+		});
+		renderReview("?step=changes_rated");
+		await user.click(
+			await screen.findByRole("button", { name: "Застосувати" }),
+		);
+		await user.click(
+			await screen.findByRole("button", { name: "Застосувати всі 2" }),
+		);
+
+		// Act
+		await user.click(await screen.findByRole("button", { name: "Зупинити" }));
+		release();
+
+		// Assert
+		expect(
+			await screen.findByText(
+				"Застосовано 1 зміну за 1 частину. Ви зупинили, решта чекає на сторінці кроку.",
+			),
+		).toBeInTheDocument();
+		expect(
+			mock.history.post.filter((request) => request.url === APPLY_URL),
+		).toHaveLength(1);
+	});
+
 	it("explains what waits for earlier steps before applying", async () => {
 		// Arrange
 		const user = userEvent.setup();

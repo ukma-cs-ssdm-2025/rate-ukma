@@ -80,7 +80,7 @@ function FieldChange({
 	row,
 	link,
 }: Readonly<{ row: SyncChangeFieldView; link: boolean }>) {
-	if (row.before !== "" && row.after !== "" && !isShort(row.before)) {
+	if (row.before !== "" && row.after !== "" && (link || !isShort(row.before))) {
 		return <Comparison row={row} link={link} />;
 	}
 	return (
@@ -184,11 +184,13 @@ export function SyncReviewRow({
 	change,
 	selectable,
 	included,
+	locked = false,
 	onToggle,
 }: Readonly<{
 	change: SyncChange;
 	selectable: boolean;
 	included: boolean;
+	locked?: boolean;
 	onToggle: (id: number, included: boolean) => void;
 }>) {
 	const id = `change-${change.id}`;
@@ -205,6 +207,7 @@ export function SyncReviewRow({
 					<Checkbox
 						aria-labelledby={id}
 						checked={included}
+						disabled={locked}
 						onCheckedChange={(value) => onToggle(change.id, value === true)}
 					/>
 				) : null}

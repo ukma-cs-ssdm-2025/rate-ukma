@@ -89,6 +89,8 @@ function ApplyDialog({
 							onSuccess: (result) => {
 								if (result.counts.applied === 0) {
 									finish(response, next, false);
+								} else if (stopAfterPart.current) {
+									finish(response, next, true);
 								} else {
 									applyPart(result, next);
 								}

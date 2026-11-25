@@ -107,6 +107,9 @@ function ChangeList({
 		excluded.has(change.id) ? [change.id] : [],
 	);
 	const toggle = (id: number, included: boolean) => {
+		if (rows.isPlaceholderData) {
+			return;
+		}
 		setExcluded((current) => {
 			const next = new Set(current);
 			if (included) {
@@ -169,6 +172,7 @@ function ChangeList({
 								change={change}
 								selectable={copy.decidable}
 								included={!excluded.has(change.id)}
+								locked={rows.isPlaceholderData}
 								onToggle={toggle}
 							/>
 						))}

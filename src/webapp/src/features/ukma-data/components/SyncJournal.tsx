@@ -87,7 +87,7 @@ function JournalChanges({
 	if (items.length === 0) {
 		return (
 			<p className="border-t bg-muted/40 px-4 py-3 text-sm text-muted-foreground sm:px-5">
-				Записів цього рішення вже немає: їх замінило новіше читання САЗ.
+				Немає записів, повʼязаних із цим рішенням.
 			</p>
 		);
 	}
@@ -150,7 +150,8 @@ function JournalRow({
 	const listable =
 		(entry.kind === "apply" || entry.kind === "reject") &&
 		entry.run_id !== null &&
-		entry.approval_id !== null;
+		entry.approval_id !== null &&
+		(entry.counts.applied ?? 0) + (entry.counts.rejected ?? 0) > 0;
 	const number = journalEntryNumber(entry);
 	return (
 		<li className="text-sm">
