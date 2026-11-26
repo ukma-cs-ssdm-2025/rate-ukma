@@ -10,35 +10,14 @@ import type {
 import { DECISION_FAILED_TEXT } from "./caseActions";
 import { errorStatus } from "./ukmaDataErrors";
 import { kindLabel } from "./sync";
-import { CHANGES_ACCUSATIVE, countWith, formatCount } from "./syncFormat";
+import { countWith, formatCount } from "./syncFormat";
+import type { PluralForms } from "./syncFormat";
 import { ANSWER_LABELS } from "./syncLabels";
 import { GROUP_ORDER } from "./syncOverview";
 import { TERMS } from "./syncTerms";
 
 const LOST_ANSWER_TEXT =
 	"Відповідь не прийшла. Перевірте Журнал, перш ніж повторювати.";
-
-const GROUP_ROW_LABEL = {
-	new: "Нові",
-	link: "Зв'язати",
-	change: "Змінити",
-	mapping: "Питання",
-	removed: "Зникли з САЗ",
-} satisfies Record<(typeof GROUP_ORDER)[number], string>;
-
-const GROUP_TERM_NAMES = [...GROUP_ORDER, "other"] as const;
-
-type GroupTermName = (typeof GROUP_TERM_NAMES)[number];
-
-const isGroupTermName = (value: string): value is GroupTermName =>
-	GROUP_TERM_NAMES.some((name) => name === value);
-
-const groupName = (group: string): string =>
-	isGroupTermName(group)
-		? group === "other"
-			? TERMS.other.label
-			: GROUP_ROW_LABEL[group]
-		: group;
 
 const REFUSAL_TEXT = {
 	selection_changed: "Список змінився. Перегляньте ще раз.",
@@ -142,20 +121,51 @@ const modeName = (value: SyncPolicyModeEnum | null): string =>
 const isAnswer = (value: string): value is keyof typeof ANSWER_LABELS =>
 	Object.hasOwn(ANSWER_LABELS, value);
 
-const groupSuffix = (group: string | null): string =>
-	group === null ? "" : ` (${groupName(group)})`;
-
 const autoSuffix = (entry: SyncJournalEntry): string =>
 	entry.who === null ? " (автоматично)" : "";
 
+const RECORDS = {
+	one: "запис",
+	few: "записи",
+	many: "записів",
+} satisfies PluralForms;
+
+const APPLY_VERBS = {
+	link: "Звʼязано з САЗ",
+	new: "Додано на сайт",
+	change: "Оновлено на сайті",
+	mapping: "Застосовано відповіді",
+	removed: "Позначено як зниклі з САЗ",
+} satisfies Record<(typeof GROUP_ORDER)[number], string>;
+
+const REJECT_VERBS = {
+	link: "Відкладено звʼязки",
+	new: "Відкладено нові записи",
+	change: "Відкладено зміни",
+	mapping: "Відкладено питання",
+	removed: "Відкладено зниклі з САЗ",
+} satisfies Record<(typeof GROUP_ORDER)[number], string>;
+
+type GroupName = (typeof GROUP_ORDER)[number];
+
+const isGroup = (value: string | null): value is GroupName =>
+	GROUP_ORDER.some((name) => name === value);
+
+const verbFor = (
+	verbs: Readonly<Record<GroupName, string>>,
+	group: string | null,
+	fallback: string,
+): string => (isGroup(group) ? verbs[group] : fallback);
+
 const JOURNAL_TITLES = {
 	apply: (entry) =>
-		`Застосовано ${formatCount(entry.counts.applied ?? 0)}${groupSuffix(entry.group)}${autoSuffix(entry)}`,
+		`${verbFor(APPLY_VERBS, entry.group, "Застосовано")}: ${countWith(entry.counts.applied ?? 0, RECORDS)}${autoSuffix(entry)}`,
 	reject: (entry) =>
-		`Відхилено ${formatCount(entry.counts.rejected ?? 0)}${groupSuffix(entry.group)}${autoSuffix(entry)}`,
+		`${verbFor(REJECT_VERBS, entry.group, "Відкладено")}: ${countWith(entry.counts.rejected ?? 0, RECORDS)}${autoSuffix(entry)}`,
 	revert: (entry) => {
-		const source = entry.reverts_id === null ? "" : ` #${entry.reverts_id}`;
-		return `Відкочено${source} (${formatCount(entry.counts.reverted ?? 0)})${autoSuffix(entry)}`;
+		const source =
+			entry.reverts_id === null ? "" : ` рішення #${entry.reverts_id}`;
+		return `Відкочено${source}: ${countWith(entry.counts.reverted ?? 0, RECORDS)} повернуто${autoSuffix(entry)}`;
 	},
 	policy: (entry) =>
 		`Правило: ${kindLabel(entry.counts.kind ?? "—")} → ${modeName(entry.counts.new_mode ?? null)}`,
@@ -168,6 +178,24 @@ const JOURNAL_TITLES = {
 	},
 	decision: (entry) => decisionTitle(entry),
 } satisfies Record<SyncJournalKindEnum, (entry: SyncJournalEntry) => string>;
+
+export function journalNote(entry: SyncJournalEntry): string {
+	if (entry.kind !== "apply") {
+		return "";
+	}
+	const parts: string[] = [];
+	const remaining = entry.counts.remaining ?? 0;
+	const waiting = entry.counts.waiting ?? 0;
+	if (remaining > 0) {
+		parts.push(`ще ${formatCount(remaining)} у наступних частинах`);
+	}
+	if (waiting > 0) {
+		parts.push(`${formatCount(waiting)} чекають на інші зміни`);
+	}
+	return parts.length === 0
+		? ""
+		: `${parts.join(", ").replace(/^./, (c) => c.toUpperCase())}.`;
+}
 
 const DECISION_TITLES = {
 	decide_case: "Рішення в UKMA Data: та сама людина",
@@ -217,7 +245,7 @@ export const journalTitle = (entry: SyncJournalEntry): string =>
 	JOURNAL_TITLES[entry.kind](entry);
 
 export function journalApplySummary(entry: SyncJournalEntry): string {
-	return `Застосовано ${countWith(entry.counts.applied ?? 0, CHANGES_ACCUSATIVE)}${groupSuffix(entry.group)}`;
+	return `${verbFor(APPLY_VERBS, entry.group, "Застосовано")}: ${countWith(entry.counts.applied ?? 0, RECORDS)}`;
 }
 
 export const journalEntryNumber = (entry: SyncJournalEntry): string =>

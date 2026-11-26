@@ -4,7 +4,7 @@ import { emptySummary, summary } from "./components/dataTestData";
 import { previewFixture } from "./components/syncActionsTestData";
 import { decisionCounts } from "./components/syncActionsTestData";
 import { formatCount } from "./syncFormat";
-import { inboxSteps, previewLines } from "./syncSteps";
+import { batchDoneText, inboxSteps, previewLines } from "./syncSteps";
 
 describe("inboxSteps", () => {
 	it("lists steps in apply order and splits changes by ratings", () => {
@@ -99,7 +99,15 @@ describe("previewLines", () => {
 		// Assert
 		expect(lines.main).toBe(`Застосується ${formatCount(5000)} змін.`);
 		expect(lines.notes).toEqual([
-			`Ще ${formatCount(24_457)} залишаться на наступний раз: за один раз сайт застосовує до 5 000.`,
+			`Ще ${formatCount(24_457)} піде наступними частинами по 5 000, сайт зробить це сам.`,
 		]);
+	});
+});
+
+describe("batchDoneText", () => {
+	it("sums every part and says when the rest waits", () => {
+		expect(batchDoneText({ applied: 10_000, parts: 2 }, true)).toBe(
+			`Застосовано ${formatCount(10_000)} змін за 2 частини. Ви зупинили, решта чекає на сторінці кроку.`,
+		);
 	});
 });

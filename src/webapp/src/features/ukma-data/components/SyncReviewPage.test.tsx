@@ -64,7 +64,10 @@ describe("/data/sync/preview", () => {
 		const [row] = list.getAllByRole("listitem");
 		expect(row).toHaveTextContent("Тестова дисципліна А");
 		expect(row).toHaveTextContent("Кафедра прикладів");
-		expect(row).toHaveTextContent("Назва: Тестова дисципліна А");
+		expect(row).toHaveTextContent("Було: Тестова дисципліна А");
+		expect(row).toHaveTextContent("Стане: Тестова дисципліна Б");
+		expect(within(row).getByText("А", { selector: "del" })).toBeInTheDocument();
+		expect(within(row).getByText("Б", { selector: "ins" })).toBeInTheDocument();
 		expect(row).not.toHaveTextContent("48121");
 		expect(mock.history.get[0]?.params).toMatchObject({
 			group: "change",
@@ -119,6 +122,96 @@ describe("/data/sync/preview", () => {
 			token: "token-test",
 			exclude_ids: [48_122],
 		});
+	});
+
+	it("applies a selection over the 5 000 cap in parts until nothing is left", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const part = (remaining: number) => ({
+			decision_id: 75,
+			action: "apply",
+			outcome: "applied",
+			detail: "Застосовано 1 зміну. Рішення #75.",
+			counts: decisionCounts({ applied: 1, total: 1, remaining }),
+			run: previewFixture().run,
+		});
+		mock.onPost(PREVIEW_URL).reply(
+			200,
+			previewFixture({
+				counts: decisionCounts({ applied: 1, total: 2, remaining: 1 }),
+			}),
+		);
+		mock
+			.onPost(APPLY_URL)
+			.replyOnce(200, part(1))
+			.onPost(APPLY_URL)
+			.replyOnce(200, part(0));
+		renderReview("?step=changes_rated");
+		await user.click(
+			await screen.findByRole("button", { name: "Застосувати" }),
+		);
+
+		// Act
+		await user.click(
+			await screen.findByRole("button", { name: "Застосувати всі 2" }),
+		);
+
+		// Assert
+		expect(
+			await screen.findByText("Застосовано 2 зміни за 2 частини."),
+		).toBeInTheDocument();
+		expect(
+			mock.history.post.filter((request) => request.url === APPLY_URL),
+		).toHaveLength(2);
+	});
+
+	it("stops before the next part when asked while it is being checked", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		let release: () => void = () => undefined;
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const ready = previewFixture({
+			counts: decisionCounts({ applied: 1, total: 2, remaining: 1 }),
+		});
+		mock
+			.onPost(PREVIEW_URL)
+			.replyOnce(200, ready)
+			.onPost(PREVIEW_URL)
+			.replyOnce(async () => {
+				await held;
+				return [200, ready];
+			});
+		mock.onPost(APPLY_URL).reply(200, {
+			decision_id: 75,
+			action: "apply",
+			outcome: "applied",
+			detail: "Застосовано 1 зміну. Рішення #75.",
+			counts: decisionCounts({ applied: 1, total: 1, remaining: 1 }),
+			run: previewFixture().run,
+		});
+		renderReview("?step=changes_rated");
+		await user.click(
+			await screen.findByRole("button", { name: "Застосувати" }),
+		);
+		await user.click(
+			await screen.findByRole("button", { name: "Застосувати всі 2" }),
+		);
+
+		// Act
+		await user.click(await screen.findByRole("button", { name: "Зупинити" }));
+		release();
+
+		// Assert
+		expect(
+			await screen.findByText(
+				"Застосовано 1 зміну за 1 частину. Ви зупинили, решта чекає на сторінці кроку.",
+			),
+		).toBeInTheDocument();
+		expect(
+			mock.history.post.filter((request) => request.url === APPLY_URL),
+		).toHaveLength(1);
 	});
 
 	it("explains what waits for earlier steps before applying", async () => {

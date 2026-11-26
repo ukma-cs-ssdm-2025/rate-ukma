@@ -76,7 +76,7 @@ def test_an_exact_link_shows_no_fields():
     assert view.rows == []
 
 
-def test_a_link_to_check_shows_the_title_in_saz():
+def test_a_link_to_check_shows_the_site_title_next_to_the_one_in_saz():
     after = {
         "majority_share": 0.6,
         "display": {"course": COURSE, "ukma_course": {"title": "Інша дисципліна"}},
@@ -84,7 +84,9 @@ def test_a_link_to_check_shows_the_title_in_saz():
 
     view = change_view(_change("link_course", "link", {}, after))
 
-    assert [(row.label, row.after) for row in view.rows] == [("Назва в САЗ", "Інша дисципліна")]
+    assert [(row.label, row.before, row.after) for row in view.rows] == [
+        ("Назва", COURSE["title"], "Інша дисципліна")
+    ]
 
 
 def test_credits_and_semesters_read_as_words():

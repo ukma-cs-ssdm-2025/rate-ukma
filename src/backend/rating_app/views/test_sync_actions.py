@@ -1021,6 +1021,7 @@ def test_journal_lists_entries_with_revertible_flags(
     assert items[1]["revert_reason"] == ""
     assert items[2]["revertible"] is True
     assert items[2]["revert_reason"] == ""
+    assert items[2]["run_id"] == catalog_run.pk
     assert response.json()["next_before"] is None
 
 

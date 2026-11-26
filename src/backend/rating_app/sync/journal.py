@@ -41,6 +41,7 @@ class JournalEntry:
     outcome: str = ""
     error: str = ""
     approval_id: int | None = None
+    run_id: int | None = None
     reverts_id: int | None = None
     group: str | None = None
     revertible: bool = False
@@ -108,6 +109,7 @@ def _approvals(limit: int, before: Cursor | None) -> list[JournalEntry]:
                 counts=dict(approval.counts or {}),
                 outcome=str(approval.outcome),
                 approval_id=approval.pk,
+                run_id=approval.run_id,
                 reverts_id=approval.reverts_id,
                 group=approval.group or None,
                 revertible=revertible,

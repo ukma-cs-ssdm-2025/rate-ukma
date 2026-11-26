@@ -28,6 +28,7 @@ export interface ReviewSlice {
 interface StepCopy {
 	title: string;
 	hint: string;
+	column: string;
 	slice: ReviewSlice;
 	decidable: boolean;
 }
@@ -41,42 +42,49 @@ export const STEP_COPY = {
 	links: {
 		title: "Звʼязки без змін на сайті",
 		hint: "Записи отримають id з САЗ. Студенти нічого не помітять.",
+		column: "Що це",
 		slice: slice("link", { match: "exact" }),
 		decidable: true,
 	},
 	links_check: {
 		title: "Звʼязки, які варто перевірити",
 		hint: "Назва на сайті й у САЗ різна, перевірте, що це та сама дисципліна.",
+		column: "Назва на сайті й у САЗ",
 		slice: slice("link", { match: "review" }),
 		decidable: true,
 	},
 	new: {
 		title: "Нові записи",
 		hint: "Зʼявляться на сайті: нові семестри, дисципліни, кафедри.",
+		column: "Що зʼявиться",
 		slice: slice("new"),
 		decidable: true,
 	},
 	changes: {
 		title: "Зміни на сторінках без оцінок",
 		hint: "Назва, кафедра чи кредити зміняться там, де ще ніхто не оцінював.",
+		column: "Що зміниться",
 		slice: slice("change", { rated: false }),
 		decidable: true,
 	},
 	changes_rated: {
 		title: "Зміни на сторінках з оцінками",
 		hint: "Студенти це помітять. Перевірте незвичні значення.",
+		column: "Що зміниться",
 		slice: slice("change", { rated: true }),
 		decidable: true,
 	},
 	questions: {
 		title: "Питання",
 		hint: "Чи це одна дисципліна, куди належить семестр. Відповіді поки в консолі.",
+		column: "Питання",
 		slice: slice("mapping"),
 		decidable: false,
 	},
 	removed: {
 		title: "Зникли з САЗ",
 		hint: "Сайт їх не видаляє, лише повідомляє.",
+		column: "Що зникло",
 		slice: slice("removed"),
 		decidable: false,
 	},
@@ -179,8 +187,18 @@ export function previewLines(preview: SyncPreviewResponse): PreviewLines {
 	);
 	if (counts.remaining > 0) {
 		notes.push(
-			`Ще ${formatCount(counts.remaining)} залишаться на наступний раз: за один раз сайт застосовує до 5 000.`,
+			`Ще ${formatCount(counts.remaining)} піде наступними частинами по 5 000, сайт зробить це сам.`,
 		);
 	}
 	return { main, notes };
+}
+
+const PARTS = { one: "частину", few: "частини", many: "частин" };
+
+export function batchDoneText(
+	progress: Readonly<{ applied: number; parts: number }>,
+	stopped: boolean,
+): string {
+	const head = `Застосовано ${countWith(progress.applied, CHANGES_ACCUSATIVE)} за ${countWith(progress.parts, PARTS)}.`;
+	return stopped ? `${head} Ви зупинили, решта чекає на сторінці кроку.` : head;
 }

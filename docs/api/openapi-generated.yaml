@@ -4063,6 +4063,11 @@ paths:
       summary: List the changes waiting for approval
       parameters:
       - in: query
+        name: approval
+        schema:
+          type: integer
+        description: Only changes this journal decision applied or rejected
+      - in: query
         name: blanks
         schema:
           type: boolean
@@ -4913,6 +4918,11 @@ paths:
         group, kind and state. Superusers only.
       summary: List one sync run's changes
       parameters:
+      - in: query
+        name: approval
+        schema:
+          type: integer
+        description: Only changes this journal decision applied or rejected
       - in: query
         name: group
         schema:
@@ -8026,6 +8036,9 @@ components:
         approval_id:
           type: integer
           nullable: true
+        run_id:
+          type: integer
+          nullable: true
         reverts_id:
           type: integer
           nullable: true
@@ -8051,6 +8064,7 @@ components:
       - reverted
       - revertible
       - reverts_id
+      - run_id
       - when
       - who
     SyncJournalEntryOutcomeEnum:
