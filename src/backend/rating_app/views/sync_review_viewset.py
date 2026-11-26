@@ -8,7 +8,7 @@ from typing import Any
 
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,17 +25,23 @@ from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
 from rating_app.models.sync import (
     SyncApproval,
     SyncChange,
+    SyncChangeGroup,
     SyncChangeState,
     SyncRun,
 )
 from rating_app.serializers.sync_review import (
     SyncApprovalListResponseSerializer,
+    SyncQuestionAnswerRequestSerializer,
+    SyncQuestionAnswerResponseSerializer,
     SyncQuestionListResponseSerializer,
+    SyncQuestionSettleResponseSerializer,
     SyncSummarySerializer,
 )
-from rating_app.sync import questions, review
+from rating_app.sync import answers, console, questions, review
 from rating_app.views.responses import (
     R_SYNC_APPROVALS,
+    R_SYNC_QUESTION_ANSWER,
+    R_SYNC_QUESTION_SETTLE,
     R_SYNC_QUESTIONS,
     R_SYNC_SUMMARY,
 )
@@ -89,6 +95,66 @@ class SyncReviewViewSet(SyncViewSetBase):
         )
         payload = SyncQuestionListResponseSerializer(
             {"items": [questions.payload(item) for item in items], "next_after": next_after}
+        )
+        return Response(payload.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Answer a mapping question",
+        description="Record the staff answer to one waiting question: `keep_apart` or "
+        "`merge` with `into` for a merge, `keep` or `move`, `keep` or `relink`, or `place` "
+        "with `into`. A later answer replaces an earlier one. Keeping apart or keeping "
+        "closes the question; a merge, move, relink or place waits for an apply of the "
+        "questions. 404 for a change that is not a waiting question. Superusers only.",
+        request=SyncQuestionAnswerRequestSerializer,
+        responses=R_SYNC_QUESTION_ANSWER,
+        operation_id="ukma_data_sync_question_answer",
+    )
+    def answer(self, request: Request, change_id: int) -> Response:
+        body = SyncQuestionAnswerRequestSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        change = SyncChange.objects.filter(
+            pk=change_id, group=SyncChangeGroup.MAPPING, state=SyncChangeState.PROPOSED
+        ).first()
+        if change is None:
+            raise NotFound("Питання не знайдено")
+        choice = str(body.validated_data["answer"])
+        into = body.validated_data.get("into")
+        try:
+            decision = answers.answer_change(
+                change, choice, request.user, into=None if into is None else str(into)
+            )
+        except answers.MappingAnswerError as exc:
+            raise ValidationError({"answer": [str(exc)]}) from exc
+        logger.info(
+            "sync_change_answered",
+            change_id=change.pk,
+            kind=change.kind,
+            answer=decision.answer,
+            decision_id=decision.pk,
+            user_id=request.user.pk,
+        )
+        payload = SyncQuestionAnswerResponseSerializer(
+            {"detail": _answer_detail(choice), "decision_id": decision.pk}
+        )
+        return Response(payload.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Keep apart every unrated question",
+        description="Answer each waiting question of the current catalog run that touches "
+        "no ratings and has no live answer: a merge gets `keep_apart`, a move or relink "
+        "gets `keep`. Placements stay. Superusers only.",
+        request=None,
+        responses=R_SYNC_QUESTION_SETTLE,
+        operation_id="ukma_data_sync_questions_settle_unrated",
+    )
+    def settle_unrated(self, request: Request) -> Response:
+        count = answers.keep_apart_unrated(request.user)
+        logger.info("sync_questions_settled", count=count, user_id=request.user.pk)
+        payload = SyncQuestionSettleResponseSerializer(
+            {
+                "detail": f"Закрито {console.questions_word(count)} без оцінок.",
+                "count": count,
+            }
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 
@@ -197,3 +263,17 @@ def _csv_cell(value: Any) -> Any:
     if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
         return "'" + value
     return value
+
+
+ANSWER_DETAIL = {
+    "keep_apart": "Записано: лишити окремо. Питання закрито.",
+    "keep": "Записано: залишити як є. Питання закрито.",
+    "merge": "Записано: об'єднати. Оцінки перейдуть, коли ви застосуєте відповіді.",
+    "move": "Записано: перенести. Семестр перейде, коли ви застосуєте відповіді.",
+    "relink": "Записано: переприв'язати. Зміниться, коли ви застосуєте відповіді.",
+    "place": "Записано: прикріпити. Семестр зʼявиться, коли ви застосуєте відповіді.",
+}
+
+
+def _answer_detail(answer: str) -> str:
+    return ANSWER_DETAIL.get(answer, "Відповідь записано.")

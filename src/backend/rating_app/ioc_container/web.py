@@ -454,6 +454,16 @@ def sync_questions_view():
 
 
 @once
+def sync_question_answer_view():
+    return SyncReviewViewSet.as_view({"post": "answer"})
+
+
+@once
+def sync_questions_settle_view():
+    return SyncReviewViewSet.as_view({"post": "settle_unrated"})
+
+
+@once
 def sync_run_approvals_view():
     return SyncReviewViewSet.as_view({"get": "run_approvals"})
 
@@ -715,6 +725,16 @@ def rest_urlpatterns() -> list:
             "ukma-data/sync/questions/",
             sync_questions_view(),
             name="ukma-data-sync-questions",
+        ),
+        path(
+            "ukma-data/sync/questions/<int:change_id>/answer/",
+            sync_question_answer_view(),
+            name="ukma-data-sync-question-answer",
+        ),
+        path(
+            "ukma-data/sync/questions/settle-unrated/",
+            sync_questions_settle_view(),
+            name="ukma-data-sync-questions-settle",
         ),
         path(
             "ukma-data/sync/runs/<str:run_id>/approvals/",

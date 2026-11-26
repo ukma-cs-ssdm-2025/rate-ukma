@@ -192,7 +192,6 @@ const dayMonth = new Intl.DateTimeFormat("uk-UA", {
 export const receivedText = (iso: string): string =>
 	`Отримано ${dayMonth.format(new Date(iso))}`;
 
-
 const openedTime = (item: UkmaDataReviewCase): number =>
 	Date.parse(item.opened_at);
 

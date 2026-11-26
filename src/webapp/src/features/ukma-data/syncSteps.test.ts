@@ -67,9 +67,7 @@ describe("inboxSteps", () => {
 		);
 
 		// Assert
-		expect(questions?.text).toBe(
-			"3 з оцінками, 15 без оцінок. Відповіді поки в консолі.",
-		);
+		expect(questions?.text).toBe("3 з оцінками, 15 без оцінок.");
 	});
 
 	it("counts a question with only study plans as without ratings", () => {
@@ -87,9 +85,7 @@ describe("inboxSteps", () => {
 		);
 
 		// Assert
-		expect(questions?.text).toBe(
-			"3 з оцінками, 16 без оцінок. Відповіді поки в консолі.",
-		);
+		expect(questions?.text).toBe("3 з оцінками, 16 без оцінок.");
 	});
 
 	it("names what is new by kind", () => {

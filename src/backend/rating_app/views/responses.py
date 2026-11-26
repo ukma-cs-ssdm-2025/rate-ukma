@@ -48,7 +48,9 @@ from rating_app.serializers.sync_actions import (
 )
 from rating_app.serializers.sync_review import (
     SyncApprovalListResponseSerializer,
+    SyncQuestionAnswerResponseSerializer,
     SyncQuestionListResponseSerializer,
+    SyncQuestionSettleResponseSerializer,
     SyncSummarySerializer,
 )
 from rating_app.serializers.ukma_data import (
@@ -439,6 +441,8 @@ R_SYNC_QUESTIONS = sync_responses(
     include_400=True,
     include_404=True,
 )
+R_SYNC_QUESTION_ANSWER = sync_responses(SyncQuestionAnswerResponseSerializer, include_404=True)
+R_SYNC_QUESTION_SETTLE = sync_responses(SyncQuestionSettleResponseSerializer, include_400=False)
 R_SYNC_APPROVALS = sync_responses(
     forced_singular_serializer(SyncApprovalListResponseSerializer),
     include_400=True,

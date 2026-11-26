@@ -439,7 +439,7 @@ def left_reason(item: ChangeOutcome) -> tuple[str, str]:
     if item.change.kind in MAPPING_KINDS:
         return (
             "mapping_unanswered",
-            "питання без відповіді: спершу дайте відповідь (catalog_sync answer)",
+            "питання без відповіді: спершу дайте відповідь на /data або в консолі",
         )
     return "not_ready", "пропущено цього разу (рядок на сайті змінився або вибірку звужено)"
 

@@ -1,4 +1,9 @@
+import { useState } from "react";
+
+import { useQueryClient } from "@tanstack/react-query";
 import { HelpCircle } from "lucide-react";
+
+import { Button } from "@/components/ui/Button";
 
 import {
 	Empty,
@@ -9,8 +14,14 @@ import {
 } from "@/components/ui/Empty";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { AnswerEnum, SyncQuestion } from "@/lib/api/generated";
-import { useUkmaDataSyncQuestionsList } from "@/lib/api/generated";
+import {
+	useUkmaDataSyncQuestionAnswer,
+	useUkmaDataSyncQuestionsList,
+} from "@/lib/api/generated";
 import { kindLabel } from "../sync";
+import { actionFailure } from "../syncActions";
+import { invalidateSyncQueries } from "../syncQueries";
+import { ApplyAnswers, SettleUnrated } from "./SyncQuestionActions";
 import { countWith, RATINGS } from "../syncFormat";
 import { NO_RETRY } from "../syncOverview";
 import { Ago } from "./Term";
@@ -50,7 +61,10 @@ const ANSWER_WORDS = {
 
 interface QuestionCopy {
 	title: string;
-	answers: string;
+	pick: AnswerEnum | null;
+	pickLabel: string;
+	other: AnswerEnum | null;
+	otherLabel: string;
 }
 
 function questionText(kind: string): QuestionCopy {
@@ -58,27 +72,50 @@ function questionText(kind: string): QuestionCopy {
 		case "merge_courses":
 			return {
 				title: "Це одна дисципліна?",
-				answers: "keep_apart або merge --into <id>",
+				pick: "merge",
+				pickLabel: "Обʼєднати сюди",
+				other: "keep_apart",
+				otherLabel: "Лишити окремо",
 			};
 		case "move_offering":
 			return {
 				title: "Перенести семестр на іншу сторінку?",
-				answers: "keep або move",
+				pick: null,
+				pickLabel: "",
+				other: "keep",
+				otherLabel: "Залишити як є",
 			};
 		case "relink_course":
 			return {
 				title: "Звʼязати сторінку з іншою дисципліною САЗ?",
-				answers: "keep або relink",
+				pick: null,
+				pickLabel: "",
+				other: "keep",
+				otherLabel: "Залишити як є",
 			};
 		case "place_offering":
 			return {
 				title: "До якої сторінки належить семестр?",
-				answers: "place --into <id>",
+				pick: "place",
+				pickLabel: "Прикріпити сюди",
+				other: null,
+				otherLabel: "",
 			};
 		default:
-			return { title: kindLabel(kind), answers: "" };
+			return {
+				title: kindLabel(kind),
+				pick: null,
+				pickLabel: "",
+				other: null,
+				otherLabel: "",
+			};
 	}
 }
+
+const DIRECT_ANSWER = {
+	move_offering: { answer: "move", label: "Перенести" },
+	relink_course: { answer: "relink", label: "Переприв'язати" },
+} satisfies Record<string, { answer: AnswerEnum; label: string }>;
 
 function yearsText(years: readonly number[]): string {
 	const first = years[0];
@@ -92,7 +129,12 @@ function yearsText(years: readonly number[]): string {
 function CourseColumn({
 	course,
 	suggested,
-}: Readonly<{ course: SyncQuestion["courses"][number]; suggested: boolean }>) {
+	action,
+}: Readonly<{
+	course: SyncQuestion["courses"][number];
+	suggested: boolean;
+	action: React.ReactNode;
+}>) {
 	const facts = [
 		course.department,
 		yearsText(course.years),
@@ -110,15 +152,59 @@ function CourseColumn({
 			{suggested ? (
 				<p className="text-sm text-muted-foreground">Пропонуємо лишити цю</p>
 			) : null}
+			{action}
 		</div>
 	);
 }
 
+type Answer = { answer: AnswerEnum; into: string | null };
+
+const sameAnswer = (question: SyncQuestion, answer: Answer): boolean =>
+	question.answer?.answer === answer.answer &&
+	(answer.into === null || question.answer.into === answer.into);
+
 function QuestionCard({ question }: Readonly<{ question: SyncQuestion }>) {
+	const queryClient = useQueryClient();
+	const [error, setError] = useState<string | null>(null);
+	const [note, setNote] = useState<string | null>(null);
+	const answer = useUkmaDataSyncQuestionAnswer({
+		mutation: {
+			onSuccess: (response) => {
+				setError(null);
+				setNote(response.detail);
+			},
+			onError: (failure) => setError(actionFailure(failure).text),
+			onSettled: () => invalidateSyncQueries(queryClient),
+		},
+	});
+	const copy = questionText(question.kind);
+	const send = (choice: Answer) =>
+		answer.mutate({
+			changeId: question.id,
+			data: { answer: choice.answer, into: choice.into },
+		});
+	const button = (choice: Answer, label: string) => {
+		const chosen = sameAnswer(question, choice);
+		return (
+			<Button
+				size="sm"
+				variant={chosen ? "default" : "outline"}
+				aria-pressed={chosen}
+				disabled={answer.isPending}
+				onClick={() => send(choice)}
+			>
+				{label}
+			</Button>
+		);
+	};
+	const direct =
+		question.kind === "move_offering" || question.kind === "relink_course"
+			? DIRECT_ANSWER[question.kind]
+			: null;
 	return (
 		<div className="overflow-hidden rounded-xl border bg-card">
 			<div className="space-y-1 px-4 py-3 sm:px-5">
-				<h3 className="font-medium">{questionText(question.kind).title}</h3>
+				<h3 className="font-medium">{copy.title}</h3>
 				{question.ukma_title ? (
 					<p className="text-sm text-muted-foreground">
 						У САЗ: {question.ukma_title}
@@ -133,25 +219,47 @@ function QuestionCard({ question }: Readonly<{ question: SyncQuestion }>) {
 						key={course.id}
 						course={course}
 						suggested={course.id === question.suggested_into}
+						action={
+							copy.pick === null ? null : (
+								<div className="pt-1">
+									{button(
+										{ answer: copy.pick, into: course.id },
+										copy.pickLabel,
+									)}
+								</div>
+							)
+						}
 					/>
 				))}
 			</div>
-			<p className="border-t px-4 py-3 text-sm text-muted-foreground sm:px-5">
-				{question.answer === null ? (
-					<>
-						Відповідь у консолі:{" "}
-						<code className="break-all">
-							catalog_sync answer {question.id}{" "}
-							{questionText(question.kind).answers}
-						</code>
-					</>
-				) : (
-					<>
-						Відповідь: {ANSWER_WORDS[question.answer.answer]},{" "}
-						<Ago iso={question.answer.decided_at} />.
-					</>
+			<div className="space-y-2 border-t px-4 py-3 text-sm sm:px-5">
+				{direct !== null || copy.other !== null ? (
+					<div className="flex flex-wrap gap-2">
+						{direct === null
+							? null
+							: button({ answer: direct.answer, into: null }, direct.label)}
+						{copy.other === null
+							? null
+							: button({ answer: copy.other, into: null }, copy.otherLabel)}
+					</div>
+				) : null}
+				<p className="text-muted-foreground" aria-live="polite">
+					{note ??
+						(question.answer === null ? (
+							"Відповіді ще немає."
+						) : (
+							<>
+								Відповідь: {ANSWER_WORDS[question.answer.answer]},{" "}
+								<Ago iso={question.answer.decided_at} />.
+							</>
+						))}
+				</p>
+				{error === null ? null : (
+					<p role="alert" className="text-destructive">
+						{error}
+					</p>
 				)}
-			</p>
+			</div>
 		</div>
 	);
 }
@@ -189,6 +297,7 @@ export function SyncQuestionList() {
 	}
 	return (
 		<>
+			<SettleUnrated />
 			<ul className="space-y-3" aria-label="Питання">
 				{items.map((question) => (
 					<li key={question.id}>
@@ -199,9 +308,10 @@ export function SyncQuestionList() {
 			{questions.data?.next_after ? (
 				<p className="text-sm text-muted-foreground">
 					Показано перші {SHOWN}: спершу без відповіді, потім з найбільшою
-					кількістю оцінок. Решту покаже консоль.
+					кількістю оцінок. Решта зʼявиться тут, коли ці отримають відповідь.
 				</p>
 			) : null}
+			<ApplyAnswers />
 		</>
 	);
 }

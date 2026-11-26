@@ -4724,6 +4724,136 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/ukma-data/sync/questions/{change_id}/answer/:
+    post:
+      operationId: ukma_data_sync_question_answer
+      description: 'Record the staff answer to one waiting question: `keep_apart`
+        or `merge` with `into` for a merge, `keep` or `move`, `keep` or `relink`,
+        or `place` with `into`. A later answer replaces an earlier one. Keeping apart
+        or keeping closes the question; a merge, move, relink or place waits for an
+        apply of the questions. 404 for a change that is not a waiting question. Superusers
+        only.'
+      summary: Answer a mapping question
+      parameters:
+      - in: path
+        name: change_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncQuestionAnswerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncQuestionAnswerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncQuestionAnswerRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncQuestionAnswerResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+  /api/v1/ukma-data/sync/questions/settle-unrated/:
+    post:
+      operationId: ukma_data_sync_questions_settle_unrated
+      description: 'Answer each waiting question of the current catalog run that touches
+        no ratings and has no live answer: a merge gets `keep_apart`, a move or relink
+        gets `keep`. Placements stay. Superusers only.'
+      summary: Keep apart every unrated question
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncQuestionSettleResponse'
+          description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/ukma-data/sync/reject/:
     post:
       operationId: ukma_data_sync_reject
@@ -8696,6 +8826,29 @@ components:
       - answer
       - decided_at
       - into
+    SyncQuestionAnswerRequest:
+      type: object
+      properties:
+        answer:
+          $ref: '#/components/schemas/AnswerEnum'
+        into:
+          type: string
+          format: uuid
+          nullable: true
+          description: The page to merge into or place on; one of the question's courses
+      required:
+      - answer
+    SyncQuestionAnswerResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        decision_id:
+          type: integer
+          nullable: true
+      required:
+      - decision_id
+      - detail
     SyncQuestionCourse:
       type: object
       properties:
@@ -8777,6 +8930,16 @@ components:
       - saz_code
       - term
       - year
+    SyncQuestionSettleResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        count:
+          type: integer
+      required:
+      - count
+      - detail
     SyncReasonCount:
       type: object
       properties:

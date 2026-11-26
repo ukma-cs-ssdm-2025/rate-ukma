@@ -211,6 +211,8 @@ export function SyncApplyBar({
 	selected,
 	total,
 	disabled = false,
+	canReject = true,
+	countText,
 	onDecided,
 }: Readonly<{
 	selection: SyncPreviewRequest;
@@ -218,6 +220,8 @@ export function SyncApplyBar({
 	selected: number;
 	total: number;
 	disabled?: boolean;
+	canReject?: boolean;
+	countText?: string;
 	onDecided: () => void;
 }>) {
 	const [applyOpen, setApplyOpen] = useState(false);
@@ -242,29 +246,32 @@ export function SyncApplyBar({
 					className="min-w-0 text-sm whitespace-nowrap tabular-nums"
 					aria-live="polite"
 				>
-					{selected === total ? (
-						<>
-							<span className="hidden sm:inline">Вибрано </span>
-							<span className="sm:hidden">Усі </span>
-							<span className="hidden sm:inline">всі </span>
-							{formatCount(total)}
-						</>
-					) : (
-						<>
-							<span className="hidden sm:inline">Вибрано </span>
-							{formatCount(selected)} з {formatCount(total)}
-						</>
-					)}
+					{countText ??
+						(selected === total ? (
+							<>
+								<span className="hidden sm:inline">Вибрано </span>
+								<span className="sm:hidden">Усі </span>
+								<span className="hidden sm:inline">всі </span>
+								{formatCount(total)}
+							</>
+						) : (
+							<>
+								<span className="hidden sm:inline">Вибрано </span>
+								{formatCount(selected)} з {formatCount(total)}
+							</>
+						))}
 				</p>
 				<div className="ml-auto flex shrink-0 gap-2">
-					<Button
-						variant="ghost"
-						disabled={nothing || reject.isPending}
-						onClick={() => setRejectOpen(true)}
-					>
-						{reject.isPending ? <Spinner /> : null}
-						Не зараз
-					</Button>
+					{canReject ? (
+						<Button
+							variant="ghost"
+							disabled={nothing || reject.isPending}
+							onClick={() => setRejectOpen(true)}
+						>
+							{reject.isPending ? <Spinner /> : null}
+							Не зараз
+						</Button>
+					) : null}
 					<Button disabled={nothing} onClick={() => setApplyOpen(true)}>
 						Застосувати
 					</Button>

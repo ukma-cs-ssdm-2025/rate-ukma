@@ -8,6 +8,7 @@ from django.utils import timezone
 import pytest
 
 from rating_app.models import (
+    CatalogMappingDecision,
     MappingAnswer,
     SyncApprovalOutcome,
     SyncChangeState,
@@ -983,3 +984,70 @@ def test_history_names_a_real_approval_by_the_group_it_applied(
     )
 
     assert response.json()["items"][0]["selection"] == "Нові записи, 2 зміни"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answering_a_question_records_it_and_shows_it_in_the_list(review_fixture, superuser_client):
+    merge = review_fixture["merge"]
+    url = reverse("ukma-data-sync-question-answer", kwargs={"change_id": merge.pk})
+
+    response = superuser_client.post(
+        url, {"answer": "merge", "into": str(review_fixture["rated"].pk)}, format="json"
+    )
+
+    assert response.status_code == 200, response.json()
+    assert response.json()["detail"].startswith("Записано: об'єднати.")
+    decision = CatalogMappingDecision.objects.get(pk=response.json()["decision_id"])
+    assert decision.answer == "merge"
+    listed = superuser_client.get(reverse("ukma-data-sync-questions")).json()["items"]
+    answered = next(item for item in listed if item["id"] == merge.pk)
+    assert answered["answer"]["answer"] == "merge"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answering_refuses_an_answer_that_does_not_fit(review_fixture, superuser_client):
+    merge = review_fixture["merge"]
+    url = reverse("ukma-data-sync-question-answer", kwargs={"change_id": merge.pk})
+
+    wrong = superuser_client.post(url, {"answer": "move"}, format="json")
+    missing = superuser_client.post(
+        reverse("ukma-data-sync-question-answer", kwargs={"change_id": 999999}),
+        {"answer": "keep_apart"},
+        format="json",
+    )
+
+    assert wrong.status_code == 400
+    assert missing.status_code == 404
+    assert not CatalogMappingDecision.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_settle_unrated_keeps_apart_only_questions_without_ratings(
+    review_fixture, superuser_client
+):
+    response = superuser_client.post(reverse("ukma-data-sync-questions-settle"))
+
+    assert response.status_code == 200
+    assert response.json()["count"] == CatalogMappingDecision.objects.count()
+    assert not CatalogMappingDecision.objects.filter(
+        question_key=review_fixture["merge"].key
+    ).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_endpoints_return_403_when_not_superuser(review_fixture, token_client):
+    merge = review_fixture["merge"]
+
+    answer = token_client.post(
+        reverse("ukma-data-sync-question-answer", kwargs={"change_id": merge.pk}),
+        {"answer": "keep_apart"},
+        format="json",
+    )
+    settle = token_client.post(reverse("ukma-data-sync-questions-settle"))
+
+    assert answer.status_code == 403
+    assert settle.status_code == 403

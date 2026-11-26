@@ -6,7 +6,16 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
-import { pending, PENDING_URL, SYNC_URL, titleChange } from "./dataTestData";
+import {
+	pending,
+	PENDING_URL,
+	question,
+	QUESTIONS_URL,
+	summary,
+	SUMMARY_URL,
+	SYNC_URL,
+	titleChange,
+} from "./dataTestData";
 import { decisionCounts, previewFixture } from "./syncActionsTestData";
 import { SyncReviewPage } from "./SyncReviewPage";
 
@@ -252,5 +261,43 @@ describe("/data/sync/preview", () => {
 		expect(
 			screen.queryByRole("button", { name: "Застосувати" }),
 		).not.toBeInTheDocument();
+	});
+
+	it("answers a question on the page and offers to apply the answers", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const answerUrl = `${QUESTIONS_URL}${question.id}/answer/`;
+		mock
+			.onGet(QUESTIONS_URL)
+			.reply(200, { items: [question], next_after: null });
+		mock.onGet(SUMMARY_URL).reply(200, {
+			...summary,
+			answers: { merge: 1, keep_apart: 0, keep: 0, place: 0, move: 0 },
+		});
+		mock.onPost(answerUrl).reply(200, {
+			detail:
+				"Записано: об'єднати. Оцінки перейдуть, коли ви застосуєте відповіді.",
+			decision_id: 7,
+		});
+		renderReview("?step=questions");
+
+		// Act
+		const [first] = await screen.findAllByRole("button", {
+			name: "Обʼєднати сюди",
+		});
+		await user.click(first!);
+
+		// Assert
+		expect(
+			await screen.findByText(
+				"Записано: об'єднати. Оцінки перейдуть, коли ви застосуєте відповіді.",
+			),
+		).toBeInTheDocument();
+		expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({
+			answer: "merge",
+			into: "course-test-2",
+		});
+		expect(screen.getByText("З відповіддю: 1")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Не зараз" })).toBeNull();
 	});
 });
