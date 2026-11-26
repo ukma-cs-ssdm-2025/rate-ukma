@@ -39,8 +39,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 					почалось <Ago iso={run.started_at} />
 					{run.data_updated_at === null ? null : (
 						<>
-							{" "}
-							· дані САЗ станом на <Ago iso={run.data_updated_at} />
+							, дані САЗ станом на <Ago iso={run.data_updated_at} />
 						</>
 					)}
 				</span>
@@ -50,7 +49,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 			) : null}
 			{counts.length > 0 ? (
 				<p className="text-muted-foreground tabular-nums">
-					{counts.join(" · ")}
+					{counts.join(", ")}
 				</p>
 			) : null}
 			{skipped.length > 0 ? (
@@ -61,7 +60,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 							([reason, value]) =>
 								`${skipReasonLabel(reason)} ${formatCount(value.count)}`,
 						)
-						.join(" · ")}
+						.join(", ")}
 				</p>
 			) : null}
 		</div>

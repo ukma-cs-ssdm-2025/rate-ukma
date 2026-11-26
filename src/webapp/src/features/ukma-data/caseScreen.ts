@@ -50,7 +50,7 @@ const WHILE_OPEN = "Поки справа була відкрита";
 const INTERIM_LABELS = new Set([NOW, STATE]);
 
 export const DIFFERENT_PEOPLE =
-	"Якщо це різні люди — залиште справу відкритою; сервіс даних САЗ запитає ще раз, коли з'являться нові дані.";
+	"Якщо це різні люди, залиште справу відкритою: UKMA Data запитає ще раз, коли з'являться нові дані.";
 
 export function caseSides(
 	reviewCase: UkmaDataReviewCase,
@@ -178,7 +178,7 @@ export function caseMeanwhile(reviewCase: UkmaDataReviewCase): string {
 		case "open":
 			return `Поки рішення немає, ${MEANWHILE[reviewCase.kind]}`;
 		case "decided":
-			return "Справу вирішено в сервісі даних САЗ; вище — що показували, поки вона була відкрита.";
+			return "Справу вирішено в UKMA Data. Вище те, що показували, поки вона була відкрита.";
 		case "obsolete":
 			return "Справа більше не актуальна: дані в САЗ змінились, і питання зникло.";
 	}

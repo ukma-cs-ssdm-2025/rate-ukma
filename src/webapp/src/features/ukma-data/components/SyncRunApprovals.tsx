@@ -42,7 +42,7 @@ function countsLine(approval: SyncApprovalDetail): string {
 			`перенесено ${countWith(approval.ratings_moved, RATINGS)}, ${countWith(approval.plans_moved, PLANS)}`,
 		);
 	}
-	return parts.join(" · ");
+	return parts.join(", ");
 }
 
 function ApprovalItem({
@@ -61,8 +61,7 @@ function ApprovalItem({
 				</span>
 				<span className="break-words">{approval.selection}</span>
 				<span className="text-muted-foreground">
-					· {approverName(approval.user_email)},{" "}
-					<Ago iso={approval.created_at} />
+					{approverName(approval.user_email)}, <Ago iso={approval.created_at} />
 				</span>
 			</div>
 			<p className="text-muted-foreground tabular-nums">

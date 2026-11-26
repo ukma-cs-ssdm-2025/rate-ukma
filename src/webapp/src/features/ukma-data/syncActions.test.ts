@@ -16,6 +16,7 @@ import {
 	journalEntryNumber,
 	journalNote,
 	journalTitle,
+	journalWho,
 	REVERT_CHECK_LOST_TEXT,
 	revertFailureText,
 	revertSummary,
@@ -89,6 +90,13 @@ describe("journal words", () => {
 			`Ще ${formatCount(24_457)} у наступних частинах, 12 чекають на інші зміни.`,
 		);
 		expect(journalNote(journalApply)).toBe("");
+	});
+
+	it("names the author by the part of the email before the at sign", () => {
+		expect(journalWho({ ...journalApply, who: "o.testenko@ukma.edu.ua" })).toBe(
+			"o.testenko",
+		);
+		expect(journalWho({ ...journalApply, who: null })).toBe("автоматично");
 	});
 
 	it("marks an automatic apply in words", () => {

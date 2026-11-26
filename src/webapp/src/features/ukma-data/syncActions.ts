@@ -121,6 +121,9 @@ const modeName = (value: SyncPolicyModeEnum | null): string =>
 const isAnswer = (value: string): value is keyof typeof ANSWER_LABELS =>
 	Object.hasOwn(ANSWER_LABELS, value);
 
+export const journalWho = (entry: SyncJournalEntry): string =>
+	entry.who === null ? "автоматично" : entry.who.split("@")[0] || entry.who;
+
 const autoSuffix = (entry: SyncJournalEntry): string =>
 	entry.who === null ? " (автоматично)" : "";
 

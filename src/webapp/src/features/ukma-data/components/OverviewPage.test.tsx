@@ -141,7 +141,7 @@ describe("/data overview", () => {
 
 		// Assert
 		expect(await screen.findByText(/не вдалася/)).toHaveTextContent(
-			"UKMA Data віддала неповні дані. Нижче — дані останнього вдалого.",
+			"UKMA Data віддала неповні дані. Нижче дані останнього вдалого.",
 		);
 	});
 

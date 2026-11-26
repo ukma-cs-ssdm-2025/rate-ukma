@@ -273,6 +273,9 @@ export function countsSummary(counts: unknown): string[] {
 		return [];
 	}
 	return Object.keys(root).flatMap((key) => {
+		if (key === "skipped") {
+			return [];
+		}
 		const value = read(root, key);
 		const label = isGroup(key) ? GROUP_LABELS[key] : kindLabel(key);
 		if (typeof value === "number") {
@@ -284,7 +287,7 @@ export function countsSummary(counts: unknown): string[] {
 		return Object.keys(value).flatMap((state) => {
 			const count = read(value, state);
 			return typeof count === "number"
-				? [`${label} · ${stateLabel(state)}: ${count}`]
+				? [`${label}, ${stateLabel(state).toLowerCase()}: ${count}`]
 				: [];
 		});
 	});

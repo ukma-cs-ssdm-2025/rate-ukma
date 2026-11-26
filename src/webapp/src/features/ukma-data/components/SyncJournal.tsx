@@ -29,6 +29,7 @@ import {
 	journalEntryNumber,
 	journalNote,
 	journalTitle,
+	journalWho,
 	decisionErrorText,
 } from "../syncActions";
 import { countWith, formatCount } from "../syncFormat";
@@ -165,7 +166,7 @@ function JournalRow({
 						) : null}
 					</p>
 					<p className="text-muted-foreground">
-						{entry.who ?? "автоматично"}, <Ago iso={entry.when} />
+						{journalWho(entry)}, <Ago iso={entry.when} />
 						{number === "—" ? null : `, ${number}`}
 					</p>
 					{note.length > 0 ? (
@@ -236,7 +237,7 @@ function JournalBatch({
 						) : null}
 					</p>
 					<p className="text-muted-foreground">
-						{head.who ?? "автоматично"}, <Ago iso={head.when} />
+						{journalWho(head)}, <Ago iso={head.when} />
 					</p>
 					{note.length > 0 ? (
 						<p className="text-muted-foreground">{note}</p>

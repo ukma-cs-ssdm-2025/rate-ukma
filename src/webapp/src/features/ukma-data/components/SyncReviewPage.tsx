@@ -6,6 +6,13 @@ import { ArrowLeft } from "lucide-react";
 import { useQueryState } from "nuqs";
 
 import { Button } from "@/components/ui/Button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import type {
@@ -32,6 +39,8 @@ import { UkmaDataError } from "./UkmaDataError";
 
 const ALL_FIELDS = "all";
 
+const SEGMENT_FIELDS = 5;
+
 function FieldFilter({
 	page,
 	field,
@@ -41,24 +50,57 @@ function FieldFilter({
 	field: string | null;
 	onChange: (field: string | null) => void;
 }>) {
-	const fields = Object.entries(page.changed_fields);
+	const fields = Object.entries(page.changed_fields).sort(
+		([, left], [, right]) => right - left,
+	);
 	if (fields.length < 2) {
 		return null;
 	}
+	const items: readonly { value: string; label: string; count?: number }[] = [
+		{ value: ALL_FIELDS, label: "Усі поля" },
+		...fields.map(([name, count]) => ({
+			value: name,
+			label: fieldLabel(name),
+			count,
+		})),
+	];
+	const pick = (value: string) => onChange(value === ALL_FIELDS ? null : value);
+	if (fields.length <= SEGMENT_FIELDS) {
+		return (
+			<DataSegments
+				label="Яке поле змінюється"
+				value={field ?? ALL_FIELDS}
+				onChange={pick}
+				items={items}
+			/>
+		);
+	}
 	return (
-		<DataSegments
-			label="Яке поле змінюється"
-			value={field ?? ALL_FIELDS}
-			onChange={(value) => onChange(value === ALL_FIELDS ? null : value)}
-			items={[
-				{ value: ALL_FIELDS, label: "Усі поля" },
-				...fields.map(([name, count]) => ({
-					value: name,
-					label: fieldLabel(name),
-					count,
-				})),
-			]}
-		/>
+		<div className="flex flex-wrap items-center gap-2 text-sm">
+			<span id="sync-field-filter" className="text-muted-foreground">
+				Яке поле змінюється
+			</span>
+			<Select value={field ?? ALL_FIELDS} onValueChange={pick}>
+				<SelectTrigger
+					aria-labelledby="sync-field-filter"
+					className="h-9 w-fit min-w-48"
+				>
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{items.map((item) => (
+						<SelectItem key={item.value} value={item.value}>
+							{item.label}
+							{item.count === undefined ? null : (
+								<span className="ml-2 text-muted-foreground tabular-nums">
+									{formatCount(item.count)}
+								</span>
+							)}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		</div>
 	);
 }
 

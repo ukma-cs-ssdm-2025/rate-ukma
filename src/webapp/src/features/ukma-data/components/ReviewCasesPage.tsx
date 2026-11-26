@@ -65,7 +65,7 @@ export function ReviewCasesPage() {
 							<EmptyDescription>
 								{filters.kind === "course_match" ||
 								filters.kind === "instructor_match"
-									? "Сервіс даних САЗ поки не відкриває справ цього типу."
+									? "UKMA Data поки не відкриває справ цього типу."
 									: "Усі записи, які прийшли з САЗ, уже зіставлено."}
 							</EmptyDescription>
 						</EmptyHeader>

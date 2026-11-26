@@ -88,10 +88,10 @@ export const TERMS = {
 	},
 	console: {
 		label: "консолі",
-		hint: "Адміністратор просить Claude показати зміни, перевіряє список і каже «ок». Claude застосовує їх командою manage.py catalog_sync. Кроки — у docs/runbooks/catalog-sync-console.md.",
+		hint: "Адміністратор просить Claude показати зміни, перевіряє список і каже «ок». Claude застосовує їх командою manage.py catalog_sync. Кроки описано в docs/runbooks/catalog-sync-console.md.",
 	},
 	cases: {
 		label: "справ",
-		hint: "Записи, які UKMA Data не змогла зіставити сама, наприклад студент, схожий на вже відомого. Їх вирішують у консолі UKMA Data.",
+		hint: "Записи, які UKMA Data не змогла зіставити сама, наприклад студент, схожий на вже відомого. Частину вирішують тут, решту поки лише в самій UKMA Data.",
 	},
 } satisfies Record<TermName, TermCopy>;

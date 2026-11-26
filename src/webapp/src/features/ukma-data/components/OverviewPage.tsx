@@ -34,7 +34,7 @@ function LatestFailure({
 	return (
 		<p className="text-sm text-destructive">
 			Остання спроба читання <Ago iso={latest.started_at} /> не вдалася:{" "}
-			{failedRunLabel(latest.error)}. Нижче — дані останнього вдалого. Якщо так
+			{failedRunLabel(latest.error)}. Нижче дані останнього вдалого. Якщо так
 			буде й завтра, скажіть власнику UKMA Data.
 		</p>
 	);

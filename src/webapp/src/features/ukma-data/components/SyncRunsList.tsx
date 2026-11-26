@@ -57,7 +57,7 @@ function RunRow({
 					</span>
 				</div>
 				{counts.length > 0 ? (
-					<p className="text-sm text-muted-foreground">{counts.join(" · ")}</p>
+					<p className="text-sm text-muted-foreground">{counts.join(", ")}</p>
 				) : null}
 				{run.error ? (
 					<p className="text-sm text-destructive">

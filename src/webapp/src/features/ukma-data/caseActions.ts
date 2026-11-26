@@ -34,7 +34,7 @@ interface Confirm {
 export const mergeLabel = (into: string): string => `Об'єднати з ${into}`;
 
 export const ONLY_IN_SERVICE =
-	"Це рішення поки можна прийняти лише в самому сервісі даних САЗ: він ще не дає зробити це звідси.";
+	"Це рішення поки можна прийняти лише в самій UKMA Data: вона ще не дає зробити це звідси.";
 
 export function decideConfirm(reviewCase: UkmaDataReviewCase): Confirm {
 	return {

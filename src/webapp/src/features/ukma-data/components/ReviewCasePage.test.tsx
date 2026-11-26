@@ -142,7 +142,7 @@ describe("/data/cases/$caseId", () => {
 		).toBeInTheDocument();
 		expect(screen.getByText(/Справа 1 з 1/)).toBeInTheDocument();
 		expect(
-			screen.getByText("Що означає кожне рішення в сервісі даних САЗ:"),
+			screen.getByText("Що означає кожне рішення в UKMA Data:"),
 		).toBeInTheDocument();
 	});
 
@@ -259,9 +259,7 @@ describe("/data/cases/$caseId", () => {
 			),
 		).toBeInTheDocument();
 		expect(screen.getByText("Осінь 2030")).toBeInTheDocument();
-		expect(
-			screen.getByText(/лише в самому сервісі даних САЗ/),
-		).toBeInTheDocument();
+		expect(screen.getByText(/лише в самій UKMA Data/)).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: /Прибрати/ })).toBeNull();
 	});
 
