@@ -62,7 +62,7 @@ def in_group(changes: QuerySet[SyncChange], group: str) -> QuerySet[SyncChange]:
 
 _COURSE_KINDS = frozenset({"link_course", "change_course", "relink_course", "removed_course"})
 _OFFERING_KINDS = frozenset({"link_offering", "change_offering", "removed_offering"})
-_LIST_FIELDS = frozenset({"terms", "specialities_added"})
+_NO_PAIRS = frozenset({"specialities", field_pairs.OTHER_FIELD})
 _ANSWERS: tuple[str, ...] = ("merge", "keep_apart", "keep", "place", "move")
 
 STEP_ORDER: tuple[tuple[str, str], ...] = (
@@ -319,21 +319,19 @@ def _changes_word(count: int) -> str:
 def scalar_pairs(
     rows: Sequence[tuple[dict[str, Any], dict[str, Any], int]],
 ) -> dict[str, dict[str, Any]]:
-    """Per changed field: how many changes, how many rated, and the top value pairs."""
+    """Per changed field, as the review list counts it: changes, rated ones, top value pairs."""
     facet: dict[str, dict[str, Any]] = {}
     pairs: dict[str, Counter[tuple[str, str]]] = defaultdict(Counter)
     for after, before, ratings in rows:
-        for name in changed_fields(after):
+        changed = field_pairs.value_pairs(after, before)
+        for name in {name for name, _, _ in changed}:
             entry = facet.setdefault(name, {"count": 0, "rated": 0, "pairs": pairs[name]})
             entry["count"] += 1
             if ratings > 0:
                 entry["rated"] += 1
-            if name in _LIST_FIELDS:
-                continue
-            value = after.get(name)
-            old = before.get(name)
-            if _is_scalar(value) and _is_scalar(old):
-                pairs[name][(_as_text(old), _as_text(value))] += 1
+        for name, old, new in changed:
+            if name not in _NO_PAIRS:
+                pairs[name][(old, new)] += 1
     for entry in facet.values():
         counter = cast(Counter[tuple[str, str]], entry["pairs"])
         entry["top_pairs"] = [
@@ -344,14 +342,6 @@ def scalar_pairs(
         ]
         del entry["pairs"]
     return facet
-
-
-def _is_scalar(value: object) -> bool:
-    return value is None or isinstance(value, (str, int, float, bool))
-
-
-def _as_text(value: object) -> str:
-    return "" if value is None else str(value)
 
 
 def summary_payload(run: SyncRun) -> dict[str, Any]:

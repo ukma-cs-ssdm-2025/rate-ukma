@@ -162,6 +162,22 @@ class SyncQuestionListResponseSerializer(serializers.Serializer):
     next_after = serializers.CharField(allow_null=True)
 
 
+class SyncQuestionAnswerRequestSerializer(serializers.Serializer):
+    answer = serializers.ChoiceField(choices=MappingAnswer.choices)
+    into = serializers.UUIDField(required=False, allow_null=True, default=None)
+    dry_run = serializers.BooleanField(default=True)
+
+
+class SyncQuestionAnswerResponseSerializer(serializers.Serializer):
+    change_id = serializers.IntegerField()
+    answer = serializers.ChoiceField(choices=MappingAnswer.choices)
+    into = serializers.UUIDField(allow_null=True)
+    ratings = serializers.IntegerField()
+    settles = serializers.BooleanField()
+    dry_run = serializers.BooleanField()
+    detail = serializers.CharField()
+
+
 class SyncMergedCourseSerializer(serializers.Serializer):
     from_id = serializers.CharField()
     into_id = serializers.CharField()

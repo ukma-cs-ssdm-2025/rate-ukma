@@ -89,7 +89,8 @@ class SyncChangeSerializer(serializers.Serializer):
 
     @extend_schema_field(SyncChangeViewSerializer())
     def get_view(self, change: SyncChange) -> dict[str, Any]:
-        return asdict(change_view(change))
+        semesters = self.context.get("link_semesters", {})
+        return asdict(change_view(change, semesters.get(change.id)))
 
 
 class SyncPolicySerializer(serializers.Serializer):
@@ -112,6 +113,7 @@ class SyncPolicyChangeSerializer(serializers.Serializer):
     new_mode = serializers.ChoiceField(choices=SyncPolicyMode.choices, read_only=True)
     user = serializers.IntegerField(read_only=True, source="user_id")
     user_email = serializers.EmailField(read_only=True, source="user.email")
+    user_name = serializers.CharField(read_only=True, source="user.username", allow_null=True)
     changed_at = serializers.DateTimeField(read_only=True)
 
 

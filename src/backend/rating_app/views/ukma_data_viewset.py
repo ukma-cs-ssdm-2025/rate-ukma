@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Any, cast
 
+from django.db.models import Count
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -24,6 +25,7 @@ from rating_app.exception.ukma_data_exceptions import (
     UkmaDataUnavailableError,
 )
 from rating_app.ioc_container.common import pydantic_to_openapi_request_mapper
+from rating_app.models import CourseOffering
 from rating_app.models.sync import (
     UkmaDataDecision,
     UkmaDataDecisionAction,
@@ -32,6 +34,8 @@ from rating_app.models.sync import (
 from rating_app.serializers.ukma_data import (
     UkmaDataCourseMergeRequestSerializer,
     UkmaDataDecisionResponseSerializer,
+    UkmaDataSiteOfferingsRequestSerializer,
+    UkmaDataSiteOfferingsResponseSerializer,
 )
 from rating_app.services.ukma_data_service import UkmaDataService
 from rating_app.views.responses import (
@@ -42,7 +46,9 @@ from rating_app.views.responses import (
     R_UKMA_DATA_OFFERINGS,
     R_UKMA_DATA_PROGRAMMES,
     R_UKMA_DATA_REVIEW_CASES,
+    R_UKMA_DATA_SITE_OFFERINGS,
     R_UKMA_DATA_STATUS,
+    R_UKMA_DATA_STUDENT_CASE,
     R_UKMA_DATA_TERMS,
 )
 
@@ -167,6 +173,55 @@ class UkmaDataViewSet(viewsets.ViewSet):
             self._query(request, UkmaDataReviewCaseParams)
         )
         return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Read a UKMA Data student case",
+        description="A `student_match` case with the record that opened it and each "
+        "matching student: name, programme, study year and status, so staff can tell "
+        "whether they are one person. Another kind of case answers 409. Superusers only.",
+        responses=R_UKMA_DATA_STUDENT_CASE,
+        operation_id="ukma_data_review_case_retrieve",
+    )
+    def student_case(self, request: Request, case_id: str) -> Response:
+        found = self._service().get_student_case(case_id)
+        return Response(found.model_dump(mode="json"), status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Find site offerings by UKMA Data ids",
+        description="The course offerings on this site linked to the given UKMA Data "
+        "offering ids, with their course, semester and rating count, so a "
+        "`removals_held` case can name what it would remove. Reads only this site's "
+        "database. Superusers only.",
+        request=UkmaDataSiteOfferingsRequestSerializer,
+        responses=R_UKMA_DATA_SITE_OFFERINGS,
+        operation_id="ukma_data_site_offerings",
+    )
+    def site_offerings(self, request: Request) -> Response:
+        body = UkmaDataSiteOfferingsRequestSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        ids = list(dict.fromkeys(cast(dict[str, Any], body.validated_data)["ukma_ids"]))
+        rows = (
+            CourseOffering.objects.filter(ukma_data_id__in=ids)
+            .select_related("course__department", "semester")
+            .annotate(rating_count=Count("ratings"))
+            .order_by("-rating_count", "course__title", "-semester__year")
+        )
+        items = [
+            {
+                "ukma_data_id": offering.ukma_data_id,
+                "course_id": offering.course_id,
+                "title": offering.course.title,
+                "department": offering.course.department.name,
+                "year": offering.semester.year,
+                "term": offering.semester.term,
+                "ratings": offering.rating_count,  # pyright: ignore[reportAttributeAccessIssue]  # set by annotate()
+            }
+            for offering in rows
+        ]
+        payload = UkmaDataSiteOfferingsResponseSerializer(
+            {"items": items, "missing": len(ids) - len(items)}
+        )
+        return Response(payload.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="Decide a UKMA Data review case",

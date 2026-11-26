@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Any
+from typing import Any, cast
 
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,12 +30,15 @@ from rating_app.models.sync import (
 )
 from rating_app.serializers.sync_review import (
     SyncApprovalListResponseSerializer,
+    SyncQuestionAnswerRequestSerializer,
+    SyncQuestionAnswerResponseSerializer,
     SyncQuestionListResponseSerializer,
     SyncSummarySerializer,
 )
-from rating_app.sync import questions, review
+from rating_app.sync import answers, decisions, questions, review
 from rating_app.views.responses import (
     R_SYNC_APPROVALS,
+    R_SYNC_QUESTION_ANSWER,
     R_SYNC_QUESTIONS,
     R_SYNC_SUMMARY,
 )
@@ -89,6 +92,63 @@ class SyncReviewViewSet(SyncViewSetBase):
         )
         payload = SyncQuestionListResponseSerializer(
             {"items": [questions.payload(item) for item in items], "next_after": next_after}
+        )
+        return Response(payload.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Answer a mapping question",
+        description="Write the staff answer to one proposed mapping question, as "
+        "`catalog_sync answer` does: keep apart or merge into one of the offered courses, "
+        "keep or move an offering, keep or relink a course, place an offering. A dry run "
+        "(the default) writes and rolls back, so the reply says what the answer would do. "
+        "«Лишити окремо» and «Залишити» close the question; a merge, move or relink still "
+        "waits for its change to be applied. Superusers only.",
+        request=SyncQuestionAnswerRequestSerializer,
+        responses=R_SYNC_QUESTION_ANSWER,
+        operation_id="ukma_data_sync_question_answer",
+    )
+    def answer_question(self, request: Request, change_id: int) -> Response:
+        body = SyncQuestionAnswerRequestSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        data = cast(dict[str, Any], body.validated_data)
+        change = SyncChange.objects.filter(pk=change_id).first()
+        if change is None or change.kind not in answers.MAPPING_KINDS:
+            raise NotFound("Питання не знайдено")
+        if change.state != SyncChangeState.PROPOSED:
+            return Response(
+                {"detail": "Питання вже закрите", "code": "question_closed", "status": 409},
+                status=status.HTTP_409_CONFLICT,
+            )
+        into = None if data["into"] is None else str(data["into"])
+        dry_run: bool = data["dry_run"]
+
+        def write():
+            return answers.answer_change(change, data["answer"], request.user, into=into)
+
+        try:
+            decision = decisions.rolled_back(write) if dry_run else write()
+        except answers.MappingAnswerError as exc:
+            raise ValidationError({"answer": [str(exc)]}) from exc
+        if not dry_run:
+            logger.info(
+                "sync_change_answered",
+                change_id=change.pk,
+                kind=change.kind,
+                answer=decision.answer,
+                decision_id=decision.pk,
+                user_id=request.user.pk,
+            )
+        settles = answers.SETTLING_ANSWERS.get(change.kind) == decision.answer
+        payload = SyncQuestionAnswerResponseSerializer(
+            {
+                "change_id": change.pk,
+                "answer": decision.answer,
+                "into": decision.into_ref or None,
+                "ratings": int(cast(dict[str, Any], decision.premise or {}).get("ratings", 0)),
+                "settles": settles,
+                "dry_run": dry_run,
+                "detail": _answer_detail(settles, dry_run),
+            }
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 
@@ -197,3 +257,11 @@ def _csv_cell(value: Any) -> Any:
     if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
         return "'" + value
     return value
+
+
+def _answer_detail(settles: bool, dry_run: bool) -> str:
+    if settles:
+        return "Питання закриється: нічого не переноситься." if dry_run else "Питання закрите."
+    if dry_run:
+        return "Відповідь запишеться, а зміна застосується разом із кроком «Питання»."
+    return "Відповідь записано. Зміна застосується, коли ви застосуєте її в кроці «Питання»."

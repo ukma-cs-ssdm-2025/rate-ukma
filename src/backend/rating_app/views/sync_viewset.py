@@ -114,7 +114,8 @@ class SyncViewSet(SyncViewSetBase):
         changes = self._filter_changes(SyncChange.objects.filter(run=run), params)
         page = self._paginate(changes, params)
         payload = SyncChangeListResponseSerializer(
-            {"items": page.page_objects, **page.metadata.model_dump()}
+            {"items": page.page_objects, **page.metadata.model_dump()},
+            context={"link_semesters": view.link_semesters(page.page_objects)},
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 
@@ -181,7 +182,8 @@ class SyncViewSet(SyncViewSetBase):
                 "runs": runs,
                 "changed_fields": field_counts,
                 **metadata,
-            }
+            },
+            context={"link_semesters": view.link_semesters(items)},
         )
         return Response(payload.data, status=status.HTTP_200_OK)
 

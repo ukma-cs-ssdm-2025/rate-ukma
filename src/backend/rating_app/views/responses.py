@@ -48,6 +48,7 @@ from rating_app.serializers.sync_actions import (
 )
 from rating_app.serializers.sync_review import (
     SyncApprovalListResponseSerializer,
+    SyncQuestionAnswerResponseSerializer,
     SyncQuestionListResponseSerializer,
     SyncSummarySerializer,
 )
@@ -59,7 +60,9 @@ from rating_app.serializers.ukma_data import (
     UkmaDataOfferingPageSerializer,
     UkmaDataProgrammePageSerializer,
     UkmaDataReviewCasePageSerializer,
+    UkmaDataSiteOfferingsResponseSerializer,
     UkmaDataStatusSerializer,
+    UkmaDataStudentCaseSerializer,
     UkmaDataTermPageSerializer,
 )
 
@@ -354,6 +357,10 @@ R_UKMA_DATA_DEPARTMENTS = ukma_data_responses(UkmaDataDepartmentPageSerializer)
 R_UKMA_DATA_PROGRAMMES = ukma_data_responses(UkmaDataProgrammePageSerializer)
 R_UKMA_DATA_OFFERINGS = ukma_data_responses(UkmaDataOfferingPageSerializer)
 R_UKMA_DATA_REVIEW_CASES = ukma_data_responses(UkmaDataReviewCasePageSerializer)
+R_UKMA_DATA_SITE_OFFERINGS = {
+    200: OpenApiResponse(UkmaDataSiteOfferingsResponseSerializer, "OK"),
+    **common_errors(),
+}
 
 EX_403_UKMA_DATA_READONLY = OpenApiExample(
     "UKMA Data decisions disabled",
@@ -382,6 +389,12 @@ EX_404_UKMA_DATA = OpenApiExample(
     },
     status_codes=["404"],
 )
+
+R_UKMA_DATA_STUDENT_CASE = {
+    **ukma_data_responses(UkmaDataStudentCaseSerializer, include_400=False),
+    404: OpenApiResponse(Err, "Unknown case", [EX_404_UKMA_DATA]),
+    409: OpenApiResponse(Err, "Not a student case", [EX_409_UKMA_DATA_REFUSED]),
+}
 
 R_UKMA_DATA_DECISION = {
     200: OpenApiResponse(UkmaDataDecisionResponseSerializer, "Decision written to UKMA Data"),
@@ -427,6 +440,10 @@ R_SYNC_QUESTIONS = sync_responses(
     include_400=True,
     include_404=True,
 )
+R_SYNC_QUESTION_ANSWER = {
+    **sync_responses(SyncQuestionAnswerResponseSerializer, include_400=True, include_404=True),
+    409: OpenApiResponse(Err, "The question is already closed"),
+}
 R_SYNC_APPROVALS = sync_responses(
     forced_singular_serializer(SyncApprovalListResponseSerializer),
     include_400=True,

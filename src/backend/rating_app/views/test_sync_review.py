@@ -8,6 +8,7 @@ from django.utils import timezone
 import pytest
 
 from rating_app.models import (
+    CatalogMappingDecision,
     MappingAnswer,
     SyncApprovalOutcome,
     SyncChangeState,
@@ -353,7 +354,7 @@ def test_summary_orders_the_seven_steps_and_counts_them(review_fixture, superuse
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_summary_fields_facet_keeps_scalar_pairs_and_skips_lists(review_fixture, superuser_client):
+def test_summary_fields_facet_counts_fields_as_the_review_list(review_fixture, superuser_client):
     body = superuser_client.get(reverse("ukma-data-sync-summary")).json()
     fields = body["steps"][5]["facets"]["fields"]
 
@@ -362,8 +363,8 @@ def test_summary_fields_facet_keeps_scalar_pairs_and_skips_lists(review_fixture,
         "rated": 0,
         "top_pairs": [{"before": "60", "after": "45", "count": 1}],
     }
-    assert fields["terms"]["count"] == 1
-    assert fields["terms"]["top_pairs"] == []
+    assert "terms" not in fields
+    assert fields["other"] == {"count": 1, "rated": 0, "top_pairs": []}
 
 
 @pytest.mark.django_db
@@ -423,6 +424,16 @@ def test_summary_pins_a_run(review_fixture, superuser_client, sync_run_factory):
 
     assert body["run"]["id"] == review_fixture["run"].pk
     assert body["newer_run_id"] == other.pk
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_pending_names_the_site_semester_of_a_semester_link(review_fixture, superuser_client):
+    body = superuser_client.get(reverse("ukma-data-sync-pending"), {"q": "111111"}).json()
+    views = {item["kind"]: item["view"] for item in body["items"]}
+
+    assert views["link_offering"]["semester"] is not None
+    assert views["link_course"]["semester"] is None
 
 
 @pytest.mark.django_db
@@ -982,3 +993,117 @@ def test_history_names_a_real_approval_by_the_group_it_applied(
     )
 
     assert response.json()["items"][0]["selection"] == "Нові записи, 2 зміни"
+
+
+def _answer_url(change):
+    return reverse("ukma-data-sync-question-answer", kwargs={"change_id": change.pk})
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_dry_run_says_what_it_would_do_and_writes_nothing(
+    catalog_run, superuser_client, sync_change_factory, course_factory
+):
+    left, right = course_factory(), course_factory()
+    change = _merge_change(
+        sync_change_factory, catalog_run, "ud-answer", [(left, 3), (right, 0)], ratings=3
+    )
+
+    response = superuser_client.post(
+        _answer_url(change), {"answer": "merge", "into": str(left.pk)}, format="json"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["dry_run"] is True
+    assert body["settles"] is False
+    assert body["into"] == str(left.pk)
+    assert not CatalogMappingDecision.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_writes_a_live_decision_and_closes_a_keep_apart(
+    catalog_run, superuser_client, sync_change_factory, course_factory
+):
+    change = _merge_change(
+        sync_change_factory,
+        catalog_run,
+        "ud-answer-write",
+        [(course_factory(), 0), (course_factory(), 0)],
+        ratings=0,
+    )
+
+    response = superuser_client.post(
+        _answer_url(change), {"answer": "keep_apart", "dry_run": False}, format="json"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["settles"] is True
+    decision = CatalogMappingDecision.objects.get()
+    assert decision.answer == MappingAnswer.KEEP_APART
+    assert decision.decided_by == superuser_client.user
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_refuses_a_target_outside_the_question(
+    catalog_run, superuser_client, sync_change_factory, course_factory
+):
+    change = _merge_change(
+        sync_change_factory,
+        catalog_run,
+        "ud-answer-bad",
+        [(course_factory(), 0), (course_factory(), 0)],
+        ratings=0,
+    )
+
+    response = superuser_client.post(
+        _answer_url(change),
+        {"answer": "merge", "into": str(course_factory().pk), "dry_run": False},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert not CatalogMappingDecision.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_refuses_a_closed_question(
+    catalog_run, superuser_client, sync_change_factory, course_factory
+):
+    change = _merge_change(
+        sync_change_factory,
+        catalog_run,
+        "ud-answer-closed",
+        [(course_factory(), 0), (course_factory(), 0)],
+        ratings=0,
+    )
+    change.state = SyncChangeState.REJECTED
+    change.save()
+
+    response = superuser_client.post(_answer_url(change), {"answer": "keep_apart"}, format="json")
+
+    assert response.status_code == 409
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_answer_is_for_superusers_only(
+    catalog_run, token_client, sync_change_factory, course_factory
+):
+    change = _merge_change(
+        sync_change_factory,
+        catalog_run,
+        "ud-answer-user",
+        [(course_factory(), 0), (course_factory(), 0)],
+        ratings=0,
+    )
+
+    response = token_client.post(
+        _answer_url(change), {"answer": "keep_apart", "dry_run": False}, format="json"
+    )
+
+    assert response.status_code == 403
+    assert not CatalogMappingDecision.objects.exists()

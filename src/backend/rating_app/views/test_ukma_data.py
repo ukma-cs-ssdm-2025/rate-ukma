@@ -551,3 +551,96 @@ def test_status_returns_502_when_key_rejected(superuser_client, ukma_data):
 
     assert response.status_code == 502
     assert response.json()["detail"] == "UKMA Data answered 401."
+
+
+STUDENT_CASE = {
+    "id": "case-1",
+    "kind": "student_match",
+    "status": "open",
+    "openedAt": "2026-09-01T10:00:00.000Z",
+    "record": {
+        "studentId": "student-new",
+        "recordId": "record-new",
+        "firstName": "Олена",
+        "lastName": "Коваль",
+        "middleName": "Петрівна",
+        "programme": "Комп'ютерні науки",
+        "studyYear": 1,
+        "status": "active",
+    },
+    "joinedStudentId": "student-old",
+    "candidates": [
+        {
+            "studentId": "student-old",
+            "recordId": "record-old",
+            "firstName": "Олена",
+            "lastName": "Коваль",
+            "middleName": None,
+            "programme": "Математика",
+            "studyYear": 4,
+            "status": "inactive",
+        }
+    ],
+}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_student_case_returns_both_people_with_their_names(superuser_client, ukma_data):
+    ukma_data.reply("/v1/review-cases/case-1", STUDENT_CASE)
+
+    response = superuser_client.get(reverse("ukma-data-review-case", args=["case-1"]))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["record"]["middle_name"] == "Петрівна"
+    assert body["candidates"][0]["programme"] == "Математика"
+    assert ukma_data.received[0]["path"] == "/v1/review-cases/case-1"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize("upstream", [404, 409])
+def test_student_case_passes_on_unknown_and_wrong_kind(superuser_client, ukma_data, upstream):
+    ukma_data.reply(
+        "/v1/review-cases/case-1",
+        {"_tag": "Refused", "reason": "Not a student case"},
+        status=upstream,
+    )
+
+    response = superuser_client.get(reverse("ukma-data-review-case", args=["case-1"]))
+
+    assert response.status_code == upstream
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_site_offerings_names_each_offering_and_counts_the_missing(
+    superuser_client, course_offering_factory, rating_factory
+):
+    rated = course_offering_factory(ukma_data_id="off-rated")
+    course_offering_factory(ukma_data_id="off-quiet")
+    rating_factory.create_batch(2, course_offering=rated)
+
+    response = superuser_client.post(
+        reverse("ukma-data-site-offerings"),
+        {"ukma_ids": ["off-quiet", "off-rated", "off-gone", "off-rated"]},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["ukma_data_id"] for item in body["items"]] == ["off-rated", "off-quiet"]
+    assert body["items"][0]["ratings"] == 2
+    assert body["items"][0]["title"] == rated.course.title
+    assert body["missing"] == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_site_offerings_rejects_a_malformed_id(superuser_client):
+    response = superuser_client.post(
+        reverse("ukma-data-site-offerings"), {"ukma_ids": ["no spaces"]}, format="json"
+    )
+
+    assert response.status_code == 400

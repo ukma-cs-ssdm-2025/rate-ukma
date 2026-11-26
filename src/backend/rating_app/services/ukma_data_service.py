@@ -95,6 +95,10 @@ class UkmaDataService:
             logger.warning("ukma_data_unexpected_response", path="/v1/key", errors=errors)
             raise UkmaDataUnavailableError("UKMA Data sent an unexpected response.") from exc
 
+    def get_student_case(self, case_id: str) -> ud.StudentCase:
+        """A `student_match` case with each person's name, programme, year and status."""
+        return self._get(f"/v1/review-cases/{case_id}", {}, ud.StudentCase, refusals=True)
+
     def decide_case(self, case_id: str) -> None:
         """Close a `student_match` case as the same person."""
         self._decide(
@@ -158,7 +162,14 @@ class UkmaDataService:
             query["limit"] = min(params.limit, UKMA_DATA_MAX_PAGE_SIZE)
         return self._get(path, query, page)
 
-    def _get[M: BaseModel](self, path: str, query: dict[str, int | str], model: type[M]) -> M:
+    def _get[M: BaseModel](
+        self,
+        path: str,
+        query: dict[str, int | str],
+        model: type[M],
+        *,
+        refusals: bool = False,
+    ) -> M:
         base_url = settings.UKMA_DATA_URL
         api_key = settings.UKMA_DATA_API_KEY
         if not base_url or not api_key:
@@ -181,6 +192,14 @@ class UkmaDataService:
         if response.status_code == 403:
             logger.warning("ukma_data_forbidden", path=path)
             raise UkmaDataForbiddenError()
+
+        if refusals and response.status_code == 404:
+            logger.info("ukma_data_not_found", path=path)
+            raise UkmaDataDecisionNotFoundError()
+        if refusals and response.status_code == 409:
+            reason = _refusal_reason(response)
+            logger.info("ukma_data_refused", path=path, reason=reason)
+            raise UkmaDataDecisionRefusedError(reason)
 
         if not response.ok:
             logger.warning("ukma_data_error_status", path=path, status=response.status_code)

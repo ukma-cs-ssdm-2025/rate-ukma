@@ -1240,6 +1240,24 @@ def test_preview_narrows_a_group_to_one_changed_field(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_preview_narrows_a_group_to_the_searched_rows(
+    superuser_client, free_sync_locks, catalog_run, course_factory, make_change
+):
+    make_change(course_factory(title="Тестова дисципліна А"), new_title="Перша тестова назва")
+    make_change(course_factory(title="Тестова дисципліна Б"), new_title="Друга тестова назва")
+
+    found = _preview(superuser_client, catalog_run, q="перша")
+    missing = _preview(superuser_client, catalog_run, q="немає такої")
+    no_semester = _preview(superuser_client, catalog_run, year_from=2029, year_to=2029)
+
+    assert found.status_code == 200
+    assert found.json()["counts"]["applied"] == 1
+    assert missing.status_code == 422
+    assert no_semester.status_code == 422
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_preview_and_apply_hand_the_left_out_rows_to_the_decision(
     superuser_client, free_sync_locks, catalog_run, course_factory, make_change
 ):

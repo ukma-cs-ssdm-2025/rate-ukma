@@ -3709,6 +3709,107 @@ paths:
                     status: 503
                   summary: UKMA Data not configured
           description: UKMA Data is not configured
+  /api/v1/ukma-data/review-cases/{case_id}/:
+    get:
+      operationId: ukma_data_review_case_retrieve
+      description: 'A `student_match` case with the record that opened it and each
+        matching student: name, programme, study year and status, so staff can tell
+        whether they are one person. Another kind of case answers 409. Superusers
+        only.'
+      summary: Read a UKMA Data student case
+      parameters:
+      - in: path
+        name: case_id
+        schema:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,64}$
+        required: true
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataStudentCase'
+          description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataKeyRefused:
+                  value:
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
+                    status: 403
+                  summary: UKMA Data key refused
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataDoesNotKnowTheCaseOrCourse:
+                  value:
+                    detail: UKMA Data не знає такої справи або курсу
+                    code: ukma_data_not_found
+                    status: 404
+                  summary: UKMA Data does not know the case or course
+          description: Unknown case
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataRefusedTheDecision:
+                  value:
+                    detail: 'Курси різного рівня: об''єднати можна лише однакові.'
+                    code: ukma_data_refused
+                    status: 409
+                  summary: UKMA Data refused the decision
+          description: Not a student case
   /api/v1/ukma-data/review-cases/{case_id}/decide/:
     post:
       operationId: ukma_data_review_case_decide
@@ -3809,6 +3910,75 @@ paths:
                     status: 503
                   summary: UKMA Data not configured
           description: UKMA Data is not configured
+  /api/v1/ukma-data/site-offerings/:
+    post:
+      operationId: ukma_data_site_offerings
+      description: The course offerings on this site linked to the given UKMA Data
+        offering ids, with their course, semester and rating count, so a `removals_held`
+        case can name what it would remove. Reads only this site's database. Superusers
+        only.
+      summary: Find site offerings by UKMA Data ids
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UkmaDataSiteOfferingsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UkmaDataSiteOfferingsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UkmaDataSiteOfferingsRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataSiteOfferingsResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/ukma-data/status/:
     get:
       operationId: ukma_data_status_retrieve
@@ -4565,6 +4735,101 @@ paths:
                     status: 404
                   summary: Not found
           description: Not found
+  /api/v1/ukma-data/sync/questions/{change_id}/answer/:
+    post:
+      operationId: ukma_data_sync_question_answer
+      description: 'Write the staff answer to one proposed mapping question, as `catalog_sync
+        answer` does: keep apart or merge into one of the offered courses, keep or
+        move an offering, keep or relink a course, place an offering. A dry run (the
+        default) writes and rolls back, so the reply says what the answer would do.
+        «Лишити окремо» and «Залишити» close the question; a merge, move or relink
+        still waits for its change to be applied. Superusers only.'
+      summary: Answer a mapping question
+      parameters:
+      - in: path
+        name: change_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncQuestionAnswerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncQuestionAnswerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncQuestionAnswerRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncQuestionAnswerResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: The question is already closed
   /api/v1/ukma-data/sync/reject/:
     post:
       operationId: ukma_data_sync_reject
@@ -7494,6 +7759,22 @@ components:
           nullable: true
           description: 'With `group=change`: rows that change this field'
           maxLength: 50
+        q:
+          type: string
+          nullable: true
+          description: 'With `group`: rows whose title, department or САЗ code match'
+          maxLength: 200
+        year_from:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters from this academic year (Осінь 2025
+            = 2025)'
+        year_to:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters up to this academic year'
         exclude_ids:
           type: array
           items:
@@ -8308,6 +8589,10 @@ components:
           type: string
           format: email
           readOnly: true
+        user_name:
+          type: string
+          readOnly: true
+          nullable: true
         changed_at:
           type: string
           format: date-time
@@ -8320,6 +8605,7 @@ components:
       - old_mode
       - user
       - user_email
+      - user_name
     SyncPolicyChangeListResponse:
       type: object
       properties:
@@ -8417,6 +8703,22 @@ components:
           nullable: true
           description: 'With `group=change`: rows that change this field'
           maxLength: 50
+        q:
+          type: string
+          nullable: true
+          description: 'With `group`: rows whose title, department or САЗ code match'
+          maxLength: 200
+        year_from:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters from this academic year (Осінь 2025
+            = 2025)'
+        year_to:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters up to this academic year'
         exclude_ids:
           type: array
           items:
@@ -8521,6 +8823,47 @@ components:
       - answer
       - decided_at
       - into
+    SyncQuestionAnswerRequest:
+      type: object
+      properties:
+        answer:
+          $ref: '#/components/schemas/AnswerEnum'
+        into:
+          type: string
+          format: uuid
+          nullable: true
+        dry_run:
+          type: boolean
+          default: true
+      required:
+      - answer
+    SyncQuestionAnswerResponse:
+      type: object
+      properties:
+        change_id:
+          type: integer
+        answer:
+          $ref: '#/components/schemas/AnswerEnum'
+        into:
+          type: string
+          format: uuid
+          nullable: true
+        ratings:
+          type: integer
+        settles:
+          type: boolean
+        dry_run:
+          type: boolean
+        detail:
+          type: string
+      required:
+      - answer
+      - change_id
+      - detail
+      - dry_run
+      - into
+      - ratings
+      - settles
     SyncQuestionCourse:
       type: object
       properties:
@@ -8727,6 +9070,22 @@ components:
           nullable: true
           description: 'With `group=change`: rows that change this field'
           maxLength: 50
+        q:
+          type: string
+          nullable: true
+          description: 'With `group`: rows whose title, department or САЗ code match'
+          maxLength: 200
+        year_from:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters from this academic year (Осінь 2025
+            = 2025)'
+        year_to:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters up to this academic year'
         exclude_ids:
           type: array
           items:
@@ -9104,6 +9463,94 @@ components:
       - after
       - before
       - count
+    UkmaDataCasePerson:
+      type: object
+      properties:
+        student_id:
+          type: string
+          readOnly: true
+        record_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The programme record the details come from
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        middle_name:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The patronymic and any further given names, as САЗ lists them
+        programme:
+          type: string
+          readOnly: true
+          nullable: true
+        study_year:
+          type: integer
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataPersonStatusEnum'
+          readOnly: true
+          nullable: true
+      required:
+      - first_name
+      - last_name
+      - middle_name
+      - programme
+      - record_id
+      - status
+      - student_id
+      - study_year
+    UkmaDataCasePerson1:
+      type: object
+      properties:
+        student_id:
+          type: string
+          readOnly: true
+        record_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The programme record the details come from
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        middle_name:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The patronymic and any further given names, as САЗ lists them
+        programme:
+          type: string
+          readOnly: true
+          nullable: true
+        study_year:
+          type: integer
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataPersonStatusEnum'
+          readOnly: true
+          nullable: true
+      required:
+      - first_name
+      - last_name
+      - middle_name
+      - programme
+      - record_id
+      - status
+      - student_id
+      - study_year
     UkmaDataCourseMergeRequest:
       type: object
       properties:
@@ -9501,6 +9948,14 @@ components:
       - semesters
       - seminar_hours
       - term_id
+    UkmaDataPersonStatusEnum:
+      enum:
+      - active
+      - inactive
+      type: string
+      description: |-
+        * `active` - active
+        * `inactive` - inactive
     UkmaDataProgramme:
       type: object
       properties:
@@ -9662,6 +10117,60 @@ components:
         * `open` - open
         * `decided` - decided
         * `obsolete` - obsolete
+    UkmaDataSiteOffering:
+      type: object
+      properties:
+        ukma_data_id:
+          type: string
+        course_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        department:
+          type: string
+          nullable: true
+        year:
+          type: integer
+        term:
+          type: string
+        ratings:
+          type: integer
+      required:
+      - course_id
+      - department
+      - ratings
+      - term
+      - title
+      - ukma_data_id
+      - year
+    UkmaDataSiteOfferingsRequest:
+      type: object
+      properties:
+        ukma_ids:
+          type: array
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+            maxLength: 64
+          description: UKMA Data offering ids, such as a `removals_held` case's `offeringIds`
+          maxItems: 1000
+      required:
+      - ukma_ids
+    UkmaDataSiteOfferingsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataSiteOffering'
+        missing:
+          type: integer
+          description: 'Ids with no offering on the site: never linked, or already
+            removed'
+      required:
+      - items
+      - missing
     UkmaDataStatus:
       type: object
       properties:
@@ -9687,6 +10196,50 @@ components:
       - key_expires_at
       - key_id
       - scopes
+    UkmaDataStudentCase:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataStudentCaseKindEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataReviewCaseStatusEnum'
+          readOnly: true
+        opened_at:
+          type: string
+          readOnly: true
+        record:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataCasePerson'
+          readOnly: true
+        joined_student_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'The student the record joined: the safe answer'
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataCasePerson1'
+          readOnly: true
+      required:
+      - candidates
+      - id
+      - joined_student_id
+      - kind
+      - opened_at
+      - record
+      - status
+    UkmaDataStudentCaseKindEnum:
+      enum:
+      - student_match
+      type: string
+      description: '* `student_match` - student_match'
     UkmaDataTerm:
       type: object
       properties:

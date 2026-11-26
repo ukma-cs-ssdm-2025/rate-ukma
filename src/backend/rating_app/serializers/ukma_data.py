@@ -116,6 +116,36 @@ UkmaDataDepartmentPageSerializer = _serializer_for(ud.DepartmentPage)
 UkmaDataProgrammePageSerializer = _serializer_for(ud.ProgrammePage)
 UkmaDataOfferingPageSerializer = _serializer_for(ud.OfferingPage)
 UkmaDataReviewCasePageSerializer = _serializer_for(ud.ReviewCasePage)
+UkmaDataStudentCaseSerializer = _serializer_for(ud.StudentCase)
+
+MAX_SITE_OFFERING_IDS = 1000
+
+
+class UkmaDataSiteOfferingsRequestSerializer(serializers.Serializer):
+    ukma_ids = serializers.ListField(
+        child=serializers.CharField(
+            max_length=64, validators=[RegexValidator(f"^{UKMA_DATA_ID_PATTERN}$")]
+        ),
+        max_length=MAX_SITE_OFFERING_IDS,
+        help_text="UKMA Data offering ids, such as a `removals_held` case's `offeringIds`",
+    )
+
+
+class UkmaDataSiteOfferingSerializer(serializers.Serializer):
+    ukma_data_id = serializers.CharField()
+    course_id = serializers.UUIDField()
+    title = serializers.CharField()
+    department = serializers.CharField(allow_null=True)
+    year = serializers.IntegerField()
+    term = serializers.CharField()
+    ratings = serializers.IntegerField()
+
+
+class UkmaDataSiteOfferingsResponseSerializer(serializers.Serializer):
+    items = UkmaDataSiteOfferingSerializer(many=True)
+    missing = serializers.IntegerField(
+        help_text="Ids with no offering on the site: never linked, or already removed"
+    )
 
 
 class UkmaDataCourseMergeRequestSerializer(serializers.Serializer):

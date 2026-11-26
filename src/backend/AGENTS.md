@@ -60,7 +60,7 @@ Conventions: [docs/testing/backend-tests.md](../../docs/testing/backend-tests.md
 
 ## Catalog sync decisions
 
-Sync changes are previewed, applied, rejected and reverted from the console with `manage.py catalog_sync` (dry run unless `--yes`) or on /data, through `rating_app.sync.decisions`. Mapping questions are answered only in the console (`catalog_sync answer`); /data shows that command. Runbook: [docs/runbooks/catalog-sync-console.md](../../docs/runbooks/catalog-sync-console.md).
+Sync changes are previewed, applied, rejected and reverted from the console with `manage.py catalog_sync` (dry run unless `--yes`) or on /data, through `rating_app.sync.decisions`. Mapping questions are answered in the console (`catalog_sync answer`) or on /data (`POST /api/v1/ukma-data/sync/questions/<id>/answer/`, dry run by default); both go through `rating_app.sync.answers.answer_change`. Runbook: [docs/runbooks/catalog-sync-console.md](../../docs/runbooks/catalog-sync-console.md).
 
 ## Logging style
 

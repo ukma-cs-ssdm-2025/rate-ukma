@@ -8,14 +8,14 @@ JSON and the stored-but-unshown fields stay out of the row.
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from typing import Any, cast
 
 from django.db.models import QuerySet
 
-from rating_app.models import SyncChange
+from rating_app.models import CourseOffering, SyncChange
 from rating_app.sync import fields as field_pairs
 from rating_app.sync.console import change_title
 from rating_app.sync.review import LINK_KINDS, link_course_is_exact
@@ -23,6 +23,7 @@ from rating_app.sync.review import LINK_KINDS, link_course_is_exact
 TERM_WORDS = {"FALL": "Осінь", "SPRING": "Весна", "SUMMER": "Літо"}
 EXAM_WORDS = {"EXAM": "іспит", "CREDIT": "залік"}
 PRACTICE_WORDS = {"PRACTICE": "практики", "SEMINAR": "семінари"}
+STATUS_WORDS = {"ACTIVE": "читається", "FINISHED": "завершений", "PLANNED": "запланований"}
 
 VISIBLE_FIELDS: dict[str, str] = {
     "title": "Назва",
@@ -44,6 +45,7 @@ VISIBLE_FIELDS: dict[str, str] = {
     "group_size_min": "Мінімум у групі",
     "group_size_max": "Максимум у групі",
     "max_groups": "Максимум груп",
+    "status": "Стан курсу",
 }
 
 NEW_OFFERING_FIELDS = ("credits", "exam_type")
@@ -105,6 +107,8 @@ def value_text(name: str, value: str) -> str:
         return TERM_WORDS.get(value, value)
     if name == "practice_type":
         return PRACTICE_WORDS.get(value, value)
+    if name == "status":
+        return STATUS_WORDS.get(value, value)
     return value
 
 
@@ -154,15 +158,46 @@ def _link_fields(change: SyncChange, after: Mapping[str, Any]) -> list[FieldView
     if change.kind != "link_course" or link_course_is_exact(dict(after)):
         return []
     display = _dict(after.get("display"))
-    title = _text(_dict(display.get("ukma_course")).get("title"))
-    site = _text(_dict(display.get("course")).get("title")) or ""
-    return [] if title is None else [FieldView("title", "Назва", site, title)]
+    site, ukma = _dict(display.get("course")), _dict(display.get("ukma_course"))
+    rows = []
+    for name in ("title", "department"):
+        new = _text(ukma.get(name))
+        old = _text(site.get(name)) or ""
+        if new is not None and new != old:
+            rows.append(FieldView(name, VISIBLE_FIELDS[name], old, new))
+    return rows
 
 
-def change_view(change: SyncChange) -> ChangeView:
+def link_semesters(changes: Iterable[SyncChange]) -> dict[int, str]:
+    """The site semester of each semester link, which the change itself does not carry."""
+    targets = {
+        change.id: change.target_id
+        for change in changes
+        if change.kind == "link_offering" and change.target_id
+    }
+    if not targets:
+        return {}
+    semesters = {
+        str(offering_id): semester_text({"year": year, "term": term})
+        for offering_id, year, term in CourseOffering.objects.filter(
+            id__in=set(targets.values())
+        ).values_list("id", "semester__year", "semester__term")
+    }
+    return {
+        change_id: text
+        for change_id, target in targets.items()
+        if (text := semesters.get(str(target))) is not None
+    }
+
+
+def change_view(change: SyncChange, link_semester: str | None = None) -> ChangeView:
     after, before = _dict(change.after), _dict(change.before)
     display = _dict(after.get("display")) or _dict(before.get("display"))
-    semester = semester_text(before.get("semester")) or semester_text(after.get("semester"))
+    semester = (
+        semester_text(before.get("semester"))
+        or semester_text(after.get("semester"))
+        or link_semester
+    )
     if change.kind in LINK_KINDS:
         rows = _link_fields(change, after)
     elif change.kind == "new_offering":
