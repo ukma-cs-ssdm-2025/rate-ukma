@@ -1,4 +1,4 @@
-import { type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 import { testIds } from "@/lib/test-ids";
 import { expect, test } from "../framework/fixtures";
