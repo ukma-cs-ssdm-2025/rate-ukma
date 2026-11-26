@@ -48,7 +48,7 @@ function InboxRow({
 		<li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:flex-nowrap sm:px-5">
 			<div className="min-w-0 flex-1 basis-full sm:basis-auto">
 				<h3 className="font-medium">{title}</h3>
-				<p className="text-sm text-muted-foreground">{text}</p>
+				<div className="text-sm text-muted-foreground">{text}</div>
 			</div>
 			{count === null ? null : (
 				<span className="text-lg font-medium tabular-nums sm:w-24 sm:text-right">

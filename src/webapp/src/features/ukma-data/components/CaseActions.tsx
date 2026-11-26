@@ -126,7 +126,12 @@ type CaseResult = Result & { caseId: string };
 export function CaseActions({
 	reviewCase,
 	decideEnabled,
-}: Readonly<{ reviewCase: UkmaDataReviewCase; decideEnabled: boolean }>) {
+	explain = true,
+}: Readonly<{
+	reviewCase: UkmaDataReviewCase;
+	decideEnabled: boolean;
+	explain?: boolean;
+}>) {
 	const queryClient = useQueryClient();
 	const decide = useUkmaDataReviewCaseDecide();
 	const merge = useUkmaDataCourseMerge();
@@ -179,7 +184,9 @@ export function CaseActions({
 	}
 	if (reviewCase.kind === "removals_held") {
 		return (
-			<p className="max-w-72 text-sm text-muted-foreground">{HELD_ELSEWHERE}</p>
+			<p className="max-w-prose text-sm text-muted-foreground">
+				{HELD_ELSEWHERE}
+			</p>
 		);
 	}
 	if (
@@ -216,8 +223,10 @@ export function CaseActions({
 					))
 				)}
 			</div>
-			{decideEnabled ? null : (
-				<p className="max-w-72 text-xs text-muted-foreground">{READ_ONLY}.</p>
+			{decideEnabled || !explain ? null : (
+				<p className="max-w-prose text-xs text-muted-foreground">
+					{READ_ONLY}.
+				</p>
 			)}
 			<ResultLine result={result} />
 			<ConfirmDialog

@@ -154,7 +154,11 @@ function CaseRow({
 				</p>
 			</TableCell>
 			<TableCell className="w-64">
-				<CaseActions reviewCase={reviewCase} decideEnabled={decideEnabled} />
+				<CaseActions
+					reviewCase={reviewCase}
+					decideEnabled={decideEnabled}
+					explain={false}
+				/>
 			</TableCell>
 		</TableRow>
 	);
@@ -187,7 +191,11 @@ function CaseCard({
 			<p className="text-muted-foreground">
 				{caseDetail(reviewCase)} · {sinceText(reviewCase.opened_at)}
 			</p>
-			<CaseActions reviewCase={reviewCase} decideEnabled={decideEnabled} />
+			<CaseActions
+				reviewCase={reviewCase}
+				decideEnabled={decideEnabled}
+				explain={false}
+			/>
 		</li>
 	);
 }
