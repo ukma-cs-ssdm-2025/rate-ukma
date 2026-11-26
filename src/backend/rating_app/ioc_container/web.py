@@ -454,6 +454,11 @@ def sync_questions_view():
 
 
 @once
+def sync_policy_update_view():
+    return SyncViewSet.as_view({"post": "set_policy"})
+
+
+@once
 def sync_question_answer_view():
     return SyncReviewViewSet.as_view({"post": "answer"})
 
@@ -755,6 +760,11 @@ def rest_urlpatterns() -> list:
             "ukma-data/sync/policies/changes/",
             sync_policy_changes_view(),
             name="ukma-data-sync-policy-changes",
+        ),
+        path(
+            "ukma-data/sync/policies/<str:kind>/",
+            sync_policy_update_view(),
+            name="ukma-data-sync-policy-update",
         ),
         path(
             "ukma-data/sync/preview/",

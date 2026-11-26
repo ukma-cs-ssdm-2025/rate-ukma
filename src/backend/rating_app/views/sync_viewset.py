@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from django.db.models import Count, QuerySet
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -32,15 +32,18 @@ from rating_app.serializers.sync import (
     SyncPendingResponseSerializer,
     SyncPolicyChangeListResponseSerializer,
     SyncPolicyListResponseSerializer,
+    SyncPolicySerializer,
+    SyncPolicyUpdateRequestSerializer,
     SyncRunListResponseSerializer,
 )
-from rating_app.sync import decisions, review, selection, view
-from rating_app.sync.kinds import KINDS, NEVER_AUTO_KINDS, SyncKind
+from rating_app.sync import decisions, policies, review, selection, view
+from rating_app.sync.kinds import KIND_BY_NAME, KINDS, NEVER_AUTO_KINDS, SyncKind
 from rating_app.views.responses import (
     R_SYNC_CHANGES,
     R_SYNC_PENDING,
     R_SYNC_POLICIES,
     R_SYNC_POLICY_CHANGES,
+    R_SYNC_POLICY_UPDATE,
     R_SYNC_RUNS,
 )
 from rating_app.views.sync_base import SyncViewSetBase
@@ -198,6 +201,31 @@ class SyncViewSet(SyncViewSetBase):
         policies = {policy.kind: policy for policy in SyncPolicy.objects.all()}
         items = [_policy_payload(kind, policies.get(kind.name)) for kind in KINDS]
         payload = SyncPolicyListResponseSerializer({"items": items})
+        return Response(payload.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Set a kind's sync policy",
+        description="Switch one kind between `auto` (the nightly job applies it) and "
+        "`needs_approval`. The change and who made it go to the journal. A kind that is "
+        "never automatic refuses `auto` with 400. 404 for an unknown kind. Superusers "
+        "only.",
+        request=SyncPolicyUpdateRequestSerializer,
+        responses=R_SYNC_POLICY_UPDATE,
+        operation_id="ukma_data_sync_policy_update",
+    )
+    def set_policy(self, request: Request, kind: str) -> Response:
+        registry_kind = KIND_BY_NAME.get(kind)
+        if registry_kind is None:
+            raise NotFound("Невідомий тип змін")
+        serializer = SyncPolicyUpdateRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        mode = str(cast(dict[str, Any], serializer.validated_data)["mode"])
+        try:
+            policy = policies.set_mode(kind, mode, request.user)
+        except policies.NeverAutoKindError as exc:
+            raise ValidationError({"mode": [str(exc)]}) from exc
+        logger.info("sync_policy_updated", kind=kind, mode=mode, user_id=request.user.pk)
+        payload = SyncPolicySerializer(_policy_payload(registry_kind, policy))
         return Response(payload.data, status=status.HTTP_200_OK)
 
     @extend_schema(

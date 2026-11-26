@@ -7,6 +7,8 @@ from freezegun import freeze_time
 from rating_app.models.sync import (
     SyncChangeGroup,
     SyncChangeState,
+    SyncPolicy,
+    SyncPolicyChange,
     SyncPolicyMode,
     SyncRunStatus,
     SyncSource,
@@ -433,3 +435,48 @@ def test_pending_counts_changed_fields_and_shows_each_change_in_words(
     view = credits.json()["items"][0]["view"]
     assert view["semester"] == "Осінь 2026"
     assert view["rows"] == [{"field": "credits", "label": "Кредити", "before": "5", "after": "6"}]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_set_policy_switches_a_kind_and_writes_the_journal(superuser_client):
+    url = reverse("ukma-data-sync-policy-update", kwargs={"kind": "link_course"})
+
+    response = superuser_client.post(url, {"mode": "auto"}, format="json")
+
+    assert response.status_code == 200, response.json()
+    assert response.json()["mode"] == "auto"
+    assert SyncPolicy.objects.get(kind="link_course").mode == "auto"
+    change = SyncPolicyChange.objects.get()
+    assert (change.old_mode, change.new_mode) == ("needs_approval", "auto")
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_set_policy_refuses_auto_for_a_never_auto_kind_and_an_unknown_kind(superuser_client):
+    never = superuser_client.post(
+        reverse("ukma-data-sync-policy-update", kwargs={"kind": "merge_courses"}),
+        {"mode": "auto"},
+        format="json",
+    )
+    unknown = superuser_client.post(
+        reverse("ukma-data-sync-policy-update", kwargs={"kind": "nope"}),
+        {"mode": "auto"},
+        format="json",
+    )
+
+    assert never.status_code == 400
+    assert unknown.status_code == 404
+    assert not SyncPolicy.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_set_policy_returns_403_when_not_superuser(token_client):
+    response = token_client.post(
+        reverse("ukma-data-sync-policy-update", kwargs={"kind": "link_course"}),
+        {"mode": "auto"},
+        format="json",
+    )
+
+    assert response.status_code == 403

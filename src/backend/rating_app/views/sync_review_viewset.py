@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Any
+from typing import Any, cast
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -110,15 +110,16 @@ class SyncReviewViewSet(SyncViewSetBase):
         operation_id="ukma_data_sync_question_answer",
     )
     def answer(self, request: Request, change_id: int) -> Response:
-        body = SyncQuestionAnswerRequestSerializer(data=request.data)
-        body.is_valid(raise_exception=True)
+        serializer = SyncQuestionAnswerRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        body = cast(dict[str, Any], serializer.validated_data)
         change = SyncChange.objects.filter(
             pk=change_id, group=SyncChangeGroup.MAPPING, state=SyncChangeState.PROPOSED
         ).first()
         if change is None:
             raise NotFound("Питання не знайдено")
-        choice = str(body.validated_data["answer"])
-        into = body.validated_data.get("into")
+        choice = str(body["answer"])
+        into = body.get("into")
         try:
             decision = answers.answer_change(
                 change, choice, request.user, into=None if into is None else str(into)

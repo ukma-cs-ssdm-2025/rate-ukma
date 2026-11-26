@@ -107,6 +107,10 @@ class SyncPolicySerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
 
+class SyncPolicyUpdateRequestSerializer(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=SyncPolicyMode.choices)
+
+
 SELECTION_GROUP_CHOICES = [*SyncChangeGroup.choices, ("other", "Other")]
 
 

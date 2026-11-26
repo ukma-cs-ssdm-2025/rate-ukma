@@ -4449,6 +4449,93 @@ paths:
                     detail: You do not have permission to perform this action
                     status: 403
           description: Forbidden
+  /api/v1/ukma-data/sync/policies/{kind}/:
+    post:
+      operationId: ukma_data_sync_policy_update
+      description: Switch one kind between `auto` (the nightly job applies it) and
+        `needs_approval`. The change and who made it go to the journal. A kind that
+        is never automatic refuses `auto` with 400. 404 for an unknown kind. Superusers
+        only.
+      summary: Set a kind's sync policy
+      parameters:
+      - in: path
+        name: kind
+        schema:
+          type: string
+        required: true
+      tags:
+      - ukma-data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPolicyUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncPolicyUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncPolicyUpdateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPolicy'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                NotFound:
+                  value:
+                    detail: Not found
+                    status: 404
+                  summary: Not found
+          description: Not found
   /api/v1/ukma-data/sync/policies/changes/:
     get:
       operationId: ukma_data_sync_policy_changes_list
@@ -8668,6 +8755,13 @@ components:
       description: |-
         * `needs_approval` - Needs approval
         * `auto` - Auto
+    SyncPolicyUpdateRequest:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/SyncPolicyModeEnum'
+      required:
+      - mode
     SyncPreviewRequest:
       type: object
       description: |-

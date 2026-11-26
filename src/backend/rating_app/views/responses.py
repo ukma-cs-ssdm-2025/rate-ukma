@@ -37,6 +37,7 @@ from rating_app.serializers.sync import (
     SyncPendingResponseSerializer,
     SyncPolicyChangeListResponseSerializer,
     SyncPolicyListResponseSerializer,
+    SyncPolicySerializer,
     SyncRunListResponseSerializer,
 )
 from rating_app.serializers.sync_actions import (
@@ -432,6 +433,7 @@ R_SYNC_PENDING = sync_responses(
     forced_singular_serializer(SyncPendingResponseSerializer), include_400=True
 )
 R_SYNC_POLICIES = sync_responses(forced_singular_serializer(SyncPolicyListResponseSerializer))
+R_SYNC_POLICY_UPDATE = sync_responses(SyncPolicySerializer, include_400=True, include_404=True)
 R_SYNC_POLICY_CHANGES = sync_responses(
     forced_singular_serializer(SyncPolicyChangeListResponseSerializer), include_400=True
 )
