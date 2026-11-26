@@ -78,7 +78,7 @@ export function CaseOutcome({
 				<ul className="space-y-1">
 					{caseOptions(reviewCase.kind).map((option) => (
 						<li key={option.name}>
-							<span className="font-medium">{option.name}</span> —{" "}
+							<span className="font-medium">{option.name}:</span>{" "}
 							{option.effect}
 						</li>
 					))}
