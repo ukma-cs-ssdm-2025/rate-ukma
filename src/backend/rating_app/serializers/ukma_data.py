@@ -116,6 +116,7 @@ UkmaDataDepartmentPageSerializer = _serializer_for(ud.DepartmentPage)
 UkmaDataProgrammePageSerializer = _serializer_for(ud.ProgrammePage)
 UkmaDataOfferingPageSerializer = _serializer_for(ud.OfferingPage)
 UkmaDataReviewCasePageSerializer = _serializer_for(ud.ReviewCasePage)
+UkmaDataStudentCaseSerializer = _serializer_for(ud.StudentCase)
 
 
 class UkmaDataCourseMergeRequestSerializer(serializers.Serializer):

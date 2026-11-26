@@ -43,6 +43,7 @@ from rating_app.views.responses import (
     R_UKMA_DATA_PROGRAMMES,
     R_UKMA_DATA_REVIEW_CASES,
     R_UKMA_DATA_STATUS,
+    R_UKMA_DATA_STUDENT_CASE,
     R_UKMA_DATA_TERMS,
 )
 
@@ -167,6 +168,21 @@ class UkmaDataViewSet(viewsets.ViewSet):
             self._query(request, UkmaDataReviewCaseParams)
         )
         return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Read a UKMA Data student case",
+        description="The `student_match` case with the record that opened it and each "
+        "matching student: names, programme, study year and status, so staff can tell "
+        "whether they are one person. Read live from UKMA Data and not stored. 404 for an "
+        "unknown case or a case of another kind. Superusers only.",
+        responses=R_UKMA_DATA_STUDENT_CASE,
+        operation_id="ukma_data_student_case_retrieve",
+    )
+    def student_case(self, request: Request, case_id: str) -> Response:
+        assert self.ukma_data_service is not None
+
+        found = self.ukma_data_service.get_student_case(case_id)
+        return Response(found.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="Decide a UKMA Data review case",

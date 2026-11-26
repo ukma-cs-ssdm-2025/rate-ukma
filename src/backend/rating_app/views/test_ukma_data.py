@@ -551,3 +551,76 @@ def test_status_returns_502_when_key_rejected(superuser_client, ukma_data):
 
     assert response.status_code == 502
     assert response.json()["detail"] == "UKMA Data answered 401."
+
+
+STUDENT_CASE = {
+    "id": "rc-9",
+    "kind": "student_match",
+    "status": "open",
+    "openedAt": "2030-09-01T08:00:00.000Z",
+    "record": {
+        "studentId": "s-1",
+        "recordId": "pr-2",
+        "firstName": "Тест",
+        "lastName": "Прикладенко",
+        "programme": "Тестова програма",
+        "studyYear": 1,
+        "status": "active",
+    },
+    "joinedStudentId": "s-1",
+    "candidates": [
+        {
+            "studentId": "s-1",
+            "recordId": "pr-1",
+            "firstName": "Тест",
+            "lastName": "Вигаданенко",
+            "programme": None,
+            "studyYear": None,
+            "status": None,
+        }
+    ],
+}
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_student_case_returns_each_person_to_compare(superuser_client, ukma_data):
+    ukma_data.reply("/v1/review-cases/rc-9", STUDENT_CASE)
+
+    response = superuser_client.get(reverse("ukma-data-student-case", args=["rc-9"]))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["record"]["last_name"] == "Прикладенко"
+    assert body["joined_student_id"] == "s-1"
+    assert [person["last_name"] for person in body["candidates"]] == ["Вигаданенко"]
+    assert body["candidates"][0]["study_year"] is None
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("status", "body"),
+    [
+        (404, {"_tag": "ReviewCaseNotFound", "caseId": "rc-9"}),
+        (409, {"_tag": "ReviewCaseRefused", "reason": "not_student_match"}),
+    ],
+)
+def test_student_case_returns_404_for_an_unknown_or_other_case(
+    superuser_client, ukma_data, status, body
+):
+    ukma_data.reply("/v1/review-cases/rc-9", body, status=status)
+
+    response = superuser_client.get(reverse("ukma-data-student-case", args=["rc-9"]))
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "ukma_data_not_found"
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_student_case_returns_403_when_not_superuser(token_client, ukma_data):
+    response = token_client.get(reverse("ukma-data-student-case", args=["rc-9"]))
+
+    assert response.status_code == 403
+    assert ukma_data.received == []

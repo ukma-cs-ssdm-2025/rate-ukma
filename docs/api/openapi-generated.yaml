@@ -3709,6 +3709,94 @@ paths:
                     status: 503
                   summary: UKMA Data not configured
           description: UKMA Data is not configured
+  /api/v1/ukma-data/review-cases/{case_id}/:
+    get:
+      operationId: ukma_data_student_case_retrieve
+      description: 'The `student_match` case with the record that opened it and each
+        matching student: names, programme, study year and status, so staff can tell
+        whether they are one person. Read live from UKMA Data and not stored. 404
+        for an unknown case or a case of another kind. Superusers only.'
+      summary: Read a UKMA Data student case
+      parameters:
+      - in: path
+        name: case_id
+        schema:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,64}$
+        required: true
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataStudentCase'
+          description: OK
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataKeyRefused:
+                  value:
+                    detail: Ключ UKMA Data цього сервера не має доступу до цього розділу
+                    code: ukma_data_forbidden
+                    status: 403
+                  summary: UKMA Data key refused
+          description: Forbidden
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataUnavailable:
+                  value:
+                    detail: UKMA Data did not answer in time.
+                    status: 502
+                  summary: UKMA Data unavailable
+          description: UKMA Data is down or failed
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataNotConfigured:
+                  value:
+                    detail: 'UKMA Data is not configured: set UKMA_DATA_URL and UKMA_DATA_API_KEY.'
+                    status: 503
+                  summary: UKMA Data not configured
+          description: UKMA Data is not configured
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                UKMADataDoesNotKnowTheCaseOrCourse:
+                  value:
+                    detail: UKMA Data не знає такої справи або курсу
+                    code: ukma_data_not_found
+                    status: 404
+                  summary: UKMA Data does not know the case or course
+          description: Unknown case, or not a student case
   /api/v1/ukma-data/review-cases/{case_id}/decide/:
     post:
       operationId: ukma_data_review_case_decide
@@ -9104,6 +9192,82 @@ components:
       - after
       - before
       - count
+    UkmaDataCasePerson:
+      type: object
+      properties:
+        student_id:
+          type: string
+          readOnly: true
+        record_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The programme record the details come from
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        programme:
+          type: string
+          readOnly: true
+          nullable: true
+        study_year:
+          type: integer
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataStudentStatusEnum'
+          readOnly: true
+          nullable: true
+      required:
+      - first_name
+      - last_name
+      - programme
+      - record_id
+      - status
+      - student_id
+      - study_year
+    UkmaDataCasePerson1:
+      type: object
+      properties:
+        student_id:
+          type: string
+          readOnly: true
+        record_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The programme record the details come from
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        programme:
+          type: string
+          readOnly: true
+          nullable: true
+        study_year:
+          type: integer
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataStudentStatusEnum'
+          readOnly: true
+          nullable: true
+      required:
+      - first_name
+      - last_name
+      - programme
+      - record_id
+      - status
+      - student_id
+      - study_year
     UkmaDataCourseMergeRequest:
       type: object
       properties:
@@ -9687,6 +9851,58 @@ components:
       - key_expires_at
       - key_id
       - scopes
+    UkmaDataStudentCase:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataStudentCaseKindEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataReviewCaseStatusEnum'
+          readOnly: true
+        opened_at:
+          type: string
+          readOnly: true
+        record:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataCasePerson'
+          readOnly: true
+        joined_student_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: 'The student the record joined: the safe answer'
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataCasePerson1'
+          readOnly: true
+      required:
+      - candidates
+      - id
+      - joined_student_id
+      - kind
+      - opened_at
+      - record
+      - status
+    UkmaDataStudentCaseKindEnum:
+      enum:
+      - student_match
+      type: string
+      description: '* `student_match` - student_match'
+    UkmaDataStudentStatusEnum:
+      enum:
+      - active
+      - inactive
+      type: string
+      description: |-
+        * `active` - active
+        * `inactive` - inactive
     UkmaDataTerm:
       type: object
       properties:

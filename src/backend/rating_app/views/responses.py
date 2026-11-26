@@ -60,6 +60,7 @@ from rating_app.serializers.ukma_data import (
     UkmaDataProgrammePageSerializer,
     UkmaDataReviewCasePageSerializer,
     UkmaDataStatusSerializer,
+    UkmaDataStudentCaseSerializer,
     UkmaDataTermPageSerializer,
 )
 
@@ -393,6 +394,11 @@ R_UKMA_DATA_DECISION = {
     409: OpenApiResponse(Err, "UKMA Data refused the decision", [EX_409_UKMA_DATA_REFUSED]),
     502: OpenApiResponse(Err, "UKMA Data is down or failed", [EX_502_UKMA_DATA]),
     503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
+}
+
+R_UKMA_DATA_STUDENT_CASE = {
+    **ukma_data_responses(UkmaDataStudentCaseSerializer, include_400=False),
+    404: OpenApiResponse(Err, "Unknown case, or not a student case", [EX_404_UKMA_DATA]),
 }
 
 R_UKMA_DATA_MERGE = {

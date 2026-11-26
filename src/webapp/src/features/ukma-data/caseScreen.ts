@@ -88,10 +88,7 @@ function openCaseSides(
 				{
 					label: "З ким зіставлено",
 					title: countWord(count, SIMILAR_STUDENTS),
-					rows: [
-						[NOW, "Приєднано до найближчого збігу"],
-						["Імена", "Видно в сервісі даних САЗ"],
-					],
+					rows: [[NOW, "Приєднано до найближчого збігу"]],
 				},
 			];
 		case "removals_held": {

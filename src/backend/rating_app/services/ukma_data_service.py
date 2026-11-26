@@ -76,6 +76,10 @@ class UkmaDataService:
             extra={name: value for name, value in filters.items() if value is not None},
         )
 
+    def get_student_case(self, case_id: str) -> ud.StudentCase:
+        """A `student_match` case with each person's name, programme, study year and status."""
+        return self._get(f"/v1/review-cases/{case_id}", {}, ud.StudentCase, missing_is_404=True)
+
     def get_status(self) -> UkmaDataStatus:
         key = self.get_key()
         # Every list carries the same dataUpdatedAt (the latest successful run),
@@ -158,7 +162,14 @@ class UkmaDataService:
             query["limit"] = min(params.limit, UKMA_DATA_MAX_PAGE_SIZE)
         return self._get(path, query, page)
 
-    def _get[M: BaseModel](self, path: str, query: dict[str, int | str], model: type[M]) -> M:
+    def _get[M: BaseModel](
+        self,
+        path: str,
+        query: dict[str, int | str],
+        model: type[M],
+        *,
+        missing_is_404: bool = False,
+    ) -> M:
         base_url = settings.UKMA_DATA_URL
         api_key = settings.UKMA_DATA_API_KEY
         if not base_url or not api_key:
@@ -181,6 +192,10 @@ class UkmaDataService:
         if response.status_code == 403:
             logger.warning("ukma_data_forbidden", path=path)
             raise UkmaDataForbiddenError()
+
+        if missing_is_404 and response.status_code in (404, 409):
+            logger.warning("ukma_data_not_found", path=path, status=response.status_code)
+            raise UkmaDataDecisionNotFoundError()
 
         if not response.ok:
             logger.warning("ukma_data_error_status", path=path, status=response.status_code)

@@ -9,6 +9,7 @@ import {
 import type { CaseSide } from "../caseScreen";
 import { candidateIds, formatDateTime } from "../reviewCases";
 import { CaseActions } from "./CaseActions";
+import { StudentCaseCompare } from "./StudentCaseCompare";
 
 function SideCard({
 	side,
@@ -45,6 +46,9 @@ function SideCard({
 export function CaseSides({
 	reviewCase,
 }: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
+	if (reviewCase.kind === "student_match") {
+		return <StudentCaseCompare caseId={reviewCase.id} />;
+	}
 	const [record, matched] = caseSides(reviewCase);
 	return (
 		<div className="grid gap-4 md:grid-cols-2">
