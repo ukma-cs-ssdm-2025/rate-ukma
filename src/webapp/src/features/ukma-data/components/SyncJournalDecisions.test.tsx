@@ -122,7 +122,7 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 		// Assert
 		expect(items[0]).toHaveTextContent("Рішення в UKMA Data: об'єднано");
 		expect(items[1]).toHaveTextContent(
-			"Рішення в UKMA Data: об'єднано — відмова",
+			"Рішення в UKMA Data: об'єднано, відмова",
 		);
 		expect(items[1]).toHaveTextContent(
 			"Дисципліни різного рівня: об'єднати можна лише однакові.",

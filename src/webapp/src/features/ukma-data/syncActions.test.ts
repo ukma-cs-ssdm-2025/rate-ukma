@@ -110,7 +110,7 @@ describe("journal words", () => {
 			"Правило: Звʼязок дисципліни → Авто",
 		);
 		expect(journalTitle(journalAnswer)).toBe(
-			`Відповідь: Обʼєднання дисциплін — ${ANSWER_LABELS.merge}`,
+			`Відповідь: Обʼєднання дисциплін, ${ANSWER_LABELS.merge}`,
 		);
 		expect(journalEntryNumber(journalPolicy)).toBe("—");
 	});

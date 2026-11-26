@@ -173,7 +173,7 @@ const JOURNAL_TITLES = {
 		const answer = entry.counts.answer;
 		const head = `Відповідь: ${kindLabel(entry.counts.kind ?? "—")}`;
 		return answer !== undefined && isAnswer(answer)
-			? `${head} — ${ANSWER_LABELS[answer]}`
+			? `${head}, ${ANSWER_LABELS[answer]}`
 			: head;
 	},
 	decision: (entry) => decisionTitle(entry),
@@ -238,7 +238,7 @@ function decisionTitle(entry: SyncJournalEntry): string {
 	if (entry.outcome === "done") {
 		return head;
 	}
-	return `${head} — ${entry.outcome === "refused" ? "відмова" : "помилка"}`;
+	return `${head}, ${entry.outcome === "refused" ? "відмова" : "помилка"}`;
 }
 
 export const journalTitle = (entry: SyncJournalEntry): string =>
