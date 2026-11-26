@@ -155,4 +155,35 @@ describe("PlanSemesterGrid", () => {
 		await userEvent.click(addButtons[1]!);
 		expect(onAddCourse).toHaveBeenCalledWith("SPRING");
 	});
+	it("shows an empty semester with 0 credits next to a filled one (US-5.9)", () => {
+		render(
+			<PlanSemesterGrid studyYear={3} semesters={semesters} showBackups />,
+		);
+
+		expect(screen.getByText("Весняний семестр")).toBeTruthy();
+		expect(screen.getAllByText("0 ECTS / 0 год").length).toBeGreaterThanOrEqual(
+			1,
+		);
+	});
+
+	it("keeps a backup that is the only course of its semester, with 0 credits (US-5.2)", () => {
+		const onlyBackup: PlanSemester[] = [
+			{
+				semester_term: "SPRING",
+				main: [],
+				backup: [course("Блокчейн", "ELECTIVE")],
+				is_graduation_summer: false,
+			},
+		];
+
+		render(
+			<PlanSemesterGrid studyYear={3} semesters={onlyBackup} showBackups />,
+		);
+
+		expect(screen.getAllByTestId(testIds.personalPlan.backupRow)).toHaveLength(
+			1,
+		);
+		expect(screen.getByText("Блокчейн")).toBeTruthy();
+		expect(screen.getByText("0 ECTS / 0 год")).toBeTruthy();
+	});
 });
