@@ -79,12 +79,12 @@ export function SyncRunPage({
 					<ArrowLeft />
 					Журнал
 				</Button>
-				<h2 className="text-lg font-semibold">Читання САЗ #{runId}</h2>
+				<h2 className="text-lg font-medium">Читання САЗ #{runId}</h2>
 			</div>
 			<RunHeader runId={runId} />
 			<SyncRunApprovals runId={runId} />
 			<section aria-labelledby="sync-run-changes" className="space-y-3">
-				<h3 id="sync-run-changes" className="text-base font-semibold">
+				<h3 id="sync-run-changes" className="text-base font-medium">
 					Зміни
 				</h3>
 				<SyncRunChanges runId={runId} />

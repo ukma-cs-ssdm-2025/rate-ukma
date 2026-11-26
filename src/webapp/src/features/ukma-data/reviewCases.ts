@@ -8,7 +8,7 @@ import type {
 	UkmaDataReviewCase,
 	UkmaDataReviewCasesListParams,
 } from "@/lib/api/generated";
-import { formatCount, pluralForm, timeAgo } from "./syncFormat";
+import { formatCount, pluralForm } from "./syncFormat";
 import type { PluralForms } from "./syncFormat";
 
 export const PAGE = { limit: 1000 } as const;
@@ -60,7 +60,7 @@ const DAYS = { one: "день", few: "дні", many: "днів" } satisfies Plur
 export const READ_ONLY = "Тут лише перегляд: рішення змінюють спільні дані САЗ";
 
 export const DECIDED_ELSEWHERE =
-	"Рішення змінюють спільні дані САЗ, тому кнопки працюють лише там, де ключ сервера має на це право. Інакше сторінка лише показує, що сталося.";
+	"Рішення приймають на сторінці справи, де видно імена й назви. Вони змінюють спільні дані САЗ, тому кнопки працюють, лише коли ключ сервера має на це право.";
 
 const countWord = (count: number, forms: PluralForms): string =>
 	`${formatCount(count)} ${pluralForm(count, forms)}`;
@@ -192,7 +192,6 @@ const dayMonth = new Intl.DateTimeFormat("uk-UA", {
 export const receivedText = (iso: string): string =>
 	`Отримано ${dayMonth.format(new Date(iso))}`;
 
-export const sinceText = (iso: string): string => timeAgo(iso);
 
 const openedTime = (item: UkmaDataReviewCase): number =>
 	Date.parse(item.opened_at);

@@ -137,3 +137,28 @@ class UkmaDataDecisionResponseSerializer(serializers.Serializer):
 class UkmaDataDecideForbiddenSerializer(serializers.Serializer):
     code = serializers.CharField(help_text="Always `ukma_data_forbidden`")
     detail = serializers.CharField()
+
+
+class UkmaDataRecordSerializer(serializers.Serializer):
+    """A UKMA Data id as the site knows it: a discipline or one of its semesters."""
+
+    id = serializers.CharField(read_only=True)
+    kind = serializers.ChoiceField(
+        choices=[("course", "Course"), ("offering", "Offering")],
+        read_only=True,
+        allow_null=True,
+    )
+    title = serializers.CharField(read_only=True, allow_null=True)
+    place = serializers.CharField(read_only=True, allow_null=True)
+    semester = serializers.CharField(read_only=True, allow_null=True)
+    ratings = serializers.IntegerField(read_only=True)
+    course_id = serializers.CharField(
+        read_only=True, allow_null=True, help_text="The discipline page on the site"
+    )
+    on_site = serializers.BooleanField(
+        read_only=True, help_text="False while only a proposed sync change names it"
+    )
+
+
+class UkmaDataRecordListSerializer(serializers.Serializer):
+    items = UkmaDataRecordSerializer(many=True, read_only=True)

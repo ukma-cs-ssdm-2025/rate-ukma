@@ -30,6 +30,7 @@ vi.mock("@tanstack/react-router", async () => ({
 }));
 
 const UNMERGE_URL = "/api/v1/ukma-data/courses/c-101/unmerge/";
+const RECORDS_URL = "/api/v1/ukma-data/records/";
 
 const journalDecisionUnmerge: SyncJournalEntry = {
 	...journalDecisionMerge,
@@ -74,6 +75,20 @@ beforeEach(() => {
 	mock.onGet(PENDING_URL).reply(200, pending([]));
 	mock.onGet(POLICIES_URL).reply(200, { items: [] });
 	mock.onGet(POLICY_CHANGES_URL).reply(200, { items: [] });
+	mock.onGet(RECORDS_URL).reply(200, {
+		items: [
+			{
+				id: "c-101",
+				kind: "course",
+				title: "Тестова дисципліна А",
+				place: "Кафедра прикладів",
+				semester: null,
+				ratings: 0,
+				course_id: null,
+				on_site: true,
+			},
+		],
+	});
 });
 
 afterEach(() => {
@@ -112,7 +127,7 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 		expect(items[1]).toHaveTextContent(
 			"Дисципліни різного рівня: об'єднати можна лише однакові.",
 		);
-		expect(dialog).toHaveTextContent("Роз'єднати дисципліну c-101?");
+		expect(dialog).toHaveTextContent("Роз'єднати «Тестова дисципліна А»?");
 		expect(
 			await screen.findByText("Дисципліну роз'єднано."),
 		).toBeInTheDocument();

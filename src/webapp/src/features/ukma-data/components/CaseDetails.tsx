@@ -9,6 +9,7 @@ import {
 import type { CaseSide } from "../caseScreen";
 import { candidateIds, formatDateTime } from "../reviewCases";
 import { CaseActions } from "./CaseActions";
+import { CaseRecords } from "./CaseRecords";
 import { StudentCaseCompare } from "./StudentCaseCompare";
 
 function SideCard({
@@ -22,15 +23,17 @@ function SideCard({
 				primary && "border-2 border-primary",
 			)}
 		>
-			<p
-				className={cn(
-					"text-xs",
-					primary ? "text-primary" : "text-muted-foreground",
-				)}
-			>
-				{side.label}
-			</p>
-			<h3 className="text-lg font-semibold">{side.title}</h3>
+			<h3 className="space-y-0.5">
+				<span
+					className={cn(
+						"block text-sm",
+						primary ? "text-primary" : "text-muted-foreground",
+					)}
+				>
+					{side.label}
+				</span>
+				<span className="block text-lg font-medium">{side.title}</span>
+			</h3>
 			<dl className="grid grid-cols-[8rem_1fr] gap-y-1.5 text-sm">
 				{side.rows.map(([term, value]) => (
 					<div key={term} className="contents">
@@ -48,6 +51,12 @@ export function CaseSides({
 }: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
 	if (reviewCase.kind === "student_match") {
 		return <StudentCaseCompare caseId={reviewCase.id} />;
+	}
+	if (
+		reviewCase.kind === "course_match" ||
+		reviewCase.kind === "removals_held"
+	) {
+		return <CaseRecords reviewCase={reviewCase} />;
 	}
 	const [record, matched] = caseSides(reviewCase);
 	return (

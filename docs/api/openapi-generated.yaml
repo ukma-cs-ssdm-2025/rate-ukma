@@ -3595,6 +3595,71 @@ paths:
                     status: 503
                   summary: UKMA Data not configured
           description: UKMA Data is not configured
+  /api/v1/ukma-data/records/:
+    get:
+      operationId: ukma_data_records_list
+      description: 'Each UKMA Data course or offering id as the site knows it: the
+        discipline, its department, the semester and its ratings, so a review case
+        shows names. An id the site does not have yet is named from a proposed sync
+        change; one neither knows comes back unnamed. Read from the site only, UKMA
+        Data is not called. Superusers only.'
+      summary: Name UKMA Data ids
+      parameters:
+      - in: query
+        name: ids
+        schema:
+          type: string
+        description: Comma-separated UKMA Data course or offering ids, up to 200
+        required: true
+      tags:
+      - ukma-data
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UkmaDataRecordList'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ValidationError:
+                  value:
+                    detail: Validation failed
+                    status: 400
+                    fields:
+                      difficulty:
+                      - Must be between 1 and 5.
+                  summary: Validation error
+          description: Bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Unauthorized:
+                  value:
+                    detail: Authentication credentials were not provided
+                    status: 401
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                Forbidden:
+                  value:
+                    detail: You do not have permission to perform this action
+                    status: 403
+          description: Forbidden
   /api/v1/ukma-data/review-cases/:
     get:
       operationId: ukma_data_review_cases_list
@@ -9750,6 +9815,70 @@ components:
       - cursor
       - data_updated_at
       - has_more
+      - items
+    UkmaDataRecord:
+      type: object
+      description: 'A UKMA Data id as the site knows it: a discipline or one of its
+        semesters.'
+      properties:
+        id:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/UkmaDataRecordKindEnum'
+          readOnly: true
+          nullable: true
+        title:
+          type: string
+          readOnly: true
+          nullable: true
+        place:
+          type: string
+          readOnly: true
+          nullable: true
+        semester:
+          type: string
+          readOnly: true
+          nullable: true
+        ratings:
+          type: integer
+          readOnly: true
+        course_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The discipline page on the site
+        on_site:
+          type: boolean
+          readOnly: true
+          description: False while only a proposed sync change names it
+      required:
+      - course_id
+      - id
+      - kind
+      - on_site
+      - place
+      - ratings
+      - semester
+      - title
+    UkmaDataRecordKindEnum:
+      enum:
+      - course
+      - offering
+      type: string
+      description: |-
+        * `course` - Course
+        * `offering` - Offering
+    UkmaDataRecordList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UkmaDataRecord'
+          readOnly: true
+      required:
       - items
     UkmaDataReviewCase:
       type: object

@@ -357,6 +357,11 @@ def ukma_data_review_cases_view():
 
 
 @once
+def ukma_data_records_view():
+    return UkmaDataViewSet.as_view({"get": "records"})
+
+
+@once
 def ukma_data_student_case_view():
     return UkmaDataViewSet.as_view(
         {"get": "student_case"},
@@ -660,6 +665,11 @@ def rest_urlpatterns() -> list:
             "ukma-data/review-cases/",
             ukma_data_review_cases_view(),
             name="ukma-data-review-cases",
+        ),
+        path(
+            "ukma-data/records/",
+            ukma_data_records_view(),
+            name="ukma-data-records",
         ),
         path(
             "ukma-data/review-cases/<ukma_data_id:case_id>/",

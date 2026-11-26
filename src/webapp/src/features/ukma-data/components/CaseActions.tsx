@@ -16,6 +16,7 @@ import {
 	getUkmaDataStatusRetrieveQueryKey,
 	useUkmaDataCourseMerge,
 	useUkmaDataCourseUnmerge,
+	useUkmaDataRecordsList,
 	useUkmaDataReviewCaseDecide,
 } from "@/lib/api/generated";
 import {
@@ -24,11 +25,14 @@ import {
 	decideConfirm,
 	mergeConfirm,
 	mergeLabel,
+	ONLY_IN_SERVICE,
 	unmergeConfirm,
 	unmergeCourseId,
 } from "../caseActions";
-import { candidateIds, READ_ONLY } from "../reviewCases";
+import { recordTitle } from "../caseRecords";
+import { candidateIds, NO_RETRY, READ_ONLY } from "../reviewCases";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
+import { useCaseRecords } from "./CaseRecords";
 
 type Pending =
 	| { kind: "decide"; reviewCase: UkmaDataReviewCase }
@@ -134,6 +138,8 @@ export function CaseActions({
 	const busy = decide.isPending || merge.isPending;
 	const candidates =
 		reviewCase.kind === "course_match" ? candidateIds(reviewCase) : [];
+	const records = useCaseRecords(reviewCase).data?.items;
+	const name = (id: string) => recordTitle(records, id);
 
 	const confirm = () => {
 		if (!pending || busy) {
@@ -179,9 +185,14 @@ export function CaseActions({
 		reviewCase.kind !== "student_match" &&
 		reviewCase.kind !== "course_match"
 	) {
-		return null;
+		return <p className="text-muted-foreground">{ONLY_IN_SERVICE}</p>;
 	}
-	const dialog = pending === null ? null : confirmText(pending);
+	const dialog =
+		pending === null
+			? null
+			: pending.kind === "decide"
+				? decideConfirm(pending.reviewCase)
+				: mergeConfirm(name(pending.reviewCase.subject_id), name(pending.into));
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex flex-wrap gap-2">
@@ -203,7 +214,7 @@ export function CaseActions({
 								disabled={!decideEnabled || busy}
 								onClick={() => setPending({ kind: "merge", reviewCase, into })}
 							>
-								{mergeLabel(into)}
+								{mergeLabel(name(into))}
 							</Button>
 						</Guarded>
 					))
@@ -226,12 +237,6 @@ export function CaseActions({
 	);
 }
 
-function confirmText(pending: Pending) {
-	return pending.kind === "decide"
-		? decideConfirm(pending.reviewCase)
-		: mergeConfirm(pending.reviewCase, pending.into);
-}
-
 export function UnmergeAction({
 	entry,
 	decideEnabled,
@@ -241,10 +246,14 @@ export function UnmergeAction({
 	const [open, setOpen] = useState(false);
 	const [result, setResult] = useState<Result | null>(null);
 	const targetId = unmergeCourseId(entry);
+	const records = useUkmaDataRecordsList(
+		{ ids: targetId ?? "" },
+		{ query: { ...NO_RETRY.query, enabled: targetId !== null } },
+	).data?.items;
 	if (targetId === null) {
 		return null;
 	}
-	const confirm = unmergeConfirm(targetId);
+	const confirm = unmergeConfirm(recordTitle(records, targetId));
 	return (
 		<div className="flex flex-col items-end gap-1">
 			<Guarded enabled={decideEnabled}>

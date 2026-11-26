@@ -33,6 +33,9 @@ interface Confirm {
 
 export const mergeLabel = (into: string): string => `Об'єднати з ${into}`;
 
+export const ONLY_IN_SERVICE =
+	"Це рішення поки можна прийняти лише в самому сервісі даних САЗ: він ще не дає зробити це звідси.";
+
 export function decideConfirm(reviewCase: UkmaDataReviewCase): Confirm {
 	return {
 		title: "Це та сама людина?",
@@ -40,13 +43,10 @@ export function decideConfirm(reviewCase: UkmaDataReviewCase): Confirm {
 	};
 }
 
-export function mergeConfirm(
-	reviewCase: UkmaDataReviewCase,
-	into: string,
-): Confirm {
+export function mergeConfirm(subject: string, into: string): Confirm {
 	return {
-		title: `Об'єднати семестр ${reviewCase.subject_id} з дисципліною ${into}?`,
-		description: `Семестр ${reviewCase.subject_id} приєднається до дисципліни ${into}. Це змінює спільні дані САЗ.`,
+		title: `Об'єднати ${subject} з ${into}?`,
+		description: `Семестри ${subject} перейдуть до ${into}, і САЗ показуватиме їх як одну дисципліну. Це змінює спільні дані САЗ.`,
 	};
 }
 
@@ -81,9 +81,9 @@ export function undoneMergeIds(
 	return undone;
 }
 
-export function unmergeConfirm(targetId: string): Confirm {
+export function unmergeConfirm(target: string): Confirm {
 	return {
-		title: `Роз'єднати дисципліну ${targetId}?`,
-		description: `Дисципліна ${targetId} знову стане окремою. Це змінює спільні дані САЗ.`,
+		title: `Роз'єднати ${target}?`,
+		description: `${target} знову стане окремою дисципліною зі своїми семестрами. Це змінює спільні дані САЗ.`,
 	};
 }

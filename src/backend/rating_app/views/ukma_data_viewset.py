@@ -14,6 +14,7 @@ from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.ukma_data_params import (
     UkmaDataPageParams,
+    UkmaDataRecordParams,
     UkmaDataReviewCaseParams,
 )
 from rating_app.exception.ukma_data_exceptions import (
@@ -32,8 +33,10 @@ from rating_app.models.sync import (
 from rating_app.serializers.ukma_data import (
     UkmaDataCourseMergeRequestSerializer,
     UkmaDataDecisionResponseSerializer,
+    UkmaDataRecordListSerializer,
 )
 from rating_app.services.ukma_data_service import UkmaDataService
+from rating_app.sync import records
 from rating_app.views.responses import (
     R_UKMA_DATA_DECISION,
     R_UKMA_DATA_DEPARTMENTS,
@@ -41,6 +44,7 @@ from rating_app.views.responses import (
     R_UKMA_DATA_MERGE,
     R_UKMA_DATA_OFFERINGS,
     R_UKMA_DATA_PROGRAMMES,
+    R_UKMA_DATA_RECORDS,
     R_UKMA_DATA_REVIEW_CASES,
     R_UKMA_DATA_STATUS,
     R_UKMA_DATA_STUDENT_CASE,
@@ -183,6 +187,23 @@ class UkmaDataViewSet(viewsets.ViewSet):
 
         found = self.ukma_data_service.get_student_case(case_id)
         return Response(found.model_dump(mode="json"), status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Name UKMA Data ids",
+        description="Each UKMA Data course or offering id as the site knows it: the "
+        "discipline, its department, the semester and its ratings, so a review case shows "
+        "names. An id the site does not have yet is named from a proposed sync change; "
+        "one neither knows comes back unnamed. Read from the site only, UKMA Data is not "
+        "called. Superusers only.",
+        parameters=to_openapi((UkmaDataRecordParams, OpenApiParameter.QUERY)),
+        responses=R_UKMA_DATA_RECORDS,
+        operation_id="ukma_data_records_list",
+    )
+    def records(self, request: Request) -> Response:
+        params = self._query(request, UkmaDataRecordParams)
+        items = records.describe(params.ids.split(","))
+        payload = UkmaDataRecordListSerializer({"items": items})
+        return Response(payload.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="Decide a UKMA Data review case",

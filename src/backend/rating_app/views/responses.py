@@ -58,6 +58,7 @@ from rating_app.serializers.ukma_data import (
     UkmaDataFacultyPageSerializer,
     UkmaDataOfferingPageSerializer,
     UkmaDataProgrammePageSerializer,
+    UkmaDataRecordListSerializer,
     UkmaDataReviewCasePageSerializer,
     UkmaDataStatusSerializer,
     UkmaDataStudentCaseSerializer,
@@ -399,6 +400,11 @@ R_UKMA_DATA_DECISION = {
 R_UKMA_DATA_STUDENT_CASE = {
     **ukma_data_responses(UkmaDataStudentCaseSerializer, include_400=False),
     404: OpenApiResponse(Err, "Unknown case, or not a student case", [EX_404_UKMA_DATA]),
+}
+
+R_UKMA_DATA_RECORDS = {
+    200: OpenApiResponse(forced_singular_serializer(UkmaDataRecordListSerializer), "OK"),
+    **common_errors(include_400=True, include_404=False),
 }
 
 R_UKMA_DATA_MERGE = {

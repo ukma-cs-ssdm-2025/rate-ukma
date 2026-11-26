@@ -95,7 +95,7 @@ export function SyncRunsList({
 
 	return (
 		<section aria-labelledby="sync-runs-title" className="space-y-4">
-			<h3 id="sync-runs-title" className="text-base font-semibold">
+			<h3 id="sync-runs-title" className="text-base font-medium">
 				Нічні читання САЗ
 			</h3>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center">

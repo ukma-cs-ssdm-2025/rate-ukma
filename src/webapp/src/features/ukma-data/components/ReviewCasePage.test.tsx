@@ -63,6 +63,37 @@ const studentCase: UkmaDataReviewCase = {
 	change_no: 6,
 };
 
+const RECORDS_URL = "/api/v1/ukma-data/records/";
+const MERGE_URL = "/api/v1/ukma-data/courses/ud-new/merge/";
+
+const record = (id: string, title: string, extra: object = {}) => ({
+	id,
+	kind: "course",
+	title,
+	place: "Кафедра прикладів",
+	semester: null,
+	ratings: 0,
+	course_id: null,
+	on_site: true,
+	...extra,
+});
+
+const courseCase: UkmaDataReviewCase = {
+	...studentCase,
+	id: "rc-201",
+	kind: "course_match",
+	subject_id: "ud-new",
+	candidates: ["ud-old"],
+};
+
+const removalsCase: UkmaDataReviewCase = {
+	...studentCase,
+	id: "rc-301",
+	kind: "removals_held",
+	subject_id: "2030",
+	candidates: { academicYear: 2030, offerings: ["ud-o1", "ud-o2"] },
+};
+
 const page = (items: UkmaDataReviewCase[]) => ({
 	items,
 	cursor: 0,
@@ -156,6 +187,81 @@ describe("/data/cases/$caseId", () => {
 		expect(
 			await screen.findByText("Дані САЗ зараз недоступні"),
 		).toBeInTheDocument();
+	});
+
+	it("names the disciplines of a course case and merges by name", async () => {
+		const user = userEvent.setup();
+		mock.reset();
+		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
+		mock.onGet(CASES_URL).reply(200, page([courseCase]));
+		mock.onGet(RECORDS_URL).reply(200, {
+			items: [
+				record("ud-new", "Тестова дисципліна Б", { on_site: false }),
+				record("ud-old", "Тестова дисципліна А", { ratings: 7 }),
+			],
+		});
+		mock.onPost(MERGE_URL).reply(200, {
+			decision_id: 42,
+			action: "merge_course",
+			outcome: "done",
+			detail: "Дисципліну об'єднано.",
+		});
+
+		renderCase("rc-201");
+
+		const list = within(
+			await screen.findByRole("list", { name: "Схожі дисципліни" }),
+		);
+		expect(list.getByText("Тестова дисципліна А")).toBeInTheDocument();
+		expect(list.getByText("7 оцінок")).toBeInTheDocument();
+		await user.click(
+			screen.getByRole("button", {
+				name: "Об'єднати з «Тестова дисципліна А»",
+			}),
+		);
+		const dialog = within(await screen.findByRole("alertdialog"));
+		expect(
+			dialog.getByText(
+				"Об'єднати «Тестова дисципліна Б» з «Тестова дисципліна А»?",
+			),
+		).toBeInTheDocument();
+		await user.click(dialog.getByRole("button", { name: "Об'єднати" }));
+		expect(
+			await screen.findByText("Дисципліну об'єднано."),
+		).toBeInTheDocument();
+		expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({
+			into: "ud-old",
+		});
+	});
+
+	it("lists the semesters a removals case holds and says where to decide", async () => {
+		mock.onGet(CASES_URL).reply(200, page([removalsCase]));
+		mock.onGet(RECORDS_URL).reply(200, {
+			items: [
+				record("ud-o1", "Тестова дисципліна А", {
+					kind: "offering",
+					semester: "Осінь 2030",
+					ratings: 2,
+				}),
+				record("ud-o2", "Тестова дисципліна Б", {
+					kind: "offering",
+					semester: "Весна 2031",
+				}),
+			],
+		});
+
+		renderCase("rc-301");
+
+		expect(
+			await screen.findByText(
+				"2 семестри навчального року 2030–2031, на 1 з них є оцінки.",
+			),
+		).toBeInTheDocument();
+		expect(screen.getByText("Осінь 2030")).toBeInTheDocument();
+		expect(
+			screen.getByText(/лише в самому сервісі даних САЗ/),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /Прибрати/ })).toBeNull();
 	});
 
 	it("says when the case is gone", async () => {

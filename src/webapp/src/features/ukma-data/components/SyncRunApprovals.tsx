@@ -105,7 +105,7 @@ export function SyncRunApprovals({ runId }: Readonly<{ runId: number }>) {
 		<section aria-labelledby="sync-decisions" className="space-y-3">
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<div className="space-y-1">
-					<h3 id="sync-decisions" className="text-base font-semibold">
+					<h3 id="sync-decisions" className="text-base font-medium">
 						Рішення
 					</h3>
 					<p className="text-sm text-muted-foreground">
