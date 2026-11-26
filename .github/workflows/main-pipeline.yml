@@ -1,5 +1,5 @@
 ---
-name: Staging Build
+name: RateUKMA WebApp Staging Build
 on:
   workflow_dispatch:
     inputs:
@@ -36,6 +36,8 @@ jobs:
     needs: changes-filter
     if: github.ref_name == github.event.repository.default_branch
     with:
+      # Only web app commits count towards v versions, so parser commits can't raise the bump level.
+      change_path: src/backend src/webapp infra/nginx
       code_changed: >-
         ${{ inputs.version-tag == '' &&
         (fromJSON(needs.changes-filter.outputs.backend_changed) ||

@@ -1,5 +1,5 @@
 ---
-name: Live Build
+name: RateUKMA WebApp Live Build
 
 on:
   workflow_run:
