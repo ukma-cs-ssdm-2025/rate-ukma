@@ -120,6 +120,13 @@ class CasePerson1(UkmaDataModel):
     ]
     first_name: Annotated[str, Field(alias="firstName")]
     last_name: Annotated[str, Field(alias="lastName")]
+    middle_name: Annotated[
+        str | None,
+        Field(
+            alias="middleName",
+            description="The patronymic and any further given names, as САЗ lists them",
+        ),
+    ]
     programme: str | None
     study_year: Annotated[int | None, Field(alias="studyYear")]
     status: Status1 | None
@@ -136,6 +143,13 @@ class CasePerson(UkmaDataModel):
     ]
     first_name: Annotated[str, Field(alias="firstName")]
     last_name: Annotated[str, Field(alias="lastName")]
+    middle_name: Annotated[
+        str | None,
+        Field(
+            alias="middleName",
+            description="The patronymic and any further given names, as САЗ lists them",
+        ),
+    ]
     programme: str | None
     study_year: Annotated[int | None, Field(alias="studyYear")]
     status: Status1 | None
