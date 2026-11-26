@@ -39,6 +39,7 @@ class SyncSummaryAnswersSerializer(serializers.Serializer):
     keep = serializers.IntegerField()
     place = serializers.IntegerField()
     move = serializers.IntegerField()
+    relink = serializers.IntegerField()
 
 
 class SyncNotProposedSerializer(serializers.Serializer):

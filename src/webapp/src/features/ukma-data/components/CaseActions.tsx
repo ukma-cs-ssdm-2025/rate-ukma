@@ -29,7 +29,7 @@ import {
 	unmergeConfirm,
 	unmergeCourseId,
 } from "../caseActions";
-import { recordTitle } from "../caseRecords";
+import { recordTitle, titleRepeats } from "../caseRecords";
 import { candidateIds, NO_RETRY, READ_ONLY } from "../reviewCases";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
 import { useCaseRecords } from "./CaseRecords";
@@ -140,6 +140,8 @@ export function CaseActions({
 		reviewCase.kind === "course_match" ? candidateIds(reviewCase) : [];
 	const records = useCaseRecords(reviewCase).data?.items;
 	const name = (id: string) => recordTitle(records, id);
+	const fullName = (id: string) => recordTitle(records, id, true);
+	const repeats = titleRepeats(records, [reviewCase.subject_id, ...candidates]);
 
 	const confirm = () => {
 		if (!pending || busy) {
@@ -192,7 +194,10 @@ export function CaseActions({
 			? null
 			: pending.kind === "decide"
 				? decideConfirm(pending.reviewCase)
-				: mergeConfirm(name(pending.reviewCase.subject_id), name(pending.into));
+				: mergeConfirm(
+						fullName(pending.reviewCase.subject_id),
+						fullName(pending.into),
+					);
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex flex-wrap gap-2">
@@ -214,7 +219,7 @@ export function CaseActions({
 								disabled={!decideEnabled || busy}
 								onClick={() => setPending({ kind: "merge", reviewCase, into })}
 							>
-								{mergeLabel(name(into))}
+								{mergeLabel(repeats ? fullName(into) : name(into))}
 							</Button>
 						</Guarded>
 					))

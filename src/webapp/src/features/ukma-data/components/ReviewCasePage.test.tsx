@@ -224,7 +224,7 @@ describe("/data/cases/$caseId", () => {
 		const dialog = within(await screen.findByRole("alertdialog"));
 		expect(
 			dialog.getByText(
-				"Об'єднати «Тестова дисципліна Б» з «Тестова дисципліна А»?",
+				"Об'єднати «Тестова дисципліна Б» (Кафедра прикладів) з «Тестова дисципліна А» (Кафедра прикладів)?",
 			),
 		).toBeInTheDocument();
 		await user.click(dialog.getByRole("button", { name: "Об'єднати" }));

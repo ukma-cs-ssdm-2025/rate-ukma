@@ -72,8 +72,8 @@ export function ApplyAnswers() {
 	if (data === undefined) {
 		return null;
 	}
-	const { merge, keep_apart, keep, place, move } = data.answers;
-	const answered = merge + keep_apart + keep + place + move;
+	const { merge, keep_apart, keep, place, move, relink } = data.answers;
+	const answered = merge + keep_apart + keep + place + move + relink;
 	if (answered === 0) {
 		return null;
 	}

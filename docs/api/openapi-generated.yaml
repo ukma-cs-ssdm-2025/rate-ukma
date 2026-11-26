@@ -9513,12 +9513,15 @@ components:
           type: integer
         move:
           type: integer
+        relink:
+          type: integer
       required:
       - keep
       - keep_apart
       - merge
       - move
       - place
+      - relink
     SyncSummaryGroups:
       type: object
       properties:

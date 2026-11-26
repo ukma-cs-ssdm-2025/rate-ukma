@@ -164,6 +164,27 @@ describe("/data/sync/preview", () => {
 		).not.toBeInTheDocument();
 	});
 
+	it("keeps a chosen field clearable when it no longer has rows", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock.onGet(PENDING_URL).reply(200, {
+			...pending([], 0),
+			changed_fields: {},
+		});
+		renderReview("?step=changes_rated&field=credits");
+
+		// Act
+		await user.click(await screen.findByRole("radio", { name: "Усі поля" }));
+
+		// Assert
+		await vi.waitFor(() =>
+			expect(mock.history.get.at(-1)?.params).not.toHaveProperty(
+				"changed_field",
+				"credits",
+			),
+		);
+	});
+
 	it("filters new records by academic year", async () => {
 		// Arrange
 		Object.assign(Element.prototype, {
@@ -329,7 +350,14 @@ describe("/data/sync/preview", () => {
 			.reply(200, { items: [question], next_after: null });
 		mock.onGet(SUMMARY_URL).reply(200, {
 			...summary,
-			answers: { merge: 1, keep_apart: 0, keep: 0, place: 0, move: 0 },
+			answers: {
+				merge: 1,
+				keep_apart: 0,
+				keep: 0,
+				place: 0,
+				move: 0,
+				relink: 0,
+			},
 		});
 		mock.onPost(answerUrl).reply(200, {
 			detail:

@@ -14,7 +14,7 @@ const part = (
 	who: "admin",
 	when,
 	counts: { applied, remaining, skipped: 0 },
-	outcome: "done",
+	outcome: "applied",
 	error: "",
 	approval_id: id,
 	run_id: 7,
@@ -54,6 +54,23 @@ describe("journalItems", () => {
 			part(2, "2030-09-10T12:01:00Z", 10, 0),
 			part(1, "2030-09-10T12:00:00Z", 20, 0),
 		]);
+
+		// Assert
+		expect(items.map((item) => item.kind)).toEqual(["one", "one"]);
+	});
+
+	it("keeps a refused attempt apart from the parts", () => {
+		// Arrange
+		const entries = [
+			part(2, "2030-09-10T12:01:00Z", 0, 5813),
+			{
+				...part(1, "2030-09-10T12:00:00Z", 0, 5813),
+				outcome: "refused",
+			} satisfies SyncJournalEntry,
+		];
+
+		// Act
+		const items = journalItems(entries);
 
 		// Assert
 		expect(items.map((item) => item.kind)).toEqual(["one", "one"]);

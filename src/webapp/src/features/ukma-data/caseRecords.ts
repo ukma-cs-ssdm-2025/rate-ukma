@@ -48,8 +48,12 @@ function removalsSummary(
 	const year = academicYear(reviewCase);
 	const rated = records.filter((record) => record.ratings > 0).length;
 	const head = `${countWith(total, SEMESTERS)}${year === null ? "" : ` навчального року ${year}–${year + 1}`}`;
-	const ratedText =
-		rated === 0
+	const shown = total > records.length;
+	const ratedText = shown
+		? rated === 0
+			? `серед перших ${formatCount(records.length)} жоден не має оцінок`
+			: `серед перших ${formatCount(records.length)} оцінки є на ${formatCount(rated)}`
+		: rated === 0
 			? "на жодному немає оцінок"
 			: `на ${formatCount(rated)} з них є оцінки`;
 	return {
@@ -88,7 +92,21 @@ export function recordsSummary(
 export function recordTitle(
 	records: readonly UkmaDataRecord[] | undefined,
 	id: string,
+	withPlace = false,
 ): string {
-	const title = records?.find((record) => record.id === id)?.title;
-	return title ? `«${title}»` : id;
+	const record = records?.find((item) => item.id === id);
+	if (!record?.title) {
+		return id;
+	}
+	return withPlace && record.place
+		? `«${record.title}» (${record.place})`
+		: `«${record.title}»`;
+}
+
+export function titleRepeats(
+	records: readonly UkmaDataRecord[] | undefined,
+	ids: readonly string[],
+): boolean {
+	const titles = ids.map((id) => recordTitle(records, id));
+	return new Set(titles).size < titles.length;
 }

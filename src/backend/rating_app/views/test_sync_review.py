@@ -398,6 +398,7 @@ def test_summary_counts_live_answers_and_a_newer_run(
         "keep": 0,
         "place": 0,
         "move": 0,
+        "relink": 0,
     }
     assert body["newer_run_id"] == newer.pk
 

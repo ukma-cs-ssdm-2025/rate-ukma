@@ -63,7 +63,7 @@ def in_group(changes: QuerySet[SyncChange], group: str) -> QuerySet[SyncChange]:
 _COURSE_KINDS = frozenset({"link_course", "change_course", "relink_course", "removed_course"})
 _OFFERING_KINDS = frozenset({"link_offering", "change_offering", "removed_offering"})
 _LIST_FIELDS = frozenset({"terms", "specialities_added"})
-_ANSWERS: tuple[str, ...] = ("merge", "keep_apart", "keep", "place", "move")
+_ANSWERS: tuple[str, ...] = ("merge", "keep_apart", "keep", "place", "move", "relink")
 
 STEP_ORDER: tuple[tuple[str, str], ...] = (
     ("exact_links", SyncChangeGroup.LINK),

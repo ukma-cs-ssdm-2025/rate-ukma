@@ -30,7 +30,10 @@ export function FieldFilter({
 	const fields = Object.entries(page.changed_fields).sort(
 		([, left], [, right]) => right - left,
 	);
-	if (fields.length < 2) {
+	if (field !== null && !fields.some(([name]) => name === field)) {
+		fields.push([field, 0]);
+	}
+	if (fields.length < 2 && field === null) {
 		return null;
 	}
 	const items: readonly { value: string; label: string; count?: number }[] = [

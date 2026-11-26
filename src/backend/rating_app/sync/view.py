@@ -115,9 +115,30 @@ def value_text(name: str, value: str) -> str:
         return STATUS_WORDS.get(value, value)
     if name in ("education_level", "level"):
         return LEVEL_WORDS.get(value, value)
-    if name == "description" and len(value) > DESCRIPTION_CHARS:
-        return value[: DESCRIPTION_CHARS - 1].rstrip() + "…"
+    if name == "description":
+        return _cut(value, 0)
     return value
+
+
+DESCRIPTION_LEAD = 40
+
+
+def _cut(value: str, start: int) -> str:
+    """At most DESCRIPTION_CHARS of a description, from `start` with a little lead."""
+    if len(value) <= DESCRIPTION_CHARS:
+        return value
+    begin = max(0, min(start - DESCRIPTION_LEAD, len(value) - DESCRIPTION_CHARS))
+    text = value[begin : begin + DESCRIPTION_CHARS].strip()
+    head = "…" if begin > 0 else ""
+    tail = "…" if begin + DESCRIPTION_CHARS < len(value) else ""
+    return head + text + tail
+
+
+def _first_difference(old: str, new: str) -> int:
+    return next(
+        (index for index, (a, b) in enumerate(zip(old, new, strict=False)) if a != b),
+        min(len(old), len(new)),
+    )
 
 
 def _names(value: object) -> str:
@@ -146,6 +167,10 @@ def _changed_fields(change: SyncChange) -> list[FieldView]:
         if name == "specialities":
             new = _names(after.get("specialities_added") or after.get("specialities"))
             old = ""
+        if name == "description":
+            start = _first_difference(old, new)
+            rows.append(FieldView(name, label, _cut(old, start), _cut(new, start)))
+            continue
         rows.append(FieldView(name, label, value_text(name, old), value_text(name, new)))
     return rows
 

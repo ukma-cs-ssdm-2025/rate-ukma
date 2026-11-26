@@ -14,6 +14,8 @@ function continues(newer: SyncJournalEntry, older: SyncJournalEntry): boolean {
 	return (
 		older.kind === "apply" &&
 		newer.kind === "apply" &&
+		older.outcome === "applied" &&
+		newer.outcome === "applied" &&
 		older.who === newer.who &&
 		older.group === newer.group &&
 		older.run_id === newer.run_id &&

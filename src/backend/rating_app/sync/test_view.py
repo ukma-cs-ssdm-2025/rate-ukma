@@ -121,3 +121,20 @@ def test_a_semester_of_a_new_discipline_says_so():
 
     assert view.note == "Семестр нової дисципліни"
     assert change_view(_change("new_course", "new", {}, after)).note == "Нова дисципліна"
+
+
+def test_a_long_description_shows_the_part_that_changed():
+    common = "Тестовий опис дисципліни. " * 10
+    change = _change(
+        "change_course",
+        "change",
+        {"description": common + "Стара кінцівка."},
+        {"description": common + "Нова кінцівка.", "display": {"course": COURSE}},
+    )
+
+    [row] = change_view(change).rows
+
+    assert row.before.startswith("…")
+    assert "Стара кінцівка." in row.before
+    assert "Нова кінцівка." in row.after
+    assert row.before != row.after

@@ -42,6 +42,7 @@ export const ANSWER_LABELS = {
 	keep: "залишити",
 	place: "розмістити",
 	move: "перенести",
+	relink: "перепривʼязати",
 } satisfies Record<keyof SyncSummaryAnswers, string>;
 
 export const SYNC_KINDS = [
