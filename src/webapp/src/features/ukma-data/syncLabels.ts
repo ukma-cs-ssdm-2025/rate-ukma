@@ -169,9 +169,9 @@ export const FAILED_RUN_REASONS = [
 export type FailedRunReason = (typeof FAILED_RUN_REASONS)[number];
 
 export const FAILED_RUN_LABELS = {
-	short_read: "UKMA Data віддала неповні дані",
-	stalled_read: "UKMA Data перестала відповідати під час читання",
-	forbidden: "Ключ доступу до UKMA Data не має потрібного права",
+	short_read: "Сервіс САЗ віддав неповні дані",
+	stalled_read: "Сервіс САЗ перестав відповідати під час читання",
+	forbidden: "Ключ доступу до сервісу САЗ не має потрібного права",
 } satisfies Record<FailedRunReason, string>;
 
 export const FIELD_LABELS = new Map<string, string>([
@@ -183,6 +183,8 @@ export const FIELD_LABELS = new Map<string, string>([
 	["middle_name", "По батькові"],
 	["saz_code", "Код САЗ"],
 	["semester", "Семестр"],
+	["year", "Рік"],
+	["term", "Семестр"],
 	["exam_type", "Форма контролю"],
 	["study_year", "Рік навчання"],
 	["max_students", "Макс. студентів"],
@@ -198,14 +200,14 @@ export const FIELD_LABELS = new Map<string, string>([
 	["department_ukma_id", "Кафедра (дані САЗ)"],
 	["department", "Кафедра"],
 	["education_level", "Рівень освіти"],
-	["status", "Стан"],
+	["status", "Стан курсу"],
 	["description", "Опис"],
 	["level", "Рівень"],
 	["credits", "Кредити"],
 	["weekly_hours", "Годин на тиждень"],
 	["lecture_count", "Лекцій"],
-	["practice_count", "Практик"],
-	["practice_type", "Тип практик"],
+	["practice_count", "Практичних"],
+	["practice_type", "Тип практичних"],
 	["candidates", "Кандидати"],
 	["course_id", "Курс"],
 	["course_ukma_id", "Курс (дані САЗ)"],
@@ -220,3 +222,71 @@ export const FIELD_LABELS = new Map<string, string>([
 	["links", "Звʼязки"],
 	["removed_at", "Зникли з САЗ"],
 ]);
+
+const STUDENT_FIELDS = new Set([
+	"title",
+	"name",
+	"department",
+	"credits",
+	"exam_type",
+	"year",
+	"term",
+	"study_year",
+	"specialities",
+	"education_level",
+	"level",
+	"weekly_hours",
+	"lecture_count",
+	"practice_count",
+	"practice_type",
+	"max_students",
+	"group_size_min",
+	"group_size_max",
+	"max_groups",
+	"status",
+]);
+
+export const studentFieldLabel = (name: string): string | null =>
+	STUDENT_FIELDS.has(name) ? (FIELD_LABELS.get(name) ?? null) : null;
+
+const TERM_WORDS = new Map<string, string>([
+	["FALL", "Осінь"],
+	["SPRING", "Весна"],
+	["SUMMER", "Літо"],
+]);
+
+const VALUE_WORDS = new Map<string, ReadonlyMap<string, string>>([
+	[
+		"practice_type",
+		new Map([
+			["PRACTICE", "практики"],
+			["SEMINAR", "семінари"],
+		]),
+	],
+	[
+		"exam_type",
+		new Map([
+			["EXAM", "іспит"],
+			["CREDIT", "залік"],
+		]),
+	],
+	[
+		"status",
+		new Map([
+			["ACTIVE", "читається"],
+			["FINISHED", "завершений"],
+			["PLANNED", "запланований"],
+		]),
+	],
+	["term", TERM_WORDS],
+]);
+
+export const termWord = (term: string): string | null =>
+	TERM_WORDS.get(term) ?? null;
+
+export function fieldValueWord(field: string, value: string): string {
+	if (value === "") {
+		return "порожньо";
+	}
+	return VALUE_WORDS.get(field)?.get(value) ?? value;
+}

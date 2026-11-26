@@ -62,7 +62,7 @@ afterEach(() => {
 });
 
 describe("/data overview", () => {
-	it("lists what waits as steps in apply order", async () => {
+	it("sums up what waits for a person in one inbox, not step by step", async () => {
 		// Act
 		renderOverview();
 
@@ -70,14 +70,17 @@ describe("/data overview", () => {
 		const list = within(
 			await screen.findByRole("list", { name: "Що чекає рішення" }),
 		);
-		const items = list.getAllByRole("listitem");
-		expect(items).toHaveLength(6);
-		expect(items[0]).toHaveTextContent("Звʼязки без змін на сайті");
-		expect(items[1]).toHaveTextContent(
-			"Нові записиКурси в семестрі 772, курси 40.812",
+		await list.findByText(/1 284 зміни/);
+		const [sync, cases] = list.getAllByRole("listitem");
+		expect(sync).toHaveTextContent(
+			"1 284 зміни у 6 кроках. Почніть з «Звʼязки без змін на сайті».",
 		);
-		expect(items[3]).toHaveTextContent("Зміни на сторінках з оцінками");
-		expect(screen.getByText("Разом 1 284 зміни.")).toBeInTheDocument();
+		expect(
+			within(sync ?? document.body).getByRole("link", {
+				name: "Оновлення з САЗ: перейти до першого кроку",
+			}),
+		).toHaveAttribute("href", "/data/sync/preview");
+		expect(cases).toHaveTextContent("37 справ чекають рішення");
 		expect(
 			screen.getByText(/немає семестру 5, нуль кредитів 2/),
 		).toBeInTheDocument();
@@ -122,14 +125,29 @@ describe("/data overview", () => {
 		expect(applied).toHaveTextContent("ЗастосованоЗміни, 142 зміни");
 	});
 
-	it("counts the open UKMA Data cases in one line", async () => {
+	it("keeps the sync part when the UKMA Data key cannot be checked", async () => {
+		// Arrange
+		mock.reset();
+		mock.onGet(SUMMARY_URL).reply(200, summary);
+		mock.onGet(RUNS_URL).reply(200, listPage([run]));
+		mock.onGet(approvalsUrl(7)).reply(200, listPage([]));
+		mock.onGet(STATUS_URL).reply(502, { detail: "down" });
+		mock.onGet(CASES_URL).reply(502, { detail: "down" });
+
 		// Act
 		renderOverview();
 
 		// Assert
-		const line = await screen.findByRole("link", { name: /Відкритих/ });
-		expect(line).toHaveAttribute("href", "/data/cases");
-		expect(line.parentElement).toHaveTextContent("Відкритих справ: 37.");
+		const list = within(
+			await screen.findByRole("list", { name: "Що чекає рішення" }),
+		);
+		expect(
+			await list.findByText(/Не вдалося завантажити: сервіс САЗ/),
+		).toBeInTheDocument();
+		expect(list.getAllByRole("listitem")[0]).toHaveTextContent("1 284 зміни");
+		expect(
+			screen.getByText(/Не вдалося перевірити ключ сервісу САЗ/),
+		).toBeInTheDocument();
 	});
 
 	it("warns when the latest read failed", async () => {
@@ -141,7 +159,7 @@ describe("/data overview", () => {
 
 		// Assert
 		expect(await screen.findByText(/не вдалася/)).toHaveTextContent(
-			"UKMA Data віддала неповні дані. Нижче — дані останнього вдалого.",
+			"Сервіс САЗ віддав неповні дані. Нижче — дані останнього вдалого.",
 		);
 	});
 

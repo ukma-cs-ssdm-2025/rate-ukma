@@ -41,7 +41,7 @@ export function ReviewCasesPage() {
 		<div className="min-w-0 space-y-6">
 			<DataSection
 				title="Справи"
-				lead="Записи, які UKMA Data не зіставила сама: нові студенти, схожі дисципліни та викладачі."
+				lead="Записи з САЗ, які не вдалося зіставити самостійно. Порівняйте й вирішіть, чи це той самий запис."
 			>
 				<p className="text-sm text-muted-foreground">{DECIDED_ELSEWHERE}</p>
 				<ReviewCaseFilters />

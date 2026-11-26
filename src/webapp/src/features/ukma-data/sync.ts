@@ -13,9 +13,11 @@ import {
 	FIELD_LABELS,
 	GROUP_LABELS,
 	KIND_LABELS,
+	SKIP_REASON_LABELS,
 	STATE_LABELS,
 } from "./syncLabels";
-import type { SyncKind } from "./syncLabels";
+import type { SkipReason, SyncKind } from "./syncLabels";
+import { formatCount } from "./syncFormat";
 
 export const SYNC_SOURCES = Object.values(SyncSourceEnum);
 export const SYNC_GROUPS = Object.values(SyncChangeGroupEnum);
@@ -267,16 +269,41 @@ export function formatPayloadValue(value: SyncValue): string {
 	return JSON.stringify(value) ?? "—";
 }
 
-export function countsSummary(counts: unknown): string[] {
+const SKIPPED_KEY = "skipped";
+
+const isSkipReason = (reason: string): reason is SkipReason =>
+	reason in SKIP_REASON_LABELS;
+
+function skippedSummary(value: SyncValue): string[] {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) {
+		return [];
+	}
+	const parts = Object.keys(value).flatMap((reason) => {
+		const count = read(value, reason);
+		if (typeof count !== "number" || count === 0) {
+			return [];
+		}
+		const label = isSkipReason(reason)
+			? SKIP_REASON_LABELS[reason].toLowerCase()
+			: reason;
+		return [`${label} ${count}`];
+	});
+	return parts.length === 0 ? [] : [`Пропущено: ${parts.join(", ")}`];
+}
+
+export function countsSummary(counts: unknown, withSkipped = true): string[] {
 	const root = toValue(counts);
 	if (typeof root !== "object" || root === null || Array.isArray(root)) {
 		return [];
 	}
 	return Object.keys(root).flatMap((key) => {
 		const value = read(root, key);
+		if (key === SKIPPED_KEY) {
+			return withSkipped ? skippedSummary(value) : [];
+		}
 		const label = isGroup(key) ? GROUP_LABELS[key] : kindLabel(key);
 		if (typeof value === "number") {
-			return [`${label}: ${value}`];
+			return [`${label}: ${formatCount(value)}`];
 		}
 		if (typeof value !== "object" || value === null || Array.isArray(value)) {
 			return [];
@@ -284,7 +311,7 @@ export function countsSummary(counts: unknown): string[] {
 		return Object.keys(value).flatMap((state) => {
 			const count = read(value, state);
 			return typeof count === "number"
-				? [`${label} · ${stateLabel(state)}: ${count}`]
+				? [`${label} · ${stateLabel(state)}: ${formatCount(count)}`]
 				: [];
 		});
 	});

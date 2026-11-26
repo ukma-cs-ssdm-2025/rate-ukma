@@ -32,7 +32,7 @@ import {
 } from "../syncActions";
 import { formatCount } from "../syncFormat";
 import { PAGE_SIZE } from "../syncLabels";
-import { NO_RETRY } from "../syncOverview";
+import { approverName, NO_RETRY } from "../syncOverview";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
 import { KeyCheckError, UnmergeAction } from "./CaseActions";
 import { SyncReviewRow } from "./SyncReviewRows";
@@ -164,7 +164,8 @@ function JournalRow({
 						) : null}
 					</p>
 					<p className="text-muted-foreground">
-						{entry.who ?? "автоматично"}, <Ago iso={entry.when} />
+						{entry.who === null ? "автоматично" : approverName(null, entry.who)}
+						, <Ago iso={entry.when} />
 						{number === "—" ? null : `, ${number}`}
 					</p>
 					{note.length > 0 ? (
@@ -231,8 +232,7 @@ export function SyncJournal() {
 	return (
 		<div className="space-y-4">
 			<p className="text-sm text-muted-foreground">
-				Хто що вирішив: оновлення з САЗ, правила і справи UKMA Data. Новіші
-				вгорі.
+				Хто що вирішив: оновлення з САЗ, правила і справи. Новіші вгорі.
 			</p>
 			<KeyCheckError
 				failed={status.isError}
@@ -256,7 +256,7 @@ export function SyncJournal() {
 						</EmptyMedia>
 						<EmptyTitle>Ще не було жодного рішення.</EmptyTitle>
 						<EmptyDescription>
-							Застосування, відхилення й відкати з'являться тут.
+							Застосування, відхилення й відкати зʼявляться тут.
 						</EmptyDescription>
 					</EmptyHeader>
 				</Empty>

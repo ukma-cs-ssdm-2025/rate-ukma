@@ -50,7 +50,7 @@ const WHILE_OPEN = "Поки справа була відкрита";
 const INTERIM_LABELS = new Set([NOW, STATE]);
 
 export const DIFFERENT_PEOPLE =
-	"Якщо це різні люди — залиште справу відкритою; сервіс даних САЗ запитає ще раз, коли з'являться нові дані.";
+	"Якщо це різні люди — залиште справу відкритою; САЗ запитає ще раз, коли зʼявляться нові дані.";
 
 export function caseSides(
 	reviewCase: UkmaDataReviewCase,
@@ -90,7 +90,7 @@ function openCaseSides(
 					title: countWord(count, SIMILAR_STUDENTS),
 					rows: [
 						[NOW, "Приєднано до найближчого збігу"],
-						["Імена", "Видно в сервісі даних САЗ"],
+						["Імена", "Не вдалося завантажити"],
 					],
 				},
 			];
@@ -155,13 +155,13 @@ const OPTIONS = {
 	course_match: [
 		{
 			name: "Приєднати",
-			effect: "семестр з'явиться на сторінці вибраної дисципліни.",
+			effect: "семестр зʼявиться на сторінці вибраної дисципліни.",
 		},
 		{ name: "Окремо", effect: "лишається окремою дисципліною." },
 	],
 	instructor_match: [
 		{ name: "Той самий викладач", effect: "його покажуть на семестрі." },
-		{ name: "Інша людина", effect: "семестр лишиться без цього зв'язку." },
+		{ name: "Інша людина", effect: "семестр лишиться без цього звʼязку." },
 	],
 } satisfies Record<UkmaDataReviewCaseKindEnum, readonly CaseOption[]>;
 
@@ -181,7 +181,7 @@ export function caseMeanwhile(reviewCase: UkmaDataReviewCase): string {
 		case "open":
 			return `Поки рішення немає, ${MEANWHILE[reviewCase.kind]}`;
 		case "decided":
-			return "Справу вирішено в сервісі даних САЗ; вище — що показували, поки вона була відкрита.";
+			return "Справу вирішено; вище — що показували, поки вона була відкрита.";
 		case "obsolete":
 			return "Справа більше не актуальна: дані в САЗ змінились, і питання зникло.";
 	}

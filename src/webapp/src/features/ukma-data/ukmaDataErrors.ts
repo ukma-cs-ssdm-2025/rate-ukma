@@ -60,7 +60,7 @@ export function errorCopy(kind: UkmaErrorKind, title: string): ErrorCopy {
 			return {
 				title: "Дані САЗ зараз недоступні",
 				description:
-					"UKMA Data не дала правильної відповіді. Спробуйте трохи згодом.",
+					"Сервіс САЗ не дав правильної відповіді. Спробуйте трохи згодом.",
 				retry: true,
 			};
 		case "unset":

@@ -101,11 +101,17 @@ export function approvalTerm(approval: SyncApprovalDetail): TermName | null {
 	return approval.action === "reject" ? "rejected" : "applied";
 }
 
-export function approverName(email: string | null): string {
+export function approverName(
+	email: string | null,
+	name: string | null = null,
+): string {
+	if (name !== null && name !== "") {
+		return name.split("@")[0] ?? name;
+	}
 	if (email === null) {
 		return "авто";
 	}
-	return email.split("@")[0] ?? email;
+	return email === "" ? "без імені" : (email.split("@")[0] ?? email);
 }
 
 export interface ApprovalCounts {

@@ -26,7 +26,8 @@ import {
 	sortCases,
 	STATUS_LABELS,
 } from "../reviewCases";
-import { CaseOutcome, CaseSides, CaseTechDetails } from "./CaseDetails";
+import { CaseOutcome, CaseTechDetails } from "./CaseDetails";
+import { CaseSubjects } from "./CasePeople";
 import { useCaseFilterParams, useCaseSearch } from "./ReviewCaseList";
 import { UkmaDataError } from "./UkmaDataError";
 
@@ -105,7 +106,7 @@ function CaseBody({
 				</Badge>
 				<span>{caseDetail(reviewCase)}</span>
 			</div>
-			<CaseSides reviewCase={reviewCase} />
+			<CaseSubjects reviewCase={reviewCase} />
 			<CaseOutcome reviewCase={reviewCase} decideEnabled={decideEnabled} />
 			<div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
 				<Button

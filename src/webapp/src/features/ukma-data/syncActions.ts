@@ -198,21 +198,22 @@ export function journalNote(entry: SyncJournalEntry): string {
 }
 
 const DECISION_TITLES = {
-	decide_case: "Рішення в UKMA Data: та сама людина",
-	merge_course: "Рішення в UKMA Data: об'єднано",
-	unmerge_course: "Рішення в UKMA Data: роз'єднано",
+	decide_case: "Рішення в САЗ: та сама людина",
+	merge_course: "Рішення в САЗ: обʼєднано",
+	unmerge_course: "Рішення в САЗ: розʼєднано",
 } as const;
 
 const DECISION_ERRORS = {
-	same_course: "Не можна об'єднати курс сам із собою.",
-	course_merged: "Цей курс уже об'єднано з іншим.",
-	target_merged: "Курс, з яким об'єднують, уже об'єднано з іншим.",
-	level_mismatch: "Курси різного рівня: об'єднати можна лише однакові.",
-	not_merged: "Цей курс не об'єднано, тож роз'єднувати нічого.",
+	same_course: "Не можна обʼєднати курс сам із собою.",
+	course_merged: "Цей курс уже обʼєднано з іншим.",
+	target_merged: "Курс, з яким обʼєднують, уже обʼєднано з іншим.",
+	level_mismatch: "Курси різного рівня: обʼєднати можна лише однакові.",
+	not_merged: "Цей курс не обʼєднано, тож розʼєднувати нічого.",
 	not_student_match: "Це не справа про студента.",
 	not_open: "Справу вже закрито або вона неактуальна.",
-	not_found: "UKMA Data не знає такої справи або курсу.",
-	forbidden: "Ключ UKMA Data цього сервера не має доступу до цього розділу.",
+	not_found: "Сервіс САЗ не знає такої справи або курсу.",
+	forbidden:
+		"Ключ сервісу САЗ на цьому сервері не має доступу до цього розділу.",
 } satisfies Record<string, string>;
 
 const isDecisionError = (
@@ -233,8 +234,7 @@ export function decisionErrorText(
 
 function decisionTitle(entry: SyncJournalEntry): string {
 	const action = entry.counts.action;
-	const head =
-		action === undefined ? "Рішення в UKMA Data" : DECISION_TITLES[action];
+	const head = action === undefined ? "Рішення в САЗ" : DECISION_TITLES[action];
 	if (entry.outcome === "done") {
 		return head;
 	}

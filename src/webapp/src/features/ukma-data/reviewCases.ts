@@ -59,6 +59,9 @@ const DAYS = { one: "день", few: "дні", many: "днів" } satisfies Plur
 
 export const READ_ONLY = "Тут лише перегляд: рішення змінюють спільні дані САЗ";
 
+export const HELD_ELSEWHERE =
+	"Прибрати чи залишити ці семестри вирішують у консолі сервісу САЗ: тут кнопок немає.";
+
 export const DECIDED_ELSEWHERE =
 	"Рішення змінюють спільні дані САЗ, тому кнопки працюють лише там, де ключ сервера має на це право. Інакше сторінка лише показує, що сталося.";
 
@@ -206,6 +209,16 @@ export function sortCases(
 		...open.sort((a, b) => openedTime(a) - openedTime(b)),
 		...closed.sort((a, b) => openedTime(b) - openedTime(a)),
 	];
+}
+
+export function kindCounts(
+	cases: readonly UkmaDataReviewCase[],
+): Map<UkmaDataReviewCaseKindEnum, number> {
+	const counts = new Map<UkmaDataReviewCaseKindEnum, number>();
+	for (const item of cases) {
+		counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
+	}
+	return counts;
 }
 
 export function caseListParams({

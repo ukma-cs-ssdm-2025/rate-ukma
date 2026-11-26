@@ -5,11 +5,18 @@ import { cn } from "@/lib/utils";
 import { isSyncKind } from "../sync";
 import { countWith, RATINGS } from "../syncFormat";
 import { KIND_LABELS } from "../syncLabels";
+import { nestedText } from "../syncReviewList";
 import { wordDiff } from "../textDiff";
 import type { DiffPart } from "../textDiff";
 
-const GRID =
-	"sm:grid sm:grid-cols-[1.25rem_minmax(0,1fr)_7rem_minmax(0,18rem)_4rem] sm:items-start sm:gap-x-4";
+const GRID_BASE = "sm:grid sm:items-start sm:gap-x-4";
+const GRID_COLUMNS = {
+	semester: "sm:grid-cols-[1.25rem_minmax(0,1fr)_7rem_minmax(0,18rem)_4rem]",
+	plain: "sm:grid-cols-[1.25rem_minmax(0,1fr)_minmax(0,18rem)_4rem]",
+} as const;
+
+const gridOf = (semester: boolean): string =>
+	cn(GRID_BASE, GRID_COLUMNS[semester ? "semester" : "plain"]);
 
 function linkNoun(kind: string): string | null {
 	switch (kind) {
@@ -96,7 +103,7 @@ function FieldChange({
 				</>
 			)}
 			{row.before !== "" && row.after === "" ? (
-				<span className="text-destructive">порожньо</span>
+				<span className="text-muted-foreground italic">(порожньо)</span>
 			) : (
 				<span className={row.before === "" ? undefined : "text-success"}>
 					{row.after}
@@ -122,6 +129,13 @@ function WhatChanges({ change }: Readonly<{ change: SyncChange }>) {
 		);
 	}
 	const noun = link ? linkNoun(change.kind) : null;
+	if (change.group === "change") {
+		return (
+			<p className="text-muted-foreground">
+				Лише службові поля, студенти цього не побачать
+			</p>
+		);
+	}
 	return (
 		<p className="text-muted-foreground">
 			{noun ??
@@ -133,18 +147,19 @@ function WhatChanges({ change }: Readonly<{ change: SyncChange }>) {
 export function SyncReviewHeader({
 	selectable,
 	column,
-}: Readonly<{ selectable: boolean; column: string }>) {
+	semester = true,
+}: Readonly<{ selectable: boolean; column: string; semester?: boolean }>) {
 	return (
 		<div
 			aria-hidden="true"
 			className={cn(
 				"hidden border-b px-4 py-2 text-sm text-muted-foreground sm:grid sm:px-5",
-				GRID,
+				gridOf(semester),
 			)}
 		>
 			<span>{selectable ? "" : null}</span>
 			<span>Запис</span>
-			<span>Семестр</span>
+			{semester ? <span>Семестр</span> : null}
 			<span>{column}</span>
 			<span className="text-right">Оцінки</span>
 		</div>
@@ -163,7 +178,7 @@ export function SyncReviewSkeleton() {
 					key={row}
 					className={cn(
 						"flex gap-3 border-b px-4 py-3 last:border-b-0 sm:px-5",
-						GRID,
+						gridOf(true),
 					)}
 				>
 					<Skeleton className="size-4 rounded-sm" />
@@ -185,12 +200,16 @@ export function SyncReviewRow({
 	selectable,
 	included,
 	locked = false,
+	semester = true,
+	nested = [],
 	onToggle,
 }: Readonly<{
 	change: SyncChange;
 	selectable: boolean;
 	included: boolean;
 	locked?: boolean;
+	semester?: boolean;
+	nested?: readonly SyncChange[];
 	onToggle: (id: number, included: boolean) => void;
 }>) {
 	const id = `change-${change.id}`;
@@ -198,7 +217,7 @@ export function SyncReviewRow({
 		<li
 			className={cn(
 				"flex gap-3 px-4 py-3 text-sm sm:px-5",
-				GRID,
+				gridOf(semester),
 				!included && "text-muted-foreground",
 			)}
 		>
@@ -214,16 +233,26 @@ export function SyncReviewRow({
 			</span>
 			<div className="min-w-0 flex-1 space-y-1 sm:contents">
 				<div className="min-w-0">
-					<p id={id} className="font-medium break-words">
+					<p
+						id={id}
+						title={change.view.title}
+						className="line-clamp-2 font-medium break-words"
+					>
 						{change.view.title}
 					</p>
 					{change.view.place ? (
-						<p className="break-words text-muted-foreground">
+						<p
+							title={change.view.place}
+							className="line-clamp-1 break-words text-muted-foreground"
+						>
 							{change.view.place}
 						</p>
 					) : null}
+					{nested.length > 0 ? (
+						<p className="text-muted-foreground">{nestedText(nested)}</p>
+					) : null}
 				</div>
-				{change.view.semester ? (
+				{!semester ? null : change.view.semester ? (
 					<p className="text-muted-foreground sm:text-foreground">
 						{change.view.semester}
 					</p>

@@ -1,10 +1,11 @@
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { SyncPolicy } from "@/lib/api/generated";
+import type { SyncChangeGroupEnum, SyncPolicy } from "@/lib/api/generated";
 import {
 	useUkmaDataSyncPoliciesList,
 	useUkmaDataSyncPolicyChangesList,
 } from "@/lib/api/generated";
 import { kindLabel } from "../sync";
+import { GROUP_LABELS } from "../syncLabels";
 import { approverName, NO_RETRY } from "../syncOverview";
 import type { TermName } from "../syncTerms";
 import { Ago, DataSection, Term } from "./Term";
@@ -22,6 +23,38 @@ function modeTerm(policy: SyncPolicy): TermName {
 	return policy.mode;
 }
 
+const RULE_GROUPS = ["link", "new", "change", "mapping", "removed"] as const;
+
+function PolicyGroup({
+	group,
+	policies,
+}: Readonly<{ group: SyncChangeGroupEnum; policies: readonly SyncPolicy[] }>) {
+	if (policies.length === 0) {
+		return null;
+	}
+	return (
+		<section className="space-y-2">
+			<h3 className="text-sm font-medium">{GROUP_LABELS[group]}</h3>
+			<ul
+				aria-label={GROUP_LABELS[group]}
+				className="divide-y rounded-xl border bg-card"
+			>
+				{policies.map((policy) => (
+					<li
+						key={policy.kind}
+						className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm sm:px-5"
+					>
+						<span className="min-w-0">{kindLabel(policy.kind)}</span>
+						<span className="shrink-0 font-medium">
+							<Term name={modeTerm(policy)} />
+						</span>
+					</li>
+				))}
+			</ul>
+		</section>
+	);
+}
+
 function PolicyChanges() {
 	const changes = useUkmaDataSyncPolicyChangesList({ page_size: 10 }, NO_RETRY);
 	const items = changes.data?.items ?? [];
@@ -37,7 +70,8 @@ function PolicyChanges() {
 			{items.map((change) => (
 				<li key={change.id}>
 					{kindLabel(change.kind)}: {MODE_WORDS[change.old_mode]} →{" "}
-					{MODE_WORDS[change.new_mode]} · {approverName(change.user_email)},{" "}
+					{MODE_WORDS[change.new_mode]} ·{" "}
+					{approverName(change.user_email, change.user_name)},{" "}
 					<Ago iso={change.changed_at} />
 				</li>
 			))}
@@ -69,28 +103,34 @@ export function SyncRulesTab() {
 				}
 			>
 				{policies.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
+				<ul className="space-y-1 text-sm text-muted-foreground">
+					<li>
+						<span className="font-medium text-foreground">Авто</span>: сайт
+						записує сам щоночі, якщо це не зачіпає оцінок.
+					</li>
+					<li>
+						<span className="font-medium text-foreground">
+							Потребує рішення
+						</span>
+						: чекає в «Чекають рішення»; правило можна перевести в авто.
+					</li>
+					<li>
+						<span className="font-medium text-foreground">Лише вручну</span>:
+						завжди вирішує людина, авто для цього типу заборонене.
+					</li>
+				</ul>
 				{policies.data ? (
-					<ul
-						aria-label="Правила за типом змін"
-						className="divide-y rounded-xl border bg-card"
-					>
-						{policies.data.items.map((policy) => (
-							<li
-								key={policy.kind}
-								className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm sm:px-5"
-							>
-								<span className="min-w-0">
-									{kindLabel(policy.kind)}{" "}
-									<span className="text-muted-foreground">
-										· <Term name={policy.group} />
-									</span>
-								</span>
-								<span className="shrink-0 font-medium">
-									<Term name={modeTerm(policy)} />
-								</span>
-							</li>
+					<div className="space-y-4" aria-label="Правила за типом змін">
+						{RULE_GROUPS.map((group) => (
+							<PolicyGroup
+								key={group}
+								group={group}
+								policies={policies.data.items.filter(
+									(policy) => policy.group === group,
+								)}
+							/>
 						))}
-					</ul>
+					</div>
 				) : null}
 			</DataSection>
 			<DataSection

@@ -1,20 +1,18 @@
-import { Link } from "@tanstack/react-router";
 import axios from "axios";
 
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
-	useUkmaDataReviewCasesList,
 	useUkmaDataStatusRetrieve,
 	useUkmaDataSyncRunsList,
 	useUkmaDataSyncSummary,
 } from "@/lib/api/generated";
 import { NO_RETRY } from "../syncOverview";
-import { formatCount } from "../syncFormat";
 import { failedRunLabel } from "../syncReasons";
 import { OverviewApplied } from "./OverviewApplied";
 import { OverviewTech } from "./OverviewTech";
 import { OverviewWaiting } from "./OverviewWaiting";
-import { Ago, DataSection, Term } from "./Term";
+import { Ago, DataSection } from "./Term";
 import { UkmaDataError } from "./UkmaDataError";
 
 const isNotFound = (error: unknown): boolean =>
@@ -35,32 +33,7 @@ function LatestFailure({
 		<p className="text-sm text-destructive">
 			Остання спроба читання <Ago iso={latest.started_at} /> не вдалася:{" "}
 			{failedRunLabel(latest.error)}. Нижче — дані останнього вдалого. Якщо так
-			буде й завтра, скажіть власнику UKMA Data.
-		</p>
-	);
-}
-
-function CasesLine() {
-	const cases = useUkmaDataReviewCasesList(
-		{ status: "open", limit: 1 },
-		NO_RETRY,
-	);
-	if (!cases.data) {
-		return null;
-	}
-	return (
-		<p className="text-sm text-muted-foreground">
-			<Link
-				to="/data/cases"
-				className="text-primary underline-offset-4 hover:underline"
-			>
-				Відкритих <Term name="cases" />
-			</Link>
-			:{" "}
-			<span className="font-medium text-foreground tabular-nums">
-				{formatCount(cases.data.total)}
-			</span>
-			.
+			буде й завтра, скажіть власнику сервісу САЗ.
 		</p>
 	);
 }
@@ -68,16 +41,6 @@ function CasesLine() {
 export function OverviewPage() {
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
 	const summary = useUkmaDataSyncSummary({ source: "catalog" }, NO_RETRY);
-	if (status.error) {
-		return (
-			<UkmaDataError
-				error={status.error}
-				title="Не вдалося завантажити огляд"
-				onRetry={() => void status.refetch()}
-				isRetrying={status.isRefetching}
-			/>
-		);
-	}
 	const run = summary.data?.run ?? null;
 	return (
 		<div className="min-w-0 space-y-8">
@@ -120,23 +83,23 @@ export function OverviewPage() {
 				/>
 			)}
 			{run === null ? null : <OverviewApplied runId={run.id} />}
-			<DataSection
-				title="Справи UKMA Data"
-				lead="Записи, які UKMA Data не зіставила сама. Їх теж вирішують у консолі."
-			>
-				<CasesLine />
-			</DataSection>
 			{status.data ? <OverviewTech status={status.data} /> : null}
-			<p className="text-sm text-muted-foreground">
-				Усі зміни по групах — у розділі{" "}
-				<Link
-					to="/data/sync"
-					className="text-primary underline-offset-4 hover:underline"
-				>
-					Оновлення з САЗ
-				</Link>
-				.
-			</p>
+			{status.error ? (
+				<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+					<p>
+						Не вдалося перевірити ключ сервісу САЗ: технічні деталі зараз
+						недоступні.
+					</p>
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={status.isFetching}
+						onClick={() => void status.refetch()}
+					>
+						Спробувати ще
+					</Button>
+				</div>
+			) : null}
 		</div>
 	);
 }

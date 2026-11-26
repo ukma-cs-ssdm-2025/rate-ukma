@@ -61,9 +61,7 @@ export function CaseOutcome({
 	return (
 		<div className="space-y-3 rounded-xl border bg-card p-4 text-sm">
 			<div className="space-y-1">
-				<p className="font-medium">
-					Що означає кожне рішення в сервісі даних САЗ:
-				</p>
+				<p className="font-medium">Що означає кожне рішення:</p>
 				<ul className="space-y-1">
 					{caseOptions(reviewCase.kind).map((option) => (
 						<li key={option.name}>

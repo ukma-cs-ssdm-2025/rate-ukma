@@ -129,10 +129,15 @@ describe("/data/sync", () => {
 		renderSync("?tab=rules");
 
 		// Assert
-		const list = within(
-			await screen.findByRole("list", { name: "Правила за типом змін" }),
-		);
-		const [newCourse, changeCourse, merge] = list.getAllByRole("listitem");
+		const newCourse = within(
+			await screen.findByRole("list", { name: "Нові записи" }),
+		).getByRole("listitem");
+		const changeCourse = within(
+			screen.getByRole("list", { name: "Зміни полів" }),
+		).getByRole("listitem");
+		const merge = within(
+			screen.getByRole("list", { name: "Питання" }),
+		).getByRole("listitem");
 		expect(newCourse).toHaveTextContent("Потребує рішення");
 		expect(changeCourse).toHaveTextContent("Авто");
 		expect(merge).toHaveTextContent("Лише вручну");

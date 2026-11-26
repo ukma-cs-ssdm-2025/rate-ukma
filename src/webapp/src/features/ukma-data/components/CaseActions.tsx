@@ -27,7 +27,7 @@ import {
 	unmergeConfirm,
 	unmergeCourseId,
 } from "../caseActions";
-import { candidateIds, READ_ONLY } from "../reviewCases";
+import { candidateIds, HELD_ELSEWHERE, READ_ONLY } from "../reviewCases";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
 
 type Pending =
@@ -111,7 +111,9 @@ export function KeyCheckError({
 			role="alert"
 			className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 text-sm"
 		>
-			<p>Не вдалося перевірити ключ UKMA Data, тому кнопки рішень вимкнено.</p>
+			<p>
+				Не вдалося перевірити ключ сервісу САЗ, тому кнопки рішень вимкнено.
+			</p>
 			<Button variant="outline" size="sm" disabled={retrying} onClick={onRetry}>
 				Спробувати ще
 			</Button>
@@ -175,6 +177,11 @@ export function CaseActions({
 	if (reviewCase.status !== "open") {
 		return <ResultLine result={result} />;
 	}
+	if (reviewCase.kind === "removals_held") {
+		return (
+			<p className="max-w-72 text-sm text-muted-foreground">{HELD_ELSEWHERE}</p>
+		);
+	}
 	if (
 		reviewCase.kind !== "student_match" &&
 		reviewCase.kind !== "course_match"
@@ -209,6 +216,9 @@ export function CaseActions({
 					))
 				)}
 			</div>
+			{decideEnabled ? null : (
+				<p className="max-w-72 text-xs text-muted-foreground">{READ_ONLY}.</p>
+			)}
 			<ResultLine result={result} />
 			<ConfirmDialog
 				open={pending !== null}
@@ -220,7 +230,7 @@ export function CaseActions({
 				onConfirm={confirm}
 				title={dialog?.title ?? ""}
 				description={dialog?.description ?? ""}
-				confirmText={pending?.kind === "merge" ? "Об'єднати" : "Закрити справу"}
+				confirmText={pending?.kind === "merge" ? "Обʼєднати" : "Закрити справу"}
 			/>
 		</div>
 	);
@@ -254,7 +264,7 @@ export function UnmergeAction({
 					disabled={!decideEnabled || unmerge.isPending}
 					onClick={() => setOpen(true)}
 				>
-					Роз'єднати
+					Розʼєднати
 				</Button>
 			</Guarded>
 			<ResultLine result={result} />
@@ -279,7 +289,7 @@ export function UnmergeAction({
 				}}
 				title={confirm.title}
 				description={confirm.description}
-				confirmText="Роз'єднати"
+				confirmText="Розʼєднати"
 			/>
 		</div>
 	);

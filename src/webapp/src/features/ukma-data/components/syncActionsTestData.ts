@@ -165,7 +165,7 @@ export const journalAuto: SyncJournalEntry = {
 	group: "link",
 	revertible: false,
 	revert_reason:
-		"Цей тип застосовується автоматично. Спершу переведіть його в «Потребує рішення» (catalog_sync policy).",
+		"Цей тип застосовується автоматично. Спершу переведіть його в «Потребує рішення» (правила змінюють у консолі).",
 	reverted: false,
 };
 

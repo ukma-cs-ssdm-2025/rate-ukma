@@ -78,7 +78,7 @@ function ApprovalItem({
 							key={`${merge.from_id}-${merge.into_id}`}
 							className="break-words"
 						>
-							«{merge.title}» об'єднано в{" "}
+							«{merge.title}» обʼєднано в{" "}
 							<a
 								href={`/courses/${merge.into_id}`}
 								className="text-primary underline-offset-4 hover:underline"

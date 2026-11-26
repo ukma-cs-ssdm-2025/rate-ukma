@@ -24,7 +24,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 		return null;
 	}
 	const run = data.run;
-	const counts = countsSummary(run.counts);
+	const counts = countsSummary(run.counts, false);
 	const skipped = Object.entries(data.not_proposed).filter(
 		([, value]) => value.count > 0,
 	);
@@ -49,8 +49,10 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 				<p className="text-destructive">{failedRunLabel(run.error)}</p>
 			) : null}
 			{counts.length > 0 ? (
-				<p className="text-muted-foreground tabular-nums">
-					{counts.join(" · ")}
+				<p className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground tabular-nums">
+					{counts.map((line) => (
+						<span key={line}>{line}</span>
+					))}
 				</p>
 			) : null}
 			{skipped.length > 0 ? (
@@ -61,7 +63,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 							([reason, value]) =>
 								`${skipReasonLabel(reason)} ${formatCount(value.count)}`,
 						)
-						.join(" · ")}
+						.join(", ")}
 				</p>
 			) : null}
 		</div>

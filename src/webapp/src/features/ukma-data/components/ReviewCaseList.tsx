@@ -11,9 +11,14 @@ import {
 	TableRow,
 } from "@/components/ui/Table";
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { useUkmaDataReviewCasesList } from "@/lib/api/generated";
 import {
 	caseDetail,
 	caseKinds,
+	caseListParams,
+	kindCounts,
+	NO_RETRY,
 	caseStatuses,
 	caseTitle,
 	formatDateTime,
@@ -26,6 +31,7 @@ import {
 } from "../reviewCases";
 import { DataSegments } from "./DataBits";
 import { CaseActions } from "./CaseActions";
+import { CaseRowHint } from "./CasePeople";
 
 const ALL = "all";
 
@@ -62,6 +68,14 @@ function FilterRow({
 
 export function ReviewCaseFilters() {
 	const [{ kind, status }, setParams] = useCaseFilterParams();
+	const all = useUkmaDataReviewCasesList(
+		caseListParams({ kind: ALL, status }),
+		NO_RETRY,
+	);
+	const counts = kindCounts(all.data?.items ?? []);
+	const kinds = caseKinds.filter(
+		(item) => item === kind || (counts.get(item) ?? 0) > 0,
+	);
 	return (
 		<div className="flex flex-col gap-3">
 			<FilterRow label="Стан">
@@ -85,9 +99,10 @@ export function ReviewCaseFilters() {
 					onChange={(value) => void setParams({ kind: value, page: 1 })}
 					items={[
 						{ value: ALL, label: "Усі" },
-						...caseKinds.map((item) => ({
+						...kinds.map((item) => ({
 							value: item,
 							label: KIND_SEGMENTS[item],
+							count: counts.get(item) ?? 0,
 						})),
 					]}
 				/>
@@ -117,6 +132,7 @@ function CaseRow({
 				>
 					{caseTitle(reviewCase)}
 				</Link>
+				<CaseRowHint reviewCase={reviewCase} />
 				<p className="text-muted-foreground">
 					{caseDetail(reviewCase)} · {receivedText(reviewCase.opened_at)}
 				</p>
@@ -144,14 +160,63 @@ function CaseRow({
 	);
 }
 
+function CaseCard({
+	reviewCase,
+	decideEnabled,
+}: Readonly<{ reviewCase: UkmaDataReviewCase; decideEnabled: boolean }>) {
+	const search = useCaseSearch();
+	return (
+		<li className="space-y-2 px-4 py-3 text-sm">
+			<div className="flex items-start justify-between gap-2">
+				<Link
+					to="/data/cases/$caseId"
+					params={{ caseId: reviewCase.id }}
+					search={search}
+					className="min-w-0 font-medium hover:underline"
+				>
+					{caseTitle(reviewCase)}
+				</Link>
+				<Badge
+					variant={STATUS_VARIANTS[reviewCase.status]}
+					className="shrink-0"
+				>
+					{STATUS_LABELS[reviewCase.status]}
+				</Badge>
+			</div>
+			<CaseRowHint reviewCase={reviewCase} />
+			<p className="text-muted-foreground">
+				{caseDetail(reviewCase)} · {sinceText(reviewCase.opened_at)}
+			</p>
+			<CaseActions reviewCase={reviewCase} decideEnabled={decideEnabled} />
+		</li>
+	);
+}
+
 export function ReviewCaseTable({
 	cases,
 	decideEnabled,
 }: Readonly<{ cases: readonly UkmaDataReviewCase[]; decideEnabled: boolean }>) {
+	const phone = useMediaQuery("(max-width: 639px)");
+	if (phone) {
+		return (
+			<ul
+				aria-label="Справи"
+				className="divide-y overflow-hidden rounded-xl border bg-card"
+			>
+				{cases.map((reviewCase) => (
+					<CaseCard
+						key={reviewCase.id}
+						reviewCase={reviewCase}
+						decideEnabled={decideEnabled}
+					/>
+				))}
+			</ul>
+		);
+	}
 	return (
 		<div className="overflow-hidden rounded-xl border bg-card">
 			<Table>
-				<caption className="sr-only">Справи UKMA Data</caption>
+				<caption className="sr-only">Справи</caption>
 				<TableHeader>
 					<TableRow>
 						<TableHead>Справа</TableHead>

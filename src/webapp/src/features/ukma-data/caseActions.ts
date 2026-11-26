@@ -10,7 +10,7 @@ const errorBody = z.object({ detail: z.string().min(1) });
 export const DECIDE_LABEL = "Це та сама людина";
 
 export const DECISION_FAILED_TEXT =
-	"UKMA Data не відповіла, тож рішення могло й не записатися. Перевірте, перш ніж повторювати.";
+	"Сервіс САЗ не відповів, тож рішення могло й не записатися. Перевірте, перш ніж повторювати.";
 
 export function caseActionError(error: unknown): string {
 	if (axios.isAxiosError(error)) {
@@ -31,7 +31,7 @@ interface Confirm {
 	description: string;
 }
 
-export const mergeLabel = (into: string): string => `Об'єднати з ${into}`;
+export const mergeLabel = (into: string): string => `Обʼєднати з ${into}`;
 
 export function decideConfirm(reviewCase: UkmaDataReviewCase): Confirm {
 	return {
@@ -45,7 +45,7 @@ export function mergeConfirm(
 	into: string,
 ): Confirm {
 	return {
-		title: `Об'єднати семестр ${reviewCase.subject_id} з дисципліною ${into}?`,
+		title: `Обʼєднати семестр ${reviewCase.subject_id} з дисципліною ${into}?`,
 		description: `Семестр ${reviewCase.subject_id} приєднається до дисципліни ${into}. Це змінює спільні дані САЗ.`,
 	};
 }
@@ -83,7 +83,7 @@ export function undoneMergeIds(
 
 export function unmergeConfirm(targetId: string): Confirm {
 	return {
-		title: `Роз'єднати курс ${targetId}?`,
+		title: `Розʼєднати курс ${targetId}?`,
 		description: `Курс ${targetId} знову стане окремим. Це змінює спільні дані САЗ.`,
 	};
 }

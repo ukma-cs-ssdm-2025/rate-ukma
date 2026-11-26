@@ -89,7 +89,7 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 			decision_id: 33,
 			action: "unmerge_course",
 			outcome: "done",
-			detail: "Курс роз'єднано.",
+			detail: "Курс розʼєднано.",
 		});
 
 		// Act
@@ -97,23 +97,21 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 		const list = within(await screen.findByRole("list", { name: "Журнал" }));
 		const items = list.getAllByRole("listitem");
 		await user.click(
-			within(items[0]).getByRole("button", { name: "Роз'єднати" }),
+			within(items[0]).getByRole("button", { name: "Розʼєднати" }),
 		);
 		const dialog = await screen.findByRole("alertdialog");
 		await user.click(
-			within(dialog).getByRole("button", { name: "Роз'єднати" }),
+			within(dialog).getByRole("button", { name: "Розʼєднати" }),
 		);
 
 		// Assert
-		expect(items[0]).toHaveTextContent("Рішення в UKMA Data: об'єднано");
+		expect(items[0]).toHaveTextContent("Рішення в САЗ: обʼєднано");
+		expect(items[1]).toHaveTextContent("Рішення в САЗ: обʼєднано — відмова");
 		expect(items[1]).toHaveTextContent(
-			"Рішення в UKMA Data: об'єднано — відмова",
+			"Курси різного рівня: обʼєднати можна лише однакові.",
 		);
-		expect(items[1]).toHaveTextContent(
-			"Курси різного рівня: об'єднати можна лише однакові.",
-		);
-		expect(dialog).toHaveTextContent("Роз'єднати курс c-101?");
-		expect(await screen.findByText("Курс роз'єднано.")).toBeInTheDocument();
+		expect(dialog).toHaveTextContent("Розʼєднати курс c-101?");
+		expect(await screen.findByText("Курс розʼєднано.")).toBeInTheDocument();
 		await waitFor(() => expect(unmergeRequests()).toHaveLength(1));
 	});
 
@@ -125,7 +123,7 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 		const list = within(await screen.findByRole("list", { name: "Журнал" }));
 		expect(list.getAllByRole("listitem")).toHaveLength(2);
 		expect(
-			list.queryByRole("button", { name: "Роз'єднати" }),
+			list.queryByRole("button", { name: "Розʼєднати" }),
 		).not.toBeInTheDocument();
 	});
 
@@ -136,7 +134,7 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 		// Assert
 		expect(
 			await screen.findByText(
-				"UKMA Data не відповіла, тож рішення могло й не записатися. Перевірте, перш ніж повторювати.",
+				"Сервіс САЗ не відповів, тож рішення могло й не записатися. Перевірте, перш ніж повторювати.",
 			),
 		).toBeInTheDocument();
 		expect(
@@ -148,22 +146,22 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 		// Arrange
 		const user = userEvent.setup();
 		mock.onPost(UNMERGE_URL).reply(409, {
-			detail: "Цей курс не об'єднано, тож роз'єднувати нічого.",
+			detail: "Цей курс не обʼєднано, тож розʼєднувати нічого.",
 			status: 409,
 		});
 
 		// Act
 		renderJournal([journalDecisionMerge]);
-		await user.click(await screen.findByRole("button", { name: "Роз'єднати" }));
+		await user.click(await screen.findByRole("button", { name: "Розʼєднати" }));
 		await user.click(
 			within(await screen.findByRole("alertdialog")).getByRole("button", {
-				name: "Роз'єднати",
+				name: "Розʼєднати",
 			}),
 		);
 
 		// Assert
 		expect(
-			await screen.findByText(/Цей курс не об'єднано/),
+			await screen.findByText(/Цей курс не обʼєднано/),
 		).toBeInTheDocument();
 		await waitFor(() =>
 			expect(
@@ -183,9 +181,9 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 		// Assert
 		expect(
 			await screen.findByText(
-				"Не вдалося перевірити ключ UKMA Data, тому кнопки рішень вимкнено.",
+				"Не вдалося перевірити ключ сервісу САЗ, тому кнопки рішень вимкнено.",
 			),
 		).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Роз'єднати" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Розʼєднати" })).toBeDisabled();
 	});
 });

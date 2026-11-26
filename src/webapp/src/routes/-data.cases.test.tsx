@@ -188,21 +188,21 @@ describe("/data/cases", () => {
 			decision_id: 42,
 			action: "merge_course",
 			outcome: "done",
-			detail: "Курс об'єднано.",
+			detail: "Курс обʼєднано.",
 		});
 
 		renderCases();
 
 		await user.click(
-			await screen.findByRole("button", { name: "Об'єднати з c-202" }),
+			await screen.findByRole("button", { name: "Обʼєднати з c-202" }),
 		);
 		const dialog = await screen.findByRole("alertdialog");
 		expect(dialog).toHaveTextContent(
-			"Об'єднати семестр c-201 з дисципліною c-202?",
+			"Обʼєднати семестр c-201 з дисципліною c-202?",
 		);
-		await user.click(within(dialog).getByRole("button", { name: "Об'єднати" }));
+		await user.click(within(dialog).getByRole("button", { name: "Обʼєднати" }));
 
-		expect(await screen.findByText("Курс об'єднано.")).toBeInTheDocument();
+		expect(await screen.findByText("Курс обʼєднано.")).toBeInTheDocument();
 		await waitFor(() => expect(mock.history.post).toHaveLength(1));
 		expect(JSON.parse(String(mock.history.post[0].data))).toEqual({
 			into: "c-202",
@@ -215,7 +215,7 @@ describe("/data/cases", () => {
 		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
 		mock.onGet(CASES_URL).reply(200, casePage([courseCase]));
 		mock.onPost(MERGE_URL).reply(409, {
-			detail: "Курси різного рівня: об'єднати можна лише однакові.",
+			detail: "Курси різного рівня: обʼєднати можна лише однакові.",
 			code: "ukma_data_refused",
 			status: 409,
 		});
@@ -223,17 +223,17 @@ describe("/data/cases", () => {
 		renderCases();
 
 		await user.click(
-			await screen.findByRole("button", { name: "Об'єднати з c-203" }),
+			await screen.findByRole("button", { name: "Обʼєднати з c-203" }),
 		);
 		await user.click(
 			within(await screen.findByRole("alertdialog")).getByRole("button", {
-				name: "Об'єднати",
+				name: "Обʼєднати",
 			}),
 		);
 
 		expect(
 			await screen.findByText(
-				"Курси різного рівня: об'єднати можна лише однакові.",
+				"Курси різного рівня: обʼєднати можна лише однакові.",
 			),
 		).toBeInTheDocument();
 	});

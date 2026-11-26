@@ -4,7 +4,9 @@ import type {
 	SyncSelectionGroupEnum,
 	SyncSummary,
 } from "@/lib/api/generated";
+import { numberAt, readPath } from "./sync";
 import { CHANGES_ACCUSATIVE, countWith, formatCount } from "./syncFormat";
+import { studentFieldLabel } from "./syncLabels";
 import { kindParts } from "./syncOverview";
 
 export const REVIEW_STEPS = [
@@ -31,6 +33,7 @@ interface StepCopy {
 	column: string;
 	slice: ReviewSlice;
 	decidable: boolean;
+	preselect: boolean;
 }
 
 const slice = (
@@ -41,10 +44,11 @@ const slice = (
 export const STEP_COPY = {
 	links: {
 		title: "Звʼязки без змін на сайті",
-		hint: "Записи отримають id з САЗ. Студенти нічого не помітять.",
+		hint: "Записи отримають id з САЗ. Назви, кафедри й оцінки на сайті лишаються як є.",
 		column: "Що це",
 		slice: slice("link", { match: "exact" }),
 		decidable: true,
+		preselect: false,
 	},
 	links_check: {
 		title: "Звʼязки, які варто перевірити",
@@ -52,6 +56,7 @@ export const STEP_COPY = {
 		column: "Назва на сайті й у САЗ",
 		slice: slice("link", { match: "review" }),
 		decidable: true,
+		preselect: false,
 	},
 	new: {
 		title: "Нові записи",
@@ -59,13 +64,15 @@ export const STEP_COPY = {
 		column: "Що зʼявиться",
 		slice: slice("new"),
 		decidable: true,
+		preselect: true,
 	},
 	changes: {
 		title: "Зміни на сторінках без оцінок",
-		hint: "Назва, кафедра чи кредити зміняться там, де ще ніхто не оцінював.",
+		hint: "Поля дисциплін і семестрів зміняться там, де ще ніхто не оцінював.",
 		column: "Що зміниться",
 		slice: slice("change", { rated: false }),
 		decidable: true,
+		preselect: true,
 	},
 	changes_rated: {
 		title: "Зміни на сторінках з оцінками",
@@ -73,13 +80,15 @@ export const STEP_COPY = {
 		column: "Що зміниться",
 		slice: slice("change", { rated: true }),
 		decidable: true,
+		preselect: false,
 	},
 	questions: {
 		title: "Питання",
-		hint: "Чи це одна дисципліна, куди належить семестр. Відповіді поки в консолі.",
+		hint: "Чи це одна дисципліна, куди належить семестр. Відповідайте на картках, а відповіді, що щось переносять, застосуйте внизу.",
 		column: "Питання",
 		slice: slice("mapping"),
 		decidable: false,
+		preselect: false,
 	},
 	removed: {
 		title: "Зникли з САЗ",
@@ -87,6 +96,7 @@ export const STEP_COPY = {
 		column: "Що зникло",
 		slice: slice("removed"),
 		decidable: false,
+		preselect: false,
 	},
 } satisfies Record<ReviewStep, StepCopy>;
 
@@ -124,9 +134,43 @@ function questionsText(summary: SyncSummary): string {
 	const other =
 		countOf(summary, "other_questions") + (asked?.count ?? 0) - rated;
 	if (rated === 0) {
-		return `Усі ${formatCount(other)} без оцінок. Відповіді поки в консолі.`;
+		return `Усі ${formatCount(other)} без оцінок.`;
 	}
-	return `${countWith(rated, QUESTIONS_RATED)}, ${formatCount(other)} без оцінок. Відповіді поки в консолі.`;
+	return `${countWith(rated, QUESTIONS_RATED)}, ${formatCount(other)} без оцінок.`;
+}
+
+const TOP_FIELDS = 3;
+
+function linksText(summary: SyncSummary): string {
+	const links = stepOf(summary, "exact_links");
+	const rated = links?.rated ?? 0;
+	if (rated === 0) {
+		return STEP_COPY.links.hint;
+	}
+	const all = rated === links?.count;
+	return `${all ? "Усі" : formatCount(rated)} на сторінках з оцінками, тому не застосовані самі. Назви й оцінки не зміняться.`;
+}
+
+export function topFieldsText(
+	summary: SyncSummary,
+	rated: boolean,
+): string | null {
+	const fields = readPath(stepOf(summary, "field_changes")?.facets, "fields");
+	if (typeof fields !== "object" || fields === null || Array.isArray(fields)) {
+		return null;
+	}
+	const counts = Object.keys(fields).flatMap((name) => {
+		const label = studentFieldLabel(name);
+		const count = numberAt(fields, name, "count") ?? 0;
+		const ratedCount = numberAt(fields, name, "rated") ?? 0;
+		const shown = rated ? ratedCount : count - ratedCount;
+		return label === null || shown === 0 ? [] : [{ label, shown }];
+	});
+	const top = counts
+		.sort((a, b) => b.shown - a.shown)
+		.slice(0, TOP_FIELDS)
+		.map((item) => `${item.label.toLowerCase()} ${formatCount(item.shown)}`);
+	return top.length === 0 ? null : `Найчастіше: ${top.join(", ")}.`;
 }
 
 export function inboxSteps(summary: SyncSummary): InboxStep[] {
@@ -148,17 +192,33 @@ export function inboxSteps(summary: SyncSummary): InboxStep[] {
 					{
 						step,
 						title: STEP_COPY[step].title,
-						text:
-							step === "new"
-								? newText(summary)
-								: step === "questions"
-									? questionsText(summary)
-									: STEP_COPY[step].hint,
+						text: stepText(summary, step),
 						count: counts[step],
 					},
 				]
 			: [],
 	);
+}
+
+function stepText(summary: SyncSummary, step: ReviewStep): string {
+	switch (step) {
+		case "links":
+			return linksText(summary);
+		case "new":
+			return newText(summary);
+		case "questions":
+			return questionsText(summary);
+		case "changes":
+			return topFieldsText(summary, false) ?? STEP_COPY.changes.hint;
+		case "changes_rated": {
+			const top = topFieldsText(summary, true);
+			return top === null
+				? STEP_COPY.changes_rated.hint
+				: `${STEP_COPY.changes_rated.hint} ${top}`;
+		}
+		default:
+			return STEP_COPY[step].hint;
+	}
 }
 
 const WAITING_TEXT =

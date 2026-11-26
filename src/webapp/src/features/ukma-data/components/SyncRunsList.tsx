@@ -57,7 +57,11 @@ function RunRow({
 					</span>
 				</div>
 				{counts.length > 0 ? (
-					<p className="text-sm text-muted-foreground">{counts.join(" · ")}</p>
+					<p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-muted-foreground">
+						{counts.map((line) => (
+							<span key={line}>{line}</span>
+						))}
+					</p>
 				) : null}
 				{run.error ? (
 					<p className="text-sm text-destructive">
@@ -138,7 +142,7 @@ export function SyncRunsList({
 						</EmptyMedia>
 						<EmptyTitle>Читань САЗ ще не було</EmptyTitle>
 						<EmptyDescription>
-							Історія з'явиться після першого нічного читання.
+							Історія зʼявиться після першого нічного читання.
 						</EmptyDescription>
 					</EmptyHeader>
 				</Empty>

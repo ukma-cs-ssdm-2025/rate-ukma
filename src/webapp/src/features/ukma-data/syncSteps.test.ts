@@ -29,9 +29,7 @@ describe("inboxSteps", () => {
 		);
 
 		// Assert
-		expect(questions?.text).toBe(
-			"3 з оцінками, 15 без оцінок. Відповіді поки в консолі.",
-		);
+		expect(questions?.text).toBe("3 з оцінками, 15 без оцінок.");
 	});
 
 	it("counts a question with only study plans as without ratings", () => {
@@ -49,9 +47,7 @@ describe("inboxSteps", () => {
 		);
 
 		// Assert
-		expect(questions?.text).toBe(
-			"3 з оцінками, 16 без оцінок. Відповіді поки в консолі.",
-		);
+		expect(questions?.text).toBe("3 з оцінками, 16 без оцінок.");
 	});
 
 	it("names what is new by kind", () => {
@@ -60,6 +56,54 @@ describe("inboxSteps", () => {
 
 		// Assert
 		expect(fresh?.text).toBe(`Курси в семестрі ${formatCount(772)}, курси 40.`);
+	});
+
+	it("names the fields that change most instead of a fixed guess", () => {
+		// Arrange
+		const facets = {
+			fields: {
+				practice_type: { count: 1817, rated: 17 },
+				status: { count: 2954, rated: 0 },
+				practice_count: { count: 694, rated: 0 },
+				description: { count: 5000, rated: 0 },
+				title: { count: 2, rated: 2 },
+			},
+		};
+		const withFacets = {
+			...summary,
+			steps: summary.steps.map((item) =>
+				item.step === "field_changes" ? { ...item, facets } : item,
+			),
+		};
+
+		// Act
+		const steps = inboxSteps(withFacets);
+
+		// Assert
+		expect(steps.find((item) => item.step === "changes")?.text).toBe(
+			`Найчастіше: стан курсу ${formatCount(2954)}, тип практичних ${formatCount(1800)}, практичних 694.`,
+		);
+		expect(steps.find((item) => item.step === "changes_rated")?.text).toBe(
+			"Студенти це помітять. Перевірте незвичні значення. Найчастіше: тип практичних 17, назва 2.",
+		);
+	});
+
+	it("says rated links wait because of their ratings", () => {
+		// Arrange
+		const rated = {
+			...summary,
+			steps: summary.steps.map((item) =>
+				item.step === "exact_links" ? { ...item, rated: item.count } : item,
+			),
+		};
+
+		// Act
+		const links = inboxSteps(rated).find((item) => item.step === "links");
+
+		// Assert
+		expect(links?.text).toBe(
+			"Усі на сторінках з оцінками, тому не застосовані самі. Назви й оцінки не зміняться.",
+		);
 	});
 
 	it("hides steps with nothing waiting", () => {

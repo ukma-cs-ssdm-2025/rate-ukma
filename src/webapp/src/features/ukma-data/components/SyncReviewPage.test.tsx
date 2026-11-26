@@ -93,7 +93,7 @@ describe("/data/sync/preview", () => {
 			counts: decisionCounts({ applied: 1, total: 1 }),
 			run: previewFixture().run,
 		});
-		renderReview("?step=changes_rated");
+		renderReview("?step=changes");
 		await user.click(
 			await screen.findByRole("checkbox", { name: "Тестова дисципліна В" }),
 		);
@@ -113,7 +113,7 @@ describe("/data/sync/preview", () => {
 		expect(previewBody).toMatchObject({
 			run: 7,
 			group: "change",
-			rated: true,
+			rated: false,
 			exclude_ids: [48_122],
 		});
 		const applyBody = JSON.parse(String(mock.history.post[1]?.data));
@@ -121,6 +121,82 @@ describe("/data/sync/preview", () => {
 			run: 7,
 			token: "token-test",
 			exclude_ids: [48_122],
+		});
+	});
+
+	it("searches the rows and applies only what the search shows", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock
+			.onPost(PREVIEW_URL)
+			.reply(
+				200,
+				previewFixture({ counts: decisionCounts({ applied: 1, total: 1 }) }),
+			);
+		renderReview("?step=changes");
+		const search = await screen.findByRole("searchbox", {
+			name: "Пошук у змінах",
+		});
+
+		// Act
+		await user.type(search, "Кафедра прикладів");
+		await vi.waitFor(() =>
+			expect(mock.history.get.at(-1)?.params).toMatchObject({
+				q: "Кафедра прикладів",
+			}),
+		);
+		await user.click(screen.getByRole("button", { name: "Застосувати" }));
+
+		// Assert
+		await vi.waitFor(() => expect(mock.history.post).toHaveLength(1));
+		expect(JSON.parse(String(mock.history.post[0]?.data))).toMatchObject({
+			group: "change",
+			q: "Кафедра прикладів",
+			year_from: null,
+		});
+	});
+
+	it("selects nothing up front on a rated step and applies only the picked rows", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock.onPost(PREVIEW_URL).reply(
+			200,
+			previewFixture({
+				counts: decisionCounts({ applied: 1, total: 1 }),
+			}),
+		);
+		mock.onPost(APPLY_URL).reply(200, {
+			decision_id: 75,
+			action: "apply",
+			outcome: "applied",
+			detail: "Застосовано 1 зміну. Рішення #75.",
+			counts: decisionCounts({ applied: 1, total: 1 }),
+			run: previewFixture().run,
+		});
+		renderReview("?step=changes_rated");
+		const box = await screen.findByRole("checkbox", {
+			name: "Тестова дисципліна В",
+		});
+		expect(box).not.toBeChecked();
+		expect(screen.getByRole("button", { name: "Застосувати" })).toBeDisabled();
+
+		// Act
+		await user.click(box);
+		expect(screen.getByText(/1 з 2/)).toHaveTextContent("Вибрано 1 з 2");
+		await user.click(screen.getByRole("button", { name: "Застосувати" }));
+		await user.click(
+			await screen.findByRole("button", { name: "Застосувати 1" }),
+		);
+
+		// Assert
+		expect(
+			await screen.findByText("Застосовано 1 зміну. Рішення #75."),
+		).toBeInTheDocument();
+		const previewBody = JSON.parse(String(mock.history.post[0]?.data));
+		expect(previewBody).toEqual({
+			source: "catalog",
+			run: 7,
+			change_ids: [48_122],
 		});
 	});
 
@@ -146,7 +222,7 @@ describe("/data/sync/preview", () => {
 			.replyOnce(200, part(1))
 			.onPost(APPLY_URL)
 			.replyOnce(200, part(0));
-		renderReview("?step=changes_rated");
+		renderReview("?step=changes");
 		await user.click(
 			await screen.findByRole("button", { name: "Застосувати" }),
 		);
@@ -191,7 +267,7 @@ describe("/data/sync/preview", () => {
 			counts: decisionCounts({ applied: 1, total: 1, remaining: 1 }),
 			run: previewFixture().run,
 		});
-		renderReview("?step=changes_rated");
+		renderReview("?step=changes");
 		await user.click(
 			await screen.findByRole("button", { name: "Застосувати" }),
 		);

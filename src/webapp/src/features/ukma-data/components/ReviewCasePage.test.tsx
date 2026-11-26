@@ -21,6 +21,31 @@ vi.mock("@tanstack/react-router", async () => ({
 }));
 
 const DECIDE_URL = "/api/v1/ukma-data/review-cases/rc-101/decide/";
+const CASE_URL = "/api/v1/ukma-data/review-cases/rc-101/";
+
+const person = {
+	student_id: "s-1",
+	record_id: "rec-1",
+	first_name: "Олена",
+	last_name: "Коваль",
+	middle_name: "Петрівна",
+	programme: "Тестова програма",
+	study_year: 1,
+	status: "active",
+} as const;
+
+const studentPeople = {
+	id: "rc-101",
+	kind: "student_match",
+	status: "open",
+	opened_at: "2030-09-01T08:00:00Z",
+	record: person,
+	joined_student_id: "s-2",
+	candidates: [
+		{ ...person, student_id: "s-2", middle_name: "Іванівна" },
+		{ ...person, student_id: "s-3" },
+	],
+};
 
 const studentCase: UkmaDataReviewCase = {
 	id: "rc-101",
@@ -69,8 +94,9 @@ afterEach(() => {
 });
 
 describe("/data/cases/$caseId", () => {
-	it("shows the case sides and its options", async () => {
+	it("shows the record and each matching student side by side", async () => {
 		mock.onGet(CASES_URL).reply(200, page([studentCase]));
+		mock.onGet(CASE_URL).reply(200, studentPeople);
 
 		renderCase();
 
@@ -79,12 +105,28 @@ describe("/data/cases/$caseId", () => {
 				name: "Новий запис студента схожий на наявного",
 			}),
 		).toBeInTheDocument();
-		expect(screen.getByText("Запис про навчання студента")).toBeInTheDocument();
-		expect(screen.getByText(/2 наявні студенти/)).toBeInTheDocument();
+		expect(await screen.findAllByText("Коваль Олена Петрівна")).toHaveLength(2);
+		expect(screen.getByText("Коваль Олена Іванівна")).toHaveClass(
+			"bg-tint-caution",
+		);
+		expect(screen.getByText("Приєднано зараз")).toBeInTheDocument();
 		expect(screen.getByText(/Справа 1 з 1/)).toBeInTheDocument();
+		expect(screen.getByText("Що означає кожне рішення:")).toBeInTheDocument();
+	});
+
+	it("keeps the case readable when the names do not load", async () => {
+		mock.onGet(CASES_URL).reply(200, page([studentCase]));
+		mock.onGet(CASE_URL).reply(502, { detail: "down" });
+
+		renderCase();
+
 		expect(
-			screen.getByText("Що означає кожне рішення в сервісі даних САЗ:"),
+			await screen.findByText("Запис про навчання студента"),
 		).toBeInTheDocument();
+		expect(screen.getByRole("status")).toHaveTextContent(
+			"Імена зараз не завантажились",
+		);
+		expect(screen.getByText(/2 наявні студенти/)).toBeInTheDocument();
 	});
 
 	it("says when the case is gone", async () => {
