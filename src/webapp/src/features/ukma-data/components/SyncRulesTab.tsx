@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Switch } from "@/components/ui/Switch";
-import type { SyncPolicy } from "@/lib/api/generated";
+import type { SyncChangeGroupEnum, SyncPolicy } from "@/lib/api/generated";
 import {
 	useUkmaDataSyncPoliciesList,
 	useUkmaDataSyncPolicyChangesList,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/generated";
 import { kindLabel } from "../sync";
 import { actionFailure } from "../syncActions";
+import { GROUP_LABELS } from "../syncLabels";
 import { invalidateSyncQueries } from "../syncQueries";
 import { approverName, NO_RETRY } from "../syncOverview";
 import { Ago, DataSection, Term } from "./Term";
@@ -66,12 +67,7 @@ function PolicyRow({ policy }: Readonly<{ policy: SyncPolicy }>) {
 	return (
 		<li className="flex flex-col gap-1 px-4 py-2.5 text-sm sm:px-5">
 			<div className="flex items-center justify-between gap-3">
-				<span className="min-w-0">
-					<span className="block">{label}</span>
-					<span className="block text-muted-foreground">
-						<Term name={policy.group} />
-					</span>
-				</span>
+				<span className="min-w-0">{label}</span>
 				{policy.never_auto ? (
 					<span className="shrink-0 text-muted-foreground">
 						<Term name="never_auto" />
@@ -113,6 +109,60 @@ function PolicyRow({ policy }: Readonly<{ policy: SyncPolicy }>) {
 	);
 }
 
+const RULE_GROUPS = [
+	"link",
+	"new",
+	"change",
+	"mapping",
+	"removed",
+] as const satisfies readonly SyncChangeGroupEnum[];
+
+function PolicyGroup({
+	group,
+	policies,
+}: Readonly<{ group: SyncChangeGroupEnum; policies: readonly SyncPolicy[] }>) {
+	if (policies.length === 0) {
+		return null;
+	}
+	return (
+		<section className="space-y-2">
+			<h3 className="text-sm font-medium">{GROUP_LABELS[group]}</h3>
+			<ul
+				aria-label={GROUP_LABELS[group]}
+				className="divide-y rounded-xl border bg-card"
+			>
+				{policies.map((policy) => (
+					<PolicyRow key={policy.kind} policy={policy} />
+				))}
+			</ul>
+		</section>
+	);
+}
+
+function ModeLegend() {
+	return (
+		<ul
+			aria-label="Що означають режими"
+			className="space-y-1 text-sm text-muted-foreground"
+		>
+			<li>
+				<span className="text-foreground">Авто увімкнено</span>: сайт застосовує
+				такі зміни сам щоночі після читання САЗ.
+			</li>
+			<li>
+				<span className="text-foreground">Авто вимкнено</span>: зміни чекають на
+				«Огляді», поки їх хтось застосує.
+			</li>
+			<li>
+				<span className="text-foreground">
+					<Term name="never_auto" />
+				</span>
+				: завжди вирішує людина, бо це переносить оцінки.
+			</li>
+		</ul>
+	);
+}
+
 export function SyncRulesTab() {
 	const policies = useUkmaDataSyncPoliciesList(NO_RETRY);
 	if (policies.error) {
@@ -136,16 +186,20 @@ export function SyncRulesTab() {
 					</>
 				}
 			>
+				<ModeLegend />
 				{policies.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
 				{policies.data ? (
-					<ul
-						aria-label="Правила за типом змін"
-						className="divide-y rounded-xl border bg-card"
-					>
-						{policies.data.items.map((policy) => (
-							<PolicyRow key={policy.kind} policy={policy} />
+					<div className="space-y-5">
+						{RULE_GROUPS.map((group) => (
+							<PolicyGroup
+								key={group}
+								group={group}
+								policies={policies.data.items.filter(
+									(policy) => policy.group === group,
+								)}
+							/>
 						))}
-					</ul>
+					</div>
 				) : null}
 			</DataSection>
 			<DataSection

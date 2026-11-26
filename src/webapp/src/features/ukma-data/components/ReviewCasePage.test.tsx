@@ -32,6 +32,7 @@ const person = (
 	student_id: studentId,
 	record_id: `pr-${studentId}`,
 	first_name: "Тест",
+	middle_name: "Тестович",
 	last_name: lastName,
 	programme: "Тестова програма",
 	study_year: studyYear,

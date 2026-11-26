@@ -7875,6 +7875,22 @@ components:
           nullable: true
           description: 'With `group=change`: rows no student sees (`true`) or the
             rest (`false`)'
+        q:
+          type: string
+          nullable: true
+          description: 'With `group`: rows whose title, department or САЗ code match'
+          maxLength: 200
+        year_from:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters from this academic year (Осінь 2025
+            = 2025)'
+        year_to:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters up to this academic year'
         exclude_ids:
           type: array
           items:
@@ -8816,6 +8832,22 @@ components:
           nullable: true
           description: 'With `group=change`: rows no student sees (`true`) or the
             rest (`false`)'
+        q:
+          type: string
+          nullable: true
+          description: 'With `group`: rows whose title, department or САЗ code match'
+          maxLength: 200
+        year_from:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters from this academic year (Осінь 2025
+            = 2025)'
+        year_to:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters up to this academic year'
         exclude_ids:
           type: array
           items:
@@ -9164,6 +9196,22 @@ components:
           nullable: true
           description: 'With `group=change`: rows no student sees (`true`) or the
             rest (`false`)'
+        q:
+          type: string
+          nullable: true
+          description: 'With `group`: rows whose title, department or САЗ code match'
+          maxLength: 200
+        year_from:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters from this academic year (Осінь 2025
+            = 2025)'
+        year_to:
+          type: integer
+          minimum: 2000
+          nullable: true
+          description: 'With `group`: semesters up to this academic year'
         exclude_ids:
           type: array
           items:
@@ -9558,6 +9606,11 @@ components:
         last_name:
           type: string
           readOnly: true
+        middle_name:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The patronymic and any further given names, as САЗ lists them
         programme:
           type: string
           readOnly: true
@@ -9574,6 +9627,7 @@ components:
       required:
       - first_name
       - last_name
+      - middle_name
       - programme
       - record_id
       - status
@@ -9596,6 +9650,11 @@ components:
         last_name:
           type: string
           readOnly: true
+        middle_name:
+          type: string
+          readOnly: true
+          nullable: true
+          description: The patronymic and any further given names, as САЗ lists them
         programme:
           type: string
           readOnly: true
@@ -9612,6 +9671,7 @@ components:
       required:
       - first_name
       - last_name
+      - middle_name
       - programme
       - record_id
       - status

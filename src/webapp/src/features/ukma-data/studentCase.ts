@@ -9,6 +9,7 @@ type CasePerson = UkmaDataCasePerson | UkmaDataCasePerson1;
 
 type StudentField =
 	| "first_name"
+	| "middle_name"
 	| "last_name"
 	| "programme"
 	| "study_year"
@@ -35,8 +36,9 @@ export interface StudentComparison {
 const MISSING = "—";
 
 const FIELDS: readonly (readonly [StudentField, string])[] = [
-	["first_name", "Імʼя"],
 	["last_name", "Прізвище"],
+	["first_name", "Імʼя"],
+	["middle_name", "По батькові"],
 	["programme", "Програма"],
 	["study_year", "Рік навчання"],
 	["status", "Статус"],
@@ -51,6 +53,8 @@ function fieldValue(person: CasePerson, field: StudentField): string {
 	switch (field) {
 		case "first_name":
 			return person.first_name || MISSING;
+		case "middle_name":
+			return person.middle_name || MISSING;
 		case "last_name":
 			return person.last_name || MISSING;
 		case "programme":

@@ -59,10 +59,18 @@ describe("/data/sync", () => {
 		renderSync("?tab=rules");
 
 		// Assert
-		const list = within(
-			await screen.findByRole("list", { name: "Правила за типом змін" }),
-		);
-		const [newCourse, changeCourse, merge] = list.getAllByRole("listitem");
+		const newCourse = (
+			await screen.findByRole("list", { name: "Нові записи" })
+		).querySelector("li");
+		const changeCourse = screen
+			.getByRole("list", { name: "Зміни полів" })
+			.querySelector("li");
+		const merge = screen
+			.getByRole("list", { name: "Питання" })
+			.querySelector("li");
+		expect(
+			screen.getByRole("list", { name: "Що означають режими" }),
+		).toHaveTextContent("Авто увімкнено");
 		expect(within(newCourse!).getByRole("switch")).toHaveAttribute(
 			"aria-checked",
 			"false",
@@ -87,7 +95,7 @@ describe("/data/sync", () => {
 
 		// Act
 		const list = within(
-			await screen.findByRole("list", { name: "Правила за типом змін" }),
+			await screen.findByRole("list", { name: "Нові записи" }),
 		);
 		await user.click(list.getAllByRole("switch")[0]!);
 		const dialog = within(await screen.findByRole("alertdialog"));

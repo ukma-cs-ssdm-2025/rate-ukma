@@ -126,7 +126,7 @@ class CasePerson1(UkmaDataModel):
             alias="middleName",
             description="The patronymic and any further given names, as САЗ lists them",
         ),
-    ]
+    ] = None
     programme: str | None
     study_year: Annotated[int | None, Field(alias="studyYear")]
     status: Status1 | None
@@ -149,7 +149,7 @@ class CasePerson(UkmaDataModel):
             alias="middleName",
             description="The patronymic and any further given names, as САЗ lists them",
         ),
-    ]
+    ] = None
     programme: str | None
     study_year: Annotated[int | None, Field(alias="studyYear")]
     status: Status1 | None

@@ -23,7 +23,7 @@ export const CasePerson = Schema.Struct({
 	}),
 	firstName: Schema.String,
 	lastName: Schema.String,
-	middleName: Schema.NullOr(Schema.String).annotate({
+	middleName: Schema.optionalKey(Schema.NullOr(Schema.String)).annotate({
 		description:
 			"The patronymic and any further given names, as САЗ lists them",
 	}),

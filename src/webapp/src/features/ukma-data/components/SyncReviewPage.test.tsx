@@ -133,6 +133,63 @@ describe("/data/sync/preview", () => {
 		});
 	});
 
+	it("searches the list and carries the search into the apply", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock
+			.onPost(PREVIEW_URL)
+			.reply(
+				200,
+				previewFixture({ counts: decisionCounts({ applied: 1, total: 1 }) }),
+			);
+		renderReview("?step=changes_rated");
+		const search = await screen.findByRole("searchbox", {
+			name: "Пошук у змінах",
+		});
+
+		// Act
+		await user.type(search, "кафедра прикладів");
+		await vi.waitFor(() =>
+			expect(mock.history.get.at(-1)?.params).toMatchObject({
+				q: "кафедра прикладів",
+			}),
+		);
+		await user.click(screen.getByRole("button", { name: "Застосувати" }));
+
+		// Assert
+		const previewBody = JSON.parse(String(mock.history.post[0]?.data));
+		expect(previewBody).toMatchObject({ q: "кафедра прикладів" });
+		expect(
+			screen.queryByRole("combobox", { name: "Навчальний рік" }),
+		).not.toBeInTheDocument();
+	});
+
+	it("filters new records by academic year", async () => {
+		// Arrange
+		Object.assign(Element.prototype, {
+			hasPointerCapture: () => false,
+			releasePointerCapture: () => undefined,
+			scrollIntoView: () => undefined,
+		});
+		const user = userEvent.setup();
+		renderReview("?step=new");
+
+		// Act
+		await user.click(
+			await screen.findByRole("combobox", { name: "Навчальний рік" }),
+		);
+		await user.click(await screen.findByRole("option", { name: /^2025–2026/ }));
+
+		// Assert
+		await vi.waitFor(() =>
+			expect(mock.history.get.at(-1)?.params).toMatchObject({
+				group: "new",
+				year_from: 2025,
+				year_to: 2025,
+			}),
+		);
+	});
+
 	it("applies a selection over the 5 000 cap in parts until nothing is left", async () => {
 		// Arrange
 		const user = userEvent.setup();

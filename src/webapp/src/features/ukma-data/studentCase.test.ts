@@ -12,6 +12,7 @@ const base: UkmaDataStudentCase = {
 		student_id: "s-1",
 		record_id: "pr-1",
 		first_name: "Тест",
+		middle_name: "Тестович",
 		last_name: "Обʼєктенко",
 		programme: "Тестова програма",
 		study_year: 1,
@@ -23,6 +24,7 @@ const base: UkmaDataStudentCase = {
 			student_id: "s-2",
 			record_id: null,
 			first_name: "тест",
+			middle_name: null,
 			last_name: "Об'єктенко",
 			programme: null,
 			study_year: null,
@@ -43,6 +45,20 @@ describe("studentComparison", () => {
 		expect(summary).toBe(
 			"Усе, що знає САЗ, збігається зі студентом, до якого запис приєднано.",
 		);
+	});
+
+	it("shows the patronymic and skips it when one side lacks it", () => {
+		const { rows } = studentComparison(base);
+
+		expect(rows.map((row) => row.label).slice(0, 3)).toEqual([
+			"Прізвище",
+			"Імʼя",
+			"По батькові",
+		]);
+		expect(rows.find((row) => row.field === "middle_name")?.values).toEqual([
+			"Тестович",
+			"—",
+		]);
 	});
 
 	it("names the fields that differ from the record", () => {
