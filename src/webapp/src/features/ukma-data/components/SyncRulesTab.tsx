@@ -157,7 +157,7 @@ function ModeLegend() {
 				<span className="text-foreground">
 					<Term name="never_auto" />
 				</span>
-				: завжди вирішує людина, бо це переносить оцінки.
+				: завжди вирішує людина. Це питання й зміни, що переносять оцінки.
 			</li>
 		</ul>
 	);
@@ -179,17 +179,12 @@ export function SyncRulesTab() {
 		<div className="space-y-8">
 			<DataSection
 				title="Правила"
-				lead={
-					<>
-						Які зміни записуються щоночі самі, а які чекають людини. Питання й
-						зміни, що переносять оцінки, завжди вирішує людина.
-					</>
-				}
+				lead="Які зміни записуються щоночі самі, а які чекають людини."
 			>
 				<ModeLegend />
 				{policies.isLoading ? <Skeleton className="h-64 rounded-xl" /> : null}
 				{policies.data ? (
-					<div className="space-y-5">
+					<div className="space-y-5 pt-3">
 						{RULE_GROUPS.map((group) => (
 							<PolicyGroup
 								key={group}
