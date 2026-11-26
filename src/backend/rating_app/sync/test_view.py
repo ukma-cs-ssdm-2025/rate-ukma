@@ -36,6 +36,7 @@ def test_a_new_semester_shows_its_course_department_semester_credits_and_exam():
     assert view.title == "Тестова дисципліна А"
     assert view.place == "Кафедра прикладів"
     assert view.semester == "Осінь 2026"
+    assert view.note == "Новий семестр наявної дисципліни"
     assert [(row.label, row.before, row.after) for row in view.rows] == [
         ("Кредити", "", "6"),
         ("Форма контролю", "", "іспит"),
@@ -95,3 +96,28 @@ def test_credits_and_semesters_read_as_words():
     assert credits_text("4.5") == "4.5"
     assert semester_text({"term": "SUMMER", "year": 2027}) == "Літо 2027"
     assert semester_text(None) is None
+
+
+def test_a_state_change_reads_as_words():
+    change = _change(
+        "change_course",
+        "change",
+        {"status": "FINISHED", "education_level": "BACHELOR"},
+        {"status": "ACTIVE", "education_level": "MASTER", "display": {"course": COURSE}},
+    )
+
+    view = change_view(change)
+
+    assert {(row.label, row.before, row.after) for row in view.rows} == {
+        ("Стан", "завершена", "викладається"),
+        ("Рівень освіти", "бакалаврат", "магістратура"),
+    }
+
+
+def test_a_semester_of_a_new_discipline_says_so():
+    after = {"course_ukma_id": "ud-course", "display": {"course": COURSE}}
+
+    view = change_view(_change("new_offering", "new", {}, after))
+
+    assert view.note == "Семестр нової дисципліни"
+    assert change_view(_change("new_course", "new", {}, after)).note == "Нова дисципліна"

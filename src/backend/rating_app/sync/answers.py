@@ -200,10 +200,10 @@ def _into_course(change: SyncChange, answer: str, into: str | None) -> Course | 
     if answer not in {MappingAnswer.MERGE, MappingAnswer.PLACE}:
         return None
     if into is None or into not in _course_ids(change):
-        raise MappingAnswerError("Оберіть курс із запропонованих")
+        raise MappingAnswerError("Оберіть дисципліну із запропонованих")
     course = _resolve_course(into)
     if course is None:
-        raise MappingAnswerError("Курс не знайдено")
+        raise MappingAnswerError("Дисципліну не знайдено")
     return course
 
 

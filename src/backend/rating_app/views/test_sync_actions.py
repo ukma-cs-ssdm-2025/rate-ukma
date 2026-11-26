@@ -225,6 +225,37 @@ def test_preview_returns_a_token_counts_and_the_run_age(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_preview_of_quiet_changes_counts_only_changes_no_student_sees(
+    superuser_client,
+    free_sync_locks,
+    catalog_run,
+    course_factory,
+    make_change,
+    sync_change_factory,
+):
+    make_change(course_factory(title="Тестова дисципліна А"))
+    course = course_factory(title="Тестова дисципліна Б", status="FINISHED")
+    sync_change_factory(
+        run=catalog_run,
+        source=SyncSource.CATALOG,
+        group="change",
+        kind="change_course",
+        key=str(course.pk),
+        target_id=str(course.pk),
+        before={"status": "FINISHED"},
+        after={"status": "ACTIVE"},
+    )
+
+    quiet = _preview(superuser_client, catalog_run, quiet=True)
+    rest = _preview(superuser_client, catalog_run, quiet=False)
+
+    assert quiet.status_code == 200, quiet.json()
+    assert quiet.json()["counts"]["applied"] == 1
+    assert rest.json()["counts"]["applied"] == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_preview_lists_a_change_waiting_on_another(
     superuser_client, free_sync_locks, catalog_run, course_factory, sync_change_factory
 ):

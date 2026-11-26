@@ -223,7 +223,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
             course_id,
             into,
             lambda: self._service().merge_course(course_id, into),
-            "Курс об'єднано.",
+            "Дисципліну об'єднано.",
         )
 
     @extend_schema(
@@ -241,7 +241,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
             course_id,
             "",
             lambda: self._service().unmerge_course(course_id),
-            "Курс роз'єднано.",
+            "Дисципліну роз'єднано.",
         )
 
     def _service(self) -> UkmaDataService:

@@ -23,6 +23,9 @@ from rating_app.sync.review import LINK_KINDS, link_course_is_exact
 TERM_WORDS = {"FALL": "Осінь", "SPRING": "Весна", "SUMMER": "Літо"}
 EXAM_WORDS = {"EXAM": "іспит", "CREDIT": "залік"}
 PRACTICE_WORDS = {"PRACTICE": "практики", "SEMINAR": "семінари"}
+STATUS_WORDS = {"ACTIVE": "викладається", "FINISHED": "завершена", "PLANNED": "запланована"}
+LEVEL_WORDS = {"BACHELOR": "бакалаврат", "MASTER": "магістратура"}
+DESCRIPTION_CHARS = 140
 
 VISIBLE_FIELDS: dict[str, str] = {
     "title": "Назва",
@@ -44,6 +47,8 @@ VISIBLE_FIELDS: dict[str, str] = {
     "group_size_min": "Мінімум у групі",
     "group_size_max": "Максимум у групі",
     "max_groups": "Максимум груп",
+    "status": "Стан",
+    "description": "Опис",
 }
 
 NEW_OFFERING_FIELDS = ("credits", "exam_type")
@@ -63,6 +68,7 @@ class ChangeView:
     place: str | None
     semester: str | None
     rows: list[FieldView] = field(default_factory=list)
+    note: str | None = None
 
 
 def _dict(value: object) -> dict[str, Any]:
@@ -105,6 +111,12 @@ def value_text(name: str, value: str) -> str:
         return TERM_WORDS.get(value, value)
     if name == "practice_type":
         return PRACTICE_WORDS.get(value, value)
+    if name == "status":
+        return STATUS_WORDS.get(value, value)
+    if name in ("education_level", "level"):
+        return LEVEL_WORDS.get(value, value)
+    if name == "description" and len(value) > DESCRIPTION_CHARS:
+        return value[: DESCRIPTION_CHARS - 1].rstrip() + "…"
     return value
 
 
@@ -159,6 +171,23 @@ def _link_fields(change: SyncChange, after: Mapping[str, Any]) -> list[FieldView
     return [] if title is None else [FieldView("title", "Назва", site, title)]
 
 
+NEW_NOTES = {
+    "new_faculty": "Новий факультет",
+    "new_department": "Нова кафедра",
+    "new_course": "Нова дисципліна",
+}
+
+
+def _note(change: SyncChange, after: Mapping[str, Any]) -> str | None:
+    """What a new record is, so a new semester of a known discipline reads apart
+    from a whole new discipline."""
+    if change.kind == "new_offering":
+        if after.get("course_id"):
+            return "Новий семестр наявної дисципліни"
+        return "Семестр нової дисципліни"
+    return NEW_NOTES.get(change.kind)
+
+
 def change_view(change: SyncChange) -> ChangeView:
     after, before = _dict(change.after), _dict(change.before)
     display = _dict(after.get("display")) or _dict(before.get("display"))
@@ -176,6 +205,7 @@ def change_view(change: SyncChange) -> ChangeView:
         place=_place(display),
         semester=semester,
         rows=rows,
+        note=_note(change, after),
     )
 
 

@@ -315,7 +315,7 @@ def test_review_endpoints_return_403_when_anonymous(api_client, method, route, k
 
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_summary_orders_the_seven_steps_and_counts_them(review_fixture, superuser_client):
+def test_summary_orders_the_steps_and_counts_them(review_fixture, superuser_client):
     response = superuser_client.get(reverse("ukma-data-sync-summary"), {"source": "catalog"})
 
     assert response.status_code == 200
@@ -327,6 +327,7 @@ def test_summary_orders_the_seven_steps_and_counts_them(review_fixture, superuse
         "review_links",
         "new_rows",
         "field_changes",
+        "quiet_changes",
         "removed",
     ]
     steps = {step["step"]: step for step in body["steps"]}

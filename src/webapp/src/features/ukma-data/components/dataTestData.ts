@@ -193,6 +193,7 @@ export const titleChange: SyncChange = {
 		title: "Тестова дисципліна А",
 		place: "Кафедра прикладів",
 		semester: null,
+		note: null,
 		rows: [
 			{
 				field: "title",

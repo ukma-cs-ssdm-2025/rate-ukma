@@ -86,6 +86,10 @@ class SyncPendingParams(SyncChangeListParams):
     blanks: bool | None = Field(
         default=None, description="Change rows that blank a field (`true`) or blank none"
     )
+    quiet: bool | None = Field(
+        default=None,
+        description="Change rows that touch only fields no student sees (`true`), or the rest",
+    )
     year_from: int | None = Field(
         default=None, ge=2000, description="Semesters from this academic year (Осінь 2025 = 2025)"
     )

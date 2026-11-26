@@ -54,9 +54,9 @@ export const LINKS = {
 } satisfies PluralForms;
 
 export const COURSES = {
-	one: "курс",
-	few: "курси",
-	many: "курсів",
+	one: "дисципліна",
+	few: "дисципліни",
+	many: "дисциплін",
 } satisfies PluralForms;
 
 const FULL_DATE = new Intl.DateTimeFormat("uk-UA", {

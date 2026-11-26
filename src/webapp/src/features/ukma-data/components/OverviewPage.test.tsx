@@ -74,7 +74,7 @@ describe("/data overview", () => {
 		expect(items).toHaveLength(6);
 		expect(items[0]).toHaveTextContent("Звʼязки без змін на сайті");
 		expect(items[1]).toHaveTextContent(
-			"Нові записиКурси в семестрі 772, курси 40.812",
+			"Нові записиСеместри дисциплін 772, дисципліни 40.812",
 		);
 		expect(items[3]).toHaveTextContent("Зміни на сторінках з оцінками");
 		expect(screen.getByText("Разом 1 284 зміни.")).toBeInTheDocument();

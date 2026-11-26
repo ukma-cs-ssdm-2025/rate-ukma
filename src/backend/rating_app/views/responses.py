@@ -368,7 +368,7 @@ EX_403_UKMA_DATA_READONLY = OpenApiExample(
 EX_409_UKMA_DATA_REFUSED = OpenApiExample(
     "UKMA Data refused the decision",
     value={
-        "detail": "Курси різного рівня: об'єднати можна лише однакові.",
+        "detail": "Дисципліни різного рівня: об'єднати можна лише однакові.",
         "code": "ukma_data_refused",
         "status": 409,
     },
@@ -377,7 +377,7 @@ EX_409_UKMA_DATA_REFUSED = OpenApiExample(
 EX_404_UKMA_DATA = OpenApiExample(
     "UKMA Data does not know the case or course",
     value={
-        "detail": "UKMA Data не знає такої справи або курсу",
+        "detail": "UKMA Data не знає такої справи або дисципліни",
         "code": "ukma_data_not_found",
         "status": 404,
     },

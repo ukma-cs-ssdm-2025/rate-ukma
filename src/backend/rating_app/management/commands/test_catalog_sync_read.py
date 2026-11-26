@@ -23,7 +23,7 @@ def test_status_counts_what_waits_per_group(run_catalog_sync, make_catalog_run, 
     assert f"Каталог: читання САЗ #{run.pk} завершилось 3 год тому" in out
     assert "тривало 4 хв" in out
     assert "Чекають рішення: 2 зміни" in out
-    assert "(зміни курсів 2)" in out
+    assert "(зміни дисциплін 2)" in out
     assert "--group change" in out
     assert "перемикач catalog_sync_proposals): вимкнено" in out
     assert all(len(line) <= 100 for line in out.splitlines())
@@ -107,9 +107,9 @@ def test_show_mapping_question_lists_courses_and_answers(
 
     out = run_catalog_sync("show", "--group", "mapping")
 
-    assert f"#{change.pk}  Об'єднати курси? · без оцінок" in out
+    assert f"#{change.pk}  Об'єднати дисципліни? · без оцінок" in out
     assert f"id {courses[0].pk}" in out
-    assert "відповіді: keep_apart | merge --into <id курсу>" in out
+    assert "відповіді: keep_apart | merge --into <id дисципліни>" in out
 
 
 @pytest.mark.django_db

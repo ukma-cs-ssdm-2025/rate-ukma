@@ -63,7 +63,7 @@ function FieldFilter({
 }
 
 function usePendingRows(step: ReviewStep, field: string | null) {
-	const { group, rated, match } = STEP_COPY[step].slice;
+	const { group, rated, match, quiet } = STEP_COPY[step].slice;
 	return useInfiniteQuery({
 		queryKey: [PREVIEW_ROWS_QUERY_KEY, step, field],
 		queryFn: ({ pageParam, signal }) =>
@@ -73,6 +73,7 @@ function usePendingRows(step: ReviewStep, field: string | null) {
 					group: group === "other" ? undefined : group,
 					rated: rated ?? undefined,
 					match: match ?? undefined,
+					quiet: quiet ?? undefined,
 					changed_field: field ?? undefined,
 					page: pageParam,
 					page_size: LIST_PAGE_SIZE,
@@ -138,6 +139,7 @@ function ChangeList({
 		group: copy.slice.group,
 		rated: copy.slice.rated,
 		match: copy.slice.match,
+		quiet: copy.slice.quiet,
 		changed_field: field,
 		run: first.runs[0]?.id ?? null,
 		exclude_ids: left,

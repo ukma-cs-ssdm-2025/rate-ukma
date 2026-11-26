@@ -72,7 +72,7 @@ function ApprovalItem({
 				<p className="text-destructive">{approval.error}</p>
 			) : null}
 			{approval.merged.length > 0 ? (
-				<ul className="space-y-0.5" aria-label="Обʼєднані курси">
+				<ul className="space-y-0.5" aria-label="Обʼєднані дисципліни">
 					{approval.merged.map((merge) => (
 						<li
 							key={`${merge.from_id}-${merge.into_id}`}
@@ -83,7 +83,7 @@ function ApprovalItem({
 								href={`/courses/${merge.into_id}`}
 								className="text-primary underline-offset-4 hover:underline"
 							>
-								цей курс
+								цю дисципліну
 							</a>
 						</li>
 					))}

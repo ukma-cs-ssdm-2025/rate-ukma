@@ -158,6 +158,7 @@ class SyncViewSet(SyncViewSetBase):
             blanks=params.blanks,
             year_from=params.year_from,
             year_to=params.year_to,
+            quiet=params.quiet,
         )
         field_counts = view.field_counts(changes)
         if params.changed_field is not None:

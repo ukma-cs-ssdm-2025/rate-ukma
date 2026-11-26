@@ -89,7 +89,7 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 			decision_id: 33,
 			action: "unmerge_course",
 			outcome: "done",
-			detail: "Курс роз'єднано.",
+			detail: "Дисципліну роз'єднано.",
 		});
 
 		// Act
@@ -110,10 +110,12 @@ describe("/data/sync journal: UKMA Data decisions", () => {
 			"Рішення в UKMA Data: об'єднано — відмова",
 		);
 		expect(items[1]).toHaveTextContent(
-			"Курси різного рівня: об'єднати можна лише однакові.",
+			"Дисципліни різного рівня: об'єднати можна лише однакові.",
 		);
-		expect(dialog).toHaveTextContent("Роз'єднати курс c-101?");
-		expect(await screen.findByText("Курс роз'єднано.")).toBeInTheDocument();
+		expect(dialog).toHaveTextContent("Роз'єднати дисципліну c-101?");
+		expect(
+			await screen.findByText("Дисципліну роз'єднано."),
+		).toBeInTheDocument();
 		await waitFor(() => expect(unmergeRequests()).toHaveLength(1));
 	});
 

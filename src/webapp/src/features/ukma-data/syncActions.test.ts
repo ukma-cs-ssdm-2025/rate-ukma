@@ -106,9 +106,11 @@ describe("journal words", () => {
 	});
 
 	it("names a policy change and a mapping answer", () => {
-		expect(journalTitle(journalPolicy)).toBe("Правило: Звʼязок курсу → Авто");
+		expect(journalTitle(journalPolicy)).toBe(
+			"Правило: Звʼязок дисципліни → Авто",
+		);
 		expect(journalTitle(journalAnswer)).toBe(
-			`Відповідь: Обʼєднання курсів — ${ANSWER_LABELS.merge}`,
+			`Відповідь: Обʼєднання дисциплін — ${ANSWER_LABELS.merge}`,
 		);
 		expect(journalEntryNumber(journalPolicy)).toBe("—");
 	});

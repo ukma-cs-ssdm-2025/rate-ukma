@@ -31,16 +31,16 @@ class UkmaDataDecideDisabledError(UkmaDataForbiddenError):
 class UkmaDataDecisionNotFoundError(NotFound):
     """UKMA Data does not know the case or course the decision names."""
 
-    default_detail = "UKMA Data не знає такої справи або курсу"
+    default_detail = "UKMA Data не знає такої справи або дисципліни"
     default_code = "ukma_data_not_found"
 
 
 REFUSAL_TEXT: dict[str, str] = {
-    "same_course": "Не можна об'єднати курс сам із собою.",
-    "course_merged": "Цей курс уже об'єднано з іншим.",
-    "target_merged": "Курс, з яким об'єднують, уже об'єднано з іншим.",
-    "level_mismatch": "Курси різного рівня: об'єднати можна лише однакові.",
-    "not_merged": "Цей курс не об'єднано, тож роз'єднувати нічого.",
+    "same_course": "Не можна об'єднати дисципліну саму із собою.",
+    "course_merged": "Цю дисципліну вже об'єднано з іншою.",
+    "target_merged": "Дисципліну, з якою об'єднують, уже об'єднано з іншою.",
+    "level_mismatch": "Дисципліни різного рівня: об'єднати можна лише однакові.",
+    "not_merged": "Цю дисципліну не об'єднано, тож роз'єднувати нічого.",
     "not_student_match": "Це не справа про студента.",
     "not_open": "Справу вже закрито або вона неактуальна.",
 }

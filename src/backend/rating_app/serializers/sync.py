@@ -62,6 +62,11 @@ class SyncChangeViewSerializer(serializers.Serializer):
     place = serializers.CharField(read_only=True, allow_null=True)
     semester = serializers.CharField(read_only=True, allow_null=True)
     rows = SyncChangeFieldViewSerializer(many=True, read_only=True)
+    note = serializers.CharField(
+        read_only=True,
+        allow_null=True,
+        help_text="What a new record is, e.g. a new semester of a known discipline",
+    )
 
 
 class SyncChangeSerializer(serializers.Serializer):

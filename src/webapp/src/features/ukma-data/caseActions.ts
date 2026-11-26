@@ -83,7 +83,7 @@ export function undoneMergeIds(
 
 export function unmergeConfirm(targetId: string): Confirm {
 	return {
-		title: `Роз'єднати курс ${targetId}?`,
-		description: `Курс ${targetId} знову стане окремим. Це змінює спільні дані САЗ.`,
+		title: `Роз'єднати дисципліну ${targetId}?`,
+		description: `Дисципліна ${targetId} знову стане окремою. Це змінює спільні дані САЗ.`,
 	};
 }

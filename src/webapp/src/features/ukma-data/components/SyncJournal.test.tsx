@@ -129,8 +129,8 @@ describe("/data/sync journal", () => {
 		expect(items[1]).toHaveTextContent("Відкладено нові записи: 3 записи");
 		expect(items[2]).toHaveTextContent("Оновлено на сайті: 1 855 записів");
 		expect(items[2]).toHaveTextContent("admin.test, 2 год тому");
-		expect(items[3]).toHaveTextContent("Правило: Звʼязок курсу → Авто");
-		expect(items[4]).toHaveTextContent("Відповідь: Обʼєднання курсів");
+		expect(items[3]).toHaveTextContent("Правило: Звʼязок дисципліни → Авто");
+		expect(items[4]).toHaveTextContent("Відповідь: Обʼєднання дисциплін");
 		expect(items[5]).toHaveTextContent("Звʼязано з САЗ: 27 925 записів");
 		expect(items[5]).toHaveTextContent("(автоматично)");
 	});

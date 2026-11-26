@@ -67,7 +67,7 @@ function questionText(kind: string): QuestionCopy {
 			};
 		case "relink_course":
 			return {
-				title: "Звʼязати сторінку з іншим курсом САЗ?",
+				title: "Звʼязати сторінку з іншою дисципліною САЗ?",
 				answers: "keep або relink",
 			};
 		case "place_offering":
@@ -181,7 +181,7 @@ export function SyncQuestionList() {
 					</EmptyMedia>
 					<EmptyTitle>Питань немає</EmptyTitle>
 					<EmptyDescription>
-						САЗ і сайт групують курси однаково.
+						САЗ і сайт групують дисципліни однаково.
 					</EmptyDescription>
 				</EmptyHeader>
 			</Empty>

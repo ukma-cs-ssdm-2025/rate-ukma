@@ -44,6 +44,7 @@ def filter_ids(run: SyncRun, source: str, filters: Mapping[str, Any]) -> list[in
         changes,
         changed_field=filters.get("changed_field") or None,
         blanks=filters.get("blanks"),
+        quiet=filters.get("quiet"),
         year_from=filters.get("year_from"),
         year_to=filters.get("year_to"),
     )
@@ -68,13 +69,18 @@ def narrow(
     blanks: bool | None,
     year_from: int | None,
     year_to: int | None,
+    quiet: bool | None = None,
 ) -> QuerySet[SyncChange]:
-    """The sync page's own facets: a field and value pair, a blanked field and the
-    academic years of a semester."""
+    """The sync page's own facets: a field and value pair, a blanked field, changes
+    no student sees and the academic years of a semester."""
     if changed_field is not None or blanks is not None:
         changes = changes.filter(
             kind__in=fields.CHANGE_KINDS,
             pk__in=fields.field_ids(changes, changed_field, blanks),
+        )
+    if quiet is not None:
+        changes = changes.filter(
+            kind__in=fields.CHANGE_KINDS, pk__in=fields.quiet_ids(changes, quiet)
         )
     if year_from is not None or year_to is not None:
         changes = changes.filter(pk__in=fields.year_ids(changes, year_from, year_to))

@@ -13,6 +13,7 @@ export const REVIEW_STEPS = [
 	"new",
 	"changes",
 	"changes_rated",
+	"changes_quiet",
 	"questions",
 	"removed",
 ] as const;
@@ -23,6 +24,7 @@ export interface ReviewSlice {
 	group: SyncSelectionGroupEnum;
 	rated: boolean | null;
 	match: MatchEnum | null;
+	quiet: boolean | null;
 }
 
 interface StepCopy {
@@ -36,7 +38,13 @@ interface StepCopy {
 const slice = (
 	group: SyncSelectionGroupEnum,
 	extra: Partial<Omit<ReviewSlice, "group">> = {},
-): ReviewSlice => ({ group, rated: null, match: null, ...extra });
+): ReviewSlice => ({
+	group,
+	rated: null,
+	match: null,
+	quiet: null,
+	...extra,
+});
 
 export const STEP_COPY = {
 	links: {
@@ -62,16 +70,23 @@ export const STEP_COPY = {
 	},
 	changes: {
 		title: "Зміни на сторінках без оцінок",
-		hint: "Назва, кафедра чи кредити зміняться там, де ще ніхто не оцінював.",
+		hint: "Студенти побачать нові значення там, де ще ніхто не оцінював.",
 		column: "Що зміниться",
-		slice: slice("change", { rated: false }),
+		slice: slice("change", { rated: false, quiet: false }),
 		decidable: true,
 	},
 	changes_rated: {
 		title: "Зміни на сторінках з оцінками",
 		hint: "Студенти це помітять. Перевірте незвичні значення.",
 		column: "Що зміниться",
-		slice: slice("change", { rated: true }),
+		slice: slice("change", { rated: true, quiet: false }),
+		decidable: true,
+	},
+	changes_quiet: {
+		title: "Зміни, яких студенти не побачать",
+		hint: "Змінився лише стан дисципліни: викладається вона чи вже завершена. На сайті цього не видно.",
+		column: "Що зміниться",
+		slice: slice("change", { quiet: true }),
 		decidable: true,
 	},
 	questions: {
@@ -129,6 +144,32 @@ function questionsText(summary: SyncSummary): string {
 	return `${countWith(rated, QUESTIONS_RATED)}, ${formatCount(other)} без оцінок. Відповіді поки в консолі.`;
 }
 
+function linksText(summary: SyncSummary): string {
+	const links = stepOf(summary, "exact_links");
+	const rated = links?.rated ?? 0;
+	if (rated === 0) {
+		return STEP_COPY.links.hint;
+	}
+	const why =
+		rated === links?.count
+			? "Чекають на вас, бо на всіх цих сторінках є оцінки."
+			: `Чекають на вас, бо на ${formatCount(rated)} з них є оцінки.`;
+	return `${STEP_COPY.links.hint} ${why}`;
+}
+
+function stepText(summary: SyncSummary, step: ReviewStep): string {
+	switch (step) {
+		case "links":
+			return linksText(summary);
+		case "new":
+			return newText(summary);
+		case "questions":
+			return questionsText(summary);
+		default:
+			return STEP_COPY[step].hint;
+	}
+}
+
 export function inboxSteps(summary: SyncSummary): InboxStep[] {
 	const changes = stepOf(summary, "field_changes");
 	const rated = changes?.rated ?? 0;
@@ -138,6 +179,7 @@ export function inboxSteps(summary: SyncSummary): InboxStep[] {
 		new: countOf(summary, "new_rows"),
 		changes: (changes?.count ?? 0) - rated,
 		changes_rated: rated,
+		changes_quiet: countOf(summary, "quiet_changes"),
 		questions:
 			countOf(summary, "rated_questions") + countOf(summary, "other_questions"),
 		removed: countOf(summary, "removed"),
@@ -148,12 +190,7 @@ export function inboxSteps(summary: SyncSummary): InboxStep[] {
 					{
 						step,
 						title: STEP_COPY[step].title,
-						text:
-							step === "new"
-								? newText(summary)
-								: step === "questions"
-									? questionsText(summary)
-									: STEP_COPY[step].hint,
+						text: stepText(summary, step),
 						count: counts[step],
 					},
 				]

@@ -3062,7 +3062,7 @@ paths:
               examples:
                 UKMADataDoesNotKnowTheCaseOrCourse:
                   value:
-                    detail: UKMA Data не знає такої справи або курсу
+                    detail: UKMA Data не знає такої справи або дисципліни
                     code: ukma_data_not_found
                     status: 404
                   summary: UKMA Data does not know the case or course
@@ -3075,7 +3075,7 @@ paths:
               examples:
                 UKMADataRefusedTheDecision:
                   value:
-                    detail: 'Курси різного рівня: об''єднати можна лише однакові.'
+                    detail: 'Дисципліни різного рівня: об''єднати можна лише однакові.'
                     code: ukma_data_refused
                     status: 409
                   summary: UKMA Data refused the decision
@@ -3177,7 +3177,7 @@ paths:
               examples:
                 UKMADataDoesNotKnowTheCaseOrCourse:
                   value:
-                    detail: UKMA Data не знає такої справи або курсу
+                    detail: UKMA Data не знає такої справи або дисципліни
                     code: ukma_data_not_found
                     status: 404
                   summary: UKMA Data does not know the case or course
@@ -3190,7 +3190,7 @@ paths:
               examples:
                 UKMADataRefusedTheDecision:
                   value:
-                    detail: 'Курси різного рівня: об''єднати можна лише однакові.'
+                    detail: 'Дисципліни різного рівня: об''єднати можна лише однакові.'
                     code: ukma_data_refused
                     status: 409
                   summary: UKMA Data refused the decision
@@ -3792,7 +3792,7 @@ paths:
               examples:
                 UKMADataDoesNotKnowTheCaseOrCourse:
                   value:
-                    detail: UKMA Data не знає такої справи або курсу
+                    detail: UKMA Data не знає такої справи або дисципліни
                     code: ukma_data_not_found
                     status: 404
                   summary: UKMA Data does not know the case or course
@@ -3855,7 +3855,7 @@ paths:
               examples:
                 UKMADataDoesNotKnowTheCaseOrCourse:
                   value:
-                    detail: UKMA Data не знає такої справи або курсу
+                    detail: UKMA Data не знає такої справи або дисципліни
                     code: ukma_data_not_found
                     status: 404
                   summary: UKMA Data does not know the case or course
@@ -3868,7 +3868,7 @@ paths:
               examples:
                 UKMADataRefusedTheDecision:
                   value:
-                    detail: 'Курси різного рівня: об''єднати можна лише однакові.'
+                    detail: 'Дисципліни різного рівня: об''єднати можна лише однакові.'
                     code: ukma_data_refused
                     status: 409
                   summary: UKMA Data refused the decision
@@ -4216,6 +4216,12 @@ paths:
         schema:
           type: string
         description: Match a title or a САЗ code
+      - in: query
+        name: quiet
+        schema:
+          type: boolean
+        description: Change rows that touch only fields no student sees (`true`),
+          or the rest
       - in: query
         name: rated
         schema:
@@ -7582,6 +7588,11 @@ components:
           nullable: true
           description: 'With `group=change`: rows that change this field'
           maxLength: 50
+        quiet:
+          type: boolean
+          nullable: true
+          description: 'With `group=change`: rows no student sees (`true`) or the
+            rest (`false`)'
         exclude_ids:
           type: array
           items:
@@ -7952,7 +7963,13 @@ components:
           items:
             $ref: '#/components/schemas/SyncChangeFieldView'
           readOnly: true
+        note:
+          type: string
+          readOnly: true
+          nullable: true
+          description: What a new record is, e.g. a new semester of a known discipline
       required:
+      - note
       - place
       - rows
       - semester
@@ -8505,6 +8522,11 @@ components:
           nullable: true
           description: 'With `group=change`: rows that change this field'
           maxLength: 50
+        quiet:
+          type: boolean
+          nullable: true
+          description: 'With `group=change`: rows no student sees (`true`) or the
+            rest (`false`)'
         exclude_ids:
           type: array
           items:
@@ -8815,6 +8837,11 @@ components:
           nullable: true
           description: 'With `group=change`: rows that change this field'
           maxLength: 50
+        quiet:
+          type: boolean
+          nullable: true
+          description: 'With `group=change`: rows no student sees (`true`) or the
+            rest (`false`)'
         exclude_ids:
           type: array
           items:

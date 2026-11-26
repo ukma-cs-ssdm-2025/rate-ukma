@@ -125,6 +125,12 @@ class SyncActionSelectionSerializer(serializers.Serializer):
         max_length=50,
         help_text="With `group=change`: rows that change this field",
     )
+    quiet = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="With `group=change`: rows no student sees (`true`) or the rest (`false`)",
+    )
     exclude_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,
