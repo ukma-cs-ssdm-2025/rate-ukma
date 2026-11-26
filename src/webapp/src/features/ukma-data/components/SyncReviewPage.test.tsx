@@ -6,7 +6,16 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
-import { pending, PENDING_URL, SYNC_URL, titleChange } from "./dataTestData";
+import {
+	pending,
+	PENDING_URL,
+	question,
+	QUESTIONS_URL,
+	summary,
+	SUMMARY_URL,
+	SYNC_URL,
+	titleChange,
+} from "./dataTestData";
 import { decisionCounts, previewFixture } from "./syncActionsTestData";
 import { SyncReviewPage } from "./SyncReviewPage";
 
@@ -122,6 +131,84 @@ describe("/data/sync/preview", () => {
 			token: "token-test",
 			exclude_ids: [48_122],
 		});
+	});
+
+	it("searches the list and carries the search into the apply", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock
+			.onPost(PREVIEW_URL)
+			.reply(
+				200,
+				previewFixture({ counts: decisionCounts({ applied: 1, total: 1 }) }),
+			);
+		renderReview("?step=changes_rated");
+		const search = await screen.findByRole("searchbox", {
+			name: "Пошук у змінах",
+		});
+
+		// Act
+		await user.type(search, "кафедра прикладів");
+		await vi.waitFor(() =>
+			expect(mock.history.get.at(-1)?.params).toMatchObject({
+				q: "кафедра прикладів",
+			}),
+		);
+		await user.click(screen.getByRole("button", { name: "Застосувати" }));
+
+		// Assert
+		const previewBody = JSON.parse(String(mock.history.post[0]?.data));
+		expect(previewBody).toMatchObject({ q: "кафедра прикладів" });
+		expect(
+			screen.queryByRole("combobox", { name: "Навчальний рік" }),
+		).not.toBeInTheDocument();
+	});
+
+	it("keeps a chosen field clearable when it no longer has rows", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		mock.onGet(PENDING_URL).reply(200, {
+			...pending([], 0),
+			changed_fields: {},
+		});
+		renderReview("?step=changes_rated&field=credits");
+
+		// Act
+		await user.click(await screen.findByRole("radio", { name: "Усі поля" }));
+
+		// Assert
+		await vi.waitFor(() =>
+			expect(mock.history.get.at(-1)?.params).not.toHaveProperty(
+				"changed_field",
+				"credits",
+			),
+		);
+	});
+
+	it("filters new records by academic year", async () => {
+		// Arrange
+		Object.assign(Element.prototype, {
+			hasPointerCapture: () => false,
+			releasePointerCapture: () => undefined,
+			scrollIntoView: () => undefined,
+		});
+		const user = userEvent.setup();
+		renderReview("?step=new");
+
+		// Act
+		await user.click(
+			await screen.findByRole("combobox", { name: "Навчальний рік" }),
+		);
+		await user.click(await screen.findByRole("option", { name: /^2025–2026/ }));
+
+		// Assert
+		await vi.waitFor(() =>
+			expect(mock.history.get.at(-1)?.params).toMatchObject({
+				group: "new",
+				year_from: 2025,
+				year_to: 2025,
+			}),
+		);
 	});
 
 	it("applies a selection over the 5 000 cap in parts until nothing is left", async () => {
@@ -252,5 +339,50 @@ describe("/data/sync/preview", () => {
 		expect(
 			screen.queryByRole("button", { name: "Застосувати" }),
 		).not.toBeInTheDocument();
+	});
+
+	it("answers a question on the page and offers to apply the answers", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const answerUrl = `${QUESTIONS_URL}${question.id}/answer/`;
+		mock
+			.onGet(QUESTIONS_URL)
+			.reply(200, { items: [question], next_after: null });
+		mock.onGet(SUMMARY_URL).reply(200, {
+			...summary,
+			answers: {
+				merge: 1,
+				keep_apart: 0,
+				keep: 0,
+				place: 0,
+				move: 0,
+				relink: 0,
+			},
+		});
+		mock.onPost(answerUrl).reply(200, {
+			detail:
+				"Записано: об'єднати. Оцінки перейдуть, коли ви застосуєте відповіді.",
+			decision_id: 7,
+		});
+		renderReview("?step=questions");
+
+		// Act
+		const [first] = await screen.findAllByRole("button", {
+			name: "Обʼєднати сюди",
+		});
+		await user.click(first!);
+
+		// Assert
+		expect(
+			await screen.findByText(
+				"Записано: об'єднати. Оцінки перейдуть, коли ви застосуєте відповіді.",
+			),
+		).toBeInTheDocument();
+		expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({
+			answer: "merge",
+			into: "course-test-2",
+		});
+		expect(screen.getByText("З відповіддю: 1")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Не зараз" })).toBeNull();
 	});
 });

@@ -28,6 +28,9 @@ TERM_FIELDS: tuple[str, ...] = (
 )
 OTHER_FIELD = "other"
 TOP_PAIRS = 4
+QUIET_FIELDS: frozenset[str] = frozenset({"status"})
+"""Fields the site keeps but never shows a student, so a change of only these goes
+through its own step."""
 
 FIELD_LABELS: dict[str, str] = {
     "name": "назва",
@@ -41,15 +44,15 @@ FIELD_LABELS: dict[str, str] = {
     "term": "семестр",
     "exam_type": "форма контролю",
     "study_year": "рік навчання",
-    "max_students": "макс. студентів",
-    "max_groups": "макс. груп",
-    "group_size_min": "мін. у групі",
-    "group_size_max": "макс. у групі",
+    "max_students": "максимум студентів",
+    "max_groups": "максимум груп",
+    "group_size_min": "мінімум у групі",
+    "group_size_max": "максимум у групі",
     "credits": "кредити",
     "weekly_hours": "годин на тиждень",
     "lecture_count": "лекцій",
-    "practice_count": "практик",
-    "practice_type": "тип практик",
+    "practice_count": "практичних",
+    "practice_type": "тип практичних",
     "specialities": "спеціальності",
     "terms": "семестри",
     "saz_code": "код САЗ",
@@ -57,13 +60,13 @@ FIELD_LABELS: dict[str, str] = {
     "majority_share": "частка збігу",
     "faculty_ukma_id": "факультет в UKMA Data",
     "department_ukma_id": "кафедра в UKMA Data",
-    "course_id": "курс",
-    "course_ukma_id": "курс в UKMA Data",
-    "candidates": "курси-кандидати",
-    "from_course": "з курсу",
-    "to_course_id": "до курсу",
-    "to_course_ukma_id": "до курсу в UKMA Data",
-    "ukma_course_id": "курс в UKMA Data",
+    "course_id": "дисципліна",
+    "course_ukma_id": "дисципліна в UKMA Data",
+    "candidates": "дисципліни-кандидати",
+    "from_course": "з дисципліни",
+    "to_course_id": "до дисципліни",
+    "to_course_ukma_id": "до дисципліни в UKMA Data",
+    "ukma_course_id": "дисципліна в UKMA Data",
     "merge_source": "джерело об'єднання",
     "email": "пошта",
     "teacher_email": "пошта викладача",
@@ -153,6 +156,18 @@ def value_pairs(after: Mapping[str, Any], before: Mapping[str, Any]) -> list[Fie
     if not pairs:
         pairs.add((OTHER_FIELD, "", ""))
     return sorted(pairs)
+
+
+def is_quiet(pairs: Iterable[FieldPair]) -> bool:
+    """True when every pair is a field no student sees."""
+    names = {pair[0] for pair in pairs}
+    return bool(names) and names <= QUIET_FIELDS
+
+
+def quiet_ids(changes: QuerySet[SyncChange], quiet: bool) -> set[int]:
+    return {
+        change_id for change_id, pairs in change_pairs(changes).items() if is_quiet(pairs) == quiet
+    }
 
 
 def is_blanking(pair: FieldPair) -> bool:

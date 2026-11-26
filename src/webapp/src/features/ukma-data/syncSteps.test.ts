@@ -22,6 +22,44 @@ describe("inboxSteps", () => {
 		]);
 	});
 
+	it("puts changes no student sees into their own step", () => {
+		// Arrange
+		const withQuiet = {
+			...summary,
+			steps: [
+				...summary.steps,
+				{ ...summary.steps[2]!, step: "quiet_changes", count: 2954, rated: 0 },
+			],
+		};
+
+		// Act
+		const steps = inboxSteps(withQuiet);
+
+		// Assert
+		expect(steps.map((item) => item.step)).toContain("changes_quiet");
+		expect(steps.find((item) => item.step === "changes_quiet")?.count).toBe(
+			2954,
+		);
+	});
+
+	it("says rated links wait because of their ratings", () => {
+		// Arrange
+		const rated = {
+			...summary,
+			steps: summary.steps.map((item) =>
+				item.step === "exact_links" ? { ...item, rated: item.count } : item,
+			),
+		};
+
+		// Act
+		const links = inboxSteps(rated).find((item) => item.step === "links");
+
+		// Assert
+		expect(links?.text).toContain(
+			"Чекають на вас, бо на всіх цих сторінках є оцінки.",
+		);
+	});
+
 	it("says how many questions have ratings", () => {
 		// Arrange & Act
 		const questions = inboxSteps(summary).find(
@@ -29,9 +67,7 @@ describe("inboxSteps", () => {
 		);
 
 		// Assert
-		expect(questions?.text).toBe(
-			"3 з оцінками, 15 без оцінок. Відповіді поки в консолі.",
-		);
+		expect(questions?.text).toBe("3 з оцінками, 15 без оцінок.");
 	});
 
 	it("counts a question with only study plans as without ratings", () => {
@@ -49,9 +85,7 @@ describe("inboxSteps", () => {
 		);
 
 		// Assert
-		expect(questions?.text).toBe(
-			"3 з оцінками, 16 без оцінок. Відповіді поки в консолі.",
-		);
+		expect(questions?.text).toBe("3 з оцінками, 16 без оцінок.");
 	});
 
 	it("names what is new by kind", () => {
@@ -59,7 +93,9 @@ describe("inboxSteps", () => {
 		const fresh = inboxSteps(summary).find((item) => item.step === "new");
 
 		// Assert
-		expect(fresh?.text).toBe(`Курси в семестрі ${formatCount(772)}, курси 40.`);
+		expect(fresh?.text).toBe(
+			`Семестри дисциплін ${formatCount(772)}, дисципліни 40.`,
+		);
 	});
 
 	it("hides steps with nothing waiting", () => {

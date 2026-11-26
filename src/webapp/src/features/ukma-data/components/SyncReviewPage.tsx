@@ -8,20 +8,18 @@ import { useQueryState } from "nuqs";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
-import type {
-	SyncPendingResponse,
-	SyncPreviewRequest,
-} from "@/lib/api/generated";
+import type { SyncPreviewRequest } from "@/lib/api/generated";
 import { ukmaDataSyncPendingList } from "@/lib/api/generated";
-import { fieldLabel } from "../sync";
 import { formatCount } from "../syncFormat";
 import { LIST_PAGE_SIZE } from "../syncLabels";
 import { reviewFieldParser, reviewStepParser } from "../syncPreviewParams";
 import { PREVIEW_ROWS_QUERY_KEY } from "../syncQueries";
 import { STEP_COPY } from "../syncSteps";
 import type { ReviewStep } from "../syncSteps";
-import { DataSegments } from "./DataBits";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import type { ListFilter } from "../syncListFilters";
 import { SyncApplyBar } from "./SyncApplyBar";
+import { FieldFilter, SearchFilter } from "./SyncListFilters";
 import { SyncQuestionList } from "./SyncQuestionList";
 import {
 	SyncReviewHeader,
@@ -30,42 +28,13 @@ import {
 } from "./SyncReviewRows";
 import { UkmaDataError } from "./UkmaDataError";
 
-const ALL_FIELDS = "all";
+const SEARCH_DEBOUNCE_MS = 300;
 
-function FieldFilter({
-	page,
-	field,
-	onChange,
-}: Readonly<{
-	page: SyncPendingResponse;
-	field: string | null;
-	onChange: (field: string | null) => void;
-}>) {
-	const fields = Object.entries(page.changed_fields);
-	if (fields.length < 2) {
-		return null;
-	}
-	return (
-		<DataSegments
-			label="Яке поле змінюється"
-			value={field ?? ALL_FIELDS}
-			onChange={(value) => onChange(value === ALL_FIELDS ? null : value)}
-			items={[
-				{ value: ALL_FIELDS, label: "Усі поля" },
-				...fields.map(([name, count]) => ({
-					value: name,
-					label: fieldLabel(name),
-					count,
-				})),
-			]}
-		/>
-	);
-}
-
-function usePendingRows(step: ReviewStep, field: string | null) {
-	const { group, rated, match } = STEP_COPY[step].slice;
+function usePendingRows(step: ReviewStep, filter: ListFilter) {
+	const { group, rated, match, quiet } = STEP_COPY[step].slice;
+	const { field, query, year } = filter;
 	return useInfiniteQuery({
-		queryKey: [PREVIEW_ROWS_QUERY_KEY, step, field],
+		queryKey: [PREVIEW_ROWS_QUERY_KEY, step, field, query, year],
 		queryFn: ({ pageParam, signal }) =>
 			ukmaDataSyncPendingList(
 				{
@@ -73,7 +42,11 @@ function usePendingRows(step: ReviewStep, field: string | null) {
 					group: group === "other" ? undefined : group,
 					rated: rated ?? undefined,
 					match: match ?? undefined,
+					quiet: quiet ?? undefined,
 					changed_field: field ?? undefined,
+					q: query || undefined,
+					year_from: year ?? undefined,
+					year_to: year ?? undefined,
 					page: pageParam,
 					page_size: LIST_PAGE_SIZE,
 				},
@@ -97,8 +70,21 @@ function ChangeList({
 	onField: (field: string | null) => void;
 }>) {
 	const copy = STEP_COPY[step];
-	const rows = usePendingRows(step, field);
+	const [draft, setDraft] = useState("");
+	const [year, setYear] = useState<number | null>(null);
+	const query = useDebouncedValue(draft.trim(), SEARCH_DEBOUNCE_MS);
+	const filter = { field, query, year };
+	const rows = usePendingRows(step, filter);
 	const [excluded, setExcluded] = useState<ReadonlySet<number>>(new Set());
+	const [filtered, setFiltered] = useState(filter);
+	if (
+		filtered.field !== field ||
+		filtered.query !== query ||
+		filtered.year !== year
+	) {
+		setFiltered(filter);
+		setExcluded(new Set());
+	}
 	const pages = rows.data?.pages ?? [];
 	const first = pages[0];
 	const items = pages.flatMap((page) => page.items);
@@ -138,23 +124,30 @@ function ChangeList({
 		group: copy.slice.group,
 		rated: copy.slice.rated,
 		match: copy.slice.match,
+		quiet: copy.slice.quiet,
 		changed_field: field,
+		q: query || null,
+		year_from: year,
+		year_to: year,
 		run: first.runs[0]?.id ?? null,
 		exclude_ids: left,
 	};
 	return (
 		<div className="space-y-4">
-			<FieldFilter
-				page={first}
-				field={field}
-				onChange={(next) => {
-					setExcluded(new Set());
-					onField(next);
-				}}
-			/>
+			<div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+				<SearchFilter
+					query={draft}
+					onQuery={setDraft}
+					year={year}
+					onYear={copy.slice.group === "new" ? setYear : null}
+				/>
+				<FieldFilter page={first} field={field} onChange={onField} />
+			</div>
 			{items.length === 0 ? (
 				<p className="rounded-xl border bg-card px-4 py-6 text-sm text-muted-foreground sm:px-5">
-					Тут уже нічого не чекає.
+					{query || year !== null
+						? "Нічого не знайдено. Змініть пошук або рік."
+						: "Тут уже нічого не чекає."}
 				</p>
 			) : (
 				<div
@@ -216,9 +209,9 @@ export function SyncReviewPage() {
 	return (
 		<div className="min-w-0 space-y-4">
 			<Button variant="ghost" size="sm" asChild className="-ml-3">
-				<Link to="/data/sync" search={{ tab: "pending" }}>
+				<Link to="/data">
 					<ArrowLeft />
-					Чекають рішення
+					Огляд
 				</Link>
 			</Button>
 			<div className="space-y-1">

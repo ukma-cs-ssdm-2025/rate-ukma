@@ -37,7 +37,7 @@ GROUP_HINTS: dict[str, str] = {
     "new": "записи САЗ, яких ще немає на сайті; після застосування з'являться",
     "link": "той самий запис є і на сайті, і в САЗ; застосування лише запам'ятовує зв'язок",
     "change": "САЗ змінив поле запису, що вже є на сайті",
-    "mapping": "САЗ і сайт групують курси по-різному; спершу потрібна відповідь",
+    "mapping": "САЗ і сайт групують дисципліни по-різному; спершу потрібна відповідь",
     "removed": "запис зник із САЗ; сайт його не видаляє, застосування лише позначає",
     "other": "зміни викладачів та інші, що не входять у групи вище",
 }
@@ -49,21 +49,21 @@ KIND_LABELS: dict[str, str] = {
     "new_department": "Нова кафедра",
     "link_department": "Кафедра",
     "change_department": "Кафедра",
-    "new_course": "Новий курс",
-    "link_course": "Курс",
-    "change_course": "Курс",
-    "new_offering": "Новий курс у семестрі",
-    "link_offering": "Курс у семестрі",
-    "change_offering": "Курс у семестрі",
+    "new_course": "Нова дисципліна",
+    "link_course": "Дисципліна",
+    "change_course": "Дисципліна",
+    "new_offering": "Новий семестр дисципліни",
+    "link_offering": "Семестр дисципліни",
+    "change_offering": "Семестр дисципліни",
     "teacher_created": "Новий викладач",
     "teacher_link_added": "Доданий викладач",
     "teacher_link_removed": "Прибраний викладач",
-    "relink_course": "Переприв'язати курс?",
-    "place_offering": "До якого курсу прикріпити курс у семестрі?",
-    "move_offering": "Перенести курс у семестрі?",
-    "merge_courses": "Об'єднати курси?",
-    "removed_course": "Курс зник з САЗ",
-    "removed_offering": "Курс у семестрі зник з САЗ",
+    "relink_course": "Переприв'язати дисципліну?",
+    "place_offering": "До якої дисципліни прикріпити семестр?",
+    "move_offering": "Перенести семестр до іншої дисципліни?",
+    "merge_courses": "Об'єднати дисципліни?",
+    "removed_course": "Дисципліна зникла з САЗ",
+    "removed_offering": "Семестр зник з САЗ",
 }
 
 DECISION_SUMMARY: dict[str, str] = {
@@ -84,21 +84,21 @@ POLICY_LABELS: dict[str, str] = {
     "new_department": "Нові кафедри",
     "link_department": "Зв'язки кафедр",
     "change_department": "Зміни кафедр",
-    "new_course": "Нові курси",
-    "link_course": "Зв'язки курсів",
-    "change_course": "Зміни курсів",
-    "new_offering": "Нові курси в семестрі",
-    "link_offering": "Зв'язки курсів у семестрі",
-    "change_offering": "Зміни курсів у семестрі",
+    "new_course": "Нові дисципліни",
+    "link_course": "Зв'язки дисциплін",
+    "change_course": "Зміни дисциплін",
+    "new_offering": "Нові семестри дисциплін",
+    "link_offering": "Зв'язки семестрів",
+    "change_offering": "Зміни семестрів",
     "teacher_created": "Нові викладачі",
     "teacher_link_added": "Додані викладачі",
     "teacher_link_removed": "Прибрані викладачі",
-    "relink_course": "Переприв'язка курсів",
-    "place_offering": "Курси в семестрі без курсу",
-    "move_offering": "Перенесення курсів у семестрі",
-    "merge_courses": "Об'єднання курсів",
-    "removed_course": "Курси, що зникли з САЗ",
-    "removed_offering": "Курси в семестрі, що зникли",
+    "relink_course": "Переприв'язка дисциплін",
+    "place_offering": "Семестри без дисципліни",
+    "move_offering": "Перенесення семестрів",
+    "merge_courses": "Об'єднання дисциплін",
+    "removed_course": "Дисципліни, що зникли з САЗ",
+    "removed_offering": "Семестри дисциплін, що зникли",
 }
 
 FIELD_LABELS = field_pairs.FIELD_LABELS
@@ -284,7 +284,7 @@ def question_lines(question: Question) -> list[str]:
     if question.offering:
         offering = question.offering
         lines.append(
-            f"    курс у семестрі: САЗ {offering.get('saz_code')}, "
+            f"    семестр: САЗ {offering.get('saz_code')}, "
             f"{offering.get('year')} {offering.get('term')}"
         )
     for course in question.courses:
@@ -295,7 +295,7 @@ def question_lines(question: Question) -> list[str]:
         )
         lines.append(f"      id {course['id']}")
     choices = " | ".join(sorted(ANSWERS_BY_KIND.get(change.kind, ())))
-    hint = " --into <id курсу>" if change.kind in {"place_offering", "merge_courses"} else ""
+    hint = " --into <id дисципліни>" if change.kind in {"place_offering", "merge_courses"} else ""
     lines.append(f"    відповіді: {choices}{hint}")
     if question.answer:
         answer = question.answer
@@ -384,7 +384,7 @@ def decision_lines(result: DecisionResult, *, limit: int) -> list[str]:
         verb = "Перенесе" if result.dry_run else "Перенесено"
         lines.append(
             f"{verb} {ratings_word(result.ratings_moved)} і планів {result.plans_moved} "
-            "на інші сторінки курсів."
+            "на інші сторінки дисциплін."
         )
     lines.extend(_listed(done, limit))
     lines.extend(_left_out(result.outcomes, done, limit, dry_run=result.dry_run))
@@ -439,7 +439,7 @@ def left_reason(item: ChangeOutcome) -> tuple[str, str]:
     if item.change.kind in MAPPING_KINDS:
         return (
             "mapping_unanswered",
-            "питання без відповіді: спершу дайте відповідь (catalog_sync answer)",
+            "питання без відповіді: спершу дайте відповідь на /data або в консолі",
         )
     return "not_ready", "пропущено цього разу (рядок на сайті змінився або вибірку звужено)"
 

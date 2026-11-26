@@ -357,6 +357,19 @@ def ukma_data_review_cases_view():
 
 
 @once
+def ukma_data_records_view():
+    return UkmaDataViewSet.as_view({"get": "records"})
+
+
+@once
+def ukma_data_student_case_view():
+    return UkmaDataViewSet.as_view(
+        {"get": "student_case"},
+        ukma_data_service=ukma_data_service(),
+    )
+
+
+@once
 def ukma_data_review_case_decide_view():
     return UkmaDataViewSet.as_view(
         {"post": "decide_case"},
@@ -438,6 +451,21 @@ def sync_summary_view():
 @once
 def sync_questions_view():
     return SyncReviewViewSet.as_view({"get": "questions"})
+
+
+@once
+def sync_policy_update_view():
+    return SyncViewSet.as_view({"post": "set_policy"})
+
+
+@once
+def sync_question_answer_view():
+    return SyncReviewViewSet.as_view({"post": "answer"})
+
+
+@once
+def sync_questions_settle_view():
+    return SyncReviewViewSet.as_view({"post": "settle_unrated"})
 
 
 @once
@@ -654,6 +682,16 @@ def rest_urlpatterns() -> list:
             name="ukma-data-review-cases",
         ),
         path(
+            "ukma-data/records/",
+            ukma_data_records_view(),
+            name="ukma-data-records",
+        ),
+        path(
+            "ukma-data/review-cases/<ukma_data_id:case_id>/",
+            ukma_data_student_case_view(),
+            name="ukma-data-student-case",
+        ),
+        path(
             "ukma-data/review-cases/<ukma_data_id:case_id>/decide/",
             ukma_data_review_case_decide_view(),
             name="ukma-data-review-case-decide",
@@ -694,6 +732,16 @@ def rest_urlpatterns() -> list:
             name="ukma-data-sync-questions",
         ),
         path(
+            "ukma-data/sync/questions/<int:change_id>/answer/",
+            sync_question_answer_view(),
+            name="ukma-data-sync-question-answer",
+        ),
+        path(
+            "ukma-data/sync/questions/settle-unrated/",
+            sync_questions_settle_view(),
+            name="ukma-data-sync-questions-settle",
+        ),
+        path(
             "ukma-data/sync/runs/<str:run_id>/approvals/",
             sync_run_approvals_view(),
             name="ukma-data-sync-run-approvals",
@@ -712,6 +760,11 @@ def rest_urlpatterns() -> list:
             "ukma-data/sync/policies/changes/",
             sync_policy_changes_view(),
             name="ukma-data-sync-policy-changes",
+        ),
+        path(
+            "ukma-data/sync/policies/<str:kind>/",
+            sync_policy_update_view(),
+            name="ukma-data-sync-policy-update",
         ),
         path(
             "ukma-data/sync/preview/",

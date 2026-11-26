@@ -4,9 +4,9 @@ Runbook for deciding the changes the nightly read of UKMA Data proposes: apply t
 
 ## Making Decisions on /data
 
-A superuser can make the same decisions on the site without this console: open /data, then «Оновлення з САЗ» → «Чекають рішення». It lists steps in apply order (links, links to check, new records, changes without ratings, changes with ratings, questions, removed). «Переглянути» opens a step's changes in words; untick a row to leave it out, then «Застосувати» runs the dry run and applies after a confirm, or «Не зараз» rejects. The same selection and idempotency rules apply. One request applies at most 5 000 changes, so «Застосувати всі N» repeats preview and apply in parts of 5 000 until nothing is left; «Зупинити» stops after the current part and every finished part stays applied.
+A superuser can make the same decisions on the site without this console: open /data. «Огляд» lists what waits as steps in apply order (links, links to check, new records, changes without ratings, changes with ratings, changes students don't see (status only), questions, removed). Each step links to its review. «Переглянути» opens a step's changes in words; untick a row to leave it out, then «Застосувати» runs the dry run and applies after a confirm, or «Не зараз» rejects. The same selection and idempotency rules apply. One request applies at most 5 000 changes, so «Застосувати всі N» repeats preview and apply in parts of 5 000 until nothing is left; «Зупинити» stops after the current part and every finished part stays applied.
 
-Every decision appears in «Журнал» in words (for example «Звʼязано з САЗ: 5 000 записів»), and «Що саме» lists the records it touched. An applied decision can be undone with «Відкотити»: a dry run lists every blocker first, and the confirmation writes a new decision. Mapping questions are still answered only here with `catalog_sync answer`; the page lists them and shows the command.
+Every decision appears in «Журнал і правила» → «Журнал» in words (for example «Звʼязано з САЗ: 5 000 записів»), and «Що саме» lists the records it touched. The parts of one «Застосувати всі N» show as one line with «Частини». An applied decision can be undone with «Відкотити»: a dry run lists every blocker first, and the confirmation writes a new decision. Mapping questions can be answered on /data too: the questions step has an answer button per card, «Закрити всі без оцінок» (the same as `answer keep_apart --unrated`), and «Застосувати» for the answered ones (the same as `apply --group mapping`). A policy can be switched on «Журнал і правила» → «Правила» with «Авто»; kinds that are never automatic have no switch.
 
 ## Before You Start
 
@@ -146,7 +146,7 @@ A revert is all-or-nothing: while one blocker stays, nothing is written. What bl
 
 Which kinds can be reverted: `link_*`, `relink_course`, `change_*` and `move_offering`. `new_*` cannot («Лише вручну: нові записи вже можуть мати оцінки»), and neither can `merge_courses` or `place_offering` («Лише вручну, з резервної копії бази»). `removed_*` wrote nothing, so there is nothing to undo. Only applied decisions can be reverted; a rejected change simply comes back after the next read.
 
-When the dry run has no blockers, it says how many changes it would return and their fields get their previous values. After `--yes` it prints a new decision number; the changes become «відкочено», keep their original decision number for counting, and come back to «Чекають рішення» after the next read if САЗ still differs. Check:
+When the dry run has no blockers, it says how many changes it would return and their fields get their previous values. After `--yes` it prints a new decision number; the changes become «відкочено», keep their original decision number for counting, and come back to «Огляд» after the next read if САЗ still differs. Check:
 
 ```bash
 python manage.py catalog_sync log --limit 5
@@ -205,7 +205,7 @@ python manage.py catalog_sync policy change_course auto --by <username>
 python manage.py catalog_sync policy change_course auto --by <username> --yes
 ```
 
-The list shows each kind, its mode and who changed it last. The dry run prints old → new. `needs_approval` puts a kind back under review. Every change is audited and shown on /data under «Правила».
+The list shows each kind, its mode and who changed it last. The dry run prints old → new. `needs_approval` puts a kind back under review. Every change is audited and shown on /data under «Журнал і правила» → «Правила», which has the same switch («Авто», with a confirm).
 
 Check after `--yes`: run `python manage.py catalog_sync policy` again. The kind's row shows the new mode and the owner's username under «Хто змінив».
 
@@ -284,17 +284,17 @@ For a `course_match` case the shell has no candidate view: take both course ids 
 
 The buttons work only when the server's UKMA Data key (`UKMA_DATA_API_KEY`, the same key the lists use) has the `review:decide` scope. Live's key has it; staging's has only `review:read`, so on staging the buttons stay disabled with «Тут лише перегляд: рішення змінюють спільні дані САЗ», and the backend refuses every decision before calling UKMA Data. Never give the staging key `review:decide`, and do not read, print, copy or paste a key's value. If the buttons are disabled on live, tell the owner the live key seems to have lost `review:decide`.
 
-1. Open /data → «Справи». Each open case is a row with its buttons: «Це та сама людина» for a `student_match` case, «Об'єднати з …» per candidate for a `course_match` case (the candidate is the course that stays). A row opens the case with its details.
+1. Open /data → «Справи». Each open case is a row with its names; the list has no buttons. A row opens the case with its details and buttons: «Це та сама людина» for a `student_match` case, «Об'єднати з «Назва»» per candidate for a `course_match` case (the candidate is the discipline that stays). Cases of other kinds say they can be decided only in UKMA Data's own staff section for now. A `student_match` case shows the САЗ record next to the student it joined (and any other similar student): first name, surname, programme, study year and status, read live from UKMA Data, with the fields that differ from the record highlighted. Decide from that table; names are not stored on our side.
 2. Press the button. The confirm names the case or both courses and says that the change affects the shared САЗ data. It is the only check before the write: read it to the owner and press the confirm only on their ok.
 3. The row shows the result: «✓ …» when done, or UKMA Data's reason. The case moves to «Стан: Вирішені» with the badge «Вирішено».
-4. Every attempt that reaches UKMA Data appears in «Оновлення з САЗ» → «Журнал» as «Рішення в UKMA Data» with who, what, and any refusal or error. A done merge has «Роз'єднати» there.
+4. Every attempt that reaches UKMA Data appears in «Журнал і правила» → «Журнал» as «Рішення в UKMA Data» with who, what, and any refusal or error. A done merge has «Роз'єднати» there.
 
 When a decision does not go through:
 
 - **«UKMA Data не відповіла, тож рішення могло й не записатися…»**: UKMA Data was down or slow (the API answered 502). The decision may or may not have been written; the «Журнал» row says «помилка» either way. Before pressing again, check:
   - a case: open «Справи» with «Стан: Усі»; the badge «Вирішено» means it was written;
   - a merge: run the dry run `node main.js courses unmerge <course-id>` in the parser shell (no `--yes`). If it lists what it would undo, the merge happened: do not press again. If it refuses with `not_merged`, it did not: tell the owner and ask before retrying.
-- **A refusal** (for example «Курси різного рівня: об'єднати можна лише однакові.»): UKMA Data changed nothing. These are the shell's refusal codes in Ukrainian. Do not retry; tell the owner the case or course id.
+- **A refusal** (for example «Дисципліни різного рівня: об'єднати можна лише однакові.»): UKMA Data changed nothing. These are the shell's refusal codes in Ukrainian. Do not retry; tell the owner the case or course id.
 - **A merge made by mistake**: with the owner's ok, press «Роз'єднати» on its «Журнал» row. That writes a new decision; the merge row keeps its history and loses the button.
 
 Done when each write the owner approved has passed its check. Report to the owner, per write: the ids, the button or the exact command, the time and the check result; for a shell write also the owner's name, since UKMA Data records no person.

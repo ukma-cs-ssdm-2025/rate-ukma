@@ -125,6 +125,33 @@ class SyncActionSelectionSerializer(serializers.Serializer):
         max_length=50,
         help_text="With `group=change`: rows that change this field",
     )
+    quiet = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="With `group=change`: rows no student sees (`true`) or the rest (`false`)",
+    )
+    q = serializers.CharField(
+        required=False,
+        allow_null=True,
+        default=None,
+        max_length=200,
+        help_text="With `group`: rows whose title, department or САЗ code match",
+    )
+    year_from = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        min_value=2000,
+        help_text="With `group`: semesters from this academic year (Осінь 2025 = 2025)",
+    )
+    year_to = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        min_value=2000,
+        help_text="With `group`: semesters up to this academic year",
+    )
     exclude_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,

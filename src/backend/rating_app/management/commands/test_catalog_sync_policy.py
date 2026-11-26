@@ -15,7 +15,7 @@ from rating_app.models import SyncPolicy, SyncPolicyChange, SyncPolicyMode
 def test_policy_lists_every_kind_with_its_mode(run_catalog_sync):
     out = run_catalog_sync("policy")
 
-    assert "Зміни курсів" in out
+    assert "Зміни дисциплін" in out
     assert "change_course" in out
     merge = next(line for line in out.splitlines() if "merge_courses" in line)
     assert "лише вручну" in merge
@@ -43,7 +43,7 @@ def test_policy_json_marks_never_auto_kinds(run_catalog_sync):
 def test_policy_dry_run_writes_nothing(run_catalog_sync, admin):
     out = run_catalog_sync("policy", "change_course", "auto", "--by", admin.username)
 
-    assert "Змінило б: «Зміни курсів» потребує рішення → авто." in out
+    assert "Змінило б: «Зміни дисциплін» потребує рішення → авто." in out
     assert not SyncPolicy.objects.exists()
     assert not SyncPolicyChange.objects.exists()
 
@@ -62,7 +62,7 @@ def test_policy_yes_writes_the_policy_and_its_audit(run_catalog_sync, admin):
 @pytest.mark.django_db
 @pytest.mark.integration
 def test_policy_refuses_auto_for_a_never_auto_kind(run_catalog_sync, admin):
-    with pytest.raises(CommandError, match="«Об'єднання курсів» не може бути авто"):
+    with pytest.raises(CommandError, match="«Об'єднання дисциплін» не може бути авто"):
         run_catalog_sync("policy", "merge_courses", "auto", "--by", admin.username, "--yes")
 
     assert not SyncPolicy.objects.exists()

@@ -74,7 +74,7 @@ describe("/data overview", () => {
 		expect(items).toHaveLength(6);
 		expect(items[0]).toHaveTextContent("Звʼязки без змін на сайті");
 		expect(items[1]).toHaveTextContent(
-			"Нові записиКурси в семестрі 772, курси 40.812",
+			"Нові записиСеместри дисциплін 772, дисципліни 40.812",
 		);
 		expect(items[3]).toHaveTextContent("Зміни на сторінках з оцінками");
 		expect(screen.getByText("Разом 1 284 зміни.")).toBeInTheDocument();
@@ -141,7 +141,7 @@ describe("/data overview", () => {
 
 		// Assert
 		expect(await screen.findByText(/не вдалася/)).toHaveTextContent(
-			"UKMA Data віддала неповні дані. Нижче — дані останнього вдалого.",
+			"UKMA Data віддала неповні дані. Нижче дані останнього вдалого.",
 		);
 	});
 
@@ -155,6 +155,37 @@ describe("/data overview", () => {
 		// Assert
 		expect(
 			await screen.findByText("Нічого не чекає. Наступне читання САЗ уночі."),
+		).toBeInTheDocument();
+	});
+
+	it("links every step to its review", async () => {
+		// Act
+		renderOverview();
+
+		// Assert
+		const list = within(
+			await screen.findByRole("list", { name: "Що чекає рішення" }),
+		);
+		const link = within(list.getAllByRole("listitem")[0]!).getByRole("link");
+		expect(link).toHaveAttribute("href", "/data/sync/preview");
+		expect(JSON.parse(link.getAttribute("data-search") ?? "{}")).toEqual({
+			step: "links",
+		});
+	});
+
+	it("keeps the steps when the key check fails", async () => {
+		// Arrange
+		mock.onGet(STATUS_URL).reply(502, { detail: "UKMA Data недоступна" });
+
+		// Act
+		renderOverview();
+
+		// Assert
+		expect(
+			await screen.findByRole("list", { name: "Що чекає рішення" }),
+		).toBeInTheDocument();
+		expect(
+			await screen.findByText("Дані САЗ зараз недоступні"),
 		).toBeInTheDocument();
 	});
 

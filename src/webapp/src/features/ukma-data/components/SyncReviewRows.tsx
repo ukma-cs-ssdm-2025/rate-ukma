@@ -20,7 +20,7 @@ function linkNoun(kind: string): string | null {
 		case "link_course":
 			return "Дисципліна";
 		case "link_offering":
-			return "Дисципліна в семестрі";
+			return "Семестр дисципліни";
 		default:
 			return null;
 	}
@@ -108,18 +108,25 @@ function FieldChange({
 
 function WhatChanges({ change }: Readonly<{ change: SyncChange }>) {
 	const link = change.group === "link";
-	if (change.view.rows.length > 0) {
+	const { note, rows } = change.view;
+	if (rows.length > 0) {
 		return (
-			<ul className="space-y-1.5">
-				{change.view.rows.map((row) => (
-					<FieldChange
-						key={`${row.field}-${row.after}`}
-						row={row}
-						link={link}
-					/>
-				))}
-			</ul>
+			<div className="space-y-1.5">
+				{note ? <p>{note}</p> : null}
+				<ul className="space-y-1.5">
+					{rows.map((row) => (
+						<FieldChange
+							key={`${row.field}-${row.after}`}
+							row={row}
+							link={link}
+						/>
+					))}
+				</ul>
+			</div>
 		);
+	}
+	if (note) {
+		return <p>{note}</p>;
 	}
 	const noun = link ? linkNoun(change.kind) : null;
 	return (
@@ -234,7 +241,7 @@ export function SyncReviewRow({
 				{change.ratings > 0 ? (
 					<p className="text-muted-foreground tabular-nums sm:text-right sm:text-foreground">
 						<span className="sm:hidden">
-							{countWith(change.ratings, RATINGS)}
+							{countWith(change.ratings, RATINGS)} у дисципліни
 						</span>
 						<span className="hidden sm:inline">{change.ratings}</span>
 					</p>

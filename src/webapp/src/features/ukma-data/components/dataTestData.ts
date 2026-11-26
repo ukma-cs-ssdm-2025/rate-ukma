@@ -127,7 +127,7 @@ export const summary: SyncSummary = {
 		}),
 		step("removed", "removed", { removed_offering: 3 }),
 	],
-	answers: { merge: 0, keep_apart: 2, keep: 0, place: 0, move: 0 },
+	answers: { merge: 0, keep_apart: 2, keep: 0, place: 0, move: 0, relink: 0 },
 	not_proposed: {
 		no_term: { count: 5, rated: 0 },
 		zero_credits: { count: 2, rated: 0 },
@@ -193,6 +193,7 @@ export const titleChange: SyncChange = {
 		title: "Тестова дисципліна А",
 		place: "Кафедра прикладів",
 		semester: null,
+		note: null,
 		rows: [
 			{
 				field: "title",

@@ -33,7 +33,7 @@ describe("groupCounts", () => {
 describe("kindParts", () => {
 	it("names each kind in plain words, largest first", () => {
 		expect(kindParts({ new_course: 40, new_offering: 772 })).toBe(
-			"курси в семестрі 772, курси 40",
+			"семестри дисциплін 772, дисципліни 40",
 		);
 	});
 });

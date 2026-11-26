@@ -3,11 +3,9 @@ import { useQueryState } from "nuqs";
 import { SYNC_TABS, tabParser } from "../syncParams";
 import { DataSegments } from "./DataBits";
 import { SyncHistoryTab } from "./SyncHistoryTab";
-import { SyncPendingTab } from "./SyncPendingTab";
 import { SyncRulesTab } from "./SyncRulesTab";
 
 const TAB_LABELS = {
-	pending: "Чекають рішення",
 	history: "Журнал",
 	rules: "Правила",
 } satisfies Record<(typeof SYNC_TABS)[number], string>;
@@ -26,7 +24,6 @@ export function SyncPage() {
 					label: TAB_LABELS[item],
 				}))}
 			/>
-			{tab === "pending" ? <SyncPendingTab /> : null}
 			{tab === "history" ? <SyncHistoryTab /> : null}
 			{tab === "rules" ? <SyncRulesTab /> : null}
 		</div>

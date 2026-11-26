@@ -42,7 +42,7 @@ function countsLine(approval: SyncApprovalDetail): string {
 			`перенесено ${countWith(approval.ratings_moved, RATINGS)}, ${countWith(approval.plans_moved, PLANS)}`,
 		);
 	}
-	return parts.join(" · ");
+	return parts.join(", ");
 }
 
 function ApprovalItem({
@@ -61,8 +61,7 @@ function ApprovalItem({
 				</span>
 				<span className="break-words">{approval.selection}</span>
 				<span className="text-muted-foreground">
-					· {approverName(approval.user_email)},{" "}
-					<Ago iso={approval.created_at} />
+					{approverName(approval.user_email)}, <Ago iso={approval.created_at} />
 				</span>
 			</div>
 			<p className="text-muted-foreground tabular-nums">
@@ -72,7 +71,7 @@ function ApprovalItem({
 				<p className="text-destructive">{approval.error}</p>
 			) : null}
 			{approval.merged.length > 0 ? (
-				<ul className="space-y-0.5" aria-label="Обʼєднані курси">
+				<ul className="space-y-0.5" aria-label="Обʼєднані дисципліни">
 					{approval.merged.map((merge) => (
 						<li
 							key={`${merge.from_id}-${merge.into_id}`}
@@ -83,7 +82,7 @@ function ApprovalItem({
 								href={`/courses/${merge.into_id}`}
 								className="text-primary underline-offset-4 hover:underline"
 							>
-								цей курс
+								цю дисципліну
 							</a>
 						</li>
 					))}
@@ -105,7 +104,7 @@ export function SyncRunApprovals({ runId }: Readonly<{ runId: number }>) {
 		<section aria-labelledby="sync-decisions" className="space-y-3">
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<div className="space-y-1">
-					<h3 id="sync-decisions" className="text-base font-semibold">
+					<h3 id="sync-decisions" className="text-base font-medium">
 						Рішення
 					</h3>
 					<p className="text-sm text-muted-foreground">

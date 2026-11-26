@@ -1236,6 +1236,17 @@
 					"lastName": {
 						"type": "string"
 					},
+					"middleName": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The patronymic and any further given names, as САЗ lists them"
+					},
 					"programme": {
 						"anyOf": [
 							{
@@ -1304,6 +1315,17 @@
 					},
 					"lastName": {
 						"type": "string"
+					},
+					"middleName": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"description": "The patronymic and any further given names, as САЗ lists them"
 					},
 					"programme": {
 						"anyOf": [

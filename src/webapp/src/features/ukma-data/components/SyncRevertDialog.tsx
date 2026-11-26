@@ -15,6 +15,7 @@ import type { SyncJournalEntry, SyncRevertResponse } from "@/lib/api/generated";
 import { ukmaDataSyncRevert, useUkmaDataSyncRevert } from "@/lib/api/generated";
 import {
 	journalApplySummary,
+	journalWho,
 	revertFailureText,
 	revertIsRefused,
 	revertRefusal,
@@ -134,7 +135,7 @@ export function SyncRevertDialog({
 				<DialogHeader>
 					<DialogTitle>Відкотити рішення #{approvalId ?? "—"}?</DialogTitle>
 					<DialogDescription>
-						{journalApplySummary(entry)} · {entry.who ?? "—"} ·{" "}
+						{journalApplySummary(entry)}, {journalWho(entry)},{" "}
 						<Ago iso={entry.when} />
 					</DialogDescription>
 				</DialogHeader>

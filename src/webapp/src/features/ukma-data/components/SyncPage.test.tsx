@@ -1,21 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import MockAdapter from "axios-mock-adapter";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authorizedHttpClient } from "@/lib/api/apiClient";
 import {
-	emptySummary,
 	listPage,
 	NOW,
 	policies,
 	POLICIES_URL,
 	POLICY_CHANGES_URL,
-	QUESTIONS_URL,
-	question,
-	summary,
-	SUMMARY_URL,
 } from "./dataTestData";
 import { SyncPage } from "./SyncPage";
 
@@ -48,8 +44,6 @@ const noDecisionButtons = () =>
 beforeEach(() => {
 	vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
 	mock = new MockAdapter(authorizedHttpClient);
-	mock.onGet(SUMMARY_URL).reply(200, summary);
-	mock.onGet(QUESTIONS_URL).reply(200, { items: [question], next_after: null });
 	mock.onGet(POLICIES_URL).reply(200, { items: policies });
 	mock.onGet(POLICY_CHANGES_URL).reply(200, listPage([]));
 });
@@ -60,83 +54,57 @@ afterEach(() => {
 });
 
 describe("/data/sync", () => {
-	it("shows one step per kind of decision, in apply order", async () => {
-		// Act
-		renderSync();
-
-		// Assert
-		const list = within(
-			await screen.findByRole("list", { name: "Що чекає рішення" }),
-		);
-		const items = list.getAllByRole("listitem");
-		expect(items.map((item) => item.querySelector("h3")?.textContent)).toEqual([
-			"Звʼязки без змін на сайті",
-			"Нові записи",
-			"Зміни на сторінках без оцінок",
-			"Зміни на сторінках з оцінками",
-			"Питання",
-			"Зникли з САЗ",
-		]);
-		expect(items[3]).toHaveTextContent("4");
-		noDecisionButtons();
-	});
-
-	it("links every step to its review", async () => {
-		// Act
-		renderSync();
-
-		// Assert
-		const list = within(
-			await screen.findByRole("list", { name: "Що чекає рішення" }),
-		);
-		const link = within(list.getAllByRole("listitem")[0]).getByRole("link");
-		expect(link).toHaveAttribute("href", "/data/sync/preview");
-		expect(JSON.parse(link.getAttribute("data-search") ?? "{}")).toEqual({
-			step: "links",
-		});
-	});
-
-	it("says when nothing waits", async () => {
-		// Arrange
-		mock.onGet(SUMMARY_URL).reply(200, emptySummary);
-
-		// Act
-		renderSync();
-
-		// Assert
-		expect(
-			await screen.findByText("Нічого не чекає рішення"),
-		).toBeInTheDocument();
-	});
-
-	it("says nothing waits before the first read", async () => {
-		// Arrange
-		mock
-			.onGet(SUMMARY_URL)
-			.reply(404, { detail: "Синхронізацію ще не запускали" });
-
-		// Act
-		renderSync();
-
-		// Assert
-		expect(
-			await screen.findByText("Нічого не чекає рішення"),
-		).toBeInTheDocument();
-	});
-
-	it("lists the rules read-only, marking kinds that are never automatic", async () => {
+	it("lists the rules with a switch for each kind that can be automatic", async () => {
 		// Act
 		renderSync("?tab=rules");
 
 		// Assert
-		const list = within(
-			await screen.findByRole("list", { name: "Правила за типом змін" }),
+		const newCourse = (
+			await screen.findByRole("list", { name: "Нові записи" })
+		).querySelector("li");
+		const changeCourse = screen
+			.getByRole("list", { name: "Зміни полів" })
+			.querySelector("li");
+		const merge = screen
+			.getByRole("list", { name: "Питання" })
+			.querySelector("li");
+		expect(
+			screen.getByRole("list", { name: "Що означають режими" }),
+		).toHaveTextContent("Авто увімкнено");
+		expect(within(newCourse!).getByRole("switch")).toHaveAttribute(
+			"aria-checked",
+			"false",
 		);
-		const [newCourse, changeCourse, merge] = list.getAllByRole("listitem");
-		expect(newCourse).toHaveTextContent("Потребує рішення");
-		expect(changeCourse).toHaveTextContent("Авто");
+		expect(within(changeCourse!).getByRole("switch")).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
+		expect(within(merge!).queryByRole("switch")).toBeNull();
 		expect(merge).toHaveTextContent("Лише вручну");
-		expect(screen.queryByRole("switch")).not.toBeInTheDocument();
 		noDecisionButtons();
+	});
+
+	it("asks before turning a rule to auto and saves it", async () => {
+		// Arrange
+		vi.useRealTimers();
+		const user = userEvent.setup();
+		mock
+			.onPost(`${POLICIES_URL}new_course/`)
+			.reply(200, { ...policies[0], mode: "auto" });
+		renderSync("?tab=rules");
+
+		// Act
+		const list = within(
+			await screen.findByRole("list", { name: "Нові записи" }),
+		);
+		await user.click(list.getAllByRole("switch")[0]!);
+		const dialog = within(await screen.findByRole("alertdialog"));
+		await user.click(dialog.getByRole("button", { name: "Увімкнути авто" }));
+
+		// Assert
+		await waitFor(() => expect(mock.history.post).toHaveLength(1));
+		expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({
+			mode: "auto",
+		});
 	});
 });

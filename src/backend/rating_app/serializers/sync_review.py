@@ -39,6 +39,7 @@ class SyncSummaryAnswersSerializer(serializers.Serializer):
     keep = serializers.IntegerField()
     place = serializers.IntegerField()
     move = serializers.IntegerField()
+    relink = serializers.IntegerField()
 
 
 class SyncNotProposedSerializer(serializers.Serializer):
@@ -194,3 +195,23 @@ class SyncApprovalListResponseSerializer(serializers.Serializer):
     total_pages = serializers.IntegerField()
     next_page = serializers.IntegerField(allow_null=True, min_value=1)
     previous_page = serializers.IntegerField(allow_null=True, min_value=1)
+
+
+class SyncQuestionAnswerRequestSerializer(serializers.Serializer):
+    answer = serializers.ChoiceField(choices=MappingAnswer.choices)
+    into = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="The page to merge into or place on; one of the question's courses",
+    )
+
+
+class SyncQuestionAnswerResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    decision_id = serializers.IntegerField(allow_null=True)
+
+
+class SyncQuestionSettleResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    count = serializers.IntegerField()

@@ -121,6 +121,9 @@ const modeName = (value: SyncPolicyModeEnum | null): string =>
 const isAnswer = (value: string): value is keyof typeof ANSWER_LABELS =>
 	Object.hasOwn(ANSWER_LABELS, value);
 
+export const journalWho = (entry: SyncJournalEntry): string =>
+	entry.who === null ? "автоматично" : entry.who.split("@")[0] || entry.who;
+
 const autoSuffix = (entry: SyncJournalEntry): string =>
 	entry.who === null ? " (автоматично)" : "";
 
@@ -173,7 +176,7 @@ const JOURNAL_TITLES = {
 		const answer = entry.counts.answer;
 		const head = `Відповідь: ${kindLabel(entry.counts.kind ?? "—")}`;
 		return answer !== undefined && isAnswer(answer)
-			? `${head} — ${ANSWER_LABELS[answer]}`
+			? `${head}, ${ANSWER_LABELS[answer]}`
 			: head;
 	},
 	decision: (entry) => decisionTitle(entry),
@@ -204,14 +207,14 @@ const DECISION_TITLES = {
 } as const;
 
 const DECISION_ERRORS = {
-	same_course: "Не можна об'єднати курс сам із собою.",
-	course_merged: "Цей курс уже об'єднано з іншим.",
-	target_merged: "Курс, з яким об'єднують, уже об'єднано з іншим.",
-	level_mismatch: "Курси різного рівня: об'єднати можна лише однакові.",
-	not_merged: "Цей курс не об'єднано, тож роз'єднувати нічого.",
+	same_course: "Не можна об'єднати дисципліну саму із собою.",
+	course_merged: "Цю дисципліну вже об'єднано з іншою.",
+	target_merged: "Дисципліну, з якою об'єднують, уже об'єднано з іншою.",
+	level_mismatch: "Дисципліни різного рівня: об'єднати можна лише однакові.",
+	not_merged: "Цю дисципліну не об'єднано, тож роз'єднувати нічого.",
 	not_student_match: "Це не справа про студента.",
 	not_open: "Справу вже закрито або вона неактуальна.",
-	not_found: "UKMA Data не знає такої справи або курсу.",
+	not_found: "UKMA Data не знає такої справи або дисципліни.",
 	forbidden: "Ключ UKMA Data цього сервера не має доступу до цього розділу.",
 } satisfies Record<string, string>;
 
@@ -238,7 +241,7 @@ function decisionTitle(entry: SyncJournalEntry): string {
 	if (entry.outcome === "done") {
 		return head;
 	}
-	return `${head} — ${entry.outcome === "refused" ? "відмова" : "помилка"}`;
+	return `${head}, ${entry.outcome === "refused" ? "відмова" : "помилка"}`;
 }
 
 export const journalTitle = (entry: SyncJournalEntry): string =>

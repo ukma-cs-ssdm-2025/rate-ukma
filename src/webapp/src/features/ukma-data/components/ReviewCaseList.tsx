@@ -2,14 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
 
 import { Badge } from "@/components/ui/Badge";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/Table";
 import type { UkmaDataReviewCase } from "@/lib/api/generated";
 import {
 	caseDetail,
@@ -19,13 +11,11 @@ import {
 	formatDateTime,
 	KIND_SEGMENTS,
 	receivedText,
-	sinceText,
 	STATUS_LABELS,
 	STATUS_SEGMENTS,
 	waitedFor,
 } from "../reviewCases";
 import { DataSegments } from "./DataBits";
-import { CaseActions } from "./CaseActions";
 
 const ALL = "all";
 
@@ -101,77 +91,58 @@ export function useCaseSearch() {
 	return { kind, status, page };
 }
 
-function CaseRow({
-	reviewCase,
-	decideEnabled,
-}: Readonly<{ reviewCase: UkmaDataReviewCase; decideEnabled: boolean }>) {
+function CaseRow({ reviewCase }: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
 	const search = useCaseSearch();
 	return (
-		<TableRow>
-			<TableCell className="min-w-56">
+		<li className="relative flex flex-col gap-1.5 px-4 py-3 text-sm hover:bg-muted/50 sm:grid sm:grid-cols-[minmax(0,1fr)_8rem_9rem] sm:items-start sm:gap-x-4 sm:px-5">
+			<div className="min-w-0">
 				<Link
 					to="/data/cases/$caseId"
 					params={{ caseId: reviewCase.id }}
 					search={search}
-					className="font-medium hover:underline"
+					className="font-medium break-words after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
 				>
 					{caseTitle(reviewCase)}
 				</Link>
-				<p className="text-muted-foreground">
-					{caseDetail(reviewCase)} · {receivedText(reviewCase.opened_at)}
-				</p>
-				<p className="text-muted-foreground sm:hidden">
-					{sinceText(reviewCase.opened_at)}
-				</p>
-			</TableCell>
-			<TableCell className="hidden w-32 text-muted-foreground sm:table-cell">
+				<p className="text-muted-foreground">{caseDetail(reviewCase)}</p>
+			</div>
+			<p className="text-muted-foreground">
 				<span title={formatDateTime(reviewCase.opened_at)}>
-					{sinceText(reviewCase.opened_at)}
+					{receivedText(reviewCase.opened_at)}
 				</span>
-			</TableCell>
-			<TableCell className="w-36">
+			</p>
+			<div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end">
 				<Badge variant={STATUS_VARIANTS[reviewCase.status]}>
 					{STATUS_LABELS[reviewCase.status]}
 				</Badge>
-				<p className="mt-1 text-xs text-muted-foreground sm:hidden">
-					{waitedFor(reviewCase.opened_at)}
-				</p>
-			</TableCell>
-			<TableCell className="w-64">
-				<CaseActions reviewCase={reviewCase} decideEnabled={decideEnabled} />
-			</TableCell>
-		</TableRow>
+				{reviewCase.status === "open" ? (
+					<span className="text-muted-foreground">
+						чекає {waitedFor(reviewCase.opened_at)}
+					</span>
+				) : null}
+			</div>
+		</li>
 	);
 }
 
 export function ReviewCaseTable({
 	cases,
-	decideEnabled,
-}: Readonly<{ cases: readonly UkmaDataReviewCase[]; decideEnabled: boolean }>) {
+}: Readonly<{ cases: readonly UkmaDataReviewCase[] }>) {
 	return (
 		<div className="overflow-hidden rounded-xl border bg-card">
-			<Table>
-				<caption className="sr-only">Справи UKMA Data</caption>
-				<TableHeader>
-					<TableRow>
-						<TableHead>Справа</TableHead>
-						<TableHead className="hidden w-32 sm:table-cell">
-							З якого часу
-						</TableHead>
-						<TableHead className="w-36">Стан</TableHead>
-						<TableHead className="w-64">Рішення</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{cases.map((reviewCase) => (
-						<CaseRow
-							key={reviewCase.id}
-							reviewCase={reviewCase}
-							decideEnabled={decideEnabled}
-						/>
-					))}
-				</TableBody>
-			</Table>
+			<div
+				aria-hidden="true"
+				className="hidden border-b px-5 py-2 text-sm text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_8rem_9rem] sm:gap-x-4"
+			>
+				<span>Справа</span>
+				<span>Відкрито</span>
+				<span className="text-right">Стан</span>
+			</div>
+			<ul aria-label="Справи UKMA Data" className="divide-y">
+				{cases.map((reviewCase) => (
+					<CaseRow key={reviewCase.id} reviewCase={reviewCase} />
+				))}
+			</ul>
 		</div>
 	);
 }

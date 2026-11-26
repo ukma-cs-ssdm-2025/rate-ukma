@@ -34,7 +34,7 @@ function LatestFailure({
 	return (
 		<p className="text-sm text-destructive">
 			Остання спроба читання <Ago iso={latest.started_at} /> не вдалася:{" "}
-			{failedRunLabel(latest.error)}. Нижче — дані останнього вдалого. Якщо так
+			{failedRunLabel(latest.error)}. Нижче дані останнього вдалого. Якщо так
 			буде й завтра, скажіть власнику UKMA Data.
 		</p>
 	);
@@ -68,16 +68,6 @@ function CasesLine() {
 export function OverviewPage() {
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
 	const summary = useUkmaDataSyncSummary({ source: "catalog" }, NO_RETRY);
-	if (status.error) {
-		return (
-			<UkmaDataError
-				error={status.error}
-				title="Не вдалося завантажити огляд"
-				onRetry={() => void status.refetch()}
-				isRetrying={status.isRefetching}
-			/>
-		);
-	}
 	const run = summary.data?.run ?? null;
 	return (
 		<div className="min-w-0 space-y-8">
@@ -97,8 +87,7 @@ export function OverviewPage() {
 						<Ago iso={run.finished_at ?? run.started_at} />
 						{run.data_updated_at === null ? null : (
 							<>
-								{" "}
-								· дані САЗ станом на <Ago iso={run.data_updated_at} />
+								, дані САЗ станом на <Ago iso={run.data_updated_at} />
 							</>
 						)}
 						.
@@ -122,21 +111,19 @@ export function OverviewPage() {
 			{run === null ? null : <OverviewApplied runId={run.id} />}
 			<DataSection
 				title="Справи UKMA Data"
-				lead="Записи, які UKMA Data не зіставила сама. Їх теж вирішують у консолі."
+				lead="Записи, які UKMA Data не зіставила сама: схожі студенти, зниклі семестри."
 			>
 				<CasesLine />
 			</DataSection>
+			{status.error ? (
+				<UkmaDataError
+					error={status.error}
+					title="Не вдалося перевірити ключ UKMA Data"
+					onRetry={() => void status.refetch()}
+					isRetrying={status.isRefetching}
+				/>
+			) : null}
 			{status.data ? <OverviewTech status={status.data} /> : null}
-			<p className="text-sm text-muted-foreground">
-				Усі зміни по групах — у розділі{" "}
-				<Link
-					to="/data/sync"
-					className="text-primary underline-offset-4 hover:underline"
-				>
-					Оновлення з САЗ
-				</Link>
-				.
-			</p>
 		</div>
 	);
 }

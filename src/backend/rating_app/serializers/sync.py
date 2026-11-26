@@ -62,6 +62,11 @@ class SyncChangeViewSerializer(serializers.Serializer):
     place = serializers.CharField(read_only=True, allow_null=True)
     semester = serializers.CharField(read_only=True, allow_null=True)
     rows = SyncChangeFieldViewSerializer(many=True, read_only=True)
+    note = serializers.CharField(
+        read_only=True,
+        allow_null=True,
+        help_text="What a new record is, e.g. a new semester of a known discipline",
+    )
 
 
 class SyncChangeSerializer(serializers.Serializer):
@@ -100,6 +105,10 @@ class SyncPolicySerializer(serializers.Serializer):
     never_auto = serializers.BooleanField(read_only=True)
     updated_by = serializers.IntegerField(read_only=True, allow_null=True)
     updated_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
+
+class SyncPolicyUpdateRequestSerializer(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=SyncPolicyMode.choices)
 
 
 SELECTION_GROUP_CHOICES = [*SyncChangeGroup.choices, ("other", "Other")]

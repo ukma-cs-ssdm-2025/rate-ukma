@@ -37,6 +37,7 @@ from rating_app.serializers.sync import (
     SyncPendingResponseSerializer,
     SyncPolicyChangeListResponseSerializer,
     SyncPolicyListResponseSerializer,
+    SyncPolicySerializer,
     SyncRunListResponseSerializer,
 )
 from rating_app.serializers.sync_actions import (
@@ -48,7 +49,9 @@ from rating_app.serializers.sync_actions import (
 )
 from rating_app.serializers.sync_review import (
     SyncApprovalListResponseSerializer,
+    SyncQuestionAnswerResponseSerializer,
     SyncQuestionListResponseSerializer,
+    SyncQuestionSettleResponseSerializer,
     SyncSummarySerializer,
 )
 from rating_app.serializers.ukma_data import (
@@ -58,8 +61,10 @@ from rating_app.serializers.ukma_data import (
     UkmaDataFacultyPageSerializer,
     UkmaDataOfferingPageSerializer,
     UkmaDataProgrammePageSerializer,
+    UkmaDataRecordListSerializer,
     UkmaDataReviewCasePageSerializer,
     UkmaDataStatusSerializer,
+    UkmaDataStudentCaseSerializer,
     UkmaDataTermPageSerializer,
 )
 
@@ -367,7 +372,7 @@ EX_403_UKMA_DATA_READONLY = OpenApiExample(
 EX_409_UKMA_DATA_REFUSED = OpenApiExample(
     "UKMA Data refused the decision",
     value={
-        "detail": "Курси різного рівня: об'єднати можна лише однакові.",
+        "detail": "Дисципліни різного рівня: об'єднати можна лише однакові.",
         "code": "ukma_data_refused",
         "status": 409,
     },
@@ -376,7 +381,7 @@ EX_409_UKMA_DATA_REFUSED = OpenApiExample(
 EX_404_UKMA_DATA = OpenApiExample(
     "UKMA Data does not know the case or course",
     value={
-        "detail": "UKMA Data не знає такої справи або курсу",
+        "detail": "UKMA Data не знає такої справи або дисципліни",
         "code": "ukma_data_not_found",
         "status": 404,
     },
@@ -393,6 +398,16 @@ R_UKMA_DATA_DECISION = {
     409: OpenApiResponse(Err, "UKMA Data refused the decision", [EX_409_UKMA_DATA_REFUSED]),
     502: OpenApiResponse(Err, "UKMA Data is down or failed", [EX_502_UKMA_DATA]),
     503: OpenApiResponse(Err, "UKMA Data is not configured", [EX_503_UKMA_DATA]),
+}
+
+R_UKMA_DATA_STUDENT_CASE = {
+    **ukma_data_responses(UkmaDataStudentCaseSerializer, include_400=False),
+    404: OpenApiResponse(Err, "Unknown case, or not a student case", [EX_404_UKMA_DATA]),
+}
+
+R_UKMA_DATA_RECORDS = {
+    200: OpenApiResponse(forced_singular_serializer(UkmaDataRecordListSerializer), "OK"),
+    **common_errors(include_400=True, include_404=False),
 }
 
 R_UKMA_DATA_MERGE = {
@@ -418,6 +433,7 @@ R_SYNC_PENDING = sync_responses(
     forced_singular_serializer(SyncPendingResponseSerializer), include_400=True
 )
 R_SYNC_POLICIES = sync_responses(forced_singular_serializer(SyncPolicyListResponseSerializer))
+R_SYNC_POLICY_UPDATE = sync_responses(SyncPolicySerializer, include_400=True, include_404=True)
 R_SYNC_POLICY_CHANGES = sync_responses(
     forced_singular_serializer(SyncPolicyChangeListResponseSerializer), include_400=True
 )
@@ -427,6 +443,8 @@ R_SYNC_QUESTIONS = sync_responses(
     include_400=True,
     include_404=True,
 )
+R_SYNC_QUESTION_ANSWER = sync_responses(SyncQuestionAnswerResponseSerializer, include_404=True)
+R_SYNC_QUESTION_SETTLE = sync_responses(SyncQuestionSettleResponseSerializer, include_400=False)
 R_SYNC_APPROVALS = sync_responses(
     forced_singular_serializer(SyncApprovalListResponseSerializer),
     include_400=True,

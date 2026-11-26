@@ -14,6 +14,7 @@ from pydantic import ValidationError as ModelValidationError
 
 from rating_app.application_schemas.ukma_data_params import (
     UkmaDataPageParams,
+    UkmaDataRecordParams,
     UkmaDataReviewCaseParams,
 )
 from rating_app.exception.ukma_data_exceptions import (
@@ -32,8 +33,10 @@ from rating_app.models.sync import (
 from rating_app.serializers.ukma_data import (
     UkmaDataCourseMergeRequestSerializer,
     UkmaDataDecisionResponseSerializer,
+    UkmaDataRecordListSerializer,
 )
 from rating_app.services.ukma_data_service import UkmaDataService
+from rating_app.sync import records
 from rating_app.views.responses import (
     R_UKMA_DATA_DECISION,
     R_UKMA_DATA_DEPARTMENTS,
@@ -41,8 +44,10 @@ from rating_app.views.responses import (
     R_UKMA_DATA_MERGE,
     R_UKMA_DATA_OFFERINGS,
     R_UKMA_DATA_PROGRAMMES,
+    R_UKMA_DATA_RECORDS,
     R_UKMA_DATA_REVIEW_CASES,
     R_UKMA_DATA_STATUS,
+    R_UKMA_DATA_STUDENT_CASE,
     R_UKMA_DATA_TERMS,
 )
 
@@ -169,6 +174,38 @@ class UkmaDataViewSet(viewsets.ViewSet):
         return Response(page.model_dump(mode="json"), status=status.HTTP_200_OK)
 
     @extend_schema(
+        summary="Read a UKMA Data student case",
+        description="The `student_match` case with the record that opened it and each "
+        "matching student: names, programme, study year and status, so staff can tell "
+        "whether they are one person. Read live from UKMA Data and not stored. 404 for an "
+        "unknown case or a case of another kind. Superusers only.",
+        responses=R_UKMA_DATA_STUDENT_CASE,
+        operation_id="ukma_data_student_case_retrieve",
+    )
+    def student_case(self, request: Request, case_id: str) -> Response:
+        assert self.ukma_data_service is not None
+
+        found = self.ukma_data_service.get_student_case(case_id)
+        return Response(found.model_dump(mode="json"), status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Name UKMA Data ids",
+        description="Each UKMA Data course or offering id as the site knows it: the "
+        "discipline, its department, the semester and its ratings, so a review case shows "
+        "names. An id the site does not have yet is named from a proposed sync change; "
+        "one neither knows comes back unnamed. Read from the site only, UKMA Data is not "
+        "called. Superusers only.",
+        parameters=to_openapi((UkmaDataRecordParams, OpenApiParameter.QUERY)),
+        responses=R_UKMA_DATA_RECORDS,
+        operation_id="ukma_data_records_list",
+    )
+    def records(self, request: Request) -> Response:
+        params = self._query(request, UkmaDataRecordParams)
+        items = records.describe(params.ids.split(","))
+        payload = UkmaDataRecordListSerializer({"items": items})
+        return Response(payload.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
         summary="Decide a UKMA Data review case",
         description="Close an open `student_match` case as the same person. Needs the "
         "server's UKMA Data key with `review:decide`; without it the answer is 403 "
@@ -207,7 +244,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
             course_id,
             into,
             lambda: self._service().merge_course(course_id, into),
-            "Курс об'єднано.",
+            "Дисципліну об'єднано.",
         )
 
     @extend_schema(
@@ -225,7 +262,7 @@ class UkmaDataViewSet(viewsets.ViewSet):
             course_id,
             "",
             lambda: self._service().unmerge_course(course_id),
-            "Курс роз'єднано.",
+            "Дисципліну роз'єднано.",
         )
 
     def _service(self) -> UkmaDataService:

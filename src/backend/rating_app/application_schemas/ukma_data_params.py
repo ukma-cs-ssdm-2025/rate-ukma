@@ -60,3 +60,10 @@ class UkmaDataStatus(BaseModel):
     scopes: list[str]
     key_expires_at: datetime.datetime
     data_updated_at: datetime.datetime | None
+
+
+class UkmaDataRecordParams(BaseModel):
+    ids: str = Field(
+        pattern=rf"^{UKMA_DATA_ID_PATTERN}(,{UKMA_DATA_ID_PATTERN}){{0,199}}$",
+        description="Comma-separated UKMA Data course or offering ids, up to 200",
+    )

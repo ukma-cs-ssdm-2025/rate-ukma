@@ -265,6 +265,8 @@ SPECTACULAR_SETTINGS = {
         "UkmaDataDecisionActionEnum": "rating_app.models.sync.UkmaDataDecisionAction",
         "UkmaDataDecisionOutcomeEnum": "rating_app.models.sync.UkmaDataDecisionOutcome",
         "SortOrderEnum": [("asc", "asc"), ("desc", "desc")],
+        "UkmaDataReviewCaseStatusEnum": "rating_app.application_schemas.ukma_data_api.Status3",
+        "UkmaDataStudentStatusEnum": "rating_app.application_schemas.ukma_data_api.Status1",
     },
 }
 

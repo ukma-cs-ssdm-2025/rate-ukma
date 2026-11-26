@@ -102,7 +102,7 @@ def test_answer_merge_refuses_a_course_outside_the_question(
 ):
     outside = course_factory()
 
-    with pytest.raises(CommandError, match="Оберіть курс із запропонованих"):
+    with pytest.raises(CommandError, match="Оберіть дисципліну із запропонованих"):
         run_catalog_sync(
             "answer",
             str(merge_question.pk),

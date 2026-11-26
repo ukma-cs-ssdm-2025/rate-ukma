@@ -24,13 +24,15 @@ import {
 	useUkmaDataStatusRetrieve,
 } from "@/lib/api/generated";
 import { undoneMergeIds } from "../caseActions";
+import { journalItems } from "../journalBatches";
 import {
 	journalEntryNumber,
 	journalNote,
 	journalTitle,
+	journalWho,
 	decisionErrorText,
 } from "../syncActions";
-import { formatCount } from "../syncFormat";
+import { countWith, formatCount } from "../syncFormat";
 import { PAGE_SIZE } from "../syncLabels";
 import { NO_RETRY } from "../syncOverview";
 import { JOURNAL_QUERY_KEY } from "../syncQueries";
@@ -164,7 +166,7 @@ function JournalRow({
 						) : null}
 					</p>
 					<p className="text-muted-foreground">
-						{entry.who ?? "автоматично"}, <Ago iso={entry.when} />
+						{journalWho(entry)}, <Ago iso={entry.when} />
 						{number === "—" ? null : `, ${number}`}
 					</p>
 					{note.length > 0 ? (
@@ -204,6 +206,74 @@ function JournalRow({
 			</div>
 			{open && entry.run_id !== null && entry.approval_id !== null ? (
 				<JournalChanges runId={entry.run_id} approvalId={entry.approval_id} />
+			) : null}
+		</li>
+	);
+}
+
+const PARTS = { one: "частину", few: "частини", many: "частин" };
+
+function JournalBatch({
+	head,
+	parts,
+	onRevert,
+	decideEnabled,
+}: Readonly<{
+	head: SyncJournalEntry;
+	parts: readonly SyncJournalEntry[];
+	onRevert: (entry: SyncJournalEntry) => void;
+	decideEnabled: boolean;
+}>) {
+	const [open, setOpen] = useState(false);
+	const note = journalNote(head);
+	return (
+		<li className="text-sm">
+			<div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-5">
+				<div className="min-w-0 flex-1 space-y-0.5">
+					<p className="break-words">
+						{journalTitle(head)}, за {countWith(parts.length, PARTS)}
+						{head.reverted ? (
+							<span className="text-muted-foreground">, відкочено</span>
+						) : null}
+					</p>
+					<p className="text-muted-foreground">
+						{journalWho(head)}, <Ago iso={head.when} />
+					</p>
+					{note.length > 0 ? (
+						<p className="text-muted-foreground">{note}</p>
+					) : null}
+				</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="shrink-0 self-start sm:self-center"
+					aria-expanded={open}
+					onClick={() => setOpen((current) => !current)}
+				>
+					Частини
+					<ChevronDown
+						className={cn(
+							"transition-transform duration-200",
+							open && "rotate-180",
+						)}
+					/>
+				</Button>
+			</div>
+			{open ? (
+				<ul
+					aria-label="Частини застосування"
+					className="divide-y border-t bg-muted/40"
+				>
+					{parts.map((part) => (
+						<JournalRow
+							key={part.id}
+							entry={part}
+							onRevert={onRevert}
+							decideEnabled={decideEnabled}
+							undone={false}
+						/>
+					))}
+				</ul>
 			) : null}
 		</li>
 	);
@@ -267,15 +337,25 @@ export function SyncJournal() {
 						aria-label="Журнал"
 						className="divide-y rounded-xl border bg-card"
 					>
-						{entries.map((entry) => (
-							<JournalRow
-								key={`${entry.kind}-${entry.id}`}
-								entry={entry}
-								onRevert={setReverting}
-								decideEnabled={decideEnabled}
-								undone={undone.has(entry.id)}
-							/>
-						))}
+						{journalItems(entries).map((item) =>
+							item.kind === "batch" ? (
+								<JournalBatch
+									key={`batch-${item.head.id}`}
+									head={item.head}
+									parts={item.parts}
+									onRevert={setReverting}
+									decideEnabled={decideEnabled}
+								/>
+							) : (
+								<JournalRow
+									key={`${item.entry.kind}-${item.entry.id}`}
+									entry={item.entry}
+									onRevert={setReverting}
+									decideEnabled={decideEnabled}
+									undone={undone.has(item.entry.id)}
+								/>
+							),
+						)}
 					</ul>
 					{journal.hasNextPage ? (
 						<div className="flex justify-end">

@@ -308,3 +308,37 @@ def test_questions_suggest_the_rated_page_over_the_department_as_in_saz(
     body = superuser_client.get(reverse("ukma-data-sync-questions")).json()
 
     assert body["items"][0]["suggested_into"] == str(rated.pk)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_changes_no_student_sees_get_their_own_step_and_filter(
+    superuser_client, make_change, field_changes
+):
+    quiet = make_change(
+        "change_course",
+        "course-quiet",
+        after={"status": "ACTIVE"},
+        before={"status": "FINISHED"},
+    )
+    mixed = make_change(
+        "change_course",
+        "course-mixed",
+        after={"status": "ACTIVE", "title": "Нова назва"},
+        before={"status": "FINISHED", "title": "Стара назва"},
+    )
+    url = reverse("ukma-data-sync-pending")
+
+    summary = superuser_client.get(reverse("ukma-data-sync-summary")).json()
+    only_quiet = superuser_client.get(url, {"group": "change", "quiet": "true"}).json()
+    rest = superuser_client.get(url, {"group": "change", "quiet": "false"}).json()
+
+    steps = {step["step"]: step for step in summary["steps"]}
+    assert steps["quiet_changes"]["count"] == 1
+    assert steps["field_changes"]["count"] == 7
+    assert [item["id"] for item in only_quiet["items"]] == [quiet.pk]
+    assert only_quiet["items"][0]["view"]["rows"] == [
+        {"field": "status", "label": "Стан", "before": "завершена", "after": "викладається"}
+    ]
+    assert quiet.pk not in {item["id"] for item in rest["items"]}
+    assert mixed.pk in {item["id"] for item in rest["items"]}

@@ -246,7 +246,7 @@ def test_merge_merges_the_course_and_records_the_target(superuser_client, ukma_d
     response = superuser_client.post(merge_url, {"into": "c-102"}, format="json")
 
     assert response.status_code == 200
-    assert response.json()["detail"] == "Курс об'єднано."
+    assert response.json()["detail"] == "Дисципліну об'єднано."
     assert _posts(ukma_data)[0]["body"] == {"into": "c-102"}
     decision = UkmaDataDecision.objects.get()
     assert decision.action == "merge_course"
@@ -273,7 +273,7 @@ def test_unmerge_undoes_the_merge_and_writes_the_decision(superuser_client, ukma
     response = superuser_client.post(unmerge_url)
 
     assert response.status_code == 200
-    assert response.json()["detail"] == "Курс роз'єднано."
+    assert response.json()["detail"] == "Дисципліну роз'єднано."
     post = _posts(ukma_data)[0]
     assert post["path"] == "/v1/courses/c-101/unmerge"
     assert post["body"] is None
@@ -307,7 +307,7 @@ def test_decision_returns_404_when_ukma_data_does_not_know_it(
 
     assert response.status_code == 404
     assert response.json() == {
-        "detail": "UKMA Data не знає такої справи або курсу",
+        "detail": "UKMA Data не знає такої справи або дисципліни",
         "status": 404,
         "code": "ukma_data_not_found",
     }
@@ -321,11 +321,11 @@ def test_decision_returns_404_when_ukma_data_does_not_know_it(
 @pytest.mark.parametrize(
     ("reason", "detail"),
     [
-        ("same_course", "Не можна об'єднати курс сам із собою."),
-        ("course_merged", "Цей курс уже об'єднано з іншим."),
-        ("target_merged", "Курс, з яким об'єднують, уже об'єднано з іншим."),
-        ("level_mismatch", "Курси різного рівня: об'єднати можна лише однакові."),
-        ("not_merged", "Цей курс не об'єднано, тож роз'єднувати нічого."),
+        ("same_course", "Не можна об'єднати дисципліну саму із собою."),
+        ("course_merged", "Цю дисципліну вже об'єднано з іншою."),
+        ("target_merged", "Дисципліну, з якою об'єднують, уже об'єднано з іншою."),
+        ("level_mismatch", "Дисципліни різного рівня: об'єднати можна лише однакові."),
+        ("not_merged", "Цю дисципліну не об'єднано, тож роз'єднувати нічого."),
     ],
 )
 def test_merge_returns_409_with_the_reason_text(
@@ -380,7 +380,7 @@ def test_unmerge_returns_409_when_nothing_is_merged(superuser_client, ukma_data,
     response = superuser_client.post(unmerge_url)
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "Цей курс не об'єднано, тож роз'єднувати нічого."
+    assert response.json()["detail"] == "Цю дисципліну не об'єднано, тож роз'єднувати нічого."
     decision = UkmaDataDecision.objects.get()
     assert decision.action == "unmerge_course"
     assert decision.error == "not_merged"

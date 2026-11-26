@@ -9,6 +9,8 @@ import {
 import type { CaseSide } from "../caseScreen";
 import { candidateIds, formatDateTime } from "../reviewCases";
 import { CaseActions } from "./CaseActions";
+import { CaseRecords } from "./CaseRecords";
+import { StudentCaseCompare } from "./StudentCaseCompare";
 
 function SideCard({
 	side,
@@ -21,15 +23,17 @@ function SideCard({
 				primary && "border-2 border-primary",
 			)}
 		>
-			<p
-				className={cn(
-					"text-xs",
-					primary ? "text-primary" : "text-muted-foreground",
-				)}
-			>
-				{side.label}
-			</p>
-			<h3 className="text-lg font-semibold">{side.title}</h3>
+			<h3 className="space-y-0.5">
+				<span
+					className={cn(
+						"block text-sm",
+						primary ? "text-primary" : "text-muted-foreground",
+					)}
+				>
+					{side.label}
+				</span>
+				<span className="block text-lg font-medium">{side.title}</span>
+			</h3>
 			<dl className="grid grid-cols-[8rem_1fr] gap-y-1.5 text-sm">
 				{side.rows.map(([term, value]) => (
 					<div key={term} className="contents">
@@ -45,6 +49,15 @@ function SideCard({
 export function CaseSides({
 	reviewCase,
 }: Readonly<{ reviewCase: UkmaDataReviewCase }>) {
+	if (reviewCase.kind === "student_match") {
+		return <StudentCaseCompare caseId={reviewCase.id} />;
+	}
+	if (
+		reviewCase.kind === "course_match" ||
+		reviewCase.kind === "removals_held"
+	) {
+		return <CaseRecords reviewCase={reviewCase} />;
+	}
 	const [record, matched] = caseSides(reviewCase);
 	return (
 		<div className="grid gap-4 md:grid-cols-2">
@@ -61,13 +74,11 @@ export function CaseOutcome({
 	return (
 		<div className="space-y-3 rounded-xl border bg-card p-4 text-sm">
 			<div className="space-y-1">
-				<p className="font-medium">
-					Що означає кожне рішення в сервісі даних САЗ:
-				</p>
+				<p className="font-medium">Що означає кожне рішення в UKMA Data:</p>
 				<ul className="space-y-1">
 					{caseOptions(reviewCase.kind).map((option) => (
 						<li key={option.name}>
-							<span className="font-medium">{option.name}</span> —{" "}
+							<span className="font-medium">{option.name}:</span>{" "}
 							{option.effect}
 						</li>
 					))}

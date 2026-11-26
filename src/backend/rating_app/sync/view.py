@@ -23,6 +23,9 @@ from rating_app.sync.review import LINK_KINDS, link_course_is_exact
 TERM_WORDS = {"FALL": "Осінь", "SPRING": "Весна", "SUMMER": "Літо"}
 EXAM_WORDS = {"EXAM": "іспит", "CREDIT": "залік"}
 PRACTICE_WORDS = {"PRACTICE": "практики", "SEMINAR": "семінари"}
+STATUS_WORDS = {"ACTIVE": "викладається", "FINISHED": "завершена", "PLANNED": "запланована"}
+LEVEL_WORDS = {"BACHELOR": "бакалаврат", "MASTER": "магістратура"}
+DESCRIPTION_CHARS = 140
 
 VISIBLE_FIELDS: dict[str, str] = {
     "title": "Назва",
@@ -44,6 +47,8 @@ VISIBLE_FIELDS: dict[str, str] = {
     "group_size_min": "Мінімум у групі",
     "group_size_max": "Максимум у групі",
     "max_groups": "Максимум груп",
+    "status": "Стан",
+    "description": "Опис",
 }
 
 NEW_OFFERING_FIELDS = ("credits", "exam_type")
@@ -63,6 +68,7 @@ class ChangeView:
     place: str | None
     semester: str | None
     rows: list[FieldView] = field(default_factory=list)
+    note: str | None = None
 
 
 def _dict(value: object) -> dict[str, Any]:
@@ -105,7 +111,34 @@ def value_text(name: str, value: str) -> str:
         return TERM_WORDS.get(value, value)
     if name == "practice_type":
         return PRACTICE_WORDS.get(value, value)
+    if name == "status":
+        return STATUS_WORDS.get(value, value)
+    if name in ("education_level", "level"):
+        return LEVEL_WORDS.get(value, value)
+    if name == "description":
+        return _cut(value, 0)
     return value
+
+
+DESCRIPTION_LEAD = 40
+
+
+def _cut(value: str, start: int) -> str:
+    """At most DESCRIPTION_CHARS of a description, from `start` with a little lead."""
+    if len(value) <= DESCRIPTION_CHARS:
+        return value
+    begin = max(0, min(start - DESCRIPTION_LEAD, len(value) - DESCRIPTION_CHARS))
+    text = value[begin : begin + DESCRIPTION_CHARS].strip()
+    head = "…" if begin > 0 else ""
+    tail = "…" if begin + DESCRIPTION_CHARS < len(value) else ""
+    return head + text + tail
+
+
+def _first_difference(old: str, new: str) -> int:
+    return next(
+        (index for index, (a, b) in enumerate(zip(old, new, strict=False)) if a != b),
+        min(len(old), len(new)),
+    )
 
 
 def _names(value: object) -> str:
@@ -134,6 +167,10 @@ def _changed_fields(change: SyncChange) -> list[FieldView]:
         if name == "specialities":
             new = _names(after.get("specialities_added") or after.get("specialities"))
             old = ""
+        if name == "description":
+            start = _first_difference(old, new)
+            rows.append(FieldView(name, label, _cut(old, start), _cut(new, start)))
+            continue
         rows.append(FieldView(name, label, value_text(name, old), value_text(name, new)))
     return rows
 
@@ -159,6 +196,23 @@ def _link_fields(change: SyncChange, after: Mapping[str, Any]) -> list[FieldView
     return [] if title is None else [FieldView("title", "Назва", site, title)]
 
 
+NEW_NOTES = {
+    "new_faculty": "Новий факультет",
+    "new_department": "Нова кафедра",
+    "new_course": "Нова дисципліна",
+}
+
+
+def _note(change: SyncChange, after: Mapping[str, Any]) -> str | None:
+    """What a new record is, so a new semester of a known discipline reads apart
+    from a whole new discipline."""
+    if change.kind == "new_offering":
+        if after.get("course_id"):
+            return "Новий семестр наявної дисципліни"
+        return "Семестр нової дисципліни"
+    return NEW_NOTES.get(change.kind)
+
+
 def change_view(change: SyncChange) -> ChangeView:
     after, before = _dict(change.after), _dict(change.before)
     display = _dict(after.get("display")) or _dict(before.get("display"))
@@ -176,6 +230,7 @@ def change_view(change: SyncChange) -> ChangeView:
         place=_place(display),
         semester=semester,
         rows=rows,
+        note=_note(change, after),
     )
 
 

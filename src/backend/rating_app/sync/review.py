@@ -63,7 +63,7 @@ def in_group(changes: QuerySet[SyncChange], group: str) -> QuerySet[SyncChange]:
 _COURSE_KINDS = frozenset({"link_course", "change_course", "relink_course", "removed_course"})
 _OFFERING_KINDS = frozenset({"link_offering", "change_offering", "removed_offering"})
 _LIST_FIELDS = frozenset({"terms", "specialities_added"})
-_ANSWERS: tuple[str, ...] = ("merge", "keep_apart", "keep", "place", "move")
+_ANSWERS: tuple[str, ...] = ("merge", "keep_apart", "keep", "place", "move", "relink")
 
 STEP_ORDER: tuple[tuple[str, str], ...] = (
     ("exact_links", SyncChangeGroup.LINK),
@@ -72,6 +72,7 @@ STEP_ORDER: tuple[tuple[str, str], ...] = (
     ("review_links", SyncChangeGroup.LINK),
     ("new_rows", SyncChangeGroup.NEW),
     ("field_changes", SyncChangeGroup.CHANGE),
+    ("quiet_changes", SyncChangeGroup.CHANGE),
     ("removed", SyncChangeGroup.REMOVED),
 )
 
@@ -264,25 +265,25 @@ def _kind_labels() -> dict[str, str]:
     return {
         "link_faculty": "Факультети",
         "link_department": "Кафедри",
-        "link_course": "Курси",
-        "link_offering": "Курси в семестрі",
+        "link_course": "Дисципліни",
+        "link_offering": "Семестри дисциплін",
         "new_faculty": "Нові факультети",
         "new_department": "Нові кафедри",
-        "new_course": "Нові курси",
-        "new_offering": "Нові курси в семестрі",
+        "new_course": "Нові дисципліни",
+        "new_offering": "Нові семестри дисциплін",
         "change_faculty": "Зміни факультетів",
         "change_department": "Зміни кафедр",
-        "change_course": "Зміни курсів",
-        "change_offering": "Зміни курсів у семестрі",
+        "change_course": "Зміни дисциплін",
+        "change_offering": "Зміни семестрів",
         "teacher_created": "Викладачі",
         "teacher_link_added": "Викладачі",
         "teacher_link_removed": "Викладачі",
-        "relink_course": "Переприв'язка курсів",
-        "place_offering": "Курси в семестрі без курсу",
-        "move_offering": "Перенесення курсів у семестрі",
-        "merge_courses": "Об'єднання курсів",
-        "removed_course": "Курси, що зникли з САЗ",
-        "removed_offering": "Курси в семестрі, що зникли з САЗ",
+        "relink_course": "Переприв'язка дисциплін",
+        "place_offering": "Семестри без дисципліни",
+        "move_offering": "Перенесення семестрів",
+        "merge_courses": "Об'єднання дисциплін",
+        "removed_course": "Дисципліни, що зникли з САЗ",
+        "removed_offering": "Семестри дисциплін, що зникли з САЗ",
     }
 
 
@@ -396,6 +397,11 @@ def summary_payload(run: SyncRun) -> dict[str, Any]:
         change_id for change_id, after in link_after.items() if not link_course_is_exact(after)
     }
     similar_ids = similar_existing_ids(new_course_after)
+    quiet_change_ids = {
+        change_id
+        for change_id, (after, before, _) in change_rows.items()
+        if field_pairs.is_quiet(field_pairs.value_pairs(after, before))
+    }
 
     refs = [
         target_refs(str(kind), target_id, after_by_id.get(int(change_id)))
@@ -418,7 +424,7 @@ def summary_payload(run: SyncRun) -> dict[str, Any]:
 
     facts = {step: _StepFacts(kinds=Counter()) for step, _ in STEP_ORDER}
     for change_id, kind, target_id, ratings in base:
-        step = _step_for(kind, change_id, review_link_ids, rated_question_ids)
+        step = _step_for(kind, change_id, review_link_ids, rated_question_ids, quiet_change_ids)
         entry = facts[step]
         entry.kinds[str(kind)] += 1
         entry.count += 1
@@ -450,7 +456,11 @@ def summary_payload(run: SyncRun) -> dict[str, Any]:
                 facts,
                 review_link_ids,
                 similar_ids,
-                change_rows,
+                {
+                    change_id: row
+                    for change_id, row in change_rows.items()
+                    if change_id not in quiet_change_ids
+                },
             ),
         }
         for step, group in STEP_ORDER
@@ -524,7 +534,11 @@ def _parts(kinds: Counter[str], prefix: str, total: int) -> dict[str, int]:
 
 
 def _step_for(
-    kind: str, change_id: int, review_link_ids: set[int], rated_question_ids: set[int]
+    kind: str,
+    change_id: int,
+    review_link_ids: set[int],
+    rated_question_ids: set[int],
+    quiet_change_ids: set[int],
 ) -> str:
     if kind in LINK_KINDS:
         return "review_links" if change_id in review_link_ids else "exact_links"
@@ -533,7 +547,7 @@ def _step_for(
     if kind in NEW_KINDS:
         return "new_rows"
     if kind in CHANGE_KINDS:
-        return "field_changes"
+        return "quiet_changes" if change_id in quiet_change_ids else "field_changes"
     return "removed"
 
 

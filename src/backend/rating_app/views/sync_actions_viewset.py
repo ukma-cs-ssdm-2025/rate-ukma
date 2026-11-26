@@ -275,6 +275,10 @@ class SyncActionsViewSet(SyncViewSetBase):
             "rated": data.get("rated"),
             "match": data.get("match"),
             "changed_field": data.get("changed_field"),
+            "quiet": data.get("quiet"),
+            "q": data.get("q"),
+            "year_from": data.get("year_from"),
+            "year_to": data.get("year_to"),
             "exclude_ids": data.get("exclude_ids") or [],
         }
         ids = selection.filter_ids(run, str(run.source), filters)

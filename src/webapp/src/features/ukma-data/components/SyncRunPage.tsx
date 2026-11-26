@@ -39,8 +39,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 					почалось <Ago iso={run.started_at} />
 					{run.data_updated_at === null ? null : (
 						<>
-							{" "}
-							· дані САЗ станом на <Ago iso={run.data_updated_at} />
+							, дані САЗ станом на <Ago iso={run.data_updated_at} />
 						</>
 					)}
 				</span>
@@ -50,7 +49,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 			) : null}
 			{counts.length > 0 ? (
 				<p className="text-muted-foreground tabular-nums">
-					{counts.join(" · ")}
+					{counts.join(", ")}
 				</p>
 			) : null}
 			{skipped.length > 0 ? (
@@ -61,7 +60,7 @@ function RunHeader({ runId }: Readonly<{ runId: number }>) {
 							([reason, value]) =>
 								`${skipReasonLabel(reason)} ${formatCount(value.count)}`,
 						)
-						.join(" · ")}
+						.join(", ")}
 				</p>
 			) : null}
 		</div>
@@ -79,12 +78,12 @@ export function SyncRunPage({
 					<ArrowLeft />
 					Журнал
 				</Button>
-				<h2 className="text-lg font-semibold">Читання САЗ #{runId}</h2>
+				<h2 className="text-lg font-medium">Читання САЗ #{runId}</h2>
 			</div>
 			<RunHeader runId={runId} />
 			<SyncRunApprovals runId={runId} />
 			<section aria-labelledby="sync-run-changes" className="space-y-3">
-				<h3 id="sync-run-changes" className="text-base font-semibold">
+				<h3 id="sync-run-changes" className="text-base font-medium">
 					Зміни
 				</h3>
 				<SyncRunChanges runId={runId} />

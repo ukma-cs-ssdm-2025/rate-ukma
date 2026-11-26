@@ -94,7 +94,7 @@ function CaseBody({
 				>
 					Усі справи
 				</Link>
-				<h1 className="mt-1 text-xl font-semibold">{caseTitle(reviewCase)}</h1>
+				<h1 className="mt-1 text-xl font-medium">{caseTitle(reviewCase)}</h1>
 				<p className="text-sm text-muted-foreground">
 					Справа {index + 1} з {order.length}
 				</p>

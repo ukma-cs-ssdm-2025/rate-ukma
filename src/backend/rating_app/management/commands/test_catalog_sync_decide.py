@@ -26,7 +26,7 @@ def test_apply_dry_run_lists_the_change_and_writes_nothing(
     out = run_catalog_sync("apply", "--group", "change", "--by", admin.username)
 
     assert "Пробний запуск, нічого не записано." in out
-    assert "Застосувало б 1 зміну: зміни курсів 1." in out
+    assert "Застосувало б 1 зміну: зміни дисциплін 1." in out
     assert f"#{change.pk}" in out
     assert f"назва: «{OLD_TITLE}» → «{NEW_TITLE}»" in out
     assert "3 оцінки" in out
@@ -180,10 +180,10 @@ def test_apply_reports_a_change_applied_earlier_as_left_out(
     dry = run_catalog_sync("apply", "--ids", ids, "--by", admin.username)
     out = run_catalog_sync("apply", "--ids", ids, "--by", admin.username, "--yes")
 
-    assert "Застосувало б 1 зміну: зміни курсів 1." in dry
+    assert "Застосувало б 1 зміну: зміни дисциплін 1." in dry
     assert "1 зміна: уже застосована" in dry
     assert f"#{earlier.pk}" in dry.split("Не увійде:")[1]
-    assert "Застосовано 1 зміну: зміни курсів 1." in out
+    assert "Застосовано 1 зміну: зміни дисциплін 1." in out
     assert "Не увійшло:" in out
     assert "1 зміна: уже застосована" in out
 

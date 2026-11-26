@@ -34,7 +34,6 @@ export function ReviewCasesPage() {
 	const [filters, setParams] = useCaseFilterParams();
 	const cases = useUkmaDataReviewCasesList(caseListParams(filters), NO_RETRY);
 	const status = useUkmaDataStatusRetrieve(NO_RETRY);
-	const decideEnabled = status.data?.scopes.includes("review:decide") ?? false;
 	const matching = sortCases(filterCases(cases.data?.items ?? [], filters));
 	const { rows, page, totalPages } = pageSlice(matching, filters.page);
 	return (
@@ -64,7 +63,10 @@ export function ReviewCasesPage() {
 						<EmptyHeader>
 							<EmptyTitle>За цим фільтром справ немає</EmptyTitle>
 							<EmptyDescription>
-								Усі записи, які прийшли з САЗ, уже зіставлено.
+								{filters.kind === "course_match" ||
+								filters.kind === "instructor_match"
+									? "UKMA Data поки не відкриває справ цього типу."
+									: "Усі записи, які прийшли з САЗ, уже зіставлено."}
 							</EmptyDescription>
 						</EmptyHeader>
 					</Empty>
@@ -76,7 +78,7 @@ export function ReviewCasesPage() {
 								? `${openCasesLine(cases.data.total)}.`
 								: `Справ за фільтром: ${formatCount(cases.data.total)}.`}
 						</p>
-						<ReviewCaseTable cases={rows} decideEnabled={decideEnabled} />
+						<ReviewCaseTable cases={rows} />
 						{totalPages > 1 ? (
 							<div className="flex flex-wrap items-center justify-between gap-2 text-sm">
 								<span className="text-muted-foreground">

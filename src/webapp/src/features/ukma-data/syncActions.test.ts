@@ -16,6 +16,7 @@ import {
 	journalEntryNumber,
 	journalNote,
 	journalTitle,
+	journalWho,
 	REVERT_CHECK_LOST_TEXT,
 	revertFailureText,
 	revertSummary,
@@ -91,6 +92,13 @@ describe("journal words", () => {
 		expect(journalNote(journalApply)).toBe("");
 	});
 
+	it("names the author by the part of the email before the at sign", () => {
+		expect(journalWho({ ...journalApply, who: "o.testenko@ukma.edu.ua" })).toBe(
+			"o.testenko",
+		);
+		expect(journalWho({ ...journalApply, who: null })).toBe("автоматично");
+	});
+
 	it("marks an automatic apply in words", () => {
 		expect(journalTitle(journalAuto)).toContain("(автоматично)");
 		expect(journalEntryNumber(journalAuto)).toBe("рішення #73");
@@ -106,9 +114,11 @@ describe("journal words", () => {
 	});
 
 	it("names a policy change and a mapping answer", () => {
-		expect(journalTitle(journalPolicy)).toBe("Правило: Звʼязок курсу → Авто");
+		expect(journalTitle(journalPolicy)).toBe(
+			"Правило: Звʼязок дисципліни → Авто",
+		);
 		expect(journalTitle(journalAnswer)).toBe(
-			`Відповідь: Обʼєднання курсів — ${ANSWER_LABELS.merge}`,
+			`Відповідь: Обʼєднання дисциплін, ${ANSWER_LABELS.merge}`,
 		);
 		expect(journalEntryNumber(journalPolicy)).toBe("—");
 	});

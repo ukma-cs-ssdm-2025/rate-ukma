@@ -76,7 +76,7 @@ export function DataSection({
 	return (
 		<section className="space-y-3">
 			<div className="space-y-1">
-				<h2 className="text-lg font-semibold">{title}</h2>
+				<h2 className="text-lg font-medium">{title}</h2>
 				<p className="text-sm text-muted-foreground">{lead}</p>
 			</div>
 			{children}

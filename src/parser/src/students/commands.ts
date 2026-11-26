@@ -57,7 +57,9 @@ const describePerson = (person: CasePerson) =>
 	[
 		`student ${person.studentId}`,
 		`record ${person.recordId ?? "none"}`,
-		`${person.lastName} ${person.firstName}`.trim(),
+		[person.lastName, person.firstName, person.middleName ?? ""]
+			.filter((part) => part !== "")
+			.join(" "),
 		person.programme ?? "no programme",
 		person.studyYear === null ? "year unknown" : `year ${person.studyYear}`,
 		person.status ?? "status unknown",
