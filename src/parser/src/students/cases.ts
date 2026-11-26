@@ -23,6 +23,10 @@ export const CasePerson = Schema.Struct({
 	}),
 	firstName: Schema.String,
 	lastName: Schema.String,
+	middleName: Schema.NullOr(Schema.String).annotate({
+		description:
+			"The patronymic and any further given names, as САЗ lists them",
+	}),
 	programme: Schema.NullOr(Schema.String),
 	studyYear: Schema.NullOr(Schema.Int),
 	status: Schema.NullOr(Schema.Literals(["active", "inactive"])),
@@ -52,9 +56,15 @@ export type StudentCase = typeof StudentCase.Type;
 
 /** `Прізвище Ім'я По батькові`: the surname comes first (ADR-0013). */
 const namesOf = (fullName: string) => {
-	const [lastName = "", ...rest] = fullName.split(" ");
+	const [lastName = "", firstName = "", ...rest] = fullName
+		.split(" ")
+		.filter((part) => part !== "");
 
-	return { lastName, firstName: rest.slice(0, 1).join(" ") };
+	return {
+		lastName,
+		firstName,
+		middleName: rest.length === 0 ? null : rest.join(" "),
+	};
 };
 
 /** A person as their record's students page shows them; the student's stored

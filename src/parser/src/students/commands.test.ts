@@ -167,10 +167,10 @@ describe("case commands", () => {
 				assert.isTrue(Exit.isSuccess(exit));
 				assert.match(lines[0] ?? "", /^rev_cli\tstudent_match\topen\topened /);
 				assert.deepStrictEqual(lines.slice(1), [
-					"record:\tstudent stu_cli\trecord spr_cli_newer\tЗразківська Марта\tВигадана інженерія\tyear 1\tactive",
+					"record:\tstudent stu_cli\trecord spr_cli_newer\tЗразківська Марта Ігорівна\tВигадана інженерія\tyear 1\tactive",
 					"joined student (safe answer):\tstu_cli",
 					"candidates (1):",
-					"\tstudent stu_cli\trecord spr_cli_older\tВигаданенко Марта\tВигадана інженерія\tyear 2\tactive",
+					"\tstudent stu_cli\trecord spr_cli_older\tВигаданенко Марта Ігорівна\tВигадана інженерія\tyear 2\tactive",
 				]);
 			}),
 		);
