@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PlanYear } from "@/lib/api/generated";
 import { testIds } from "@/lib/test-ids";
-import { AddToPlanButton, type PlanCandidate } from "./AddToPlanButton";
+import { AddToPlanButton } from "./AddToPlanButton";
+import type { PlanCandidate } from "./AddToPlanButton";
 
 const state = vi.hoisted(() => ({
 	flag: { enabled: true, isReady: true },
