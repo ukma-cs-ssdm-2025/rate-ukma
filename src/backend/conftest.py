@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 
+from django.conf import settings
 from rest_framework.test import APIClient
 
 import pytest
@@ -37,6 +38,17 @@ register(factories.SyncPreviewFactory)
 register(factories.CatalogMappingDecisionFactory)
 register(factories.SyncCursorFactory)
 register(factories.UkmaDataDecisionFactory)
+register(factories.ExcludedAccountFactory)
+register(factories.SignInFactory)
+
+
+def pytest_collection_modifyitems(config, items):
+    if settings.DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+        return
+    skip = pytest.mark.skip(reason="needs Postgres: --ds=rateukma.settings.testing_postgres")
+    for item in items:
+        if item.get_closest_marker("postgres"):
+            item.add_marker(skip)
 
 
 @pytest.fixture

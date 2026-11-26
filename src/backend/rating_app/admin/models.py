@@ -13,6 +13,7 @@ from rating_app.models import (
     CourseOfferingSpeciality,
     Department,
     Enrollment,
+    ExcludedAccount,
     Faculty,
     FeedPost,
     Instructor,
@@ -515,3 +516,10 @@ class FeedPostAdmin(VersionAdmin):
             },
         ),
     )
+
+
+@admin.register(ExcludedAccount)
+class ExcludedAccountAdmin(VersionAdmin):
+    list_display = ("user",)
+    autocomplete_fields = ("user",)
+    search_fields = ("user__email", "user__username")

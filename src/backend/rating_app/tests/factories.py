@@ -19,6 +19,7 @@ from rating_app.models import (
     CourseOfferingTerm,
     Department,
     Enrollment,
+    ExcludedAccount,
     Faculty,
     FeedPost,
     Instructor,
@@ -28,6 +29,7 @@ from rating_app.models import (
     Rating,
     RatingVote,
     Semester,
+    SignIn,
     Speciality,
     Student,
     SyncApproval,
@@ -411,3 +413,17 @@ class SyncCursorFactory(DjangoModelFactory):
     source = SyncSource.CATALOG
     list_name = factory.Sequence(lambda n: f"list_{n}")
     change_no = 0
+
+
+class ExcludedAccountFactory(DjangoModelFactory):
+    class Meta:
+        model = ExcludedAccount
+
+    user = factory.SubFactory(UserFactory)
+
+
+class SignInFactory(DjangoModelFactory):
+    class Meta:
+        model = SignIn
+
+    user = factory.SubFactory(UserFactory)

@@ -44,7 +44,8 @@ def test_course_returns_offerings(course_factory): ...
 - Both markers top the decorator stack, `django_db` first, above any `parametrize` or `usefixtures`. No module-level `pytestmark` and no hook deriving one from the other: hoisting saves lines and costs the ability to tell from a test whether it hits the database.
 - On a class the pair may sit on the class, but only when every method needs it — a class marker silently covers methods added later.
 - `integration` alone means leaves-the-process without the ORM: `rateukma/caching/test_cache.py` against a mocked redis.
-- `--strict-markers` is on, so a typo fails collection. Nothing in CI filters by marker; the split serves local runs and the pyramid.
+- `--strict-markers` is on, so a typo fails collection. CI filters only by `postgres`. The other markers serve local runs and the pyramid.
+- `@pytest.mark.postgres` marks a test that needs Postgres with migrations, such as the analytics views. It is skipped on SQLite, and CI runs it in a separate step.
 - `@pytest.mark.e2e` is reserved for `src/webapp` Playwright flows.
 
 ## Test data by layer
@@ -90,3 +91,9 @@ uv run ruff check --select PT .
 ```
 
 `settings.testing` uses in-memory SQLite, so PostgreSQL-only behaviour (collation, JSON operators, `select_for_update`) is untested. `--reuse-db` is default; pass `--create-db` after changing migrations.
+
+Tests marked `postgres` run against a Postgres database with migrations. Point the `POSTGRES_*` variables at a Postgres you can drop a test database in:
+
+```bash
+POSTGRES_HOST=localhost uv run pytest -m postgres --ds=rateukma.settings.testing_postgres --create-db
+```

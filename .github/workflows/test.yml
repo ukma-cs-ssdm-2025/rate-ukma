@@ -162,6 +162,18 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v5
         with:
@@ -189,6 +201,16 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           uv run pytest --cov=. --cov-report=html --cov-report=xml --junitxml=junit.xml --cov-report=term-missing:skip-covered
+
+      - name: Run Postgres tests
+        working-directory: ${{ env.BACKEND_DIR }}
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        run: uv run pytest -m postgres --ds=rateukma.settings.testing_postgres --create-db
 
       - name: Store coverage report
         if: success()
