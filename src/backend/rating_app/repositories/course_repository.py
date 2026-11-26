@@ -397,11 +397,12 @@ class CourseRepository(
             return None
 
     def _apply_speciality_filters(self, courses, filters):
+        in_filtered_semesters = self._speciality_links_in_filtered_semesters(filters)
+
         if filters.type_kind:
             courses = courses.filter(
                 Exists(
-                    CourseOfferingSpeciality.objects.filter(
-                        offering__course_id=OuterRef("pk"),
+                    in_filtered_semesters.filter(
                         speciality_id=filters.speciality,
                         type_kind=filters.type_kind,
                     )
@@ -411,8 +412,7 @@ class CourseRepository(
         if filters.exclude_type_kinds and filters.speciality:
             courses = courses.exclude(
                 Exists(
-                    CourseOfferingSpeciality.objects.filter(
-                        offering__course_id=OuterRef("pk"),
+                    in_filtered_semesters.filter(
                         speciality_id=filters.speciality,
                         type_kind__in=filters.exclude_type_kinds,
                     )
@@ -421,15 +421,22 @@ class CourseRepository(
 
         if filters.speciality and not filters.type_kind and not filters.exclude_type_kinds:
             courses = courses.filter(
-                Exists(
-                    CourseOfferingSpeciality.objects.filter(
-                        offering__course_id=OuterRef("pk"),
-                        speciality_id=filters.speciality,
-                    )
-                )
+                Exists(in_filtered_semesters.filter(speciality_id=filters.speciality))
             )
 
         return courses
+
+    def _speciality_links_in_filtered_semesters(
+        self, filters: CourseFilterCriteriaInternal
+    ) -> QuerySet[CourseOfferingSpeciality]:
+        links = CourseOfferingSpeciality.objects.filter(offering__course_id=OuterRef("pk"))
+        if filters.semester_year:
+            academic_year_q = self._build_academic_year_q(filters.semester_year)
+            if academic_year_q is not None:
+                links = links.filter(offering__in=CourseOffering.objects.filter(academic_year_q))
+        if filters.semester_terms:
+            links = links.filter(offering__semester__term__in=filters.semester_terms)
+        return links
 
     def _apply_range_filters(
         self, courses: QuerySet[Course], filters: CourseFilterCriteriaInternal

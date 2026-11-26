@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,7 +8,11 @@ import {
 	useStudentsMePlanCoursesDestroy,
 	useStudentsMePlanCoursesUpdate,
 } from "@/lib/api/generated";
-import type { PlanCoursePutRequest, PlanSlot } from "@/lib/api/generated";
+import type {
+	ErrorEnvelope,
+	PlanCoursePutRequest,
+	PlanSlot,
+} from "@/lib/api/generated";
 
 export type PlanTarget = Pick<
 	PlanCoursePutRequest,
@@ -22,10 +26,23 @@ export function usePlanActions() {
 	const queryClient = useQueryClient();
 	const queryKey = getStudentsMePlanRetrieveQueryKey();
 
-	const placeCourse = useStudentsMePlanCoursesUpdate({
+	const latestPlace = useRef(0);
+
+	const placeCourse = useStudentsMePlanCoursesUpdate<ErrorEnvelope, number>({
 		mutation: {
-			onSuccess: (plan) => queryClient.setQueryData(queryKey, plan),
-			onError: showError,
+			onMutate: () => {
+				latestPlace.current += 1;
+				return latestPlace.current;
+			},
+			onSuccess: (plan, _variables, placeId) => {
+				if (placeId === latestPlace.current) {
+					queryClient.setQueryData(queryKey, plan);
+				}
+			},
+			onError: () => {
+				showError();
+				return queryClient.invalidateQueries({ queryKey });
+			},
 		},
 	});
 	const dropCourse = useStudentsMePlanCoursesDestroy({

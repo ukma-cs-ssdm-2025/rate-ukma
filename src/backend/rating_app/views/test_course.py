@@ -249,6 +249,78 @@ def test_filter_by_speciality_and_typekind(
 
 @pytest.mark.django_db
 @pytest.mark.integration
+def test_type_kind_reads_the_offering_in_the_filtered_semester(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    course_offering_speciality_factory,
+    semester_factory,
+    speciality_factory,
+):
+    # Arrange
+    speciality = speciality_factory()
+    course = course_factory()
+    old_offering = course_offering_factory(
+        course=course, semester=semester_factory(year=2024, term="FALL")
+    )
+    new_offering = course_offering_factory(
+        course=course, semester=semester_factory(year=2025, term="FALL")
+    )
+    course_offering_speciality_factory(
+        offering=old_offering, speciality=speciality, type_kind="PROF_ORIENTED"
+    )
+    course_offering_speciality_factory(
+        offering=new_offering, speciality=speciality, type_kind="ELECTIVE"
+    )
+    base = (
+        f"/api/v1/courses/?speciality={speciality.id}&semester_year=2025–2026&semester_terms=FALL"
+    )
+
+    # Act
+    prof = token_client.get(f"{base}&type_kind=PROF_ORIENTED")
+    elective = token_client.get(f"{base}&type_kind=ELECTIVE")
+
+    # Assert
+    assert prof.status_code == 200
+    assert elective.status_code == 200
+    assert [item["id"] for item in prof.json()["items"]] == []
+    assert [item["id"] for item in elective.json()["items"]] == [str(course.id)]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+def test_type_kind_matches_a_spring_offering_in_the_filtered_year(
+    token_client,
+    course_factory,
+    course_offering_factory,
+    course_offering_speciality_factory,
+    semester_factory,
+    speciality_factory,
+):
+    # Arrange
+    speciality = speciality_factory()
+    course = course_factory()
+    offering = course_offering_factory(
+        course=course, semester=semester_factory(year=2026, term="SPRING")
+    )
+    course_offering_speciality_factory(
+        offering=offering, speciality=speciality, type_kind="PROF_ORIENTED"
+    )
+    url = (
+        f"/api/v1/courses/?speciality={speciality.id}&type_kind=PROF_ORIENTED"
+        "&semester_year=2025–2026&semester_terms=SPRING"
+    )
+
+    # Act
+    response = token_client.get(url)
+
+    # Assert
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["items"]] == [str(course.id)]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 def test_sorting_params(token_client, course_factory):
     # Arrange: inserted out of order; the difficulty tie proves the second
     # key applies, and the order differs from the default -ratings_count.

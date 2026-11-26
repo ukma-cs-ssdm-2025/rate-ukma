@@ -187,6 +187,38 @@ def test_place_adds_course_and_returns_plan(token_client, me, offered_course):
 @pytest.mark.django_db
 @pytest.mark.integration
 @freeze_time(TODAY)
+def test_place_marks_main_pick_as_backup_in_the_same_semester(
+    token_client, me, offered_course, planned_course_factory
+):
+    """US-5.2: the only main pick of a semester can become a backup and stays in the plan."""
+    course = offered_course
+    planned_course_factory(
+        student=me,
+        offering=course.offerings.first(),
+        academic_year_start=2025,
+        term=SemesterTerm.FALL,
+        slot=PlanSlot.MAIN,
+    )
+
+    response = token_client.put(
+        course_url(course.id),
+        {"study_year": 3, "semester_term": "FALL", "slot": "BACKUP"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    fall = semester(response.json(), 3, "FALL")
+    assert fall["main"] == []
+    assert [c["course_id"] for c in fall["backup"]] == [str(course.id)]
+    assert PlannedCourse.objects.filter(student=me).count() == 1
+    reread = semester(token_client.get(plan_url()).json(), 3, "FALL")
+    assert reread["main"] == []
+    assert [c["course_id"] for c in reread["backup"]] == [str(course.id)]
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@freeze_time(TODAY)
 def test_place_moves_course_when_already_planned(
     token_client, me, offered_course, planned_course_factory
 ):
