@@ -24,6 +24,7 @@ from rating_app.sync.catalog.changes import propose_changes
 from rating_app.sync.catalog.links_and_new import propose_links_and_new
 from rating_app.sync.catalog.mapping import propose_mapping_questions
 from rating_app.sync.drafts import ChangeDraft, DecisionView, load_decisions
+from rating_app.sync.errors import ShortReadError, StalledReadError
 from rating_app.sync.matching import academic_year_of
 from rating_app.sync.runs import finish_run
 from rating_app.sync.snapshot import (
@@ -73,18 +74,6 @@ class CatalogReader(Protocol):
 
 class CatalogDataChangedError(RuntimeError):
     """UKMA Data finished a crawl twice while this run was reading it."""
-
-
-class StalledReadError(RuntimeError):
-    """UKMA Data said there is more but its cursor did not move."""
-
-
-class ShortReadError(RuntimeError):
-    """UKMA Data returned under 90% of Rate UKMA's offerings for a year."""
-
-    def __init__(self, years: Sequence[int]) -> None:
-        self.years = list(years)
-        super().__init__("short_read")
 
 
 def record_catalog_run(run: SyncRun, reader: CatalogReader) -> SyncRun:

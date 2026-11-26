@@ -4,6 +4,8 @@
 
 Proposed
 
+Amended by [ADR-0022](0022-sync-runs-changes-and-policies.md) (2026-11-22): the sync no longer writes links. It records each difference as a `SyncRun` and `SyncChange` rows that a superuser approves or a per-kind policy applies; its schedule, scope check and reads stay as below.
+
 ## Date
 
 2026-11-21
