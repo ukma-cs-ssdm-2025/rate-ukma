@@ -6898,9 +6898,13 @@ components:
           type: boolean
           description: Whether `fe_course_instructors` is enabled for the current
             user.
+        fe_personal_plan:
+          type: boolean
+          description: Whether `fe_personal_plan` is enabled for the current user.
       required:
       - fe_course_instructors
       - fe_feed
+      - fe_personal_plan
       - fe_rate_flow
       - fe_ukma_data
     RatingCreateRequest:

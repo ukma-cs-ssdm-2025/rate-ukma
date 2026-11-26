@@ -1,0 +1,92 @@
+import { useState } from "react";
+
+import { Link } from "@tanstack/react-router";
+import { CalendarCheck, CalendarPlus } from "lucide-react";
+
+import { Button } from "@/components/ui/Button";
+import type {
+	CourseOffering,
+	CourseOfferingSpecialityInline,
+} from "@/lib/api/generated";
+import { useAuth } from "@/lib/auth/useAuth";
+import { useFeatureFlagState } from "@/lib/feature-flags/useFeatureFlag";
+import { testIds } from "@/lib/test-ids";
+import { usePersonalPlan } from "../hooks/usePersonalPlan";
+import { getSemesterTitle } from "../planFormatting";
+import { findPlannedCourse } from "../planTimeline";
+import { AddToPlanDialog } from "./AddToPlanDialog";
+
+export interface PlanCandidate {
+	courseId: string;
+	title: string;
+	facultyName: string | null;
+	specialities: readonly CourseOfferingSpecialityInline[];
+	offerings: readonly CourseOffering[];
+}
+
+export function AddToPlanButton({
+	course,
+}: Readonly<{ course: PlanCandidate }>) {
+	const { enabled, isReady } = useFeatureFlagState("fe_personal_plan");
+	const { isStudent } = useAuth();
+
+	if (!isReady || !enabled || !isStudent) {
+		return null;
+	}
+	return <PlanCourseAction course={course} />;
+}
+
+function PlanCourseAction({ course }: Readonly<{ course: PlanCandidate }>) {
+	const plan = usePersonalPlan({ enabled: true });
+	const [open, setOpen] = useState(false);
+
+	if (plan.isLoading) {
+		return null;
+	}
+
+	const place = findPlannedCourse(plan.years, course.courseId);
+
+	return (
+		<>
+			{place ? (
+				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+					<span className="inline-flex items-center gap-1.5 font-medium text-success">
+						<CalendarCheck aria-hidden className="size-4" />У вашому ІНП
+					</span>
+					<span className="text-muted-foreground">
+						{place.target.study_year} курс ·{" "}
+						{getSemesterTitle(place.target.semester_term).toLowerCase()}
+						{place.slot === "BACKUP" ? " · запасна" : ""}
+					</span>
+					{place.locked ? null : (
+						<Button
+							variant="link"
+							size="sm"
+							className="h-auto px-0"
+							onClick={() => setOpen(true)}
+						>
+							Змінити
+						</Button>
+					)}
+					<Button variant="link" size="sm" className="h-auto px-0" asChild>
+						<Link to="/plan">Відкрити ІНП</Link>
+					</Button>
+				</div>
+			) : (
+				<Button
+					onClick={() => setOpen(true)}
+					data-testid={testIds.personalPlan.addToPlanButton}
+				>
+					<CalendarPlus aria-hidden />
+					Додати в ІНП
+				</Button>
+			)}
+			<AddToPlanDialog
+				open={open}
+				onOpenChange={setOpen}
+				course={course}
+				place={place}
+			/>
+		</>
+	);
+}
