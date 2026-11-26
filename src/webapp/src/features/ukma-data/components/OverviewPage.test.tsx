@@ -158,6 +158,37 @@ describe("/data overview", () => {
 		).toBeInTheDocument();
 	});
 
+	it("links every step to its review", async () => {
+		// Act
+		renderOverview();
+
+		// Assert
+		const list = within(
+			await screen.findByRole("list", { name: "Що чекає рішення" }),
+		);
+		const link = within(list.getAllByRole("listitem")[0]!).getByRole("link");
+		expect(link).toHaveAttribute("href", "/data/sync/preview");
+		expect(JSON.parse(link.getAttribute("data-search") ?? "{}")).toEqual({
+			step: "links",
+		});
+	});
+
+	it("keeps the steps when the key check fails", async () => {
+		// Arrange
+		mock.onGet(STATUS_URL).reply(502, { detail: "UKMA Data недоступна" });
+
+		// Act
+		renderOverview();
+
+		// Assert
+		expect(
+			await screen.findByRole("list", { name: "Що чекає рішення" }),
+		).toBeInTheDocument();
+		expect(
+			await screen.findByText("Дані САЗ зараз недоступні"),
+		).toBeInTheDocument();
+	});
+
 	it("has no control that applies, rejects or answers", async () => {
 		// Act
 		renderOverview();

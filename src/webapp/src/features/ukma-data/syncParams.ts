@@ -2,12 +2,12 @@ import { parseAsInteger, parseAsStringEnum } from "nuqs";
 
 import { SyncChangeStateEnum } from "@/lib/api/generated";
 
-export const SYNC_TABS = ["pending", "history", "rules"] as const;
+export const SYNC_TABS = ["history", "rules"] as const;
 
 export const URL_OPTIONS = { history: "push" } as const;
 
 export const tabParser = parseAsStringEnum([...SYNC_TABS])
-	.withDefault("pending")
+	.withDefault("history")
 	.withOptions(URL_OPTIONS);
 
 export const historyParams = {

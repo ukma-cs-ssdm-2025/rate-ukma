@@ -11,7 +11,7 @@ import { Term } from "./Term";
 const TABS = [
 	{ to: "/data", label: "Огляд", exact: true },
 	{ to: "/data/cases", label: "Справи", exact: false },
-	{ to: "/data/sync", label: "Оновлення з САЗ", exact: false },
+	{ to: "/data/sync", label: "Журнал і правила", exact: false },
 ] as const;
 
 export function DataSectionHeader() {

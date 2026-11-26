@@ -218,9 +218,9 @@ export function SyncReviewPage() {
 	return (
 		<div className="min-w-0 space-y-4">
 			<Button variant="ghost" size="sm" asChild className="-ml-3">
-				<Link to="/data/sync" search={{ tab: "pending" }}>
+				<Link to="/data">
 					<ArrowLeft />
-					Чекають рішення
+					Огляд
 				</Link>
 			</Button>
 			<div className="space-y-1">

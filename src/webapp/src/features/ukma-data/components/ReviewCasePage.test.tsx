@@ -14,6 +14,7 @@ import {
 	STATUS_URL,
 } from "@/features/ukma-data/components/dataTestData";
 import { ReviewCasePage } from "@/features/ukma-data/components/ReviewCasePage";
+import { READ_ONLY } from "@/features/ukma-data/reviewCases";
 
 vi.mock("@tanstack/react-router", async () => ({
 	Link: (await import("@/test-utils/router")).MockLink,
@@ -262,6 +263,104 @@ describe("/data/cases/$caseId", () => {
 			screen.getByText(/лише в самому сервісі даних САЗ/),
 		).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: /Прибрати/ })).toBeNull();
+	});
+
+	it("disables decisions with a tooltip when the server key lacks review:decide", async () => {
+		const user = userEvent.setup();
+		mock.onGet(CASES_URL).reply(200, page([studentCase]));
+
+		renderCase();
+
+		const button = await screen.findByRole("button", {
+			name: "Це та сама людина",
+		});
+		expect(button).toBeDisabled();
+		await user.hover(button.parentElement as HTMLElement);
+		expect(await screen.findByText(READ_ONLY)).toBeInTheDocument();
+	});
+
+	it("shows a 409 refusal with the server's Ukrainian detail", async () => {
+		const user = userEvent.setup();
+		mock.reset();
+		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
+		mock.onGet(CASES_URL).reply(200, page([courseCase]));
+		mock.onGet(RECORDS_URL).reply(200, {
+			items: [
+				record("ud-new", "Тестова дисципліна Б"),
+				record("ud-old", "Тестова дисципліна А"),
+			],
+		});
+		mock.onPost(MERGE_URL).reply(409, {
+			detail: "Дисципліни різного рівня: об'єднати можна лише однакові.",
+			code: "ukma_data_refused",
+			status: 409,
+		});
+
+		renderCase("rc-201");
+		await user.click(
+			await screen.findByRole("button", {
+				name: "Об'єднати з «Тестова дисципліна А»",
+			}),
+		);
+		await user.click(
+			within(await screen.findByRole("alertdialog")).getByRole("button", {
+				name: "Об'єднати",
+			}),
+		);
+
+		expect(
+			await screen.findByText(
+				"Дисципліни різного рівня: об'єднати можна лише однакові.",
+			),
+		).toBeInTheDocument();
+	});
+
+	it("shows a 403 ukma_data_forbidden detail", async () => {
+		const user = userEvent.setup();
+		mock.reset();
+		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
+		mock.onGet(STUDENT_URL).reply(200, studentDetails);
+		mock.onGet(CASES_URL).reply(200, page([studentCase]));
+		mock.onPost(DECIDE_URL).reply(403, {
+			detail: READ_ONLY,
+			code: "ukma_data_forbidden",
+			status: 403,
+		});
+
+		renderCase();
+		await user.click(
+			await screen.findByRole("button", { name: "Це та сама людина" }),
+		);
+		await user.click(
+			within(await screen.findByRole("alertdialog")).getByRole("button", {
+				name: "Закрити справу",
+			}),
+		);
+
+		expect(await screen.findByText(READ_ONLY)).toBeInTheDocument();
+	});
+
+	it("sends nothing when the confirm is cancelled", async () => {
+		const user = userEvent.setup();
+		mock.reset();
+		mock.onGet(STATUS_URL).reply(200, keyStatusWithDecide);
+		mock.onGet(STUDENT_URL).reply(200, studentDetails);
+		mock.onGet(CASES_URL).reply(200, page([studentCase]));
+
+		renderCase();
+		await user.click(
+			await screen.findByRole("button", { name: "Це та сама людина" }),
+		);
+		await user.click(
+			within(await screen.findByRole("alertdialog")).getByRole("button", {
+				name: "Скасувати",
+			}),
+		);
+
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+		);
+		expect(mock.history.post).toHaveLength(0);
 	});
 
 	it("says when the case is gone", async () => {
