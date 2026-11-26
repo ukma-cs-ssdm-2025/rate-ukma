@@ -1,4 +1,4 @@
-const YEARS_BACK = 8;
+const YEARS_BACK = 10;
 
 export function academicYears(now: Date = new Date()): number[] {
 	const current =
