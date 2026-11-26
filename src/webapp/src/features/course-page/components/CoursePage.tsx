@@ -28,6 +28,7 @@ import {
 	CourseRatingsListSkeleton,
 } from "@/features/ratings/components/CourseRatingsList";
 import { CourseInstructors } from "@/features/instructors/components/CourseInstructors";
+import { AddToPlanButton } from "@/features/personal-plan/components/AddToPlanButton";
 import { DeleteRatingDialog } from "@/features/ratings/components/DeleteRatingDialog";
 import { RatingSuggestionPrompt } from "@/features/ratings/components/RatingSuggestionPrompt";
 import { RatingModal } from "@/features/ratings/components/RatingModal";
@@ -202,6 +203,17 @@ export function CoursePage({ courseId }: Readonly<{ courseId: string }>) {
 							weeklyHours={load.weeklyHours}
 						>
 							<CourseInstructors courseId={courseId} />
+							<div className="pt-1 empty:hidden">
+								<AddToPlanButton
+									course={{
+										courseId,
+										title: course.title ?? "",
+										facultyName: course.faculty_name ?? null,
+										specialities: course.specialities ?? [],
+										offerings,
+									}}
+								/>
+							</div>
 						</CourseDetailsHeader>
 
 						{showStats ? (

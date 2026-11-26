@@ -1,0 +1,235 @@
+import type { ReactNode } from "react";
+
+import { Plus } from "lucide-react";
+
+import { Button } from "@/components/ui/Button";
+import { testIds } from "@/lib/test-ids";
+import { cn } from "@/lib/utils";
+import type {
+	PlanSemester,
+	SemesterTermEnum,
+	CourseTypeKindEnum,
+} from "@/lib/api/generated";
+import type { PlanActions } from "../hooks/usePlanActions";
+import {
+	formatPlanCredits,
+	getSemesterTitle,
+	PLAN_KIND_ORDER,
+	PLAN_KIND_STYLES,
+} from "../planFormatting";
+import { sumCredits, sumWeeklyHours } from "../planRules";
+import { PlanBackupRow, PlanCourseRow } from "./PlanCourseRow";
+
+const ROW_COUNT_CLASSES = [
+	"",
+	"md:grid-rows-[repeat(1,auto)]",
+	"md:grid-rows-[repeat(2,auto)]",
+	"md:grid-rows-[repeat(3,auto)]",
+	"md:grid-rows-[repeat(4,auto)]",
+	"md:grid-rows-[repeat(5,auto)]",
+	"md:grid-rows-[repeat(6,auto)]",
+	"md:grid-rows-[repeat(7,auto)]",
+	"md:grid-rows-[repeat(8,auto)]",
+] as const;
+
+const LABEL_COLUMN = 1;
+
+interface PlanSemesterGridProps {
+	readonly studyYear: number;
+	readonly semesters: readonly PlanSemester[];
+	readonly showBackups: boolean;
+	readonly actions?: PlanActions;
+	readonly onAddCourse?: (term: SemesterTermEnum) => void;
+}
+
+export function PlanSemesterGrid({
+	studyYear,
+	semesters,
+	showBackups,
+	actions,
+	onAddCourse,
+}: PlanSemesterGridProps) {
+	const visible = (semester: PlanSemester) => ({
+		main: semester.main ?? [],
+		backup: showBackups ? (semester.backup ?? []) : [],
+	});
+	const kinds = PLAN_KIND_ORDER.filter((kind) =>
+		semesters.some((semester) => {
+			const { main, backup } = visible(semester);
+			return [...main, ...backup].some((course) => course.type_kind === kind);
+		}),
+	);
+	const rowCount = 1 + kinds.length * 2 + (onAddCourse ? 1 : 0);
+	const yearMain = semesters.flatMap((semester) => semester.main ?? []);
+
+	return (
+		<div
+			className={cn(
+				"grid gap-x-4 gap-y-3.5 md:grid-flow-col md:grid-cols-3",
+				ROW_COUNT_CLASSES[rowCount],
+			)}
+		>
+			{semesters.map((semester, column) => {
+				const term = semester.semester_term ?? "FALL";
+				const target = { study_year: studyYear, semester_term: term };
+				const { main, backup } = visible(semester);
+				return [
+					<SemesterHeading key="heading" semester={semester} />,
+					...kinds.flatMap((kind) => {
+						const kindMain = main.filter((course) => course.type_kind === kind);
+						const kindBackup = backup.filter(
+							(course) => course.type_kind === kind,
+						);
+						const isEmpty = kindMain.length + kindBackup.length === 0;
+						return [
+							<KindHeader
+								key={`${kind}-header`}
+								kind={kind}
+								credits={sumCredits(
+									yearMain.filter((course) => course.type_kind === kind),
+								)}
+								labelled={column === LABEL_COLUMN}
+								lastColumn={column === semesters.length - 1}
+								isEmpty={isEmpty}
+							/>,
+							<KindCell key={kind} isEmpty={isEmpty}>
+								{kindMain.map((course) => {
+									const ownPick = actions && !course.is_mandatory;
+									return (
+										<PlanCourseRow
+											key={course.course_id}
+											course={course}
+											onRemove={
+												ownPick
+													? () => actions.remove(course.course_id ?? "")
+													: undefined
+											}
+										/>
+									);
+								})}
+								{kindBackup.map((course) => (
+									<PlanBackupRow
+										key={course.course_id}
+										course={course}
+										onPromote={
+											actions
+												? () => actions.promote(target, course.course_id ?? "")
+												: undefined
+										}
+										onRemove={
+											actions
+												? () => actions.remove(course.course_id ?? "")
+												: undefined
+										}
+									/>
+								))}
+							</KindCell>,
+						];
+					}),
+					onAddCourse ? (
+						<AddCell
+							key="add"
+							semester={semester}
+							onAdd={() => onAddCourse(term)}
+						/>
+					) : null,
+				];
+			})}
+		</div>
+	);
+}
+
+function SemesterHeading({ semester }: Readonly<{ semester: PlanSemester }>) {
+	return (
+		<div className="mt-4 flex items-baseline justify-between border-b px-0.5 pb-2 first:mt-0 md:mt-0">
+			<h3 className="text-sm font-semibold">
+				{getSemesterTitle(semester.semester_term ?? "FALL")}
+			</h3>
+			{semester.is_graduation_summer ? null : (
+				<span className="text-sm text-muted-foreground tabular-nums">
+					{formatPlanCredits(sumCredits(semester.main ?? []))} ECTS /{" "}
+					{sumWeeklyHours(semester.main ?? [])} год
+				</span>
+			)}
+		</div>
+	);
+}
+
+function KindHeader({
+	kind,
+	credits,
+	labelled,
+	lastColumn,
+	isEmpty,
+}: Readonly<{
+	kind: CourseTypeKindEnum;
+	credits: number;
+	labelled: boolean;
+	lastColumn: boolean;
+	isEmpty: boolean;
+}>) {
+	const style = PLAN_KIND_STYLES[kind];
+	return (
+		<div
+			className={cn(
+				"items-center gap-3 pt-2",
+				isEmpty ? "hidden md:flex" : "flex",
+				!lastColumn && "md:-mr-4",
+			)}
+		>
+			<span
+				aria-hidden
+				className={cn("hidden h-px grow opacity-40 md:block", style.dot)}
+			/>
+			<span
+				className={cn(
+					"flex shrink-0 items-center gap-1 text-sm font-semibold",
+					style.text,
+					!labelled && "md:hidden",
+				)}
+			>
+				{style.groupLabel}
+				<span className="font-normal tabular-nums opacity-75">
+					· {formatPlanCredits(credits)} ECTS
+				</span>
+			</span>
+			<span aria-hidden className={cn("h-px grow opacity-40", style.dot)} />
+		</div>
+	);
+}
+
+function KindCell({
+	isEmpty,
+	children,
+}: Readonly<{ isEmpty: boolean; children: ReactNode }>) {
+	return (
+		<div className={cn("flex-col gap-2", isEmpty ? "hidden md:flex" : "flex")}>
+			{children}
+		</div>
+	);
+}
+
+function AddCell({
+	semester,
+	onAdd,
+}: Readonly<{ semester: PlanSemester; onAdd: () => void }>) {
+	if (semester.is_graduation_summer) {
+		return (
+			<p className="rounded-lg border border-dashed px-3 py-2.5 text-center text-sm text-muted-foreground">
+				На останньому курсі літнього семестру немає
+			</p>
+		);
+	}
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			onClick={onAdd}
+			className="border-dashed text-muted-foreground shadow-none"
+			data-testid={testIds.personalPlan.addCourseButton}
+		>
+			<Plus aria-hidden />
+			Додати дисципліну
+		</Button>
+	);
+}

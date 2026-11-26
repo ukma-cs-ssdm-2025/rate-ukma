@@ -350,4 +350,5 @@ PUBLIC_FEATURE_FLAGS = [
     "fe_rate_flow",
     "fe_ukma_data",
     "fe_course_instructors",
+    "fe_personal_plan",
 ]

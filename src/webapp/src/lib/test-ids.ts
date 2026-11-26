@@ -146,6 +146,22 @@ export const testIds = {
 		errorState: "my-ratings-error-state",
 	},
 
+	personalPlan: {
+		page: "personal-plan-page",
+		progress: "personal-plan-progress",
+		viewToggle: "personal-plan-view-toggle",
+		yearSection: "personal-plan-year-section",
+		courseRow: "personal-plan-course-row",
+		backupRow: "personal-plan-backup-row",
+		addCourseButton: "personal-plan-add-course-button",
+		addDialog: "personal-plan-add-dialog",
+		searchInput: "personal-plan-search-input",
+		catalogRow: "personal-plan-catalog-row",
+		addToPlanButton: "personal-plan-add-to-plan-button",
+		addToPlanDialog: "personal-plan-add-to-plan-dialog",
+		errorState: "personal-plan-error-state",
+	},
+
 	feed: {
 		list: "feed-list",
 		skeleton: "feed-skeleton",
