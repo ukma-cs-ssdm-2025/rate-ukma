@@ -193,14 +193,15 @@ WITH studying AS (
         st.id,
         st.education_level,
         f.name AS faculty,
-        st.user_id IS NOT NULL AND NOT analytics.is_excluded(st.user_id) AS has_account
+        st.user_id IS NOT NULL AS has_account
     FROM rating_app_student st
     JOIN rating_app_enrollment e ON e.student_id = st.id
     JOIN rating_app_courseoffering o ON o.id = e.offering_id
     JOIN rating_app_semester s ON s.id = o.semester_id
     JOIN rating_app_speciality sp ON sp.id = st.speciality_id
     JOIN rating_app_faculty f ON f.id = sp.faculty_id
-    WHERE e.status <> 'DROPPED'
+    WHERE NOT analytics.is_excluded(st.user_id)
+      AND e.status <> 'DROPPED'
       AND analytics.semester_academic_year(s.year, s.term)
           = analytics.academic_year_on(analytics.today())
 )

@@ -47,7 +47,7 @@ AS $$
 $$;
 """
 
-# Mirrors CourseRepository._build_academic_year_q
+# Mirrors SemesterService.get_academic_year_start
 CREATE_SEMESTER_ACADEMIC_YEAR = """
 CREATE FUNCTION analytics.semester_academic_year(semester_year integer, semester_term text)
 RETURNS integer
@@ -58,7 +58,7 @@ AS $$
 $$;
 """
 
-# Mirrors SemesterService.get_current
+# Mirrors SemesterService.get_current_academic_year_start
 CREATE_ACADEMIC_YEAR_ON = """
 CREATE FUNCTION analytics.academic_year_on(day date)
 RETURNS integer

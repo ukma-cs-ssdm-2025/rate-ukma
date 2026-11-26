@@ -114,18 +114,27 @@ def test_rating_opens_on_matches_rating_service_when_today_is_a_boundary(semeste
 @pytest.mark.integration
 @pytest.mark.postgres
 @pytest.mark.parametrize("today", BOUNDARY_DATES)
-def test_academic_year_on_matches_semester_service_when_today_is_a_boundary(
-    semester_factory, today
-):
-    for term in SemesterTerm:
-        semester_factory(year=today.year, term=term)
-
+def test_academic_year_on_matches_semester_service_when_today_is_a_boundary(today):
     with freeze_time(today):
-        current = semester_service().get_current()
+        in_python = semester_service().get_current_academic_year_start()
 
-    assert _value("SELECT analytics.academic_year_on(%s)", [today]) == _value(
-        "SELECT analytics.semester_academic_year(%s, %s)", [current.year, current.term]
-    )
+    assert _value("SELECT analytics.academic_year_on(%s)", [today]) == in_python
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+@pytest.mark.postgres
+def test_semester_academic_year_matches_semester_service():
+    semesters = [(year, term) for year in (2024, 2025) for term in SemesterTerm]
+
+    in_sql = [
+        _value("SELECT analytics.semester_academic_year(%s, %s)", [year, term])
+        for year, term in semesters
+    ]
+
+    assert in_sql == [
+        semester_service().get_academic_year_start(year, term) for year, term in semesters
+    ]
 
 
 @pytest.mark.django_db
@@ -391,8 +400,7 @@ def test_student_reach_counts_students_of_the_academic_year_in_progress(
     enrollment_factory,
     excluded_account_factory,
 ):
-    today = _today()
-    academic_year = today.year if today.month >= 9 else today.year - 1
+    academic_year = semester_service().get_current_academic_year_start()
     current = course_offering_factory(
         semester=semester_factory(year=academic_year, term=SemesterTerm.FALL)
     )
@@ -404,7 +412,9 @@ def test_student_reach_counts_students_of_the_academic_year_in_progress(
     without_account = student_factory(speciality=speciality, education_level=EducationLevel.MASTER)
     left = student_factory(with_user=True)
     dropped = student_factory(with_user=True)
+    excluded = student_factory(user=excluded_account_factory().user)
     enrollment_factory(student=with_account, offering=current)
+    enrollment_factory(student=excluded, offering=current)
     enrollment_factory(student=without_account, offering=current)
     enrollment_factory(student=left, offering=previous)
     enrollment_factory(student=dropped, offering=current, status=EnrollmentStatus.DROPPED)
